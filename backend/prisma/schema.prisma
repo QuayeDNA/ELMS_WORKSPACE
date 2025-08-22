@@ -1,0 +1,822 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User Management Models
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  role          UserRole
+  isActive      Boolean   @default(true)
+  lastLogin     DateTime?
+  mfaEnabled    Boolean   @default(false)
+  mfaSecret     String?
+  loginAttempts Int       @default(0)
+  lockedUntil   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  profile           UserProfile?
+  devices           DeviceToken[]
+  reportedIncidents Incident[]         @relation("IncidentReporter")
+  assignedIncidents Incident[]         @relation("IncidentAssignee")
+  movements         Movement[]
+  auditLogs         AuditLog[]
+  verifications     DataVerification[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  FACULTY_OFFICER
+  EXAM_COORDINATOR
+  INVIGILATOR
+  SCRIPT_HANDLER
+  STUDENT
+  LECTURER
+}
+
+model UserProfile {
+  id                String  @id @default(cuid())
+  userId            String  @unique
+  firstName         String
+  lastName          String
+  phoneNumber       String?
+  avatar            String?
+  preferredLanguage String  @default("en")
+  timezone          String  @default("UTC")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Role-specific fields
+  student     Student?
+  lecturer    Lecturer?
+  invigilator Invigilator?
+
+  @@map("user_profiles")
+}
+
+model Student {
+  id                 String             @id @default(cuid())
+  profileId          String             @unique
+  indexNumber        String             @unique
+  yearOfStudy        Int
+  certificationLevel CertificationLevel
+
+  // Relations
+  profile             UserProfile          @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  program             Program              @relation(fields: [programId], references: [id])
+  programId           String
+  courses             StudentCourse[]
+  scripts             Script[]
+  incidents           Incident[]
+  specialRequirements SpecialRequirement[]
+  examSessions        ExamSessionStudent[]
+
+  @@map("students")
+}
+
+model Lecturer {
+  id         String @id @default(cuid())
+  profileId  String @unique
+  employeeId String @unique
+
+  // Relations
+  profile      UserProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  department   Department  @relation(fields: [departmentId], references: [id])
+  departmentId String
+  courses      Course[]
+
+  @@map("lecturers")
+}
+
+model Invigilator {
+  id                String   @id @default(cuid())
+  profileId         String   @unique
+  certificationDate DateTime
+
+  // Relations
+  profile           UserProfile              @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  examSessions      ExamSessionInvigilator[]
+  availabilitySlots AvailabilitySlot[]
+
+  @@map("invigilators")
+}
+
+model DeviceToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  platform  Platform
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  lastUsed  DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("device_tokens")
+}
+
+enum Platform {
+  WEB
+  MOBILE_IOS
+  MOBILE_ANDROID
+  DESKTOP
+}
+
+enum CertificationLevel {
+  CERTIFICATE
+  DIPLOMA
+  BACHELOR
+  MASTER
+  PHD
+}
+
+// Academic Structure Models
+model Institution {
+  id        String   @id @default(cuid())
+  name      String
+  code      String   @unique
+  address   Json
+  config    Json
+  createdAt DateTime @default(now())
+
+  // Relations
+  faculties Faculty[]
+
+  @@map("institutions")
+}
+
+model Faculty {
+  id            String   @id @default(cuid())
+  name          String
+  code          String
+  institutionId String
+  deanId        String?
+  createdAt     DateTime @default(now())
+
+  // Relations
+  institution Institution  @relation(fields: [institutionId], references: [id])
+  departments Department[]
+  venues      Venue[]
+
+  @@unique([institutionId, code])
+  @@map("faculties")
+}
+
+model Department {
+  id        String   @id @default(cuid())
+  name      String
+  code      String
+  facultyId String
+  headId    String?
+  createdAt DateTime @default(now())
+
+  // Relations
+  faculty   Faculty    @relation(fields: [facultyId], references: [id])
+  programs  Program[]
+  courses   Course[]
+  lecturers Lecturer[]
+
+  @@unique([facultyId, code])
+  @@map("departments")
+}
+
+model Program {
+  id           String       @id @default(cuid())
+  name         String
+  code         String
+  departmentId String
+  level        ProgramLevel
+  duration     Int // Duration in years
+  requirements Json
+  createdAt    DateTime     @default(now())
+
+  // Relations
+  department Department      @relation(fields: [departmentId], references: [id])
+  students   Student[]
+  courses    ProgramCourse[]
+
+  @@unique([departmentId, code])
+  @@map("programs")
+}
+
+model Course {
+  id           String   @id @default(cuid())
+  name         String
+  code         String
+  departmentId String
+  creditHours  Int
+  lecturerId   String
+  createdAt    DateTime @default(now())
+
+  // Relations
+  department       Department           @relation(fields: [departmentId], references: [id])
+  lecturer         Lecturer             @relation(fields: [lecturerId], references: [id])
+  prerequisites    CoursePrerequisite[] @relation("CoursePrerequisites")
+  dependentCourses CoursePrerequisite[] @relation("PrerequisiteCourses")
+  programs         ProgramCourse[]
+  students         StudentCourse[]
+  examSessions     ExamSession[]
+
+  @@unique([departmentId, code])
+  @@map("courses")
+}
+
+model CoursePrerequisite {
+  courseId       String
+  prerequisiteId String
+
+  // Relations
+  course       Course @relation("CoursePrerequisites", fields: [courseId], references: [id])
+  prerequisite Course @relation("PrerequisiteCourses", fields: [prerequisiteId], references: [id])
+
+  @@id([courseId, prerequisiteId])
+  @@map("course_prerequisites")
+}
+
+model ProgramCourse {
+  programId String
+  courseId  String
+  isCore    Boolean @default(true)
+  semester  Int
+
+  // Relations
+  program Program @relation(fields: [programId], references: [id])
+  course  Course  @relation(fields: [courseId], references: [id])
+
+  @@id([programId, courseId])
+  @@map("program_courses")
+}
+
+model StudentCourse {
+  studentId String
+  courseId  String
+  status    EnrollmentStatus @default(ENROLLED)
+  grade     String?
+  createdAt DateTime         @default(now())
+
+  // Relations
+  student Student @relation(fields: [studentId], references: [id])
+  course  Course  @relation(fields: [courseId], references: [id])
+
+  @@id([studentId, courseId])
+  @@map("student_courses")
+}
+
+enum ProgramLevel {
+  CERTIFICATE
+  DIPLOMA
+  UNDERGRADUATE
+  POSTGRADUATE
+  DOCTORAL
+}
+
+enum EnrollmentStatus {
+  ENROLLED
+  COMPLETED
+  WITHDRAWN
+  FAILED
+}
+
+// Venue Management Models
+model Venue {
+  id        String   @id @default(cuid())
+  name      String
+  address   Json
+  facultyId String
+  createdAt DateTime @default(now())
+
+  // Relations
+  faculty Faculty @relation(fields: [facultyId], references: [id])
+  rooms   Room[]
+
+  @@map("venues")
+}
+
+model Room {
+  id       String @id @default(cuid())
+  name     String
+  capacity Int
+  venueId  String
+  features Json // Accessibility, equipment, etc.
+
+  // Relations
+  venue        Venue         @relation(fields: [venueId], references: [id])
+  examSessions ExamSession[]
+
+  @@unique([venueId, name])
+  @@map("rooms")
+}
+
+// Examination Models
+model ExamPeriod {
+  id                   String           @id @default(cuid())
+  name                 String
+  academicYear         String
+  semester             Semester
+  startDate            DateTime
+  endDate              DateTime
+  registrationDeadline DateTime
+  status               ExamPeriodStatus @default(PLANNED)
+  config               Json
+  createdAt            DateTime         @default(now())
+
+  // Relations
+  examSessions ExamSession[]
+
+  @@map("exam_periods")
+}
+
+model ExamSession {
+  id           String     @id @default(cuid())
+  examPeriodId String
+  courseId     String
+  date         DateTime
+  startTime    String // Time as string (HH:MM)
+  endTime      String // Time as string (HH:MM)
+  duration     Int // Duration in minutes
+  venueId      String
+  roomId       String
+  maxStudents  Int
+  status       ExamStatus @default(SCHEDULED)
+  createdAt    DateTime   @default(now())
+
+  // Relations
+  examPeriod          ExamPeriod               @relation(fields: [examPeriodId], references: [id])
+  course              Course                   @relation(fields: [courseId], references: [id])
+  room                Room                     @relation(fields: [roomId], references: [id])
+  invigilators        ExamSessionInvigilator[]
+  students            ExamSessionStudent[]
+  scripts             Script[]
+  incidents           Incident[]
+  specialRequirements SpecialRequirement[]
+  batches             Batch[]
+
+  @@map("exam_sessions")
+}
+
+model ExamSessionInvigilator {
+  examSessionId String
+  invigilatorId String
+  role          InvigilatorRole @default(ASSISTANT)
+
+  // Relations
+  examSession ExamSession @relation(fields: [examSessionId], references: [id])
+  invigilator Invigilator @relation(fields: [invigilatorId], references: [id])
+
+  @@id([examSessionId, invigilatorId])
+  @@map("exam_session_invigilators")
+}
+
+model ExamSessionStudent {
+  examSessionId String
+  studentId     String
+  status        AttendanceStatus @default(REGISTERED)
+  checkInTime   DateTime?
+  checkOutTime  DateTime?
+
+  // Relations
+  examSession ExamSession @relation(fields: [examSessionId], references: [id])
+  student     Student     @relation(fields: [studentId], references: [id])
+
+  @@id([examSessionId, studentId])
+  @@map("exam_session_students")
+}
+
+model SpecialRequirement {
+  id             String          @id @default(cuid())
+  type           RequirementType
+  description    String
+  studentId      String
+  examSessionId  String?
+  accommodations Json
+  approved       Boolean         @default(false)
+  approvedBy     String?
+  createdAt      DateTime        @default(now())
+
+  // Relations
+  student     Student      @relation(fields: [studentId], references: [id])
+  examSession ExamSession? @relation(fields: [examSessionId], references: [id])
+
+  @@map("special_requirements")
+}
+
+model AvailabilitySlot {
+  id            String  @id @default(cuid())
+  invigilatorId String
+  dayOfWeek     Int // 0-6 (Sunday to Saturday)
+  startTime     String // HH:MM
+  endTime       String // HH:MM
+  isAvailable   Boolean @default(true)
+
+  // Relations
+  invigilator Invigilator @relation(fields: [invigilatorId], references: [id])
+
+  @@map("availability_slots")
+}
+
+enum Semester {
+  FIRST
+  SECOND
+  THIRD
+  SUMMER
+}
+
+enum ExamPeriodStatus {
+  PLANNED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum ExamStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  POSTPONED
+}
+
+enum InvigilatorRole {
+  CHIEF
+  ASSISTANT
+  RELIEF
+}
+
+enum AttendanceStatus {
+  REGISTERED
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+enum RequirementType {
+  EXTRA_TIME
+  SEPARATE_ROOM
+  SCRIBE
+  LARGE_PRINT
+  COMPUTER_ACCESS
+  MEDICAL_ACCOMMODATION
+  RELIGIOUS_ACCOMMODATION
+}
+
+// Script Tracking Models
+model Script {
+  id               String       @id @default(cuid())
+  scriptNumber     String       @unique
+  qrCode           String       @unique
+  studentId        String
+  examSessionId    String
+  status           ScriptStatus @default(GENERATED)
+  currentLocation  String?
+  currentHandlerId String?
+  metadata         Json
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  // Relations
+  student     Student       @relation(fields: [studentId], references: [id])
+  examSession ExamSession   @relation(fields: [examSessionId], references: [id])
+  movements   Movement[]
+  incidents   Incident[]
+  batches     BatchScript[]
+
+  @@map("scripts")
+}
+
+model Movement {
+  id                    String    @id @default(cuid())
+  scriptId              String
+  fromLocation          String?
+  toLocation            String
+  handlerId             String
+  timestamp             DateTime  @default(now())
+  notes                 String?
+  batchId               String?
+  verified              Boolean   @default(false)
+  verifiedBy            String?
+  verificationTimestamp DateTime?
+
+  // Relations
+  script  Script @relation(fields: [scriptId], references: [id])
+  handler User   @relation(fields: [handlerId], references: [id])
+  batch   Batch? @relation(fields: [batchId], references: [id])
+
+  @@map("movements")
+}
+
+model Batch {
+  id            String      @id @default(cuid())
+  batchNumber   String      @unique
+  examSessionId String
+  handlerId     String
+  status        BatchStatus @default(CREATED)
+  qrCode        String      @unique
+  createdAt     DateTime    @default(now())
+  processedAt   DateTime?
+
+  // Relations
+  examSession ExamSession   @relation(fields: [examSessionId], references: [id])
+  scripts     BatchScript[]
+  movements   Movement[]
+
+  @@map("batches")
+}
+
+model BatchScript {
+  batchId  String
+  scriptId String
+
+  // Relations
+  batch  Batch  @relation(fields: [batchId], references: [id])
+  script Script @relation(fields: [scriptId], references: [id])
+
+  @@id([batchId, scriptId])
+  @@map("batch_scripts")
+}
+
+enum ScriptStatus {
+  GENERATED
+  DISTRIBUTED
+  COLLECTED
+  VERIFIED
+  SCANNED
+  DISPATCHED
+  RECEIVED
+  GRADED
+  RETURNED
+}
+
+enum BatchStatus {
+  CREATED
+  PROCESSING
+  COMPLETED
+  VERIFIED
+}
+
+// Incident Management Models
+model Incident {
+  id             String           @id @default(cuid())
+  incidentNumber String           @unique
+  type           IncidentType
+  severity       IncidentSeverity
+  status         IncidentStatus   @default(OPEN)
+  examSessionId  String
+  studentId      String?
+  scriptId       String?
+  reportedById   String
+  assignedToId   String?
+  title          String
+  description    String
+  resolution     String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  resolvedAt     DateTime?
+
+  // Relations
+  examSession     ExamSession      @relation(fields: [examSessionId], references: [id])
+  student         Student?         @relation(fields: [studentId], references: [id])
+  script          Script?          @relation(fields: [scriptId], references: [id])
+  reportedBy      User             @relation("IncidentReporter", fields: [reportedById], references: [id])
+  assignedTo      User?            @relation("IncidentAssignee", fields: [assignedToId], references: [id])
+  evidence        Evidence[]
+  followUpActions FollowUpAction[]
+  notifications   Notification[]
+
+  @@map("incidents")
+}
+
+model Evidence {
+  id          String       @id @default(cuid())
+  incidentId  String
+  type        EvidenceType
+  fileUrl     String
+  fileName    String
+  fileSize    Int
+  mimeType    String
+  description String?
+  uploadedBy  String
+  timestamp   DateTime     @default(now())
+
+  // Relations
+  incident Incident @relation(fields: [incidentId], references: [id])
+
+  @@map("evidence")
+}
+
+model FollowUpAction {
+  id          String             @id @default(cuid())
+  incidentId  String
+  type        FollowUpActionType
+  description String
+  dueDate     DateTime?
+  status      ActionStatus       @default(PENDING)
+  assignedTo  String?
+  completedAt DateTime?
+  notes       String?
+
+  // Relations
+  incident Incident @relation(fields: [incidentId], references: [id])
+
+  @@map("follow_up_actions")
+}
+
+enum IncidentType {
+  ACADEMIC_MISCONDUCT
+  TECHNICAL_ISSUE
+  MEDICAL_EMERGENCY
+  SECURITY_BREACH
+  DISRUPTION
+  MISSING_MATERIALS
+  LATE_ARRIVAL
+  IDENTITY_VERIFICATION
+  SCRIPT_IRREGULARITY
+  EQUIPMENT_FAILURE
+}
+
+enum IncidentSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum IncidentStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+  ESCALATED
+}
+
+enum EvidenceType {
+  PHOTO
+  VIDEO
+  DOCUMENT
+  AUDIO
+  SCREENSHOT
+}
+
+enum FollowUpActionType {
+  INVESTIGATION
+  DISCIPLINARY_ACTION
+  REPORT_GENERATION
+  NOTIFICATION
+  MEETING
+  DOCUMENTATION
+}
+
+enum ActionStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+// Data Verification Models
+model DataVerification {
+  id                    String             @id @default(cuid())
+  entityType            EntityType
+  entityId              String
+  field                 String
+  oldValue              Json?
+  newValue              Json
+  status                VerificationStatus @default(PENDING)
+  verifiedById          String?
+  verificationTimestamp DateTime?
+  comments              String?
+  autoApproved          Boolean            @default(false)
+  createdAt             DateTime           @default(now())
+
+  // Relations
+  verifiedBy User? @relation(fields: [verifiedById], references: [id])
+
+  @@map("data_verifications")
+}
+
+model AuditLog {
+  id         String      @id @default(cuid())
+  userId     String
+  action     AuditAction
+  entityType EntityType
+  entityId   String
+  changes    Json
+  ipAddress  String
+  userAgent  String
+  sessionId  String
+  timestamp  DateTime    @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+model Notification {
+  id         String           @id @default(cuid())
+  userId     String? // null for broadcast notifications
+  incidentId String?
+  type       NotificationType
+  title      String
+  message    String
+  data       Json?
+  read       Boolean          @default(false)
+  readAt     DateTime?
+  createdAt  DateTime         @default(now())
+
+  // Relations
+  incident Incident? @relation(fields: [incidentId], references: [id])
+
+  @@map("notifications")
+}
+
+enum EntityType {
+  USER
+  STUDENT
+  LECTURER
+  COURSE
+  EXAM_SESSION
+  SCRIPT
+  INCIDENT
+  BATCH
+  VENUE
+  ROOM
+}
+
+enum VerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REQUIRES_REVIEW
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  PASSWORD_CHANGE
+  ROLE_CHANGE
+  PERMISSION_GRANT
+  PERMISSION_REVOKE
+  DATA_EXPORT
+  DATA_IMPORT
+  SYSTEM_ACCESS
+}
+
+enum NotificationType {
+  EXAM_REMINDER
+  SCRIPT_UPDATE
+  INCIDENT_ASSIGNED
+  INCIDENT_RESOLVED
+  SYSTEM_ALERT
+  SECURITY_ALERT
+  BROADCAST
+}
+
+// System Configuration
+model SystemConfiguration {
+  id          String         @id @default(cuid())
+  key         String         @unique
+  value       Json
+  description String
+  category    ConfigCategory
+  environment Environment
+  modifiedBy  String
+  modifiedAt  DateTime       @default(now())
+
+  @@map("system_configurations")
+}
+
+enum ConfigCategory {
+  SECURITY
+  AUTHENTICATION
+  EXAMINATION
+  NOTIFICATION
+  STORAGE
+  INTEGRATION
+  UI_CUSTOMIZATION
+}
+
+enum Environment {
+  DEVELOPMENT
+  STAGING
+  PRODUCTION
+}
