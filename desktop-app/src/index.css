@@ -1,7 +1,9 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap');
 
 /* Tailwind 4.1.2 dark mode custom variant */
 @custom-variant dark (&:where(.dark, .dark *));
+
 
 /* Smooth theme transitions */
 * {

@@ -74,7 +74,7 @@ export const borderRadius = {
 }
 
 export const typography = {
-  fontFamily: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial',
+  fontFamily: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Nunito"',
   sizes: {
     sm: '0.875rem', // 14px
     base: '1rem', // 16px
