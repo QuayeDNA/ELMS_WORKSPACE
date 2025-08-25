@@ -28,10 +28,11 @@ import { createScriptRoutes } from '@/routes/script.routes';
 import { createIncidentRoutes } from '@/routes/incident.routes';
 import { createAnalyticsRoutes } from '@/routes/analytics.routes';
 import { createFileRoutes } from '@/routes/file.routes';
+import { createSuperAdminRoutes } from '@/routes/superadmin.routes';
 
 class ElmsServer {
-  private app: express.Application;
-  private server: any;
+  private readonly app: express.Application;
+  private readonly server: any;
   private io!: SocketIOServer;
   private prisma!: PrismaClient;
   private redis: any;
@@ -88,7 +89,7 @@ class ElmsServer {
 
     // CORS configuration
     this.app.use(cors({
-      origin: process.env.FRONTEND_URL || "http://localhost:3001",
+      origin: process.env.FRONTEND_URL || "http://localhost:5173",
       credentials: true,
     }));
 
@@ -161,6 +162,7 @@ class ElmsServer {
     this.app.use('/api/incidents', authenticateToken(this.prisma), createIncidentRoutes(this.prisma));
     this.app.use('/api/analytics', authenticateToken(this.prisma), createAnalyticsRoutes(this.prisma));
     this.app.use('/api/files', authenticateToken(this.prisma), createFileRoutes(this.prisma));
+    this.app.use('/api/superadmin', createSuperAdminRoutes(this.prisma));
 
     // API documentation
     this.app.get('/api/docs', (req, res) => {
@@ -175,6 +177,7 @@ class ElmsServer {
           incidents: '/api/incidents',
           analytics: '/api/analytics',
           files: '/api/files',
+          superadmin: '/api/superadmin',
         }
       });
     });
