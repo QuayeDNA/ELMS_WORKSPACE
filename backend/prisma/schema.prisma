@@ -12,51 +12,112 @@ datasource db {
 
 // User Management Models
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  passwordHash  String
-  role          UserRole
-  isActive      Boolean   @default(true)
-  lastLogin     DateTime?
-  mfaEnabled    Boolean   @default(false)
-  mfaSecret     String?
-  loginAttempts Int       @default(0)
-  lockedUntil   DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                       String    @id @default(cuid())
+  email                    String    @unique
+  username                 String?   @unique
+  passwordHash             String
+  role                     UserRole
+  isActive                 Boolean   @default(false) // Requires email verification
+  isVerified               Boolean   @default(false)
+  lastLogin                DateTime?
+  lastLoginIP              String?
+  lastLoginDevice          String?
+  mfaEnabled               Boolean   @default(false)
+  mfaSecret                String?
+  backupCodes              String[] // Encrypted backup codes for MFA
+  loginAttempts            Int       @default(0)
+  lockedUntil              DateTime?
+  passwordResetToken       String?
+  passwordResetExpires     DateTime?
+  emailVerificationToken   String?
+  emailVerificationExpires DateTime?
+  twoFactorTempSecret      String?
+  preferredLanguage        String    @default("en")
+  timezone                 String    @default("UTC")
+  lastActivityAt           DateTime  @default(now())
+  sessionTimeout           Int       @default(1800) // 30 minutes in seconds
+  forcePasswordChange      Boolean   @default(false)
+  passwordChangedAt        DateTime  @default(now())
+  agreedToTermsAt          DateTime?
+  privacyPolicyAcceptedAt  DateTime?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
 
   // Relations
   profile           UserProfile?
   devices           DeviceToken[]
+  sessions          UserSession[]
+  permissions       UserPermission[]
   reportedIncidents Incident[]         @relation("IncidentReporter")
   assignedIncidents Incident[]         @relation("IncidentAssignee")
   movements         Movement[]
   auditLogs         AuditLog[]
   verifications     DataVerification[]
+  notifications     UserNotification[]
+  loginHistory      LoginHistory[]
+  createdBy         User?              @relation("UserCreatedBy", fields: [createdById], references: [id])
+  createdById       String?
+  createdUsers      User[]             @relation("UserCreatedBy")
 
   @@map("users")
 }
 
 enum UserRole {
-  SUPER_ADMIN
-  ADMIN
-  FACULTY_OFFICER
-  EXAM_COORDINATOR
-  INVIGILATOR
-  SCRIPT_HANDLER
-  STUDENT
-  LECTURER
+  SUPER_ADMIN // Full system access
+  SYSTEM_ADMIN // Technical administration
+  INSTITUTIONAL_ADMIN // Institution-wide administration
+  FACULTY_ADMIN // Faculty-level administration
+  DEPARTMENT_HEAD // Department administration
+  PROGRAM_COORDINATOR // Program management
+  ACADEMIC_OFFICER // Academic operations
+  EXAM_COORDINATOR // Exam management
+  CHIEF_INVIGILATOR // Senior invigilation
+  INVIGILATOR // Exam supervision
+  SCRIPT_HANDLER // Script management
+  SECURITY_OFFICER // Security and compliance
+  IT_SUPPORT // Technical support
+  LECTURER // Teaching staff
+  TEACHING_ASSISTANT // TA support
+  STUDENT // Student access
+  GUEST // Limited guest access
 }
 
 model UserProfile {
-  id                String  @id @default(cuid())
-  userId            String  @unique
-  firstName         String
-  lastName          String
-  phoneNumber       String?
-  avatar            String?
-  preferredLanguage String  @default("en")
-  timezone          String  @default("UTC")
+  id                   String    @id @default(cuid())
+  userId               String    @unique
+  firstName            String
+  lastName             String
+  middleName           String?
+  title                String? // Dr., Prof., Mr., Ms., etc.
+  phoneNumber          String?
+  emergencyContact     Json? // { name, phone, relationship }
+  address              Json? // Full address structure
+  avatar               String?
+  bio                  String?
+  dateOfBirth          DateTime?
+  gender               Gender?
+  nationality          String?
+  identificationType   String? // National ID, Passport, etc.
+  identificationNumber String?
+  preferredLanguage    String    @default("en")
+  timezone             String    @default("UTC")
+  socialLinks          Json? // LinkedIn, Twitter, etc.
+  skills               String[] // Array of skills/specializations
+  interests            String[] // Array of interests
+
+  // Academic/Professional info
+  currentPosition String?
+  department      String?
+  officeLocation  String?
+  officeHours     Json? // Schedule structure
+
+  // Privacy settings
+  profileVisibility   ProfileVisibility @default(INSTITUTIONAL)
+  allowDirectMessages Boolean           @default(true)
+  allowNotifications  Boolean           @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -65,42 +126,599 @@ model UserProfile {
   student     Student?
   lecturer    Lecturer?
   invigilator Invigilator?
+  staff       Staff?
 
   @@map("user_profiles")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum ProfileVisibility {
+  PUBLIC
+  INSTITUTIONAL
+  FACULTY
+  DEPARTMENT
+  PRIVATE
+}
+
+// Enhanced session management
+model UserSession {
+  id           String   @id @default(cuid())
+  userId       String
+  sessionToken String   @unique
+  deviceInfo   Json // Browser, OS, device type
+  ipAddress    String
+  location     Json? // City, country from IP
+  isActive     Boolean  @default(true)
+  lastActivity DateTime @default(now())
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_sessions")
+}
+
+// Login history tracking
+model LoginHistory {
+  id            String   @id @default(cuid())
+  userId        String
+  success       Boolean
+  ipAddress     String
+  userAgent     String
+  deviceInfo    Json
+  location      Json?
+  failureReason String?
+  timestamp     DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("login_history")
+}
+
+// Comprehensive permissions system
+model Permission {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  description String
+  category    String // user_management, exam_management, etc.
+  isSystem    Boolean @default(false) // System permissions cannot be deleted
+
+  // Relations
+  roles RolePermission[]
+  users UserPermission[]
+
+  @@map("permissions")
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String
+  isSystem    Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  // Relations
+  permissions RolePermission[]
+  users       UserRole[]
+
+  @@map("roles")
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+
+  // Relations
+  role       Role       @relation(fields: [roleId], references: [id])
+  permission Permission @relation(fields: [permissionId], references: [id])
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserPermission {
+  userId       String
+  permissionId String
+  grantedBy    String
+  grantedAt    DateTime  @default(now())
+  expiresAt    DateTime?
+
+  // Relations
+  user       User       @relation(fields: [userId], references: [id])
+  permission Permission @relation(fields: [permissionId], references: [id])
+
+  @@id([userId, permissionId])
+  @@map("user_permissions")
+}
+
+// Notification system
+model UserNotification {
+  id        String               @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      NotificationType
+  category  String
+  priority  NotificationPriority @default(NORMAL)
+  isRead    Boolean              @default(false)
+  readAt    DateTime?
+  data      Json? // Additional data payload
+  createdAt DateTime             @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_notifications")
+}
+
+enum NotificationType {
+  SYSTEM
+  EXAM
+  INCIDENT
+  SCRIPT
+  ANNOUNCEMENT
+  PERSONAL
+  EXAM_REMINDER
+  SCRIPT_UPDATE
+  INCIDENT_ASSIGNED
+  INCIDENT_RESOLVED
+  SYSTEM_ALERT
+  SECURITY_ALERT
+  BROADCAST
+}
+
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+// Staff management for non-academic personnel
+model Staff {
+  id                String       @id @default(cuid())
+  profileId         String       @unique
+  employeeId        String       @unique
+  staffType         StaffType
+  departmentId      String?
+  supervisorId      String?
+  startDate         DateTime
+  endDate           DateTime?
+  contractType      ContractType
+  workSchedule      Json // Working hours, days
+  securityClearance String?
+
+  // Relations
+  profile      UserProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  department   Department? @relation(fields: [departmentId], references: [id])
+  supervisor   Staff?      @relation("StaffSupervisor", fields: [supervisorId], references: [id])
+  subordinates Staff[]     @relation("StaffSupervisor")
+
+  @@map("staff")
+}
+
+enum StaffType {
+  ADMINISTRATIVE
+  TECHNICAL
+  SECURITY
+  MAINTENANCE
+  SUPPORT
+  MANAGEMENT
+}
+
+enum ContractType {
+  PERMANENT
+  TEMPORARY
+  CONTRACT
+  PART_TIME
+  INTERNSHIP
 }
 
 model Student {
   id                 String             @id @default(cuid())
   profileId          String             @unique
-  indexNumber        String             @unique
+  studentId          String             @unique // Institution-assigned ID (e.g., UG12345678)
+  indexNumber        String             @unique // Exam index number
+  admissionNumber    String?            @unique // Admission reference number
+  programId          String
   yearOfStudy        Int
+  currentLevel       String? // Level 100, 200, 300, 400 (Ghanaian system)
+  semester           Int? // Current semester
   certificationLevel CertificationLevel
+  entryMode          EntryMode          @default(REGULAR) // How student entered program
+  admissionDate      DateTime
+  expectedGraduation DateTime?
+  graduationDate     DateTime?
+  status             StudentStatus      @default(ACTIVE)
+
+  // Academic performance
+  gpa              Float? // Current GPA
+  cgpa             Float? // Cumulative GPA
+  totalCredits     Int    @default(0)
+  completedCredits Int    @default(0)
+  requiredCredits  Int? // Credits needed for graduation
+
+  // Student classification
+  isPartTime      Boolean @default(false)
+  isInternational Boolean @default(false)
+  isSpecialNeeds  Boolean @default(false)
+
+  // Financial information
+  scholarshipInfo Json? // Scholarship details and amounts
+  financialStatus StudentFinancialStatus @default(CLEARED)
+  outstandingFees Decimal?               @default(0) @db.Decimal(10, 2)
+
+  // Personal information
+  emergencyContact   Json // Emergency contact information
+  medicalInfo        Json? // Medical conditions, allergies
+  accommodationNeeds Json? // Special accommodation requirements
+  religion           String?
+  tribe              String? // Ethnic background (relevant in Ghana)
+  hometown           String? // Place of origin
+
+  // Academic standing
+  academicProbation Boolean   @default(false)
+  probationReason   String?
+  probationDate     DateTime?
+  probationEndDate  DateTime?
+
+  // Graduation requirements
+  thesisTitle  String?
+  advisorId    String?
+  hasCompleted Json? // Completion status of various requirements
+
+  // Ghana-specific fields
+  ssnit     String? // Social Security Number
+  ghanaCard String? // Ghana Card ID
+  votersId  String? // Voter ID
+  passport  String? // Passport number for international students
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
   profile             UserProfile          @relation(fields: [profileId], references: [id], onDelete: Cascade)
   program             Program              @relation(fields: [programId], references: [id])
-  programId           String
+  advisor             Lecturer?            @relation("StudentAdvisor", fields: [advisorId], references: [id])
   courses             StudentCourse[]
   scripts             Script[]
   incidents           Incident[]
   specialRequirements SpecialRequirement[]
   examSessions        ExamSessionStudent[]
+  grades              Grade[]
+  transcripts         Transcript[]
+  hostelBookings      HostelBooking[]
+  payments            Payment[]
 
   @@map("students")
 }
 
-model Lecturer {
-  id         String @id @default(cuid())
-  profileId  String @unique
-  employeeId String @unique
+enum StudentStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  DISMISSED
+  GRADUATED
+  TRANSFERRED_OUT
+  TRANSFERRED_IN
+  WITHDRAWN
+  DEFERRED
+  ON_LEAVE
+  DECEASED
+}
+
+enum EntryMode {
+  REGULAR // Direct admission
+  MATURE // Mature student admission
+  TRANSFER // Transfer from another institution
+  DIPLOMA_TOP_UP // Diploma to degree top-up
+  INTERNATIONAL // International student
+  SPECIAL_ADMISSION // Special circumstances
+  SANDWICH // Part-time/distance learning
+}
+
+enum StudentFinancialStatus {
+  CLEARED
+  PENDING
+  BLOCKED
+  PARTIAL
+  SCHOLARSHIP
+  DEFERRED_PAYMENT
+}
+
+// Financial Management Models (Ghana-specific)
+model FeeStructure {
+  id            String        @id @default(cuid())
+  programId     String
+  academicYear  String
+  semester      Int? // null for annual fees
+  studentType   StudentType
+  nationality   Nationality   @default(GHANAIAN)
+  feeCategories FeeCategory[]
+  totalAmount   Decimal       @db.Decimal(10, 2)
+  currency      String        @default("GHS")
+  isActive      Boolean       @default(true)
+  effectiveDate DateTime
+  expiryDate    DateTime?
+  createdAt     DateTime      @default(now())
 
   // Relations
-  profile      UserProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  department   Department  @relation(fields: [departmentId], references: [id])
-  departmentId String
-  courses      Course[]
+  program  Program   @relation(fields: [programId], references: [id])
+  payments Payment[]
+
+  @@unique([programId, academicYear, semester, studentType, nationality])
+  @@map("fee_structures")
+}
+
+model FeeCategory {
+  id              String          @id @default(cuid())
+  feeStructureId  String
+  name            String // Academic Facility Fee, Library Fee, etc.
+  description     String?
+  amount          Decimal         @db.Decimal(10, 2)
+  isCompulsory    Boolean         @default(true)
+  paymentDeadline DateTime?
+  category        FeeCategoryType
+
+  // Relations
+  feeStructure FeeStructure @relation(fields: [feeStructureId], references: [id])
+
+  @@map("fee_categories")
+}
+
+model Payment {
+  id             String        @id @default(cuid())
+  studentId      String
+  feeStructureId String?
+  reference      String        @unique // Payment reference number
+  transactionId  String? // Bank/mobile money transaction ID
+  amount         Decimal       @db.Decimal(10, 2)
+  currency       String        @default("GHS")
+  paymentMethod  PaymentMethod
+  paymentType    PaymentType
+  academicYear   String
+  semester       Int?
+  description    String?
+  status         PaymentStatus @default(PENDING)
+  paidAt         DateTime?
+  confirmedAt    DateTime?
+  confirmedBy    String?
+  reverseReason  String?
+  reversedAt     DateTime?
+  receiptNumber  String?
+  bankSlipUrl    String? // Uploaded bank slip/receipt
+  createdAt      DateTime      @default(now())
+
+  // Relations
+  student      Student       @relation(fields: [studentId], references: [id])
+  feeStructure FeeStructure? @relation(fields: [feeStructureId], references: [id])
+
+  @@map("payments")
+}
+
+enum StudentType {
+  REGULAR
+  CONTINUING
+  PART_TIME
+  DISTANCE
+  SANDWICH
+  INTERNATIONAL
+}
+
+enum Nationality {
+  GHANAIAN
+  ECOWAS
+  INTERNATIONAL
+}
+
+enum FeeCategoryType {
+  TUITION
+  ACADEMIC_FACILITY
+  LIBRARY
+  EXAMINATION
+  LABORATORY
+  HOSTEL
+  REGISTRATION
+  TECHNOLOGY
+  DEVELOPMENT
+  SRC
+  MEDICAL
+  SPORTS
+  GRADUATION
+  OTHER
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  MOBILE_MONEY
+  CREDIT_CARD
+  CHEQUE
+  BANK_DRAFT
+  ONLINE
+}
+
+enum PaymentType {
+  FULL_PAYMENT
+  INSTALLMENT
+  PARTIAL
+  REFUND
+  SCHOLARSHIP
+  WAIVER
+}
+
+enum PaymentStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+  REVERSED
+  REFUNDED
+}
+
+model Lecturer {
+  id                String         @id @default(cuid())
+  profileId         String         @unique
+  employeeId        String         @unique
+  staffNumber       String?        @unique
+  departmentId      String
+  rank              AcademicRank
+  qualification     String[] // Array of qualifications
+  specialization    String[] // Areas of expertise
+  researchInterests String[] // Research areas
+  officeLocation    String?
+  officeHours       Json? // Schedule structure
+  bio               String?
+  cvUrl             String?
+  researchGate      String?
+  orcidId           String?
+  googleScholar     String?
+  hireDate          DateTime
+  tenureDate        DateTime?
+  retirementDate    DateTime?
+  status            LecturerStatus @default(ACTIVE)
+  isPartTime        Boolean        @default(false)
+  maxTeachingLoad   Int            @default(12) // Credit hours per semester
+  currentLoad       Int            @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  profile           UserProfile         @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  department        Department          @relation(fields: [departmentId], references: [id])
+  courses           Course[]
+  advisees          Student[]           @relation("StudentAdvisor")
+  publications      Publication[]
+  committees        CommitteeMember[]
+  PublicationAuthor PublicationAuthor[]
 
   @@map("lecturers")
+}
+
+enum AcademicRank {
+  GRADUATE_ASSISTANT
+  TEACHING_ASSISTANT
+  LECTURER
+  ASSISTANT_LECTURER
+  SENIOR_LECTURER
+  ASSOCIATE_PROFESSOR
+  PROFESSOR
+  EMERITUS_PROFESSOR
+  VISITING_LECTURER
+  ADJUNCT_PROFESSOR
+}
+
+enum LecturerStatus {
+  ACTIVE
+  INACTIVE
+  ON_LEAVE
+  SABBATICAL
+  RETIRED
+  TERMINATED
+}
+
+// Research publications tracking
+model Publication {
+  id            String          @id @default(cuid())
+  title         String
+  type          PublicationType
+  journal       String?
+  conference    String?
+  year          Int
+  doi           String?
+  url           String?
+  abstract      String?
+  keywords      String[]
+  citationCount Int             @default(0)
+  isOpenAccess  Boolean         @default(false)
+  createdAt     DateTime        @default(now())
+
+  // Relations
+  authors    PublicationAuthor[]
+  Lecturer   Lecturer?           @relation(fields: [lecturerId], references: [id])
+  lecturerId String?
+
+  @@map("publications")
+}
+
+enum PublicationType {
+  JOURNAL_ARTICLE
+  CONFERENCE_PAPER
+  BOOK
+  BOOK_CHAPTER
+  THESIS
+  TECHNICAL_REPORT
+  WORKING_PAPER
+}
+
+model PublicationAuthor {
+  publicationId   String
+  lecturerId      String
+  authorOrder     Int
+  isCorresponding Boolean @default(false)
+
+  // Relations
+  publication Publication @relation(fields: [publicationId], references: [id])
+  lecturer    Lecturer    @relation(fields: [lecturerId], references: [id])
+
+  @@id([publicationId, lecturerId])
+  @@map("publication_authors")
+}
+
+// Academic committees
+model Committee {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  type        CommitteeType
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+
+  // Relations
+  members CommitteeMember[]
+
+  @@map("committees")
+}
+
+enum CommitteeType {
+  ACADEMIC
+  RESEARCH
+  DISCIPLINARY
+  ADMINISTRATIVE
+  EXAMINATION
+  ADMISSIONS
+}
+
+model CommitteeMember {
+  committeeId String
+  lecturerId  String
+  role        CommitteeRole
+  startDate   DateTime
+  endDate     DateTime?
+
+  // Relations
+  committee Committee @relation(fields: [committeeId], references: [id])
+  lecturer  Lecturer  @relation(fields: [lecturerId], references: [id])
+
+  @@id([committeeId, lecturerId])
+  @@map("committee_members")
+}
+
+enum CommitteeRole {
+  CHAIRMAN
+  VICE_CHAIRMAN
+  SECRETARY
+  MEMBER
+  OBSERVER
 }
 
 model Invigilator {
@@ -146,31 +764,293 @@ enum CertificationLevel {
   PHD
 }
 
-// Academic Structure Models
+// Enhanced Academic Structure Models (Ghanaian University Base)
 model Institution {
-  id        String   @id @default(cuid())
-  name      String
-  code      String   @unique
-  address   Json
-  config    Json
-  createdAt DateTime @default(now())
+  id               String               @id @default(cuid())
+  name             String
+  shortName        String?
+  code             String               @unique
+  type             InstitutionType
+  category         InstitutionCategory  @default(PUBLIC) // Public/Private classification
+  address          Json // Complete address structure with Ghana regions
+  contactInfo      Json // Phone, email, website, etc.
+  logo             String?
+  motto            String?
+  description      String?
+  establishedYear  Int?
+  charter          Json? // University charter details
+  accreditation    Json? // NAB, ISO certifications
+  affiliations     String[] // Professional body memberships
+  timezone         String               @default("Africa/Accra")
+  language         String               @default("en") // Primary language of instruction
+  currencies       String[]             @default(["GHS"]) // Supported currencies
+  academicCalendar Json // Ghanaian academic calendar structure
+  customFields     Json? // Institution-specific additional fields
+  config           Json // Institution-specific configuration
+  settings         InstitutionSettings?
+  isActive         Boolean              @default(true)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
 
   // Relations
-  faculties Faculty[]
+  faculties     Faculty[]
+  academicYears AcademicYear[]
+  campuses      Campus[]
+  schools       School[] // Some universities use schools instead of faculties
 
   @@map("institutions")
 }
 
-model Faculty {
-  id            String   @id @default(cuid())
+enum InstitutionType {
+  UNIVERSITY
+  COLLEGE
+  INSTITUTE
+  SCHOOL
+  ACADEMY
+  POLYTECHNIC
+  TECHNICAL_UNIVERSITY
+}
+
+enum InstitutionCategory {
+  PUBLIC
+  PRIVATE
+  QUASI_GOVERNMENT
+  RELIGIOUS
+  INTERNATIONAL
+}
+
+model InstitutionSettings {
+  id                       String   @id @default(cuid())
+  institutionId            String   @unique
+  allowSelfRegistration    Boolean  @default(false)
+  requireEmailVerification Boolean  @default(true)
+  passwordPolicy           Json // Password requirements
+  sessionTimeout           Int      @default(1800)
+  maxConcurrentSessions    Int      @default(3)
+  enableMFA                Boolean  @default(false)
+  allowedEmailDomains      String[] // Restricted email domains
+  maintenanceMode          Boolean  @default(false)
+  customBranding           Json? // Colors, fonts, etc.
+  ghanaSpecific            Json? // Ghana-specific settings (SSNIT, TIN, etc.)
+  customFields             Json? // Institution-defined additional fields
+  gradingSystem            Json // Institution's grading scale and policies
+  feesStructure            Json? // Fee categories and amounts
+
+  // Relations
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+
+  @@map("institution_settings")
+}
+
+// Schools model (alternative to faculties in some Ghanaian universities)
+model School {
+  id              String   @id @default(cuid())
+  name            String
+  shortName       String?
+  code            String
+  description     String?
+  institutionId   String
+  campusId        String?
+  deanId          String? // School Director/Dean
+  establishedYear Int?
+  contactInfo     Json? // Email, phone, office location
+  vision          String?
+  mission         String?
+  objectives      String[]
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  institution Institution  @relation(fields: [institutionId], references: [id])
+  campus      Campus?      @relation(fields: [campusId], references: [id])
+  departments Department[]
+  venues      Venue[]
+  Faculty     Faculty[]
+
+  @@unique([institutionId, code])
+  @@map("schools")
+}
+
+// Campus management for multi-campus institutions
+model Campus {
+  id            String    @id @default(cuid())
   name          String
   code          String
   institutionId String
-  deanId        String?
+  address       Json // Full Ghana address with region, district, etc.
+  coordinates   Json? // GPS coordinates
+  isMain        Boolean   @default(false)
+  isActive      Boolean   @default(true)
+  facilities    Json? // Available facilities and amenities
+  capacity      Int? // Total student capacity
+  established   DateTime?
+  createdAt     DateTime  @default(now())
+
+  // Relations
+  institution Institution @relation(fields: [institutionId], references: [id])
+  faculties   Faculty[]
+  schools     School[]
+  venues      Venue[]
+  hostels     Hostel[]
+
+  @@unique([institutionId, code])
+  @@map("campuses")
+}
+
+// Hostel management (important for Ghanaian universities)
+model Hostel {
+  id         String       @id @default(cuid())
+  name       String
+  code       String
+  campusId   String
+  gender     HostelGender
+  capacity   Int
+  occupied   Int          @default(0)
+  facilities Json // WiFi, electricity, water, etc.
+  fees       Json // Accommodation fees structure
+  rules      String[] // Hostel rules and regulations
+  isActive   Boolean      @default(true)
+  createdAt  DateTime     @default(now())
+
+  // Relations
+  campus   Campus          @relation(fields: [campusId], references: [id])
+  rooms    HostelRoom[]
+  bookings HostelBooking[]
+
+  @@unique([campusId, code])
+  @@map("hostels")
+}
+
+model HostelRoom {
+  id         String   @id @default(cuid())
+  roomNumber String
+  hostelId   String
+  capacity   Int
+  occupied   Int      @default(0)
+  type       RoomType
+  facilities Json // Room-specific facilities
+  condition  String? // Room condition notes
+  isActive   Boolean  @default(true)
+
+  // Relations
+  hostel   Hostel          @relation(fields: [hostelId], references: [id])
+  bookings HostelBooking[]
+
+  @@unique([hostelId, roomNumber])
+  @@map("hostel_rooms")
+}
+
+model HostelBooking {
+  id           String        @id @default(cuid())
+  studentId    String
+  hostelId     String
+  roomId       String?
+  academicYear String
+  status       BookingStatus @default(PENDING)
+  checkinDate  DateTime?
+  checkoutDate DateTime?
+  fees         Json // Booking fees breakdown
+  createdAt    DateTime      @default(now())
+
+  // Relations
+  student Student     @relation(fields: [studentId], references: [id])
+  hostel  Hostel      @relation(fields: [hostelId], references: [id])
+  room    HostelRoom? @relation(fields: [roomId], references: [id])
+
+  @@map("hostel_bookings")
+}
+
+enum HostelGender {
+  MALE
+  FEMALE
+  MIXED
+}
+
+enum RoomType {
+  SINGLE
+  DOUBLE
+  TRIPLE
+  QUAD
+  SHARED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CHECKED_IN
+  CHECKED_OUT
+  CANCELLED
+}
+
+// Academic year and calendar management
+model AcademicYear {
+  id            String   @id @default(cuid())
+  name          String // e.g., "2024/2025"
+  code          String // e.g., "2425"
+  institutionId String
+  startDate     DateTime
+  endDate       DateTime
+  isCurrent     Boolean  @default(false)
+  isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())
 
   // Relations
   institution Institution  @relation(fields: [institutionId], references: [id])
+  semesters   Semester[]
+  examPeriods ExamPeriod[]
+
+  @@unique([institutionId, code])
+  @@map("academic_years")
+}
+
+model Semester {
+  id                String   @id @default(cuid())
+  name              String // e.g., "Fall 2024", "Spring 2025"
+  code              String // e.g., "FALL24", "SPR25"
+  academicYearId    String
+  semesterNumber    Int // 1, 2, 3 (for trimester systems)
+  startDate         DateTime
+  endDate           DateTime
+  registrationStart DateTime
+  registrationEnd   DateTime
+  isCurrent         Boolean  @default(false)
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+
+  // Relations
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
+  examPeriods  ExamPeriod[]
+
+  @@unique([academicYearId, code])
+  @@map("semesters")
+}
+
+model Faculty {
+  id              String   @id @default(cuid())
+  name            String
+  shortName       String?
+  code            String
+  description     String?
+  institutionId   String
+  campusId        String?
+  schoolId        String? // Some faculties belong to schools
+  deanId          String?
+  establishedYear Int?
+  contactInfo     Json? // Email, phone, office location
+  vision          String?
+  mission         String?
+  objectives      String[]
+  researchAreas   String[] // Faculty research focus areas
+  partnerships    Json? // Industry and academic partnerships
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  institution Institution  @relation(fields: [institutionId], references: [id])
+  campus      Campus?      @relation(fields: [campusId], references: [id])
+  school      School?      @relation(fields: [schoolId], references: [id])
   departments Department[]
   venues      Venue[]
 
@@ -179,50 +1059,114 @@ model Faculty {
 }
 
 model Department {
-  id        String   @id @default(cuid())
-  name      String
-  code      String
-  facultyId String
-  headId    String?
-  createdAt DateTime @default(now())
+  id              String   @id @default(cuid())
+  name            String
+  shortName       String?
+  code            String
+  description     String?
+  facultyId       String?
+  schoolId        String? // Direct relationship to school (some unis don't use faculties)
+  headId          String?
+  establishedYear Int?
+  contactInfo     Json? // Email, phone, office location
+  researchAreas   String[] // Department research focus areas
+  laboratories    String[] // Available labs and facilities
+  equipment       Json? // Major equipment and resources
+  partnerships    Json? // Industry collaborations
+  accreditation   Json? // Professional body accreditation
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   // Relations
-  faculty   Faculty    @relation(fields: [facultyId], references: [id])
+  faculty   Faculty?   @relation(fields: [facultyId], references: [id])
+  school    School?    @relation(fields: [schoolId], references: [id])
   programs  Program[]
   courses   Course[]
   lecturers Lecturer[]
+  staff     Staff[]
 
   @@unique([facultyId, code])
+  @@unique([schoolId, code])
   @@map("departments")
 }
 
 model Program {
-  id           String       @id @default(cuid())
-  name         String
-  code         String
-  departmentId String
-  level        ProgramLevel
-  duration     Int // Duration in years
-  requirements Json
-  createdAt    DateTime     @default(now())
+  id                String       @id @default(cuid())
+  name              String
+  shortName         String?
+  code              String
+  departmentId      String
+  level             ProgramLevel
+  duration          Int // Duration in years
+  credits           Int? // Total credits required
+  requirements      Json // Graduation requirements
+  objectives        String[] // Program learning objectives
+  careerProspects   String[] // Career opportunities
+  entryRequirements Json // Admission requirements
+  accreditation     Json? // Professional body accreditation
+  affiliations      String[] // Professional memberships
+  tuitionMode       TuitionMode  @default(FULL_TIME)
+  deliveryMode      DeliveryMode @default(FACE_TO_FACE)
+  isActive          Boolean      @default(true)
+  hasThesis         Boolean      @default(false)
+  hasInternship     Boolean      @default(false)
+  minGPA            Float? // Minimum GPA for graduation
+  maxDuration       Int? // Maximum years allowed
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
 
   // Relations
-  department Department      @relation(fields: [departmentId], references: [id])
-  students   Student[]
-  courses    ProgramCourse[]
+  department    Department      @relation(fields: [departmentId], references: [id])
+  students      Student[]
+  courses       ProgramCourse[]
+  feeStructures FeeStructure[]
 
   @@unique([departmentId, code])
   @@map("programs")
 }
 
+enum TuitionMode {
+  FULL_TIME
+  PART_TIME
+  SANDWICH
+  EVENING
+  WEEKEND
+  DISTANCE
+}
+
+enum DeliveryMode {
+  FACE_TO_FACE
+  ONLINE
+  HYBRID
+  DISTANCE
+}
+
 model Course {
-  id           String   @id @default(cuid())
-  name         String
-  code         String
-  departmentId String
-  creditHours  Int
-  lecturerId   String
-  createdAt    DateTime @default(now())
+  id                  String      @id @default(cuid())
+  name                String
+  code                String
+  departmentId        String
+  creditHours         Int
+  contactHours        Int? // Actual teaching hours
+  lecturerId          String
+  description         String?
+  objectives          String[] // Learning objectives
+  prerequisiteCodes   String[] // Course code prerequisites
+  corequisites        String[] // Courses to be taken concurrently
+  level               CourseLevel
+  type                CourseType
+  semester            Int? // Preferred semester
+  maxStudents         Int? // Enrollment limit
+  minStudents         Int? // Minimum for course to run
+  syllabus            String? // Syllabus content or URL
+  textbooks           Json? // Required and recommended books
+  assessmentStructure Json? // Exam weights, assignment percentages
+  language            String      @default("en")
+  isActive            Boolean     @default(true)
+  isElective          Boolean     @default(false)
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
 
   // Relations
   department       Department           @relation(fields: [departmentId], references: [id])
@@ -232,9 +1176,104 @@ model Course {
   programs         ProgramCourse[]
   students         StudentCourse[]
   examSessions     ExamSession[]
+  grades           Grade[]
 
   @@unique([departmentId, code])
   @@map("courses")
+}
+
+enum CourseLevel {
+  FOUNDATION // 000-099
+  INTRODUCTORY // 100-199
+  INTERMEDIATE // 200-299
+  ADVANCED // 300-399
+  SENIOR // 400-499
+  GRADUATE // 500+
+}
+
+enum CourseType {
+  CORE
+  ELECTIVE
+  PRACTICAL
+  SEMINAR
+  THESIS
+  PROJECT
+  INTERNSHIP
+}
+
+// Enhanced grading system
+model Grade {
+  id             String         @id @default(cuid())
+  studentId      String
+  courseId       String
+  assessmentType AssessmentType
+  assessmentName String // Quiz 1, Midterm, Final, etc.
+  score          Float
+  maxScore       Float
+  percentage     Float // Calculated percentage
+  weight         Float // Weight in final grade
+  letterGrade    String? // A, B+, C, etc.
+  gradePoints    Float? // 4.0 scale equivalent
+  submittedAt    DateTime?
+  gradedAt       DateTime?
+  gradedBy       String
+  comments       String?
+  isPublished    Boolean        @default(false)
+  publishedAt    DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  // Relations
+  student Student @relation(fields: [studentId], references: [id])
+  course  Course  @relation(fields: [courseId], references: [id])
+
+  @@unique([studentId, courseId, assessmentType, assessmentName])
+  @@map("grades")
+}
+
+enum AssessmentType {
+  QUIZ
+  ASSIGNMENT
+  MIDTERM
+  FINAL_EXAM
+  PROJECT
+  PRESENTATION
+  PRACTICAL
+  THESIS
+  PARTICIPATION
+}
+
+// Transcript generation
+model Transcript {
+  id           String           @id @default(cuid())
+  studentId    String
+  academicYear String
+  semester     String
+  gpa          Float?
+  cgpa         Float?
+  totalCredits Int
+  status       TranscriptStatus @default(DRAFT)
+  generatedAt  DateTime?
+  generatedBy  String?
+  verifiedAt   DateTime?
+  verifiedBy   String?
+  isOfficial   Boolean          @default(false)
+  requestedBy  String?
+  requestedAt  DateTime?
+  purpose      String? // Job application, transfer, etc.
+
+  // Relations
+  student Student @relation(fields: [studentId], references: [id])
+
+  @@map("transcripts")
+}
+
+enum TranscriptStatus {
+  DRAFT
+  GENERATED
+  VERIFIED
+  ISSUED
+  REVOKED
 }
 
 model CoursePrerequisite {
@@ -302,8 +1341,12 @@ model Venue {
   createdAt DateTime @default(now())
 
   // Relations
-  faculty Faculty @relation(fields: [facultyId], references: [id])
-  rooms   Room[]
+  faculty  Faculty @relation(fields: [facultyId], references: [id])
+  rooms    Room[]
+  School   School? @relation(fields: [schoolId], references: [id])
+  schoolId String?
+  Campus   Campus? @relation(fields: [campusId], references: [id])
+  campusId String?
 
   @@map("venues")
 }
@@ -323,38 +1366,60 @@ model Room {
   @@map("rooms")
 }
 
-// Examination Models
+// Enhanced Examination Models
 model ExamPeriod {
   id                   String           @id @default(cuid())
   name                 String
-  academicYear         String
-  semester             Semester
+  academicYearId       String
+  semesterId           String?
+  code                 String // Unique code for the exam period
   startDate            DateTime
   endDate              DateTime
   registrationDeadline DateTime
   status               ExamPeriodStatus @default(PLANNED)
-  config               Json
+  examType             ExamType
+  instructions         String? // General exam instructions
+  config               Json // Exam period configuration
   createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
 
   // Relations
+  academicYear AcademicYear  @relation(fields: [academicYearId], references: [id])
+  semester     Semester?     @relation(fields: [semesterId], references: [id])
   examSessions ExamSession[]
 
+  @@unique([academicYearId, code])
   @@map("exam_periods")
 }
 
+enum ExamType {
+  MIDTERM
+  FINAL
+  SUPPLEMENTARY
+  SPECIAL
+  RESIT
+  MAKEUP
+}
+
 model ExamSession {
-  id           String     @id @default(cuid())
-  examPeriodId String
-  courseId     String
-  date         DateTime
-  startTime    String // Time as string (HH:MM)
-  endTime      String // Time as string (HH:MM)
-  duration     Int // Duration in minutes
-  venueId      String
-  roomId       String
-  maxStudents  Int
-  status       ExamStatus @default(SCHEDULED)
-  createdAt    DateTime   @default(now())
+  id             String     @id @default(cuid())
+  examPeriodId   String
+  courseId       String
+  date           DateTime
+  startTime      String // Time as string (HH:MM)
+  endTime        String // Time as string (HH:MM)
+  duration       Int // Duration in minutes
+  venueId        String
+  roomId         String
+  maxStudents    Int
+  actualStudents Int        @default(0)
+  status         ExamStatus @default(SCHEDULED)
+  examType       ExamType   @default(FINAL)
+  instructions   String? // Specific exam instructions
+  materials      String[] // Allowed materials
+  restrictions   String[] // Exam restrictions
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
 
   // Relations
   examPeriod          ExamPeriod               @relation(fields: [examPeriodId], references: [id])
@@ -430,7 +1495,7 @@ model AvailabilitySlot {
   @@map("availability_slots")
 }
 
-enum Semester {
+enum SemesterType {
   FIRST
   SECOND
   THIRD
@@ -779,16 +1844,6 @@ enum AuditAction {
   DATA_EXPORT
   DATA_IMPORT
   SYSTEM_ACCESS
-}
-
-enum NotificationType {
-  EXAM_REMINDER
-  SCRIPT_UPDATE
-  INCIDENT_ASSIGNED
-  INCIDENT_RESOLVED
-  SYSTEM_ALERT
-  SECURITY_ALERT
-  BROADCAST
 }
 
 // System Configuration
