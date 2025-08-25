@@ -30,26 +30,7 @@ interface AuthState {
   hasAnyRole: (roles: string[]) => boolean
 }
 
-// Role hierarchy for frontend access control
-const ROLE_HIERARCHY: Record<string, number> = {
-  GUEST: 1,
-  STUDENT: 2,
-  TEACHING_ASSISTANT: 3,
-  LECTURER: 4,
-  IT_SUPPORT: 5,
-  SECURITY_OFFICER: 6,
-  SCRIPT_HANDLER: 7,
-  INVIGILATOR: 8,
-  CHIEF_INVIGILATOR: 9,
-  ACADEMIC_OFFICER: 10,
-  EXAM_COORDINATOR: 11,
-  PROGRAM_COORDINATOR: 12,
-  DEPARTMENT_HEAD: 13,
-  FACULTY_ADMIN: 14,
-  INSTITUTIONAL_ADMIN: 15,
-  SYSTEM_ADMIN: 16,
-  SUPER_ADMIN: 17,
-}
+// role hierarchy removed; not currently used
 
 // Permissions mapping for each role (mirrored from backend)
 const ROLE_PERMISSIONS: Record<string, string[]> = {

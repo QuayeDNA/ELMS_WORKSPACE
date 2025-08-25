@@ -11,21 +11,18 @@ import {
   LogOut,
   Search,
   FileText,
-  Shield,
   Building2,
   GraduationCap,
   Database,
   Server,
   ClipboardList,
   Eye,
-  UserCheck,
   Building,
-  CreditCard,
-  Lock,
-  Wrench,
+  Activity,
 } from 'lucide-react'
 import NotificationCenter from './notifications/NotificationCenter'
 import { ConnectionStatus } from './realtime/ConnectionStatus'
+import ThemeToggle from './ui/ThemeToggle'
 
 interface NavigationItem {
   id: string
@@ -37,183 +34,98 @@ interface NavigationItem {
 
 export const Layout = () => {
   const location = useLocation()
-  const { logout, user, hasAnyRole } = useAuthStore()
+  const { logout, user } = useAuthStore()
 
-  // Role-based navigation items
-  const getAllNavigationItems = (): NavigationItem[] => [
-    // Dashboard - always visible
-    { id: 'dashboard', label: 'Dashboard', icon: Monitor, path: '/dashboard' },
+  // Get navigation items based on user role
+  const getNavigationItems = (): NavigationItem[] => {
+    if (!user) return []
 
-    // Super Admin specific
-    { 
-      id: 'superadmin-users', 
-      label: 'User Management', 
-      icon: Shield, 
-      path: '/superadmin/users',
-      requiredRoles: ['SUPER_ADMIN']
-    },
-    { 
-      id: 'superadmin-institutions', 
-      label: 'Institution Management', 
-      icon: Building2, 
-      path: '/superadmin/institutions',
-      requiredRoles: ['SUPER_ADMIN']
-    },
-    { 
-      id: 'superadmin-audit', 
-      label: 'Audit Logs', 
-      icon: Database, 
-      path: '/superadmin/audit',
-      requiredRoles: ['SUPER_ADMIN']
-    },
-
-    // Institution Admin
-    { 
-      id: 'institution-departments', 
-      label: 'Departments', 
-      icon: Building, 
-      path: '/institution/departments',
-      requiredRoles: ['SUPER_ADMIN', 'INSTITUTION_ADMIN']
-    },
-    { 
-      id: 'institution-staff', 
-      label: 'Staff Management', 
-      icon: Users, 
-      path: '/institution/staff',
-      requiredRoles: ['SUPER_ADMIN', 'INSTITUTION_ADMIN']
-    },
-
-    // Department Head
-    { 
-      id: 'department-courses', 
-      label: 'Course Management', 
-      icon: GraduationCap, 
-      path: '/department/courses',
-      requiredRoles: ['SUPER_ADMIN', 'INSTITUTION_ADMIN', 'DEPARTMENT_HEAD']
-    },
-
-    // Exam Management
-    { 
-      id: 'exams', 
-      label: 'Exam Management', 
-      icon: BookOpen, 
-      path: '/exams',
-      requiredRoles: ['SUPER_ADMIN', 'INSTITUTION_ADMIN', 'EXAM_OFFICER', 'ACADEMIC_STAFF']
-    },
-    { 
-      id: 'exam-scheduling', 
-      label: 'Exam Scheduling', 
-      icon: ClipboardList, 
-      path: '/exams/scheduling',
-      requiredRoles: ['SUPER_ADMIN', 'INSTITUTION_ADMIN', 'EXAM_OFFICER']
-    },
-
-    // Student specific
-    { 
-      id: 'student-exams', 
-      label: 'My Exams', 
-      icon: BookOpen, 
-      path: '/student/exams',
-      requiredRoles: ['STUDENT']
-    },
-    { 
-      id: 'student-results', 
-      label: 'My Results', 
-      icon: BarChart3, 
-      path: '/student/results',
-      requiredRoles: ['STUDENT']
-    },
-
-    // Invigilator
-    { 
-      id: 'supervision', 
-      label: 'Exam Supervision', 
-      icon: Eye, 
-      path: '/invigilator/exams',
-      requiredRoles: ['INVIGILATOR', 'EXAM_OFFICER']
-    },
-
-    // External Examiner
-    { 
-      id: 'evaluation', 
-      label: 'Exam Evaluation', 
-      icon: UserCheck, 
-      path: '/examiner/evaluation',
-      requiredRoles: ['EXTERNAL_EXAMINER']
-    },
-
-    // Finance
-    { 
-      id: 'finance', 
-      label: 'Finance Management', 
-      icon: CreditCard, 
-      path: '/finance/management',
-      requiredRoles: ['FINANCE_STAFF']
-    },
-
-    // Security
-    { 
-      id: 'security', 
-      label: 'Security Monitoring', 
-      icon: Lock, 
-      path: '/security/monitoring',
-      requiredRoles: ['SECURITY_STAFF']
-    },
-
-    // Maintenance
-    { 
-      id: 'maintenance', 
-      label: 'Facility Maintenance', 
-      icon: Wrench, 
-      path: '/maintenance/facilities',
-      requiredRoles: ['MAINTENANCE_STAFF']
-    },
-
-    // IT Support
-    { 
-      id: 'it-maintenance', 
-      label: 'System Maintenance', 
-      icon: Server, 
-      path: '/it/maintenance',
-      requiredRoles: ['SUPER_ADMIN', 'IT_SUPPORT']
-    },
-
-    // Legacy/Common routes
-    { 
-      id: 'scripts', 
-      label: 'Scripts', 
-      icon: FileText, 
-      path: '/scripts',
-      requiredRoles: ['SUPER_ADMIN', 'IT_SUPPORT', 'ACADEMIC_STAFF']
-    },
-    { 
-      id: 'users', 
-      label: 'Users', 
-      icon: Users, 
-      path: '/users',
-      requiredRoles: ['SUPER_ADMIN', 'INSTITUTION_ADMIN', 'IT_SUPPORT']
-    },
-    { 
-      id: 'incidents', 
-      label: 'Incidents', 
-      icon: AlertTriangle, 
-      path: '/incidents',
-      requiredRoles: ['SUPER_ADMIN', 'IT_SUPPORT', 'SECURITY_STAFF']
-    },
-    { 
-      id: 'analytics', 
-      label: 'Analytics', 
-      icon: BarChart3, 
-      path: '/analytics',
-      requiredRoles: ['SUPER_ADMIN', 'INSTITUTION_ADMIN', 'VICE_CHANCELLOR', 'REGISTRAR']
+    // Super Admin specific navigation
+    if (user.role === 'SUPER_ADMIN') {
+      return [
+        { id: 'dashboard', label: 'Dashboard', icon: Monitor, path: '/dashboard' },
+        { id: 'overview', label: 'System Overview', icon: BarChart3, path: '/superadmin/overview' },
+        { id: 'users', label: 'User Management', icon: Users, path: '/superadmin/users' },
+        { id: 'institutions', label: 'Institutions', icon: Building2, path: '/superadmin/institutions' },
+        { id: 'audit', label: 'Audit Logs', icon: Database, path: '/superadmin/audit' },
+        { id: 'analytics', label: 'Analytics', icon: BarChart3, path: '/superadmin/analytics' },
+        { id: 'health', label: 'System Health', icon: Activity, path: '/superadmin/health' },
+        { id: 'configuration', label: 'Configuration', icon: Settings, path: '/superadmin/configuration' },
+        { id: 'incidents', label: 'Incidents', icon: AlertTriangle, path: '/incidents' },
+        { id: 'scripts', label: 'Scripts', icon: FileText, path: '/scripts' }
+      ]
     }
-  ]
 
-  // Filter navigation items based on user role
-  const navigationItems = getAllNavigationItems().filter(item => {
-    if (!item.requiredRoles) return true // No role requirement, show to all
-    return hasAnyRole(item.requiredRoles)
-  })
+    // Institution Admin navigation
+    if (user.role === 'INSTITUTION_ADMIN') {
+      return [
+        { id: 'dashboard', label: 'Dashboard', icon: Monitor, path: '/dashboard' },
+        { id: 'departments', label: 'Departments', icon: Building, path: '/institution/departments' },
+        { id: 'staff', label: 'Staff Management', icon: Users, path: '/institution/staff' },
+        { id: 'students', label: 'Students', icon: GraduationCap, path: '/institution/students' },
+        { id: 'exams', label: 'Exam Management', icon: BookOpen, path: '/exams' },
+        { id: 'scheduling', label: 'Exam Scheduling', icon: ClipboardList, path: '/exams/scheduling' },
+        { id: 'analytics', label: 'Analytics', icon: BarChart3, path: '/analytics' }
+      ]
+    }
+
+    // Department Head navigation
+    if (user.role === 'DEPARTMENT_HEAD') {
+      return [
+        { id: 'dashboard', label: 'Dashboard', icon: Monitor, path: '/dashboard' },
+        { id: 'courses', label: 'Course Management', icon: GraduationCap, path: '/department/courses' },
+        { id: 'staff', label: 'Staff Management', icon: Users, path: '/department/staff' },
+        { id: 'students', label: 'Students', icon: GraduationCap, path: '/department/students' },
+        { id: 'exams', label: 'Exam Management', icon: BookOpen, path: '/exams' }
+      ]
+    }
+
+    // Student navigation
+    if (user.role === 'STUDENT') {
+      return [
+        { id: 'dashboard', label: 'Dashboard', icon: Monitor, path: '/dashboard' },
+        { id: 'exams', label: 'My Exams', icon: BookOpen, path: '/student/exams' },
+        { id: 'results', label: 'My Results', icon: BarChart3, path: '/student/results' }
+      ]
+    }
+
+    // Exam Officer navigation
+    if (user.role === 'EXAM_OFFICER') {
+      return [
+        { id: 'dashboard', label: 'Dashboard', icon: Monitor, path: '/dashboard' },
+        { id: 'exams', label: 'Exam Management', icon: BookOpen, path: '/exams' },
+        { id: 'scheduling', label: 'Exam Scheduling', icon: ClipboardList, path: '/exams/scheduling' },
+        { id: 'supervision', label: 'Supervision', icon: Eye, path: '/invigilator/exams' }
+      ]
+    }
+
+    // Academic Staff navigation
+    if (user.role === 'ACADEMIC_STAFF') {
+      return [
+        { id: 'dashboard', label: 'Dashboard', icon: Monitor, path: '/dashboard' },
+        { id: 'exams', label: 'Exam Management', icon: BookOpen, path: '/exams' },
+        { id: 'scripts', label: 'Scripts', icon: FileText, path: '/scripts' }
+      ]
+    }
+
+    // IT Support navigation
+    if (user.role === 'IT_SUPPORT') {
+      return [
+        { id: 'dashboard', label: 'Dashboard', icon: Monitor, path: '/dashboard' },
+        { id: 'users', label: 'User Support', icon: Users, path: '/users' },
+        { id: 'incidents', label: 'Incidents', icon: AlertTriangle, path: '/incidents' },
+        { id: 'scripts', label: 'Scripts', icon: FileText, path: '/scripts' },
+        { id: 'maintenance', label: 'System Maintenance', icon: Server, path: '/it/maintenance' }
+      ]
+    }
+
+    // Default fallback
+    return [
+      { id: 'dashboard', label: 'Dashboard', icon: Monitor, path: '/dashboard' }
+    ]
+  }
+
+  const navigationItems = getNavigationItems()
 
   const handleLogout = () => {
     logout()
@@ -303,7 +215,8 @@ export const Layout = () => {
             <div className="flex items-center space-x-4">
               {/* Connection Status */}
               <ConnectionStatus />
-              
+              {/* Theme toggle */}
+              <ThemeToggle />
               {/* Search */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />

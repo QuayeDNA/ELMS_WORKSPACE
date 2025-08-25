@@ -1,5 +1,5 @@
 import React from 'react';
-import { Wifi, WifiOff, AlertCircle } from 'lucide-react';
+import { Wifi, WifiOff } from 'lucide-react';
 import { useConnectionStatus } from '../../services/realTimeService';
 
 export const ConnectionStatus: React.FC = () => {

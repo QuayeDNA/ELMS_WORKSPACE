@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useAuthStore } from '../stores/authStore'
 import { 
   Monitor, 
@@ -14,12 +14,21 @@ import {
   Calendar,
   MapPin
 } from 'lucide-react'
+import { realTimeService } from '../services/realTimeService'
+import useCachedQuery from '../hooks/useCachedQuery'
 
 interface NavigationItem {
   id: string
   label: string
   icon: React.ComponentType<{ className?: string }>
   section: string
+}
+
+interface OverviewStats {
+  activeExams: number
+  scriptsProcessed: number
+  openIncidents: number
+  systemHealth: string
 }
 
 const navigationItems: NavigationItem[] = [
@@ -36,10 +45,22 @@ const navigationItems: NavigationItem[] = [
 export const Dashboard: React.FC = () => {
   const [activeSection, setActiveSection] = useState('overview')
   const [searchQuery, setSearchQuery] = useState('')
-  const { user, logout } = useAuthStore((state: any) => ({
+  const { user, logout } = useAuthStore((state) => ({
     user: state.user,
     logout: state.logout
   }))
+
+  // Example fetcher - replace with real API client
+  const fetchOverview = async () => {
+    return {
+      activeExams: 12,
+      scriptsProcessed: 2847,
+      openIncidents: 3,
+      systemHealth: '98.5%'
+    }
+  }
+
+  const { data: overview, loading: overviewLoading } = useCachedQuery<OverviewStats>('overview:stats', fetchOverview)
 
   const handleLogout = () => {
     logout()
@@ -55,7 +76,7 @@ export const Dashboard: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Active Exams</p>
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white">12</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white">{overviewLoading ? '—' : overview?.activeExams ?? '—'}</p>
                     <p className="text-sm text-green-600 dark:text-green-400">↑ 2 from yesterday</p>
                   </div>
                   <BookOpen className="h-10 w-10 text-blue-500" />
@@ -66,7 +87,7 @@ export const Dashboard: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Scripts Processed</p>
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white">2,847</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white">{overviewLoading ? '—' : overview?.scriptsProcessed ?? '—'}</p>
                     <p className="text-sm text-blue-600 dark:text-blue-400">↑ 12% this week</p>
                   </div>
                   <FileText className="h-10 w-10 text-green-500" />
@@ -77,7 +98,7 @@ export const Dashboard: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Open Incidents</p>
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white">3</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white">{overviewLoading ? '—' : overview?.openIncidents ?? '—'}</p>
                     <p className="text-sm text-yellow-600 dark:text-yellow-400">2 require attention</p>
                   </div>
                   <AlertTriangle className="h-10 w-10 text-yellow-500" />
@@ -88,7 +109,7 @@ export const Dashboard: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">System Health</p>
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white">98.5%</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white">{overviewLoading ? '—' : overview?.systemHealth ?? '—'}</p>
                     <p className="text-sm text-green-600 dark:text-green-400">All systems operational</p>
                   </div>
                   <Monitor className="h-10 w-10 text-purple-500" />

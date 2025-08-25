@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, X, CheckCircle, AlertTriangle, Info, Clock, Filter, MoreVertical } from 'lucide-react';
-import { realTimeService, useConnectionStatus } from '../../services/realTimeService';
+// real-time connection not used here
 
 interface Notification {
   id: string;
@@ -12,7 +12,7 @@ interface Notification {
   category: 'script' | 'exam' | 'incident' | 'system' | 'user';
   priority: 'low' | 'medium' | 'high' | 'critical';
   actionUrl?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 interface NotificationCenterProps {
@@ -210,7 +210,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ className = '' 
               <Filter className="w-4 h-4 text-gray-400" />
               <select
                 value={filter}
-                onChange={(e) => setFilter(e.target.value as any)}
+                onChange={(e) => setFilter(e.target.value as 'all' | 'unread' | 'high-priority')}
                 className="text-sm border border-gray-300 rounded px-2 py-1"
               >
                 <option value="all">All Notifications</option>

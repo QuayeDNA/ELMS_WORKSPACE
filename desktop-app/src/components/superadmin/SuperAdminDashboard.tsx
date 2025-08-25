@@ -14,6 +14,10 @@ import {
   Server
 } from 'lucide-react'
 import { Button } from '../ui/button'
+import { getOverview, getHealth } from '../../lib/superadminApi'
+
+// module-level guard to track in-flight dashboard fetches per token
+const dashboardFetchInProgress = new Set<string>()
 
 interface SystemStats {
   totalUsers: number
@@ -52,36 +56,50 @@ export const SuperAdminDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Guard against duplicate fetches during StrictMode double-mount or rapid remounts.
+    // We use a module-level Set keyed by the token so multiple mounts won't start
+    // duplicate requests for the same authenticated session.
+    const key = token ?? '__no_token__'
+    if (dashboardFetchInProgress.has(key)) {
+      // another instance is already loading for this token - skip
+      return
+    }
+
+    const controller = new AbortController()
     const loadDashboardData = async () => {
       try {
+        dashboardFetchInProgress.add(key)
         setLoading(true)
-        const [overviewRes, healthRes] = await Promise.all([
-          fetch('http://localhost:3000/api/superadmin/overview', {
-            headers: { Authorization: `Bearer ${token}` }
-          }),
-          fetch('http://localhost:3000/api/superadmin/health', {
-            headers: { Authorization: `Bearer ${token}` }
-          })
+
+        const [overviewData, healthData] = await Promise.all([
+          getOverview(token),
+          getHealth(token)
         ])
 
-        if (overviewRes.ok) {
-          const overviewData = await overviewRes.json()
+        if (overviewData) {
           setSystemStats(overviewData.systemStats)
           setRecentActivity(overviewData.recentActivity)
         }
 
-        if (healthRes.ok) {
-          const healthData = await healthRes.json()
+        if (healthData) {
           setSystemHealth(healthData)
         }
       } catch (error) {
+        // Ignore abort errors - they happen on unmount/cleanup
+        if (error instanceof DOMException && error.name === 'AbortError') return
         console.error('Failed to fetch dashboard data:', error)
       } finally {
+        dashboardFetchInProgress.delete(key)
         setLoading(false)
       }
     }
 
     loadDashboardData()
+
+    return () => {
+      // cancel the requests if the component unmounts
+      controller.abort()
+    }
   }, [token])
 
   const formatUptime = (seconds: number) => {

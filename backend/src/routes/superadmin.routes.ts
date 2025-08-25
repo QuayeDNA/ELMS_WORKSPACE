@@ -8,7 +8,7 @@ export const createSuperAdminRoutes = (prisma: PrismaClient) => {
   const router = Router();
   
   // Apply authentication and super admin middleware to all routes
-  router.use(authenticateToken);
+  router.use(authenticateToken(prisma));
   router.use(requireSuperAdmin);
 
   // ==========================================

@@ -10,9 +10,9 @@ import {
   Server,
   Wifi,
   Database,
-  Shield
+  
 } from 'lucide-react';
-import { realTimeService, useConnectionStatus } from '../../services/realTimeService';
+import { useConnectionStatus } from '../../services/realTimeService';
 import { LiveIndicator } from './ConnectionStatus';
 
 interface SystemMetrics {
@@ -92,7 +92,6 @@ const RealTimeDashboard: React.FC = () => {
     }
   ]);
 
-  const [isConnected, setIsConnected] = useState(true);
   const connectionStatus = useConnectionStatus();
 
   // Simulate real-time updates
@@ -109,9 +108,10 @@ const RealTimeDashboard: React.FC = () => {
 
       // Occasionally add new activity
       if (Math.random() > 0.7) {
+        const types: ActivityFeed['type'][] = ['script','exam','user','incident','system'];
         const newActivity: ActivityFeed = {
           id: Date.now().toString(),
-          type: ['script', 'exam', 'user', 'incident', 'system'][Math.floor(Math.random() * 5)] as any,
+          type: types[Math.floor(Math.random() * types.length)],
           action: 'Real-time Action',
           user: 'Live User',
           timestamp: new Date(),

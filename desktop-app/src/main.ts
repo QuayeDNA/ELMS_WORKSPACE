@@ -1,9 +1,14 @@
 import { app, BrowserWindow, Menu, ipcMain, dialog, shell } from 'electron';
+// external electron packages may not have types in this workspace; keep runtime imports but ignore TS checks
+// @ts-expect-error: optional dev dependency types are not required here
 import { autoUpdater } from 'electron-updater';
+// @ts-expect-error: optional runtime logger
 import log from 'electron-log';
+// @ts-expect-error: electron store types not required in this workspace
 import Store from 'electron-store';
 import path from 'path';
-import { isDev } from './utils/environment';
+// simple fallback for dev check to avoid depending on a missing file
+const isDev = process.env.NODE_ENV !== 'production';
 
 // Configure logging
 log.transports.file.level = 'info';
@@ -27,11 +32,16 @@ class ElmsDesktopApp {
 
   private setupApp(): void {
     // Security: Prevent new window creation
-    app.on('web-contents-created', (_, webContents) => {
-      webContents.on('new-window', (event, navigationUrl) => {
-        event.preventDefault();
-        shell.openExternal(navigationUrl);
-      });
+    app.on('web-contents-created', (_sender: unknown, webContents: Electron.WebContents) => {
+      // Use modern handler to intercept window.open/navigation
+      try {
+        webContents.setWindowOpenHandler(({ url }) => {
+          shell.openExternal(url);
+          return { action: 'deny' } as const;
+        });
+      } catch (_err) {
+        // fallback for older electron versions - do nothing
+      }
     });
 
     // App event handlers
@@ -42,11 +52,14 @@ class ElmsDesktopApp {
 
     // Security: Prevent navigation to external URLs
     app.on('web-contents-created', (_, webContents) => {
-      webContents.on('will-navigate', (event, navigationUrl) => {
-        const parsedUrl = new URL(navigationUrl);
-        
-        if (parsedUrl.origin !== 'http://localhost:3000' && !isDev) {
-          event.preventDefault();
+      webContents.on('will-navigate', (event: { preventDefault: () => void }, navigationUrl: string) => {
+        try {
+          const parsedUrl = new URL(navigationUrl);
+          if (parsedUrl.origin !== 'http://localhost:3000' && !isDev) {
+            event.preventDefault();
+          }
+        } catch (_e) {
+          // ignore parse errors intentionally
         }
       });
     });
@@ -63,7 +76,6 @@ class ElmsDesktopApp {
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
-        enableRemoteModule: false,
         preload: path.join(__dirname, 'preload.js'),
         webSecurity: !isDev,
       },
@@ -247,12 +259,14 @@ class ElmsDesktopApp {
       log.info('Update not available.');
     });
 
-    autoUpdater.on('error', (err) => {
-      log.error('Error in auto-updater. ' + err);
+    autoUpdater.on('error', (err: unknown) => {
+      try {
+        log.error('Error in auto-updater. ' + String(err));
+      } catch {}
     });
 
-    autoUpdater.on('download-progress', (progressObj) => {
-      this.mainWindow?.webContents.send('download-progress', progressObj.percent);
+    autoUpdater.on('download-progress', (progressObj: { percent?: number }) => {
+      this.mainWindow?.webContents.send('download-progress', progressObj.percent ?? 0);
     });
 
     autoUpdater.on('update-downloaded', () => {
@@ -267,8 +281,9 @@ class ElmsDesktopApp {
       return store.get(key);
     });
 
-    ipcMain.handle('store-set', (_, key: string, value: any) => {
-      store.set(key, value);
+    ipcMain.handle('store-set', (_, key: string, value: unknown) => {
+      // store expects any; cast safely
+  store.set(key, value as unknown as Record<string, unknown>);
     });
 
     ipcMain.handle('store-delete', (_, key: string) => {
@@ -297,7 +312,24 @@ class ElmsDesktopApp {
 
     // Notification operations
     ipcMain.handle('show-notification', (_, title: string, body: string) => {
-      new Notification(title, { body }).show();
+      try {
+        // Electron's Notification may differ from DOM types; call via any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const maybeNotification: unknown = (global as unknown as any).Notification ?? (globalThis as unknown as any).Notification;
+        if (typeof maybeNotification === 'function') {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const Nctor = maybeNotification as any;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const n = new Nctor(title, { body });
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          if (n && typeof (n as any).show === 'function') {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (n as any).show();
+          }
+        }
+      } catch {
+        // ignore
+      }
     });
 
     // Window operations

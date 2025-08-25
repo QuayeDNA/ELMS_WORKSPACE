@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react'
 import { useAuthStore } from '../../stores/authStore'
+import ThemeToggle from '../ui/ThemeToggle'
 
 interface LoginFormProps {
   onSuccess?: () => void
@@ -13,7 +14,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const login = useAuthStore((state: any) => state.login)
+  const login = useAuthStore((state) => state.login)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,7 +33,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 relative">
+      {/* Theme toggle in top-right corner */}
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
+      
       <div className="max-w-md w-full space-y-8 p-8">
         <div className="text-center">
           <div className="mx-auto h-12 w-12 bg-blue-600 rounded-lg flex items-center justify-center">

@@ -1,4 +1,4 @@
-import React from 'react'
+// React import not required with the current JSX transform
 import { 
   Monitor, 
   Users, 

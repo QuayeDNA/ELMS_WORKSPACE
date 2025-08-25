@@ -174,13 +174,26 @@ export class UserManagementService {
   ): Promise<User> {
     try {
       const user = await this.prisma.$transaction(async (prisma) => {
+        // Filter out fields that cannot be updated in profile
+        const profileUpdateData = updateData.profile ? {
+          ...updateData.profile,
+        } : undefined;
+
+        // Remove fields that are not allowed in profile updates
+        if (profileUpdateData) {
+          delete profileUpdateData.id;
+          delete profileUpdateData.createdAt;
+          delete profileUpdateData.updatedAt;
+          delete profileUpdateData.userId;
+        }
+
         // Update user
         const updatedUser = await prisma.user.update({
           where: { id: userId },
           data: {
             ...updateData,
-            profile: updateData.profile ? {
-              update: updateData.profile,
+            profile: profileUpdateData ? {
+              update: profileUpdateData,
             } : undefined,
           },
           include: {

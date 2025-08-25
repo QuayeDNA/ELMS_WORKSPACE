@@ -6,14 +6,19 @@ import { LoginForm } from '../components/auth/LoginForm'
 import { Layout } from '../components/Layout'
 import { DashboardContent } from '../components/DashboardContent'
 import { ExamManagement } from '../components/exams/ExamManagement'
-import { UserManagement as OldUserManagement } from '../components/users/UserManagement'
+import { UserManagement as OldUserManagement, UserManagement } from '../components/users/UserManagement'
 import { Analytics } from '../components/analytics/Analytics'
 import { IncidentManagement } from '../components/incidents/IncidentManagement'
 import { ScriptManagement } from '../components/scripts/ScriptManagement'
 
 // Super Admin components
 import { SuperAdminDashboard } from '../components/superadmin/SuperAdminDashboard'
-import { UserManagement } from '../components/superadmin/UserManagement'
+import { InstitutionsList } from '../components/superadmin/InstitutionsList'
+import { AuditLogsList } from '../components/superadmin/AuditLogsList'
+import { Analytics as SuperAdminAnalytics } from '../components/superadmin/Analytics'
+import Overview from '../components/superadmin/Overview'
+import Health from '../components/superadmin/Health'
+import Configuration from '../components/superadmin/Configuration'
 
 // Placeholder components for other roles (will be implemented later)
 const InstitutionAdminDashboard = () => <div className="p-6"><h1 className="text-2xl font-bold">Institution Admin Dashboard</h1><p>Coming soon...</p></div>
@@ -128,8 +133,12 @@ export const AppRoutes: React.FC = () => {
               <Routes>
                 <Route path="dashboard" element={<SuperAdminDashboard />} />
                 <Route path="users" element={<UserManagement />} />
-                <Route path="institutions" element={<div>Institution Management</div>} />
-                <Route path="audit" element={<div>Audit Logs</div>} />
+                <Route path="institutions" element={<InstitutionsList />} />
+                <Route path="audit" element={<AuditLogsList />} />
+                <Route path="analytics" element={<SuperAdminAnalytics />} />
+                <Route path="overview" element={<Overview />} />
+                <Route path="health" element={<Health />} />
+                <Route path="configuration" element={<Configuration />} />
                 <Route path="settings" element={<Settings />} />
               </Routes>
             </ProtectedRoute>

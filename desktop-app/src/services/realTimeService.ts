@@ -5,7 +5,7 @@ import React from 'react';
 
 export interface SocketEvent {
   type: string;
-  data: any;
+  data: unknown;
   timestamp: Date;
 }
 
@@ -34,8 +34,8 @@ export interface MetricsUpdate {
 class RealTimeService {
   private eventListeners: Map<string, ((event: SocketEvent) => void)[]> = new Map();
   private isConnected: boolean = false;
-  private connectionInterval: NodeJS.Timeout | null = null;
-  private simulationInterval: NodeJS.Timeout | null = null;
+  private connectionInterval: ReturnType<typeof setInterval> | null = null;
+  private simulationInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
     this.connect();
@@ -53,7 +53,7 @@ class RealTimeService {
     this.startEventSimulation();
 
     // Simulate occasional disconnections for testing
-    this.connectionInterval = setInterval(() => {
+  this.connectionInterval = setInterval(() => {
       if (Math.random() > 0.95) { // 5% chance of disconnection
         this.disconnect();
         setTimeout(() => this.connect(), 2000);
@@ -99,7 +99,7 @@ class RealTimeService {
   }
 
   // Emit events to listeners
-  private emit(eventType: string, data: any): void {
+  private emit(eventType: string, data: unknown): void {
     const listeners = this.eventListeners.get(eventType);
     if (listeners) {
       const event: SocketEvent = {
@@ -114,7 +114,7 @@ class RealTimeService {
 
   // Start simulating real-time events
   private startEventSimulation(): void {
-    this.simulationInterval = setInterval(() => {
+  this.simulationInterval = setInterval(() => {
       if (!this.isConnected) return;
 
       // Simulate different types of events
@@ -178,7 +178,7 @@ class RealTimeService {
           this.emit('notification:new', this.generateRandomNotification());
           break;
       }
-    }, 5000); // Every 5 seconds
+  }, 5000); // Every 5 seconds
   }
 
   // Generate random metrics for simulation
@@ -191,16 +191,15 @@ class RealTimeService {
       systemUptime: 99.5 + Math.random() * 0.5,
       serverLoad: Math.floor(Math.random() * 100),
       databaseConnections: Math.floor(Math.random() * 100) + 20,
-      networkStatus: ['healthy', 'warning', 'critical'][Math.floor(Math.random() * 3)] as any,
+  networkStatus: (['healthy', 'warning', 'critical'] as const)[Math.floor(Math.random() * 3)],
       lastUpdated: new Date()
     };
   }
 
   // Generate random notification for simulation
   private generateRandomNotification(): NotificationEvent {
-    const types: NotificationEvent['type'][] = ['info', 'success', 'warning', 'error'];
-    const categories: NotificationEvent['category'][] = ['script', 'exam', 'incident', 'system', 'user'];
-    const priorities: NotificationEvent['priority'][] = ['low', 'medium', 'high', 'critical'];
+  const types: NotificationEvent['type'][] = ['info', 'success', 'warning', 'error'];
+  const priorities: NotificationEvent['priority'][] = ['low', 'medium', 'high', 'critical'];
 
     const notifications = [
       {
@@ -249,7 +248,7 @@ class RealTimeService {
   }
 
   // Manual event emission for testing
-  emitTestEvent(eventType: string, data: any): void {
+  emitTestEvent(eventType: string, data: unknown): void {
     this.emit(eventType, data);
   }
 
