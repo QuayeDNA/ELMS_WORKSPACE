@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { useAuthStore } from '../stores/authStore'
 import { 
   Monitor, 
@@ -14,7 +14,7 @@ import {
   Calendar,
   MapPin
 } from 'lucide-react'
-import { realTimeService } from '../services/realTimeService'
+// import { realTimeService } from '../services/realTimeService'
 import useCachedQuery from '../hooks/useCachedQuery'
 
 interface NavigationItem {

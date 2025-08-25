@@ -16,7 +16,6 @@ import { SuperAdminDashboard } from '../components/superadmin/SuperAdminDashboar
 import { InstitutionsList } from '../components/superadmin/InstitutionsList'
 import { AuditLogsList } from '../components/superadmin/AuditLogsList'
 import { Analytics as SuperAdminAnalytics } from '../components/superadmin/Analytics'
-import Overview from '../components/superadmin/Overview'
 import Health from '../components/superadmin/Health'
 import Configuration from '../components/superadmin/Configuration'
 
@@ -136,7 +135,6 @@ export const AppRoutes: React.FC = () => {
                 <Route path="institutions" element={<InstitutionsList />} />
                 <Route path="audit" element={<AuditLogsList />} />
                 <Route path="analytics" element={<SuperAdminAnalytics />} />
-                <Route path="overview" element={<Overview />} />
                 <Route path="health" element={<Health />} />
                 <Route path="configuration" element={<Configuration />} />
                 <Route path="settings" element={<Settings />} />

@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react'
 import { useAuthStore } from '../../stores/authStore'
 import ThemeToggle from '../ui/ThemeToggle'
+import { DSCard, DSButton } from '../../design-system/primitives'
+import Loader from '../ui/Loader'
 
 interface LoginFormProps {
   onSuccess?: () => void
@@ -33,123 +35,107 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 relative">
-      {/* Theme toggle in top-right corner */}
-      <div className="absolute top-4 right-4">
-        <ThemeToggle />
-      </div>
-      
-      <div className="max-w-md w-full space-y-8 p-8">
-        <div className="text-center">
-          <div className="mx-auto h-12 w-12 bg-blue-600 rounded-lg flex items-center justify-center">
-            <Lock className="h-6 w-6 text-white" />
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+      <div className="w-full max-w-3xl grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+        {/* Left: Visual / branding */}
+        <div className="hidden md:flex flex-col items-start justify-center gap-6 px-6">
+          <div className="flex items-center gap-3">
+            <div style={{ width: 56, height: 56, backgroundColor: 'var(--ds-primary)' }} className="rounded-lg flex items-center justify-center">
+              <Lock className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Welcome back</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Sign in to access the ELMS super admin panel</p>
+            </div>
           </div>
-          <h2 className="mt-6 text-3xl font-bold text-gray-900 dark:text-white">
-            Sign in to ELMS
-          </h2>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Exams Logistics Management System
-          </p>
+
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            <p>Manage institutions, users, audits, and system configuration from a single place.</p>
+          </div>
+
+          <div className="w-full">
+            <DSCard>
+              <div className="space-y-3">
+                <div className="text-sm text-gray-700 dark:text-gray-300">Need help?</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">Contact support at support@elms.local</div>
+              </div>
+            </DSCard>
+          </div>
         </div>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Email address
-              </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
-                           bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 
-                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter your email"
-                />
-              </div>
+        {/* Right: Form */}
+        <div className="px-4 py-6">
+          <div className="flex items-center justify-end mb-4">
+            <ThemeToggle />
+          </div>
+
+          <DSCard className="w-full">
+            <div className="mb-4 text-center">
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">Sign in</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Exams Logistics Management System</p>
             </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Password
-              </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
+            <form className="space-y-4" onSubmit={handleSubmit}>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Mail className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    className="block w-full pl-10 pr-3 py-3 rounded-md border border-var outline-none"
+                    style={{ backgroundColor: 'var(--ds-surface)', borderColor: 'var(--ds-outline)', color: 'var(--ds-on-surface)' }}
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    type="email"
+                  />
                 </div>
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
-                           bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 
-                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter your password"
-                />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Password</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Lock className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    className="block w-full pl-10 pr-10 py-3 rounded-md border"
+                    style={{ backgroundColor: 'var(--ds-surface)', borderColor: 'var(--ds-outline)', color: 'var(--ds-on-surface)' }}
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    type={showPassword ? 'text' : 'password'}
+                  />
+
+                  <button type="button" className="absolute inset-y-0 right-0 pr-3 flex items-center" onClick={() => setShowPassword(!showPassword)}>
+                    {showPassword ? <EyeOff className="h-5 w-5 text-gray-400" /> : <Eye className="h-5 w-5 text-gray-400" />}
+                  </button>
+                </div>
+              </div>
+
+              {error && <div className="text-sm text-red-600">{error}</div>}
+
+              <div>
+                <DSButton type="submit" className="w-full flex items-center justify-center" disabled={isLoading}>
+                  {isLoading ? (
+                    <span className="flex items-center gap-2"><Loader size={16} /> Signing in...</span>
                   ) : (
-                    <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                    'Sign in'
                   )}
+                </DSButton>
+              </div>
+
+              <div className="text-center">
+                <button type="button" className="text-sm text-blue-600 dark:text-blue-400 underline bg-transparent border-none" onClick={() => console.log('forgot')}>
+                  Forgot your password?
                 </button>
               </div>
-            </div>
-          </div>
-
-          {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg">
-              {error}
-            </div>
-          )}
-
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent 
-                       text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 
-                       focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 
-                       disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {isLoading ? (
-                <div className="flex items-center">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Signing in...
-                </div>
-              ) : (
-                'Sign in'
-              )}
-            </button>
-          </div>
-
-          <div className="text-center">
-            <button 
-              type="button"
-              className="text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400 underline bg-transparent border-none cursor-pointer"
-              onClick={() => console.log('Forgot password clicked')}
-            >
-              Forgot your password?
-            </button>
-          </div>
-        </form>
+            </form>
+          </DSCard>
+        </div>
       </div>
     </div>
   )

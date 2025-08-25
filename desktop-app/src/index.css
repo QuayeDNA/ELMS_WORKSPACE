@@ -13,3 +13,76 @@ body {
   margin: 0;
   min-height: 100vh;
 }
+
+/* Design token CSS variables for non-tailwind primitives */
+:root {
+  --ds-primary: #2563eb;
+  --ds-primary-container: #dbeafe;
+  --ds-secondary: #7c3aed;
+  --ds-secondary-container: #ede9fe;
+  --ds-tertiary: #059669;
+  --ds-tertiary-container: #d1fae5;
+  --ds-surface: #ffffff;
+  --ds-surface-variant: #f1f5f9;
+  --ds-background: #f8fafc;
+  --ds-error: #dc2626;
+  --ds-error-container: #fef2f2;
+  --ds-warning: #d97706;
+  --ds-warning-container: #fef3c7;
+  --ds-success: #059669;
+  --ds-success-container: #d1fae5;
+  --ds-info: #0284c7;
+  --ds-info-container: #e0f2fe;
+  --ds-on-primary: #ffffff;
+  --ds-on-surface: #1e293b;
+  --ds-on-surface-variant: #475569;
+  --ds-on-background: #1e293b;
+  --ds-outline: #cbd5e1;
+  --ds-outline-variant: #e2e8f0;
+}
+
+/* dark mode variables */
+.dark {
+  --ds-primary: #60a5fa;
+  --ds-primary-container: #1e40af;
+  --ds-secondary: #a78bfa;
+  --ds-secondary-container: #6d28d9;
+  --ds-tertiary: #34d399;
+  --ds-tertiary-container: #047857;
+  --ds-surface: #0f172a;
+  --ds-surface-variant: #1e293b;
+  --ds-background: #020617;
+  --ds-error: #f87171;
+  --ds-error-container: #991b1b;
+  --ds-warning: #f59e0b;
+  --ds-warning-container: #92400e;
+  --ds-success: #34d399;
+  --ds-success-container: #064e3b;
+  --ds-info: #93c5fd;
+  --ds-info-container: #1e3a8a;
+  --ds-on-primary: #000000;
+  --ds-on-surface: #f1f5f9;
+  --ds-on-surface-variant: #cbd5e1;
+  --ds-on-background: #f1f5f9;
+  --ds-outline: #475569;
+  --ds-outline-variant: #334155;
+}
+
+/* Custom scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--ds-outline);
+  border-radius: 4px;
+  padding: 2px;
+  transition: background-color 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--ds-primary);
+  transition: background-color 0.3s ease;
+}
+
+

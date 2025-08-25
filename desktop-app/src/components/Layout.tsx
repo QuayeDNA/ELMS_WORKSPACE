@@ -44,7 +44,6 @@ export const Layout = () => {
     if (user.role === 'SUPER_ADMIN') {
       return [
         { id: 'dashboard', label: 'Dashboard', icon: Monitor, path: '/dashboard' },
-        { id: 'overview', label: 'System Overview', icon: BarChart3, path: '/superadmin/overview' },
         { id: 'users', label: 'User Management', icon: Users, path: '/superadmin/users' },
         { id: 'institutions', label: 'Institutions', icon: Building2, path: '/superadmin/institutions' },
         { id: 'audit', label: 'Audit Logs', icon: Database, path: '/superadmin/audit' },
@@ -137,13 +136,16 @@ export const Layout = () => {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="flex h-screen" style={{ backgroundColor: 'var(--ds-background)' }}>
       {/* Sidebar */}
-      <div className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
+      <div
+        className="w-64 flex flex-col bg-gradient-to-t from-[#0f172a] via-[#1e293b] to-[#334155]"
+        style={{ borderRight: '1px solid var(--ds-outline)' }}
+      >
         {/* Logo */}
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">ELMS</h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Exams Logistics Management</p>
+        <div className="p-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+          <h1 className="text-2xl font-bold text-white">ELMS</h1>
+          <p className="text-sm text-gray-200">Exams Logistics Management</p>
         </div>
         
         {/* Navigation */}
@@ -155,45 +157,45 @@ export const Layout = () => {
               <Link
                 key={item.id}
                 to={item.path}
-                className={`w-full flex items-center justify-start px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  isActive 
-                    ? 'bg-blue-600 text-white' 
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                }`}
+                className={`w-full flex items-center justify-start px-3 py-2 rounded-lg text-sm font-medium transition-colors`}
+                style={{
+                  backgroundColor: isActive ? 'var(--ds-primary)' : 'transparent',
+                  color: isActive ? 'white' : '#cbd5e1'
+                }}
               >
-                <Icon className="mr-3 h-4 w-4 flex-shrink-0" />
+                <Icon className="mr-3 h-4 w-4 flex-shrink-0 text-current" />
                 <span className="truncate">{item.label}</span>
               </Link>
             )
           })}
         </nav>
 
-        {/* User Profile & Settings */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+  {/* User Profile & Settings */}
+  <div className="p-4" style={{ borderTop: '1px solid rgba(255,255,255,0.03)' }}>
           <div className="flex items-center space-x-3 mb-4">
-            <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-medium">
+            <div className="h-8 w-8 rounded-full flex items-center justify-center text-sm font-medium" style={{ backgroundColor: 'var(--ds-primary)', color: 'var(--ds-on-primary)' }}>
               {user?.profile?.firstName?.charAt(0) || user?.email?.charAt(0) || 'U'}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+              <p className="text-sm font-medium truncate text-white">
                 {user?.profile?.firstName ? `${user.profile.firstName} ${user.profile.lastName}` : user?.email}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+              <p className="text-xs truncate text-gray-400">
                 {user?.role ? getRoleDisplayName(user.role) : 'User'}
               </p>
             </div>
           </div>
           
           <div className="flex space-x-2">
-            <Link 
+            <Link
               to="/profile"
-              className="flex-1 flex items-center justify-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              className="flex-1 flex items-center justify-center px-3 py-2 text-sm text-gray-200 hover:bg-white/2 rounded-lg transition-colors "
             >
               <Settings className="h-4 w-4" />
             </Link>
-            <button 
+            <button
               onClick={handleLogout}
-              className="flex-1 flex items-center justify-center px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+              className="flex-1 flex items-center justify-center px-3 py-2 text-sm text-red-400 hover:bg-red-50 rounded-lg transition-colors"
             >
               <LogOut className="h-4 w-4" />
             </button>
@@ -204,15 +206,15 @@ export const Layout = () => {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+        <header className="px-6 py-4" style={{ backgroundColor: 'var(--ds-surface)', borderBottom: '1px solid var(--ds-outline)' }}>
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+              <div className="flex items-center space-x-4">
+              <h2 className="text-xl font-semibold" style={{ color: 'var(--ds-on-surface)' }}>
                 {navigationItems.find(item => item.path === location.pathname)?.label || 'Dashboard'}
               </h2>
             </div>
             
-            <div className="flex items-center space-x-4">
+    <div className="flex items-center space-x-4">
               {/* Connection Status */}
               <ConnectionStatus />
               {/* Theme toggle */}
@@ -223,7 +225,8 @@ export const Layout = () => {
                 <input
                   type="text"
                   placeholder="Search..."
-                  className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-64"
+      className="pl-10 pr-4 py-2 border rounded-lg w-64"
+      style={{ borderColor: 'var(--ds-outline)', backgroundColor: 'var(--ds-surface)', color: 'var(--ds-on-surface)' }}
                 />
               </div>
               
