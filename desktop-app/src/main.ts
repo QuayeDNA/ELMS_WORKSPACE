@@ -58,7 +58,7 @@ class ElmsDesktopApp {
           if (parsedUrl.origin !== 'http://localhost:3000' && !isDev) {
             event.preventDefault();
           }
-        } catch (_e) {
+        } catch (_err) {
           // ignore parse errors intentionally
         }
       });
@@ -132,7 +132,7 @@ class ElmsDesktopApp {
           {
             label: 'Import Data',
             accelerator: 'CmdOrCtrl+I',
-            click: this.handleImportData.bind(this),
+            click: () => { void this.handleImportData(); },
           },
           {
             label: 'Export Report',
@@ -262,6 +262,7 @@ class ElmsDesktopApp {
     autoUpdater.on('error', (err: unknown) => {
       try {
         log.error('Error in auto-updater. ' + String(err));
+      // eslint-disable-next-line no-empty
       } catch {}
     });
 
@@ -283,7 +284,7 @@ class ElmsDesktopApp {
 
     ipcMain.handle('store-set', (_, key: string, value: unknown) => {
       // store expects any; cast safely
-  store.set(key, value as unknown as Record<string, unknown>);
+  store.set(key, value as Record<string, unknown>);
     });
 
     ipcMain.handle('store-delete', (_, key: string) => {
@@ -322,9 +323,9 @@ class ElmsDesktopApp {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const n = new Nctor(title, { body });
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          if (n && typeof (n as any).show === 'function') {
+          if (n && typeof (n).show === 'function') {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (n as any).show();
+            (n).show();
           }
         }
       } catch {

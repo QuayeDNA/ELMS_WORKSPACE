@@ -1,8 +1,9 @@
 import { useEffect } from 'react'
-import { AppRoutes } from './routes/AppRoutes'
+import { AppRouter } from './routes/AppRoutes'
 import { useAuthStore } from './stores/authStore'
 import { useThemeStore } from './stores/themeStore'
 import './App.css'
+import { AuthBackgroundPattern } from './components/ui/BackgroundPattern'
 
 function App() {
   const checkAuth = useAuthStore((state) => state.checkAuth)
@@ -25,8 +26,9 @@ function App() {
   }, [theme])
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <AppRoutes />
+    <div>
+      <AuthBackgroundPattern />
+      <AppRouter />
     </div>
   )
 }
