@@ -15,7 +15,7 @@ export const Layout = () => {
   }
 
   return (
-    <div className="flex h-screen" style={{ backgroundColor: 'var(--ds-background)' }}>
+    <div className="flex h-screen" style={{ backgroundColor: 'var(--background)' }}>
       {/* Sidebar */}
       <Sidebar isOpen={sidebarOpen} onClose={handleSidebarClose} />
       

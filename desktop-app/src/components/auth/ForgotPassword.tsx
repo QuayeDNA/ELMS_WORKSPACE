@@ -1,10 +1,6 @@
 import React, { useState } from 'react'
 import { Mail, ArrowLeft, CheckCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { Card, CardBody } from '@heroui/card'
-import { Button } from '@heroui/button'
-import { Input } from '@heroui/input'
-import { Spinner } from '@heroui/spinner'
 
 export const ForgotPasswordForm: React.FC = () => {
   const [email, setEmail] = useState('')
@@ -34,50 +30,47 @@ export const ForgotPasswordForm: React.FC = () => {
     return (
       <div className="w-full space-y-6">
         <div className="text-center space-y-2">
-          <div className="mx-auto w-12 h-12 bg-success/10 rounded-full flex items-center justify-center mb-4">
-            <CheckCircle className="h-6 w-6 text-success" />
+          <div className="mx-auto w-12 h-12 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mb-4">
+            <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
           </div>
           <h2 className="text-2xl font-bold text-foreground">Check your email</h2>
-          <p className="text-sm text-foreground/70">
+          <p className="text-sm text-muted-foreground">
             We've sent a password reset link to
           </p>
           <p className="text-sm font-medium text-primary">{email}</p>
         </div>
 
-        <Card className="bg-background/80 backdrop-blur-sm border-divider shadow-lg">
-          <CardBody className="gap-4 p-6">
+        <div className="bg-background/80 backdrop-blur-sm border border-border rounded-lg shadow-lg">
+          <div className="p-6 space-y-4">
             <div className="text-center space-y-4">
-              <p className="text-sm text-foreground/70">
+              <p className="text-sm text-muted-foreground">
                 Didn't receive the email? Check your spam folder or try again.
               </p>
-              
+
               <div className="space-y-2">
-                <Button
-                  color="primary"
-                  variant="flat"
-                  onPress={() => setIsSubmitted(false)}
-                  className="w-full"
+                <button
+                  onClick={() => setIsSubmitted(false)}
+                  className="w-full bg-primary/10 text-primary py-2 px-4 rounded-lg hover:bg-primary/20"
                 >
                   Try another email
-                </Button>
-                
-                <Button
-                  variant="light"
-                  onPress={handleSubmit}
-                  isLoading={isLoading}
-                  className="w-full"
+                </button>
+
+                <button
+                  onClick={handleSubmit}
+                  disabled={isLoading}
+                  className="w-full bg-muted text-muted-foreground py-2 px-4 rounded-lg hover:bg-muted/80 disabled:opacity-50"
                 >
-                  Resend email
-                </Button>
+                  {isLoading ? 'Sending...' : 'Resend email'}
+                </button>
               </div>
             </div>
-          </CardBody>
-        </Card>
+          </div>
+        </div>
 
         <div className="text-center">
           <Link
             to="/login"
-            className="inline-flex items-center gap-2 text-sm text-foreground/70 hover:text-foreground transition-colors"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to sign in
@@ -91,57 +84,52 @@ export const ForgotPasswordForm: React.FC = () => {
     <div className="w-full space-y-6">
       <div className="text-center space-y-2">
         <h2 className="text-2xl font-bold text-foreground">Forgot password?</h2>
-        <p className="text-sm text-foreground/70">
+        <p className="text-sm text-muted-foreground">
           No worries, we'll send you reset instructions
         </p>
       </div>
 
-      <Card className="bg-background/80 backdrop-blur-sm border-divider shadow-lg">
-        <CardBody className="gap-6 p-6">
+      <div className="bg-background/80 backdrop-blur-sm border border-border rounded-lg shadow-lg">
+        <div className="p-6 space-y-6">
           {error && (
-            <Card className="bg-danger-50 border-danger-200 dark:bg-danger-950 dark:border-danger-800">
-              <CardBody className="p-3">
-                <p className="text-sm text-danger">{error}</p>
-              </CardBody>
-            </Card>
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <Input
-              type="email"
-              label="Email Address"
-              placeholder="Enter your email address"
-              value={email}
-              onValueChange={setEmail}
-              startContent={<Mail className="h-4 w-4 text-default-400" />}
-              variant="bordered"
-              isRequired
-              description="We'll send a password reset link to this email"
-              classNames={{
-                input: "text-sm",
-                inputWrapper: "border-divider hover:border-default-400 focus-within:!border-primary"
-              }}
-            />
+            <div className="space-y-2">
+              <label htmlFor="email" className="text-sm font-medium text-foreground/80">Email Address</label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input
+                  id="email"
+                  type="email"
+                  placeholder="Enter your email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full pl-10 pr-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  required
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">We'll send a password reset link to this email</p>
+            </div>
 
-            <Button
+            <button
               type="submit"
-              color="primary"
-              size="lg"
-              className="w-full font-medium"
-              isLoading={isLoading}
-              isDisabled={isLoading || !email}
-              spinner={<Spinner size="sm" color="current" />}
+              disabled={isLoading || !email}
+              className="w-full bg-primary text-primary-foreground py-2 px-4 rounded-lg font-semibold hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Sending...' : 'Send reset email'}
-            </Button>
+            </button>
           </form>
-        </CardBody>
-      </Card>
+        </div>
+      </div>
 
       <div className="text-center">
         <Link
           to="/login"
-          className="inline-flex items-center gap-2 text-sm text-foreground/70 hover:text-foreground transition-colors"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to sign in

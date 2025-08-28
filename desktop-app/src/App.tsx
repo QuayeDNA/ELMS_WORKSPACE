@@ -3,7 +3,6 @@ import { AppRouter } from './routes/AppRoutes'
 import { useAuthStore } from './stores/authStore'
 import { useThemeStore } from './stores/themeStore'
 import './App.css'
-import { AuthBackgroundPattern } from './components/ui/BackgroundPattern'
 
 function App() {
   const checkAuth = useAuthStore((state) => state.checkAuth)
@@ -27,7 +26,7 @@ function App() {
 
   return (
     <div>
-      <AuthBackgroundPattern />
+      {/* <AuthBackgroundPattern /> */}
       <AppRouter />
     </div>
   )

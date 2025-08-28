@@ -156,7 +156,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           transform transition-transform duration-300 ease-in-out
           ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
-        style={{ borderRight: '1px solid var(--ds-outline)' }}
+        style={{ borderRight: '1px solid var(--outline)' }}
       >
         {/* Logo */}
         <div className="p-4 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
@@ -185,8 +185,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 onClick={onClose} // Close sidebar on mobile after navigation
                 className={`w-full flex items-center justify-start px-3 py-2 rounded-lg text-sm font-medium transition-colors`}
                 style={{
-                  backgroundColor: isActive ? 'var(--ds-primary)' : 'transparent',
-                  color: isActive ? 'white' : '#cbd5e1'
+                  backgroundColor: isActive ? 'var(--primary)' : 'transparent',
+                  color: isActive ? 'white' : 'var(--outline)'
                 }}
               >
                 <Icon className="mr-3 h-4 w-4 flex-shrink-0 text-current" />
@@ -199,7 +199,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         {/* User Profile & Settings */}
         <div className="p-4" style={{ borderTop: '1px solid rgba(255,255,255,0.03)' }}>
           <div className="flex items-center space-x-3 mb-4">
-            <div className="h-8 w-8 rounded-full flex items-center justify-center text-sm font-medium" style={{ backgroundColor: 'var(--ds-primary)', color: 'var(--ds-on-primary)' }}>
+            <div className="h-8 w-8 rounded-full flex items-center justify-center text-sm font-medium" style={{ backgroundColor: 'var(--primary)', color: 'var(--on-primary)' }}>
               {user?.profile?.firstName?.charAt(0) || user?.email?.charAt(0) || 'U'}
             </div>
             <div className="flex-1 min-w-0">

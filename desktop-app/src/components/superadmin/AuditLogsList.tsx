@@ -22,7 +22,13 @@ export const AuditLogsList: React.FC = () => {
       if (!token) return setLoading(false)
       try {
         setLoading(true)
-        const data = await getAuditLogs(token, { page, limit, action: actionFilter, entityType: entityFilter, dateFrom, dateTo })
+        const filters: Record<string, string | number | boolean> = { page, limit };
+        if (actionFilter) filters.action = actionFilter;
+        if (entityFilter) filters.entityType = entityFilter;
+        if (dateFrom) filters.dateFrom = dateFrom;
+        if (dateTo) filters.dateTo = dateTo;
+        
+        const data = await getAuditLogs(token, filters)
         // data may be { auditLogs, pagination }
         const d = data as AuditLogsResponse | AuditLog[]
         const payload = Array.isArray(d) ? d : (d.auditLogs || [])

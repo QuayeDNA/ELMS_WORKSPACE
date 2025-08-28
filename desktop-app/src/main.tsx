@@ -4,7 +4,6 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App.tsx";
 import "./index.css";
-import { HeroUIProvider } from "@heroui/react";
 
 declare global {
   interface Window {
@@ -23,9 +22,7 @@ declare global {
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <BrowserRouter>
-      <HeroUIProvider>
-        <App />
-      </HeroUIProvider>
+      <App />
     </BrowserRouter>
   </React.StrictMode>
 );

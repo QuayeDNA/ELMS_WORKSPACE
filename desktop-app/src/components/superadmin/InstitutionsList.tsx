@@ -9,7 +9,6 @@ import {
   Save,
   X,
   AlertTriangle,
-  Users,
   MapPin,
   Search,
   Globe,
@@ -72,12 +71,12 @@ interface Institution {
   language?: string
   currencies?: string[]
   academicCalendar?: AcademicCalendar
-  customFields?: any
-  config?: Record<string, any>
+  customFields?: Record<string, unknown>
+  config?: Record<string, unknown>
   isActive?: boolean
   createdAt?: string
   updatedAt?: string
-  settings?: any
+  settings?: Record<string, unknown>
   _count?: InstitutionCounts
 }
 

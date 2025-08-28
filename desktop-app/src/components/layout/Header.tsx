@@ -108,19 +108,19 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   )?.label || 'Dashboard'
 
   return (
-    <header className="px-6 py-4" style={{ backgroundColor: 'var(--ds-surface)', borderBottom: '1px solid var(--ds-outline)' }}>
+    <header className="px-6 py-4" style={{ backgroundColor: 'var(--surface)', borderBottom: '1px solid var(--outline)' }}>
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           {/* Mobile menu button */}
           <button
             onClick={onMenuClick}
             className="lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            style={{ color: 'var(--ds-on-surface)' }}
+            style={{ color: 'var(--on-surface)' }}
           >
             <Menu className="h-5 w-5" />
           </button>
           
-          <h2 className="text-xl font-semibold" style={{ color: 'var(--ds-on-surface)' }}>
+          <h2 className="text-xl font-semibold" style={{ color: 'var(--on-surface)' }}>
             {currentPageTitle}
           </h2>
         </div>
@@ -139,7 +139,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
               type="text"
               placeholder="Search..."
               className="pl-10 pr-4 py-2 border rounded-lg w-64"
-              style={{ borderColor: 'var(--ds-outline)', backgroundColor: 'var(--ds-surface)', color: 'var(--ds-on-surface)' }}
+              style={{ borderColor: 'var(--outline)', backgroundColor: 'var(--surface)', color: 'var(--on-surface)' }}
             />
           </div>
           
