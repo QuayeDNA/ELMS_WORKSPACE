@@ -2,8 +2,7 @@ import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuthStore } from "../stores/authStore";
 import { ProtectedRoute } from "../components/auth/ProtectedRoute";
-import { LoginForm } from "../components/auth/LoginForm";
-import { ForgotPasswordForm } from "@/components/auth/ForgotPassword";
+import AuthForm from "../components/auth/AuthForm";
 import { Layout } from "../components/Layout";
 import { DashboardContent } from "../components/DashboardContent";
 import { ExamManagement } from "../components/exams/ExamManagement";
@@ -22,7 +21,7 @@ import { AuditLogsList } from "../components/superadmin/AuditLogsList";
 import { Analytics as SuperAdminAnalytics } from "../components/superadmin/Analytics";
 import Health from "../components/superadmin/Health";
 import Configuration from "../components/superadmin/Configuration";
-import { AuthLayout } from "@/components/layout/AuthLayout";
+import AuthLayout from "@/components/layout/AuthLayout";
 
 // Placeholder components for other roles (will be implemented later)
 const InstitutionAdminDashboard = () => (
@@ -167,17 +166,7 @@ export const AppRouter: React.FC = () => {
           element={
             <PublicRoute>
               <AuthLayout>
-                <LoginForm />
-              </AuthLayout>
-            </PublicRoute>
-          }
-        />
-        <Route
-          path="/forgot-password"
-          element={
-            <PublicRoute>
-              <AuthLayout>
-                <ForgotPasswordForm />
+                <AuthForm />
               </AuthLayout>
             </PublicRoute>
           }

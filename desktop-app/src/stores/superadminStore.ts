@@ -1,6 +1,21 @@
 import { create } from 'zustand';
-import { superAdminApi } from './api';
-import type { SuperAdminState } from './types';
+import { superAdminApi } from '../services/superadmin/superadmin.service';
+import { useAuthStore } from './authStore';
+import type { SuperAdminState } from '../types/superadmin/superadmin.types';
+
+// Helper function to get token from auth store
+const getAuthToken = () => {
+  const authStore = useAuthStore.getState();
+  return authStore.token;
+};
+
+// Helper function to ensure API has current token
+const ensureApiToken = () => {
+  const token = getAuthToken();
+  if (token) {
+    superAdminApi.setToken(token);
+  }
+};
 
 export const useSuperAdminStore = create<SuperAdminState>((set) => ({
   // Initial data
@@ -33,6 +48,7 @@ export const useSuperAdminStore = create<SuperAdminState>((set) => ({
 
   // Actions
   fetchInstitutions: async () => {
+    ensureApiToken();
     set(state => ({
       loading: { ...state.loading, institutions: true },
       errors: { ...state.errors, institutions: null }
@@ -54,6 +70,7 @@ export const useSuperAdminStore = create<SuperAdminState>((set) => ({
   },
 
   fetchUsers: async (params = {}) => {
+    ensureApiToken();
     set(state => ({
       loading: { ...state.loading, users: true },
       errors: { ...state.errors, users: null }
@@ -75,6 +92,7 @@ export const useSuperAdminStore = create<SuperAdminState>((set) => ({
   },
 
   fetchAuditLogs: async (params = {}) => {
+    ensureApiToken();
     set(state => ({
       loading: { ...state.loading, auditLogs: true },
       errors: { ...state.errors, auditLogs: null }
@@ -96,6 +114,7 @@ export const useSuperAdminStore = create<SuperAdminState>((set) => ({
   },
 
   fetchAnalytics: async (timeframe = '7d') => {
+    ensureApiToken();
     set(state => ({
       loading: { ...state.loading, analytics: true },
       errors: { ...state.errors, analytics: null }
@@ -117,6 +136,7 @@ export const useSuperAdminStore = create<SuperAdminState>((set) => ({
   },
 
   fetchOverview: async () => {
+    ensureApiToken();
     set(state => ({
       loading: { ...state.loading, overview: true },
       errors: { ...state.errors, overview: null }
@@ -138,6 +158,7 @@ export const useSuperAdminStore = create<SuperAdminState>((set) => ({
   },
 
   fetchHealth: async () => {
+    ensureApiToken();
     set(state => ({
       loading: { ...state.loading, health: true },
       errors: { ...state.errors, health: null }
@@ -159,6 +180,7 @@ export const useSuperAdminStore = create<SuperAdminState>((set) => ({
   },
 
   createInstitution: async (data) => {
+    ensureApiToken();
     const institution = await superAdminApi.createInstitution(data);
     set(state => ({
       institutions: [...state.institutions, institution]
@@ -167,6 +189,7 @@ export const useSuperAdminStore = create<SuperAdminState>((set) => ({
   },
 
   updateInstitution: async (id, data) => {
+    ensureApiToken();
     const institution = await superAdminApi.updateInstitution(id, data);
     set(state => ({
       institutions: state.institutions.map(inst =>
@@ -177,6 +200,7 @@ export const useSuperAdminStore = create<SuperAdminState>((set) => ({
   },
 
   deleteInstitution: async (id) => {
+    ensureApiToken();
     await superAdminApi.deleteInstitution(id);
     set(state => ({
       institutions: state.institutions.filter(inst => inst.id !== id)
@@ -184,6 +208,7 @@ export const useSuperAdminStore = create<SuperAdminState>((set) => ({
   },
 
   createUser: async (data) => {
+    ensureApiToken();
     const user = await superAdminApi.createUser(data);
     set(state => ({
       users: [...state.users, user]
@@ -192,6 +217,7 @@ export const useSuperAdminStore = create<SuperAdminState>((set) => ({
   },
 
   updateUser: async (id, data) => {
+    ensureApiToken();
     const user = await superAdminApi.updateUser(id, data);
     set(state => ({
       users: state.users.map(u => u.id === id ? user : u)
@@ -200,6 +226,7 @@ export const useSuperAdminStore = create<SuperAdminState>((set) => ({
   },
 
   toggleUserStatus: async (id, isActive) => {
+    ensureApiToken();
     const user = await superAdminApi.toggleUserStatus(id, isActive);
     set(state => ({
       users: state.users.map(u => u.id === id ? user : u)
@@ -208,6 +235,7 @@ export const useSuperAdminStore = create<SuperAdminState>((set) => ({
   },
 
   deleteUser: async (id) => {
+    ensureApiToken();
     await superAdminApi.deleteUser(id);
     set(state => ({
       users: state.users.filter(u => u.id !== id)
@@ -215,6 +243,7 @@ export const useSuperAdminStore = create<SuperAdminState>((set) => ({
   },
 
   updateConfiguration: async (configurations) => {
+    ensureApiToken();
     await superAdminApi.updateConfiguration(configurations);
   },
 

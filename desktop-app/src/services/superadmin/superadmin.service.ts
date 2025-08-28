@@ -11,7 +11,7 @@ import type {
   CreateUserData,
   UpdateUserData,
   PaginatedResponse
-} from './types';
+} from '../../types/superadmin/superadmin.types';
 
 export class ApiError extends Error {
   constructor(
@@ -30,7 +30,7 @@ export class SuperAdminApiClient {
   private token: string | null = null;
 
   private constructor() {
-    this.baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+    this.baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
   }
 
   static getInstance(): SuperAdminApiClient {

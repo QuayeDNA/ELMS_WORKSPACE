@@ -89,8 +89,35 @@ class ElmsServer {
 
     // CORS configuration
     this.app.use(cors({
-      origin: process.env.FRONTEND_URL || "http://localhost:5173",
+      origin: (origin, callback) => {
+        // Allow requests with no origin (mobile apps, Postman, etc.)
+        if (!origin) return callback(null, true);
+
+        const allowedOrigins = [
+          process.env.FRONTEND_URL || "http://localhost:5173", // Vite dev server
+          "http://localhost:3000", // Backend itself
+          "http://localhost:5173", // Vite dev server
+          "app://.", // Electron app protocol
+          /^https?:\/\/localhost(:\d+)?$/, // Any localhost port
+        ];
+
+        // Check if origin matches any allowed pattern
+        const isAllowed = allowedOrigins.some(allowedOrigin => {
+          if (typeof allowedOrigin === 'string') {
+            return allowedOrigin === origin;
+          }
+          return allowedOrigin.test(origin);
+        });
+
+        if (isAllowed) {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
+      },
       credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     }));
 
     // Compression and parsing
@@ -162,7 +189,7 @@ class ElmsServer {
     this.app.use('/api/incidents', authenticateToken(this.prisma), createIncidentRoutes(this.prisma));
     this.app.use('/api/analytics', authenticateToken(this.prisma), createAnalyticsRoutes(this.prisma));
     this.app.use('/api/files', authenticateToken(this.prisma), createFileRoutes(this.prisma));
-    this.app.use('/api/superadmin', createSuperAdminRoutes(this.prisma));
+    this.app.use('/api/superadmin', createSuperAdminRoutes());
 
     // API documentation
     this.app.get('/api/docs', (req, res) => {
@@ -195,7 +222,31 @@ class ElmsServer {
   private initializeSocketIO(): void {
     this.io = new SocketIOServer(this.server, {
       cors: {
-        origin: process.env.FRONTEND_URL || "http://localhost:3001",
+        origin: (origin, callback) => {
+          // Allow requests with no origin (mobile apps, Postman, etc.)
+          if (!origin) return callback(null, true);
+
+          const allowedOrigins = [
+            process.env.FRONTEND_URL || "http://localhost:5173",
+            "http://localhost:3000",
+            "http://localhost:5173",
+            "app://.", // Electron app protocol
+            /^https?:\/\/localhost(:\d+)?$/, // Any localhost port
+          ];
+
+          const isAllowed = allowedOrigins.some(allowedOrigin => {
+            if (typeof allowedOrigin === 'string') {
+              return allowedOrigin === origin;
+            }
+            return allowedOrigin.test(origin);
+          });
+
+          if (isAllowed) {
+            callback(null, true);
+          } else {
+            callback(new Error('Not allowed by CORS'));
+          }
+        },
         methods: ['GET', 'POST'],
         credentials: true,
       },

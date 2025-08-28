@@ -152,7 +152,7 @@ export const useAuthStore = create<AuthState>()(
 
       login: async (email: string, password: string) => {
         try {
-          const response = await fetch('http://localhost:3000/api/auth/login', {
+          const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/auth/login`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -166,16 +166,18 @@ export const useAuthStore = create<AuthState>()(
           }
 
           const data = await response.json()
-          
+
           // Get user permissions based on role
           const userPermissions = ROLE_PERMISSIONS[data.user.role] || []
-          
+
           set({
             user: data.user,
             token: data.token,
             isAuthenticated: true,
             permissions: userPermissions,
           })
+
+          return data;
         } catch (error) {
           console.error('Login error:', error)
           throw error

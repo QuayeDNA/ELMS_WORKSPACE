@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
-import { useCachedQuery } from '../../hooks/useCachedQuery';
-import { superAdminApi } from './api';
+import { useCachedQuery } from '../useCachedQuery';
+import { superAdminApi } from '../../services/superadmin/superadmin.service';
 import type {
   Institution,
   User,
@@ -11,12 +11,14 @@ import type {
   UseSuperAdminOptions,
   SuperAdminFilters,
   ConfigurationItem
-} from './types';
+} from '../../types/superadmin/superadmin.types';
 
 // Hook for managing superadmin API token
 export function useSuperAdminToken() {
   const setToken = useCallback((token: string | null) => {
-    superAdminApi.setToken(token);
+    if (token) {
+      superAdminApi.setToken(token);
+    }
   }, []);
 
   return { setToken };
