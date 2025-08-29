@@ -191,15 +191,19 @@ export class UserManagementService {
           where: { id: userId },
           data: {
             ...updateData,
-            // profile: profileUpdateData ? {
-            //   upsert: {
-            //     create: profileUpdateData,
-            //     update: {
-            //       ...profileUpdateData,
-            //       updatedAt: new Date(),
-            //     },
-            //   },
-            // } : undefined,
+            profile: profileUpdateData ? {
+              upsert: {
+                create: {
+                  ...profileUpdateData,
+                  userId: userId,
+                  updatedAt: new Date(),
+                } as any,
+                update: {
+                  ...profileUpdateData,
+                  updatedAt: new Date(),
+                } as any,
+              },
+            } : undefined,
           } as any,
           include: {
             profile: true,
@@ -235,7 +239,6 @@ export class UserManagementService {
         isActive,
         isVerified,
         departmentId,
-        facultyId,
         search,
         page = 1,
         limit = 20,
@@ -364,8 +367,8 @@ export class UserManagementService {
         crypto.randomBytes(4).toString('hex').toUpperCase()
       );
 
-      // Encrypt backup codes
-      const encryptedBackupCodes = backupCodes.map(code => 
+      // Encrypt backup codes (not stored yet, returned to user)
+      backupCodes.forEach(code =>
         this.encryptBackupCode(code)
       );
 
@@ -408,7 +411,7 @@ export class UserManagementService {
         where: { id: userId },
       });
 
-      if (!user || !user.twoFactorTempSecret) {
+      if (!user?.twoFactorTempSecret) {
         throw new Error('MFA setup not initiated');
       }
 

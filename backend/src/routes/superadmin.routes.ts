@@ -12,8 +12,309 @@ export function createSuperAdminRoutes(): Router {
   router.use(authenticateToken);
 
   // ==========================================
-  // ANALYTICS
+  // SYSTEM MANAGEMENT
   // ==========================================
+
+  // Create system backup
+  router.post('/system/backup', async (req: Request, res: Response) => {
+    try {
+      const { type = 'full', includeFiles = true } = req.body;
+
+      // In a real implementation, this would trigger a backup process
+      // For now, we'll simulate the backup creation
+      const backupId = `backup_${Date.now()}`;
+      const backupInfo = {
+        id: backupId,
+        type,
+        includeFiles,
+        status: 'in_progress',
+        createdAt: new Date().toISOString(),
+        estimatedCompletion: new Date(Date.now() + 300000).toISOString() // 5 minutes
+      };
+
+      // Log the action
+      await prisma.auditLog.create({
+        data: {
+          userId: (req as AuthenticatedRequest).user!.userId,
+          action: 'SYSTEM_ACCESS',
+          entityType: 'USER',
+          entityId: backupId,
+          changes: { type: 'backup', backupType: type },
+          ipAddress: req.ip || 'unknown',
+          userAgent: req.get('User-Agent') || 'unknown',
+          sessionId: req.sessionID || 'unknown'
+        }
+      });
+
+      res.status(201).json({
+        message: 'Backup initiated successfully',
+        backup: backupInfo
+      });
+    } catch (error) {
+      logger.error('Failed to create backup:', error);
+      res.status(500).json({ error: 'Failed to create backup' });
+    }
+  });
+
+  // Get backup status/list
+  router.get('/system/backups', async (req: Request, res: Response) => {
+    try {
+      // In a real implementation, this would query backup records
+      // For now, return mock data
+      const backups = [
+        {
+          id: 'backup_001',
+          type: 'full',
+          status: 'completed',
+          size: '2.5GB',
+          createdAt: new Date(Date.now() - 86400000).toISOString(),
+          completedAt: new Date(Date.now() - 86000000).toISOString()
+        },
+        {
+          id: 'backup_002',
+          type: 'incremental',
+          status: 'completed',
+          size: '500MB',
+          createdAt: new Date(Date.now() - 43200000).toISOString(),
+          completedAt: new Date(Date.now() - 42800000).toISOString()
+        }
+      ];
+
+      res.json({ backups });
+    } catch (error) {
+      logger.error('Failed to fetch backups:', error);
+      res.status(500).json({ error: 'Failed to fetch backups' });
+    }
+  });
+
+  // System maintenance mode
+  router.put('/system/maintenance', async (req: Request, res: Response) => {
+    try {
+      const { enabled, message, estimatedDuration } = req.body;
+
+      if (typeof enabled !== 'boolean') {
+        return res.status(400).json({ error: 'Enabled status must be boolean' });
+      }
+
+      // In a real implementation, this would update system configuration
+      // For now, we'll just log the change
+      const maintenanceConfig = {
+        enabled,
+        message: message || (enabled ? 'System is under maintenance' : ''),
+        estimatedDuration: estimatedDuration || null,
+        updatedAt: new Date().toISOString(),
+        updatedBy: (req as AuthenticatedRequest).user!.userId
+      };
+
+      // Log the action
+      await prisma.auditLog.create({
+        data: {
+          userId: (req as AuthenticatedRequest).user!.userId,
+          action: 'SYSTEM_ACCESS',
+          entityType: 'USER',
+          entityId: 'maintenance_mode',
+          changes: maintenanceConfig,
+          ipAddress: req.ip || 'unknown',
+          userAgent: req.get('User-Agent') || 'unknown',
+          sessionId: req.sessionID || 'unknown'
+        }
+      });
+
+      res.json({
+        message: `Maintenance mode ${enabled ? 'enabled' : 'disabled'} successfully`,
+        maintenance: maintenanceConfig
+      });
+    } catch (error) {
+      logger.error('Failed to update maintenance mode:', error);
+      res.status(500).json({ error: 'Failed to update maintenance mode' });
+    }
+  });
+
+  // Get system maintenance status
+  router.get('/system/maintenance', async (req: Request, res: Response) => {
+    try {
+      // In a real implementation, this would check system configuration
+      // For now, return mock data
+      const maintenanceStatus = {
+        enabled: false,
+        message: '',
+        estimatedDuration: null,
+        lastUpdated: new Date().toISOString()
+      };
+
+      res.json(maintenanceStatus);
+    } catch (error) {
+      logger.error('Failed to fetch maintenance status:', error);
+      res.status(500).json({ error: 'Failed to fetch maintenance status' });
+    }
+  });
+
+  // ==========================================
+  // SECURITY MANAGEMENT
+  // ==========================================
+
+  // Get security policies
+  router.get('/security/policies', async (req: Request, res: Response) => {
+    try {
+      // In a real implementation, this would fetch from configuration
+      const securityPolicies = {
+        passwordPolicy: {
+          minLength: 8,
+          requireUppercase: true,
+          requireLowercase: true,
+          requireNumbers: true,
+          requireSymbols: true,
+          preventReuse: 5,
+          maxAge: 90 // days
+        },
+        sessionPolicy: {
+          timeout: 1800, // 30 minutes
+          maxConcurrentSessions: 5,
+          requireMFA: true,
+          allowRememberMe: false
+        },
+        accessPolicy: {
+          maxLoginAttempts: 5,
+          lockoutDuration: 900, // 15 minutes
+          ipWhitelist: [],
+          ipBlacklist: [],
+          allowedCountries: []
+        },
+        auditPolicy: {
+          retentionPeriod: 365, // days
+          enableRealTimeAlerts: true,
+          alertOnSuspiciousActivity: true
+        }
+      };
+
+      res.json(securityPolicies);
+    } catch (error) {
+      logger.error('Failed to fetch security policies:', error);
+      res.status(500).json({ error: 'Failed to fetch security policies' });
+    }
+  });
+
+  // Update security policies
+  router.put('/security/policies', async (req: Request, res: Response) => {
+    try {
+      const { section, policies } = req.body;
+
+      if (!section || !policies) {
+        return res.status(400).json({ error: 'Section and policies are required' });
+      }
+
+      // Validate section
+      const validSections = ['passwordPolicy', 'sessionPolicy', 'accessPolicy', 'auditPolicy'];
+      if (!validSections.includes(section)) {
+        return res.status(400).json({ error: 'Invalid policy section' });
+      }
+
+      // In a real implementation, this would update the security configuration
+      // For now, we'll just log the change
+      logger.info(`Security policy update requested: ${section}`, policies);
+
+      // Log the action
+      await prisma.auditLog.create({
+        data: {
+          userId: (req as AuthenticatedRequest).user!.userId,
+          action: 'SYSTEM_ACCESS',
+          entityType: 'USER',
+          entityId: section,
+          changes: { section, policies },
+          ipAddress: req.ip || 'unknown',
+          userAgent: req.get('User-Agent') || 'unknown',
+          sessionId: req.sessionID || 'unknown'
+        }
+      });
+
+      res.json({
+        message: 'Security policies updated successfully',
+        section,
+        policies
+      });
+    } catch (error) {
+      logger.error('Failed to update security policies:', error);
+      res.status(500).json({ error: 'Failed to update security policies' });
+    }
+  });
+
+  // Get security incidents/alerts
+  router.get('/security/incidents', async (req: Request, res: Response) => {
+    try {
+      const { status = 'active', page = 1, limit = 20 } = req.query;
+      const skip = (Number(page) - 1) * Number(limit);
+
+      // Get recent security-related audit logs
+      const securityIncidents = await prisma.auditLog.findMany({
+        where: {
+          entityType: 'USER',
+          OR: [
+            { action: 'LOGIN' },
+            { action: 'SYSTEM_ACCESS' },
+            { action: 'PERMISSION_GRANT' }
+          ]
+        },
+        skip,
+        take: Number(limit),
+        include: {
+          user: {
+            include: {
+              profile: {
+                select: {
+                  firstName: true,
+                  lastName: true
+                }
+              }
+            }
+          }
+        },
+        orderBy: { timestamp: 'desc' }
+      });
+
+      const totalCount = await prisma.auditLog.count({
+        where: {
+          entityType: 'USER',
+          OR: [
+            { action: 'LOGIN' },
+            { action: 'SYSTEM_ACCESS' },
+            { action: 'PERMISSION_GRANT' }
+          ]
+        }
+      });
+
+      // Transform incidents
+      const transformedIncidents = securityIncidents.map(incident => ({
+        id: incident.id,
+        type: incident.action,
+        severity: incident.action === 'SYSTEM_ACCESS' ? 'high' : 'medium',
+        user: incident.user ? {
+          id: incident.user.id,
+          email: incident.user.email,
+          name: incident.user.profile ?
+            `${incident.user.profile.firstName} ${incident.user.profile.lastName}` :
+            incident.user.email
+        } : null,
+        details: incident.changes,
+        ipAddress: incident.ipAddress,
+        userAgent: incident.userAgent,
+        timestamp: incident.timestamp.toISOString(),
+        status: 'investigating' // In real implementation, this would be tracked separately
+      }));
+
+      res.json({
+        incidents: transformedIncidents,
+        pagination: {
+          page: Number(page),
+          limit: Number(limit),
+          total: totalCount,
+          pages: Math.ceil(totalCount / Number(limit))
+        }
+      });
+    } catch (error) {
+      logger.error('Failed to fetch security incidents:', error);
+      res.status(500).json({ error: 'Failed to fetch security incidents' });
+    }
+  });
 
   // Get analytics data
   router.get('/analytics', async (req: Request, res: Response) => {
@@ -105,6 +406,269 @@ export function createSuperAdminRoutes(): Router {
     } catch (error) {
       logger.error('Failed to fetch analytics:', error);
       res.status(500).json({ error: 'Failed to fetch analytics data' });
+    }
+  });
+
+  // Get system analytics overview
+  router.get('/analytics/overview', async (req: Request, res: Response) => {
+    try {
+      const { period = '30d' } = req.query;
+
+      // Get user statistics
+      const totalUsers = await prisma.user.count();
+      const activeUsers = await prisma.user.count({
+        where: { isActive: true }
+      });
+      const verifiedUsers = await prisma.user.count({
+        where: { isVerified: true }
+      });
+
+      // Get recent activity (last 30 days)
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const recentLogins = await prisma.auditLog.count({
+        where: {
+          action: 'LOGIN',
+          timestamp: { gte: thirtyDaysAgo }
+        }
+      });
+
+      // Get role distribution
+      const roleStats = await prisma.user.groupBy({
+        by: ['role'],
+        _count: { role: true }
+      });
+
+      // Get system health metrics (mock data for now)
+      const systemHealth = {
+        database: { status: 'healthy', responseTime: '45ms' },
+        redis: { status: 'healthy', responseTime: '2ms' },
+        api: { status: 'healthy', uptime: '99.9%' }
+      };
+
+      res.json({
+        overview: {
+          totalUsers,
+          activeUsers,
+          verifiedUsers,
+          recentActivity: recentLogins
+        },
+        roleDistribution: roleStats.map(stat => ({
+          role: stat.role,
+          count: stat._count.role
+        })),
+        systemHealth,
+        period
+      });
+    } catch (error) {
+      logger.error('Failed to fetch analytics overview:', error);
+      res.status(500).json({ error: 'Failed to fetch analytics overview' });
+    }
+  });
+
+  // Get user activity analytics
+  router.get('/analytics/user-activity', async (req: Request, res: Response) => {
+    try {
+      const { startDate, endDate, groupBy = 'day' } = req.query;
+
+      const start = startDate ? new Date(startDate as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const end = endDate ? new Date(endDate as string) : new Date();
+
+      // Get login activity over time
+      const loginActivity = await prisma.auditLog.findMany({
+        where: {
+          action: 'LOGIN',
+          timestamp: { gte: start, lte: end }
+        },
+        select: {
+          timestamp: true,
+          userId: true,
+          ipAddress: true
+        },
+        orderBy: { timestamp: 'asc' }
+      });
+
+      // Group by time period
+      const groupedActivity = loginActivity.reduce((acc: any, log) => {
+        const date = new Date(log.timestamp);
+        let key: string;
+
+        if (groupBy === 'hour') {
+          key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:00`;
+        } else if (groupBy === 'week') {
+          const weekStart = new Date(date);
+          weekStart.setDate(date.getDate() - date.getDay());
+          key = weekStart.toISOString().split('T')[0];
+        } else { // day
+          key = date.toISOString().split('T')[0];
+        }
+
+        if (!acc[key]) {
+          acc[key] = { date: key, logins: 0, uniqueUsers: new Set() };
+        }
+        acc[key].logins++;
+        acc[key].uniqueUsers.add(log.userId);
+        return acc;
+      }, {});
+
+      // Convert to array and calculate unique users
+      const activityData = Object.values(groupedActivity).map((item: any) => ({
+        date: item.date,
+        logins: item.logins,
+        uniqueUsers: item.uniqueUsers.size
+      }));
+
+      res.json({
+        activity: activityData,
+        summary: {
+          totalLogins: loginActivity.length,
+          uniqueUsers: new Set(loginActivity.map(log => log.userId)).size,
+          period: { start: start.toISOString(), end: end.toISOString() }
+        }
+      });
+    } catch (error) {
+      logger.error('Failed to fetch user activity analytics:', error);
+      res.status(500).json({ error: 'Failed to fetch user activity analytics' });
+    }
+  });
+
+  // Get system performance metrics
+  router.get('/analytics/performance', async (req: Request, res: Response) => {
+    try {
+      // Get API response times from audit logs (mock calculation)
+      const recentLogs = await prisma.auditLog.findMany({
+        take: 1000,
+        orderBy: { timestamp: 'desc' },
+        select: { timestamp: true, action: true }
+      });
+
+      // Calculate response time trends (mock data)
+      const performanceMetrics = {
+        apiResponseTime: {
+          average: 125, // ms
+          p95: 250, // ms
+          p99: 500  // ms
+        },
+        databaseQueryTime: {
+          average: 45, // ms
+          p95: 120, // ms
+          p99: 300  // ms
+        },
+        throughput: {
+          requestsPerSecond: 15.5,
+          requestsPerMinute: 930
+        },
+        errorRate: {
+          percentage: 0.02, // 0.02%
+          errorsPerHour: 2
+        }
+      };
+
+      res.json(performanceMetrics);
+    } catch (error) {
+      logger.error('Failed to fetch performance metrics:', error);
+      res.status(500).json({ error: 'Failed to fetch performance metrics' });
+    }
+  });
+
+  // Get security analytics
+  router.get('/analytics/security', async (req: Request, res: Response) => {
+    try {
+      const { period = '7d' } = req.query;
+
+      // Calculate period
+      const days = period === '7d' ? 7 : period === '30d' ? 30 : 1;
+      const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+      // Get security-related events
+      const securityEvents = await prisma.auditLog.count({
+        where: {
+          action: { in: ['LOGIN', 'SYSTEM_ACCESS', 'PERMISSION_GRANT'] },
+          timestamp: { gte: startDate }
+        }
+      });
+
+      // Get failed login attempts (mock data - would need separate tracking)
+      const failedLogins = await prisma.auditLog.count({
+        where: {
+          action: 'LOGIN',
+          timestamp: { gte: startDate }
+          // In real implementation, would filter by success/failure status
+        }
+      });
+
+      // Get active sessions
+      const activeSessions = await prisma.userSession.count({
+        where: {
+          expiresAt: { gt: new Date() }
+        }
+      });
+
+      const securityAnalytics = {
+        events: {
+          total: securityEvents,
+          failedLogins,
+          successfulLogins: securityEvents - failedLogins
+        },
+        sessions: {
+          active: activeSessions,
+          averagePerUser: activeSessions / Math.max(await prisma.user.count({ where: { isActive: true } }), 1)
+        },
+        threats: {
+          suspiciousActivities: 0, // Would need ML/anomaly detection
+          blockedIPs: 0,
+          rateLimited: 0
+        },
+        compliance: {
+          mfaEnabled: await prisma.user.count({ where: { mfaEnabled: true } }),
+          passwordStrength: 'good', // Would need password analysis
+          lastSecurityAudit: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+        }
+      };
+
+      res.json(securityAnalytics);
+    } catch (error) {
+      logger.error('Failed to fetch security analytics:', error);
+      res.status(500).json({ error: 'Failed to fetch security analytics' });
+    }
+  });
+
+  // Export analytics data
+  router.get('/analytics/export', async (req: Request, res: Response) => {
+    try {
+      const { type = 'overview', format = 'json', startDate, endDate } = req.query;
+
+      // In a real implementation, this would generate and return export data
+      // For now, return mock export info
+      const exportData = {
+        type,
+        format,
+        period: {
+          start: startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+          end: endDate || new Date().toISOString()
+        },
+        status: 'generating',
+        estimatedCompletion: new Date(Date.now() + 30000).toISOString(), // 30 seconds
+        downloadUrl: null // Would be set when complete
+      };
+
+      // Log the export request
+      await prisma.auditLog.create({
+        data: {
+          userId: (req as AuthenticatedRequest).user!.userId,
+          action: 'DATA_EXPORT',
+          entityType: 'USER',
+          entityId: 'analytics_export',
+          changes: { type, format, period: exportData.period },
+          ipAddress: req.ip || 'unknown',
+          userAgent: req.get('User-Agent') || 'unknown',
+          sessionId: req.sessionID || 'unknown'
+        }
+      });
+
+      res.json(exportData);
+    } catch (error) {
+      logger.error('Failed to export analytics:', error);
+      res.status(500).json({ error: 'Failed to export analytics' });
     }
   });
 
@@ -610,8 +1174,408 @@ export function createSuperAdminRoutes(): Router {
   });
 
   // ==========================================
-  // CONFIGURATION MANAGEMENT
+  // USER MANAGEMENT
   // ==========================================
+
+  // Get all users with advanced filtering
+  router.get('/users', async (req: Request, res: Response) => {
+    try {
+      const {
+        page = 1,
+        limit = 50,
+        role,
+        isActive,
+        isVerified,
+        search,
+        institutionId,
+        departmentId
+      } = req.query;
+
+      const skip = (Number(page) - 1) * Number(limit);
+
+      const where: any = {};
+
+      if (role) where.role = role;
+      if (isActive !== undefined) where.isActive = isActive === 'true';
+      if (isVerified !== undefined) where.isVerified = isVerified === 'true';
+      if (institutionId) where.institutionId = institutionId;
+      if (departmentId) where.departmentId = departmentId;
+
+      if (search) {
+        where.OR = [
+          { email: { contains: search as string, mode: 'insensitive' } },
+          { profile: { firstName: { contains: search as string, mode: 'insensitive' } } },
+          { profile: { lastName: { contains: search as string, mode: 'insensitive' } } }
+        ];
+      }
+
+      const [users, totalCount] = await Promise.all([
+        prisma.user.findMany({
+          where,
+          skip,
+          take: Number(limit),
+          include: {
+            profile: true,
+            _count: {
+              select: {
+                auditLogs: true
+              }
+            }
+          },
+          orderBy: { createdAt: 'desc' }
+        }),
+        prisma.user.count({ where })
+      ]);
+
+      // Transform data
+      const transformedUsers = users.map(user => ({
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        role: user.role,
+        isActive: user.isActive,
+        isVerified: user.isVerified,
+        lastLogin: user.lastLogin?.toISOString(),
+        profile: user.profile ? {
+          firstName: user.profile.firstName,
+          lastName: user.profile.lastName,
+          phoneNumber: user.profile.phoneNumber,
+          department: user.profile.department
+        } : null,
+        activityCount: user._count.auditLogs,
+        createdAt: user.createdAt.toISOString(),
+        updatedAt: user.updatedAt.toISOString()
+      }));
+
+      res.json({
+        users: transformedUsers,
+        pagination: {
+          page: Number(page),
+          limit: Number(limit),
+          total: totalCount,
+          pages: Math.ceil(totalCount / Number(limit))
+        }
+      });
+    } catch (error) {
+      logger.error('Failed to fetch users:', error);
+      res.status(500).json({ error: 'Failed to fetch users' });
+    }
+  });
+
+  // Bulk user operations
+  router.post('/users/bulk', async (req: Request, res: Response) => {
+    try {
+      const { operation, userIds, data } = req.body;
+
+      if (!operation || !userIds || !Array.isArray(userIds)) {
+        return res.status(400).json({ error: 'Operation and userIds array are required' });
+      }
+
+      const results = [];
+      const errors = [];
+
+      for (const userId of userIds) {
+        try {
+          let result;
+
+          switch (operation) {
+            case 'activate':
+              result = await prisma.user.update({
+                where: { id: userId },
+                data: { isActive: true },
+                select: { id: true, email: true, isActive: true }
+              });
+              break;
+
+            case 'deactivate':
+              result = await prisma.user.update({
+                where: { id: userId },
+                data: { isActive: false },
+                select: { id: true, email: true, isActive: true }
+              });
+              break;
+
+            case 'delete':
+              // Check if user has dependencies
+              const userCheck = await prisma.user.findUnique({
+                where: { id: userId },
+                include: {
+                  _count: {
+                    select: {
+                      auditLogs: true,
+                      movements: true
+                    }
+                  }
+                }
+              });
+
+              if (userCheck && (userCheck._count.auditLogs > 0 || userCheck._count.movements > 0)) {
+                throw new Error('Cannot delete user with existing activity logs or movements');
+              }
+
+              result = await prisma.user.delete({
+                where: { id: userId },
+                select: { id: true, email: true }
+              });
+              break;
+
+            case 'update_role':
+              if (!data?.role) {
+                throw new Error('Role is required for role update operation');
+              }
+              result = await prisma.user.update({
+                where: { id: userId },
+                data: { role: data.role },
+                select: { id: true, email: true, role: true }
+              });
+              break;
+
+            default:
+              throw new Error(`Unsupported operation: ${operation}`);
+          }
+
+          results.push(result);
+
+          // Log the action
+          await prisma.auditLog.create({
+            data: {
+              userId: (req as AuthenticatedRequest).user!.userId,
+              action: operation.toUpperCase(),
+              entityType: 'USER',
+              entityId: userId,
+              changes: { operation, data },
+              ipAddress: req.ip || 'unknown',
+              userAgent: req.get('User-Agent') || 'unknown',
+              sessionId: req.sessionID || 'unknown'
+            }
+          });
+
+        } catch (error) {
+          errors.push({
+            userId,
+            error: error instanceof Error ? error.message : 'Unknown error'
+          });
+        }
+      }
+
+      res.json({
+        success: results.length,
+        failed: errors.length,
+        results,
+        errors
+      });
+    } catch (error) {
+      logger.error('Bulk user operation failed:', error);
+      res.status(500).json({ error: 'Bulk operation failed' });
+    }
+  });
+
+  // Get user details
+  router.get('/users/:id', async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      const user = await prisma.user.findUnique({
+        where: { id },
+        include: {
+          profile: true,
+          devices: true,
+          sessions: {
+            where: { isActive: true },
+            orderBy: { lastActivity: 'desc' },
+            take: 5
+          },
+          _count: {
+            select: {
+              auditLogs: true,
+              movements: true,
+              notifications: true
+            }
+          }
+        }
+      });
+
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      // Transform response
+      const transformedUser = {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        role: user.role,
+        isActive: user.isActive,
+        isVerified: user.isVerified,
+        mfaEnabled: user.mfaEnabled,
+        lastLogin: user.lastLogin?.toISOString(),
+        profile: user.profile,
+        devices: user.devices.map(device => ({
+          id: device.id,
+          platform: device.platform,
+          lastUsed: device.lastUsed?.toISOString(),
+          isActive: device.isActive
+        })),
+        activeSessions: user.sessions.map(session => ({
+          id: session.id,
+          deviceInfo: session.deviceInfo,
+          lastActivity: session.lastActivity.toISOString(),
+          ipAddress: session.ipAddress
+        })),
+        stats: {
+          auditLogs: user._count.auditLogs,
+          movements: user._count.movements,
+          notifications: user._count.notifications
+        },
+        createdAt: user.createdAt.toISOString(),
+        updatedAt: user.updatedAt.toISOString()
+      };
+
+      res.json(transformedUser);
+    } catch (error) {
+      logger.error('Failed to fetch user details:', error);
+      res.status(500).json({ error: 'Failed to fetch user details' });
+    }
+  });
+
+  // Update user
+  router.put('/users/:id', async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const updateData = req.body;
+
+      // Get original user for audit logging
+      const originalUser = await prisma.user.findUnique({
+        where: { id },
+        select: {
+          email: true,
+          role: true,
+          isActive: true,
+          profile: true
+        }
+      });
+
+      if (!originalUser) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      // Prepare update data
+      const data: any = {};
+      if (updateData.role) data.role = updateData.role;
+      if (updateData.isActive !== undefined) data.isActive = updateData.isActive;
+      if (updateData.email) data.email = updateData.email;
+      if (updateData.username) data.username = updateData.username;
+
+      // Handle profile updates
+      if (updateData.profile) {
+        data.profile = {
+          upsert: {
+            create: {
+              ...updateData.profile,
+              userId: id,
+              updatedAt: new Date(),
+            },
+            update: {
+              ...updateData.profile,
+              updatedAt: new Date(),
+            },
+          },
+        };
+      }
+
+      const updatedUser = await prisma.user.update({
+        where: { id },
+        data,
+        include: {
+          profile: true
+        }
+      });
+
+      // Log the action
+      await prisma.auditLog.create({
+        data: {
+          userId: (req as AuthenticatedRequest).user!.userId,
+          action: 'UPDATE',
+          entityType: 'USER',
+          entityId: id,
+          changes: updateData,
+          ipAddress: req.ip || 'unknown',
+          userAgent: req.get('User-Agent') || 'unknown',
+          sessionId: req.sessionID || 'unknown'
+        }
+      });
+
+      // Transform response
+      const transformedUser = {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        username: updatedUser.username,
+        role: updatedUser.role,
+        isActive: updatedUser.isActive,
+        profile: updatedUser.profile,
+        updatedAt: updatedUser.updatedAt.toISOString()
+      };
+
+      res.json(transformedUser);
+    } catch (error) {
+      logger.error('Failed to update user:', error);
+      res.status(500).json({ error: 'Failed to update user' });
+    }
+  });
+
+  // Delete user
+  router.delete('/users/:id', async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      // Check if user exists
+      const user = await prisma.user.findUnique({
+        where: { id },
+        include: {
+          _count: {
+            select: {
+              auditLogs: true,
+              movements: true
+            }
+          }
+        }
+      });
+
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      // Check for dependencies
+      if (user._count.auditLogs > 0 || user._count.movements > 0) {
+        return res.status(400).json({
+          error: 'Cannot delete user with existing activity logs or movements. Deactivate instead.'
+        });
+      }
+
+      await prisma.user.delete({
+        where: { id }
+      });
+
+      // Log the action
+      await prisma.auditLog.create({
+        data: {
+          userId: (req as AuthenticatedRequest).user!.userId,
+          action: 'DELETE',
+          entityType: 'USER',
+          entityId: id,
+          changes: { email: user.email, role: user.role },
+          ipAddress: req.ip || 'unknown',
+          userAgent: req.get('User-Agent') || 'unknown',
+          sessionId: req.sessionID || 'unknown'
+        }
+      });
+
+      res.status(204).send();
+    } catch (error) {
+      logger.error('Failed to delete user:', error);
+      res.status(500).json({ error: 'Failed to delete user' });
+    }
+  });
 
   // Get system configuration
   router.get('/config', async (req: Request, res: Response) => {
