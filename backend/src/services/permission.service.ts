@@ -1,6 +1,6 @@
 import { PrismaClient, Permission, Role, UserRole, User } from '@prisma/client';
-import { RedisService } from './redis.service';
-import { logger } from '../utils/logger';
+import RedisService from './redis.service';
+import logger from '../utils/logger';
 
 export interface PermissionCheck {
   hasPermission: boolean;
@@ -102,7 +102,7 @@ export class PermissionService {
   async getUserPermissions(userId: string): Promise<string[]> {
     try {
       // Check cache first
-      const cached = await this.redis.get(`${this.permissionCachePrefix}${userId}`);
+      const cached = await this.redis.client.get(`${this.permissionCachePrefix}${userId}`);
       if (cached) {
         return JSON.parse(cached);
       }
@@ -138,7 +138,7 @@ export class PermissionService {
       const allPermissions = [...new Set([...rolePermissions, ...directPermissions])];
 
       // Cache permissions
-      await this.redis.setex(
+      await this.redis.client.setEx(
         `${this.permissionCachePrefix}${userId}`,
         this.permissionTTL,
         JSON.stringify(allPermissions)
@@ -276,7 +276,7 @@ export class PermissionService {
       });
 
       // Clear user permission cache
-      await this.redis.del(`${this.permissionCachePrefix}${data.userId}`);
+      await this.redis.client.del(`${this.permissionCachePrefix}${data.userId}`);
 
       logger.info(`Permission granted to user: ${data.userId}`);
     } catch (error) {
@@ -300,7 +300,7 @@ export class PermissionService {
       });
 
       // Clear user permission cache
-      await this.redis.del(`${this.permissionCachePrefix}${userId}`);
+      await this.redis.client.del(`${this.permissionCachePrefix}${userId}`);
 
       logger.info(`Permission revoked from user: ${userId}`);
     } catch (error) {
@@ -385,8 +385,8 @@ export class PermissionService {
    * Clear permission cache for user
    */
   async clearUserPermissionCache(userId: string): Promise<void> {
-    await this.redis.del(`${this.permissionCachePrefix}${userId}`);
-    await this.redis.del(`${this.roleCachePrefix}${userId}`);
+    await this.redis.client.del(`${this.permissionCachePrefix}${userId}`);
+    await this.redis.client.del(`${this.roleCachePrefix}${userId}`);
   }
 
   /**

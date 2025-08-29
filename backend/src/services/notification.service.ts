@@ -2,7 +2,7 @@ import { PrismaClient, NotificationType, NotificationPriority } from '@prisma/cl
 import nodemailer from 'nodemailer';
 import { Twilio } from 'twilio';
 import logger from '@/utils/logger';
-import { RedisService } from './redis.service';
+import RedisService from './redis.service';
 
 interface EmailData {
   to: string | string[];
@@ -58,7 +58,7 @@ interface NotificationPreferences {
 export class NotificationService {
   private prisma: PrismaClient;
   private redis: RedisService;
-  private emailTransporter: nodemailer.Transporter;
+  private emailTransporter!: nodemailer.Transporter;
   private twilioClient?: Twilio;
   private templates: Map<string, any> = new Map();
 
@@ -74,7 +74,7 @@ export class NotificationService {
    * Initialize email transporter
    */
   private initializeEmailTransporter() {
-    this.emailTransporter = nodemailer.createTransporter({
+    this.emailTransporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: parseInt(process.env.SMTP_PORT || '587'),
       secure: process.env.SMTP_SECURE === 'true',
@@ -200,13 +200,13 @@ export class NotificationService {
       });
 
       // Cache for real-time delivery
-      await this.redis.lpush(
+      await this.redis.client.lPush(
         `notifications:${data.userId}`,
         JSON.stringify(notification)
       );
 
       // Keep only latest 100 notifications in cache
-      await this.redis.ltrim(`notifications:${data.userId}`, 0, 99);
+      await this.redis.client.lTrim(`notifications:${data.userId}`, 0, 99);
 
       logger.info(`Notification created for user ${data.userId}: ${data.title}`);
       return notification;
@@ -307,7 +307,7 @@ export class NotificationService {
         } catch (error) {
           logger.error(`Failed to send push to device ${device.token}:`, error);
           // Mark device as inactive if token is invalid
-          if (error.message.includes('invalid') || error.message.includes('expired')) {
+          if (error instanceof Error && (error.message.includes('invalid') || error.message.includes('expired'))) {
             await this.prisma.deviceToken.update({
               where: { id: device.id },
               data: { isActive: false },

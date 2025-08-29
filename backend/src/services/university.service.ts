@@ -146,6 +146,7 @@ export class UniversityService {
             create: {
               allowSelfRegistration: false,
               requireEmailVerification: true,
+              gradingSystem: 'Ghanaian Standard',
               passwordPolicy: {
                 minLength: 8,
                 requireUppercase: true,
@@ -419,7 +420,7 @@ export class UniversityService {
           level: data.level,
           duration: data.duration,
           requirements: data.requirements || {},
-          description: data.description,
+          entryRequirements: data.requirements || { minimumGrade: 'C6', subjects: [] },
         },
         include: {
           department: {
@@ -528,7 +529,7 @@ export class UniversityService {
           objectives: data.objectives || [],
           level: data.level,
           type: data.type,
-          prerequisites: data.prerequisites || [],
+          prerequisiteCodes: data.prerequisites || [],
           corequisites: data.corequisites || [],
           maxStudents: data.maxStudents,
           minStudents: data.minStudents,

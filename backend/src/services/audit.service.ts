@@ -1,5 +1,5 @@
 import { PrismaClient, AuditAction, EntityType } from '@prisma/client';
-import { logger } from '../utils/logger';
+import logger from '../utils/logger';
 
 export interface AuditLogData {
   userId: string;

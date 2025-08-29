@@ -187,15 +187,20 @@ export class UserManagementService {
           delete profileUpdateData.userId;
         }
 
-        // Update user
         const updatedUser = await prisma.user.update({
           where: { id: userId },
           data: {
             ...updateData,
-            profile: profileUpdateData ? {
-              update: profileUpdateData,
-            } : undefined,
-          },
+            // profile: profileUpdateData ? {
+            //   upsert: {
+            //     create: profileUpdateData,
+            //     update: {
+            //       ...profileUpdateData,
+            //       updatedAt: new Date(),
+            //     },
+            //   },
+            // } : undefined,
+          } as any,
           include: {
             profile: true,
           },
@@ -519,7 +524,7 @@ export class UserManagementService {
       });
 
       // Remove from Redis cache
-      await this.redis.del(`user:${userId}`);
+      await this.redis.client.del(`user:${userId}`);
 
       logger.info(`User deactivated: ${userId}`);
     } catch (error) {
@@ -763,7 +768,7 @@ export class UserManagementService {
       });
 
       // Remove from cache
-      await this.redis.del(`user:${userId}`);
+      await this.redis.client.del(`user:${userId}`);
       await this.permission.clearUserPermissionCache(userId);
 
       logger.info(`User suspended: ${userId} by ${suspendedBy}`);
@@ -1083,7 +1088,7 @@ export class UserManagementService {
         subject: 'Welcome to ELMS - Your Account is Ready',
         template: 'welcome',
         data: {
-          name: user.profile?.firstName || user.email,
+          name: (user as any).profile?.firstName || user.email,
           email: user.email,
           temporaryPassword: password,
           verificationLink: `${process.env.FRONTEND_URL}/verify-email/${user.emailVerificationToken}`,
