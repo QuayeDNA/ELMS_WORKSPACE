@@ -190,7 +190,7 @@ class ElmsServer {
     this.app.use('/api/incidents', authenticateToken(this.prisma), createIncidentRoutes(this.prisma));
     this.app.use('/api/analytics', authenticateToken(this.prisma), createAnalyticsRoutes(this.prisma));
     this.app.use('/api/files', authenticateToken(this.prisma), createFileRoutes(this.prisma));
-    this.app.use('/api/superadmin', createSuperAdminRoutes());
+    this.app.use('/api/superadmin', createSuperAdminRoutes(this.prisma));
 
     // API documentation
     this.app.get('/api/docs', (req, res) => {

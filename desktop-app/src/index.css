@@ -12,9 +12,18 @@
    Light & Dark Mode Color System
    =================================================== */
 @theme {
+
+  /*===============================
+    TEXT COLORS
+   =============================== */
+  --color-text-primary: #1e293b;
+  --color-text-secondary: #475569;
+  --color-text-tertiary: #64748b;
+
   /* ===============================
      PRIMARY COLOR PALETTE
      =============================== */
+  --color-primary: #3b82f6;
   --color-primary-50: #eff6ff;
   --color-primary-100: #dbeafe;
   --color-primary-200: #bfdbfe;
@@ -33,6 +42,7 @@
   /* ===============================
      SECONDARY COLOR PALETTE
      =============================== */
+  --color-secondary: #475569;
   --color-secondary-50: #faf5ff;
   --color-secondary-100: #f3e8ff;
   --color-secondary-200: #e9d5ff;
@@ -51,6 +61,7 @@
   /* ===============================
      SUCCESS/TERTIARY COLOR PALETTE
      =============================== */
+  --color-success: #34d399;
   --color-success-50: #ecfdf5;
   --color-success-100: #d1fae5;
   --color-success-200: #a7f3d0;

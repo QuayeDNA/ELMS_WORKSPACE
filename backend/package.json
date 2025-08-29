@@ -4,7 +4,7 @@
   "description": "ELMS Backend API Server",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "nodemon src/server.ts",
+    "dev": "nodemon",
     "build": "tsc && tsc-alias",
     "start": "node dist/server.js",
     "test": "jest",

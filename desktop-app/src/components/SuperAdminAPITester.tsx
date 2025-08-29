@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -9,6 +9,13 @@ interface ApiResponse {
   message?: string;
   data?: unknown;
   error?: string;
+  token?: string;
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+    profile?: unknown;
+  };
 }
 
 interface TestResult {
@@ -23,12 +30,32 @@ const SuperAdminAPITester: React.FC = () => {
   const [results, setResults] = useState<Record<string, TestResult>>({});
   const [isRunningAll, setIsRunningAll] = useState(false);
   const [activeSection, setActiveSection] = useState<string>('overview');
+  const [authToken, setAuthToken] = useState<string>('');
+  const [loginCredentials, setLoginCredentials] = useState({ email: 'admin@elms.edu', password: 'admin123' });
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  // Check for existing token on component mount
+  useEffect(() => {
+    const existingToken = localStorage.getItem('authToken');
+    if (existingToken) {
+      setAuthToken(existingToken);
+      setIsLoggedIn(true);
+    }
+  }, []);
 
   const API_BASE = 'http://localhost:3000/api/superadmin';
 
-  // Get auth token from localStorage (assuming it's stored there)
+  // Get auth token from state or localStorage
   const getAuthToken = () => {
-    return localStorage.getItem('authToken') || 'your-superadmin-token-here';
+    // First check state, then localStorage, then fallback
+    if (authToken) return authToken;
+    const storedToken = localStorage.getItem('authToken');
+    if (storedToken) {
+      setAuthToken(storedToken);
+      return storedToken;
+    }
+    // Return a fallback token for testing (this should be removed in production)
+    return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJjbWVxdWwwMnYwMDAwa2xpMTRhYXhhZzJpIiwiZW1haWwiOiJhZG1pbkBlbG1zLmVkdSIsInJvbGUiOiJTVVBFUl9BRE1JTiIsImlhdCI6MTc1NjQ4MDY4OCwiZXhwIjoxNzU2NTY3MDg4fQ.ZyIK5i-cq07u0UJwRGYUXIQjmr-ff269ovJsC8nhkK4';
   };
 
   const makeRequest = async (
@@ -100,14 +127,6 @@ const SuperAdminAPITester: React.FC = () => {
       { endpoint: '/system/metrics', method: 'GET' },
       { endpoint: '/system/alerts', method: 'GET' },
 
-      // Alert Management
-      { endpoint: '/alerts', method: 'GET' },
-      { endpoint: '/alerts/stats', method: 'GET' },
-
-      // Webhook Management
-      { endpoint: '/webhooks', method: 'GET' },
-      { endpoint: '/webhooks/stats', method: 'GET' },
-
       // Report Scheduler
       { endpoint: '/reports/scheduler', method: 'GET' },
       { endpoint: '/reports/scheduler/stats', method: 'GET' },
@@ -131,20 +150,6 @@ const SuperAdminAPITester: React.FC = () => {
     ]);
   };
 
-  const testAlertManagement = async () => {
-    await Promise.all([
-      testEndpoint('/alerts'),
-      testEndpoint('/alerts/stats'),
-    ]);
-  };
-
-  const testWebhookManagement = async () => {
-    await Promise.all([
-      testEndpoint('/webhooks'),
-      testEndpoint('/webhooks/stats'),
-    ]);
-  };
-
   const testReportScheduler = async () => {
     await Promise.all([
       testEndpoint('/reports/scheduler'),
@@ -153,25 +158,47 @@ const SuperAdminAPITester: React.FC = () => {
     ]);
   };
 
+  const login = async (email: string, password: string) => {
+    const key = '/auth/login';
+    updateResult(key, 'loading');
+
+    try {
+      // Use the auth endpoint directly, not the superadmin base
+      const response = await fetch('http://localhost:3000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await response.json();
+
+      if (data.token) {
+        setAuthToken(data.token);
+        localStorage.setItem('authToken', data.token);
+        setIsLoggedIn(true);
+        updateResult(key, 'success', data);
+      } else {
+        updateResult(key, 'error', data);
+      }
+    } catch (error) {
+      updateResult(key, 'error', undefined, error instanceof Error ? error.message : 'Unknown error');
+    }
+  };
+
+  const testAuthentication = async () => {
+    // Test the general health endpoint instead of auth-specific health
+    await testEndpoint('/system/health');
+  };
+
+  const logout = () => {
+    setAuthToken('');
+    setIsLoggedIn(false);
+    localStorage.removeItem('authToken');
+    setLoginCredentials({ email: '', password: '' });
+  };
+
   const createTestData = async () => {
-    // Create a test alert
-    await testEndpoint('/alerts', 'POST', {
-      title: 'Test Alert',
-      message: 'This is a test alert from the API tester',
-      severity: 'info',
-      type: 'system',
-      isActive: true
-    });
-
-    // Create a test webhook
-    await testEndpoint('/webhooks', 'POST', {
-      name: 'Test Webhook',
-      url: 'https://webhook.site/test-endpoint',
-      events: ['user.created', 'exam.completed'],
-      isActive: true,
-      secret: 'test-secret-key'
-    });
-
     // Create a test scheduled report
     await testEndpoint('/reports/scheduler', 'POST', {
       reportId: 1,
@@ -211,9 +238,8 @@ const SuperAdminAPITester: React.FC = () => {
 
   const sections = [
     { id: 'overview', name: 'Overview' },
+    { id: 'auth', name: 'Authentication' },
     { id: 'monitoring', name: 'System Monitoring' },
-    { id: 'alerts', name: 'Alert Management' },
-    { id: 'webhooks', name: 'Webhook Management' },
     { id: 'scheduler', name: 'Report Scheduler' },
   ];
 
@@ -274,21 +300,123 @@ const SuperAdminAPITester: React.FC = () => {
 
   const renderSection = (sectionId: string) => {
     const endpoints = {
+      auth: ['/system/health'], // Using system health as auth test
       monitoring: ['/system/health', '/system/metrics', '/system/alerts'],
-      alerts: ['/alerts', '/alerts/stats'],
-      webhooks: ['/webhooks', '/webhooks/stats'],
       scheduler: ['/reports/scheduler', '/reports/scheduler/stats', '/reports/scheduler/cron/status']
     };
 
     const sectionEndpoints = endpoints[sectionId as keyof typeof endpoints] || [];
+
+    if (sectionId === 'auth') {
+      return (
+        <div className="space-y-6">
+          {/* Login Form */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Login</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium mb-1">Email</label>
+                  <input
+                    id="email"
+                    type="email"
+                    value={loginCredentials.email}
+                    onChange={(e) => setLoginCredentials(prev => ({ ...prev, email: e.target.value }))}
+                    className="w-full p-2 border rounded"
+                    placeholder="admin@example.com"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium mb-1">Password</label>
+                  <input
+                    id="password"
+                    type="password"
+                    value={loginCredentials.password}
+                    onChange={(e) => setLoginCredentials(prev => ({ ...prev, password: e.target.value }))}
+                    className="w-full p-2 border rounded"
+                    placeholder="Enter password"
+                  />
+                </div>
+                <Button
+                  onClick={() => login(loginCredentials.email, loginCredentials.password)}
+                  disabled={!loginCredentials.email || !loginCredentials.password}
+                >
+                  Login
+                </Button>
+                {isLoggedIn && (
+                  <div className="flex items-center gap-2 mt-4">
+                    <div className="text-green-600 font-medium">
+                      ✅ Logged in successfully! Token saved for API testing.
+                    </div>
+                    <Button variant="outline" size="sm" onClick={logout}>
+                      Logout
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Auth Endpoints */}
+          <div className="space-y-4">
+            <Button onClick={testAuthentication}>
+              Test Authentication Endpoints
+            </Button>
+
+            <div className="grid gap-4">
+              {sectionEndpoints.map(endpoint => {
+                const result = results[endpoint];
+                return (
+                  <Card key={endpoint}>
+                    <CardContent className="pt-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {result && getStatusIcon(result.status)}
+                          <span className="font-mono">{endpoint}</span>
+                          <span className="text-xs bg-gray-100 px-2 py-1 rounded">
+                            GET
+                          </span>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() => testEndpoint(endpoint)}
+                          disabled={result?.status === 'loading'}
+                        >
+                          {result?.status === 'loading' ? 'Testing...' : 'Test'}
+                        </Button>
+                      </div>
+
+                      {result?.response && (
+                        <div className="mt-4">
+                          <pre className="bg-gray-100 p-3 rounded text-sm overflow-auto max-h-40">
+                            {JSON.stringify(result.response, null, 2)}
+                          </pre>
+                        </div>
+                      )}
+
+                      {result?.error && (
+                        <Alert className="mt-4">
+                          <AlertTriangle className="h-4 w-4" />
+                          <AlertDescription>{result.error}</AlertDescription>
+                        </Alert>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className="space-y-4">
         <Button
           onClick={() => {
             if (sectionId === 'monitoring') testSystemMonitoring();
-            else if (sectionId === 'alerts') testAlertManagement();
-            else if (sectionId === 'webhooks') testWebhookManagement();
             else if (sectionId === 'scheduler') testReportScheduler();
           }}
         >
@@ -347,8 +475,13 @@ const SuperAdminAPITester: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold">Super Admin API Tester</h1>
           <p className="text-gray-600 mt-2">
-            Test all Phase 2 Super Admin endpoints for System Monitoring, Alert Management, Webhook Management, and Report Scheduler
+            Test all available Super Admin endpoints for System Monitoring and Report Scheduler
           </p>
+          {isLoggedIn && (
+            <div className="mt-2 text-green-600 font-medium">
+              ✅ Authenticated - Using valid token for API requests
+            </div>
+          )}
         </div>
         <div className="flex gap-2">
           <Button onClick={testAllEndpoints} disabled={isRunningAll}>
@@ -364,6 +497,11 @@ const SuperAdminAPITester: React.FC = () => {
           <Button variant="outline" onClick={createTestData}>
             Create Test Data
           </Button>
+          {isLoggedIn && (
+            <Button variant="outline" onClick={logout}>
+              Logout
+            </Button>
+          )}
         </div>
       </div>
 

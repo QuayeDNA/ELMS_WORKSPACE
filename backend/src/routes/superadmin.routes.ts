@@ -10,13 +10,12 @@ import { SystemMonitoringService } from '@/services/monitoring/SystemMonitoringS
 // Import report scheduler routes
 import reportSchedulerRoutes from './superadmin/report-scheduler';
 
-export function createSuperAdminRoutes(): Router {
+export function createSuperAdminRoutes(prisma: PrismaClient): Router {
   const router = Router();
-  const prisma = new PrismaClient();
   const monitoringService = new SystemMonitoringService(prisma);
 
   // Apply authentication middleware to all routes
-  router.use(authenticateToken);
+  router.use(authenticateToken(prisma));
 
   // ==========================================
   // SYSTEM MANAGEMENT

@@ -11,7 +11,7 @@ const schedulerService = new ReportSchedulerService(prisma, reportService);
 
 // Apply authentication and authorization middleware
 router.use(authenticateToken(prisma));
-router.use(authorize(['SUPERADMIN']));
+router.use(authorize(['SUPER_ADMIN']));
 
 /**
  * @swagger
@@ -373,7 +373,7 @@ router.get('/stats', async (req: Request, res: Response) => {
 router.post('/cron/start', async (req: Request, res: Response) => {
   try {
     // Import the cron service dynamically to avoid circular imports
-    const { reportSchedulerCron } = await import('../../services/reporting/ReportSchedulerCron.js');
+    const { reportSchedulerCron } = require('../../services/reporting/ReportSchedulerCron');
     reportSchedulerCron.start();
 
     res.json({
@@ -406,7 +406,7 @@ router.post('/cron/start', async (req: Request, res: Response) => {
  */
 router.post('/cron/stop', async (req: Request, res: Response) => {
   try {
-    const { reportSchedulerCron } = await import('../../services/reporting/ReportSchedulerCron.js');
+    const { reportSchedulerCron } = require('../../services/reporting/ReportSchedulerCron');
     reportSchedulerCron.stop();
 
     res.json({
@@ -439,7 +439,7 @@ router.post('/cron/stop', async (req: Request, res: Response) => {
  */
 router.get('/cron/status', async (req: Request, res: Response) => {
   try {
-    const { reportSchedulerCron } = await import('../../services/reporting/ReportSchedulerCron.js');
+    const { reportSchedulerCron } = require('../../services/reporting/ReportSchedulerCron');
     const status = reportSchedulerCron.getStatus();
 
     res.json({
@@ -472,7 +472,7 @@ router.get('/cron/status', async (req: Request, res: Response) => {
  */
 router.post('/cron/trigger', async (req: Request, res: Response) => {
   try {
-    const { reportSchedulerCron } = await import('../../services/reporting/ReportSchedulerCron.js');
+    const { reportSchedulerCron } = require('../../services/reporting/ReportSchedulerCron');
     const results = await reportSchedulerCron.triggerExecution();
 
     res.json({
