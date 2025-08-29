@@ -2,7 +2,7 @@ import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuthStore } from "../stores/authStore";
 import { ProtectedRoute } from "../components/auth/ProtectedRoute";
-import AuthForm from "../components/auth/AuthForm";
+import AuthSwitcher from "../components/auth/AuthSwitcher";
 import { Layout } from "../components/Layout";
 import { DashboardContent } from "../components/DashboardContent";
 import { ExamManagement } from "../components/exams/ExamManagement";
@@ -17,10 +17,12 @@ import { ScriptManagement } from "../components/scripts/ScriptManagement";
 // Super Admin components
 import { SuperAdminDashboard } from "../components/superadmin/SuperAdminDashboard";
 import { InstitutionsList } from "../components/superadmin/InstitutionsList";
-import { AuditLogsList } from "../components/superadmin/AuditLogsList";
 import { Analytics as SuperAdminAnalytics } from "../components/superadmin/Analytics";
 import Health from "../components/superadmin/Health";
 import Configuration from "../components/superadmin/Configuration";
+import AuditLogs from "@/components/superadmin/AuditLogs";
+
+// Auth components
 import AuthLayout from "@/components/layout/AuthLayout";
 
 // Placeholder components for other roles (will be implemented later)
@@ -166,11 +168,32 @@ export const AppRouter: React.FC = () => {
           element={
             <PublicRoute>
               <AuthLayout>
-                <AuthForm />
+                <AuthSwitcher initialMode="login" />
               </AuthLayout>
             </PublicRoute>
           }
         />
+        <Route
+          path="/register"
+          element={
+            <PublicRoute>
+              <AuthLayout>
+                <AuthSwitcher initialMode="register" />
+              </AuthLayout>
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/forgot-password"
+          element={
+            <PublicRoute>
+              <AuthLayout>
+                <AuthSwitcher initialMode="forgot-password" />
+              </AuthLayout>
+            </PublicRoute>
+          }
+        />
+        <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     )
@@ -235,7 +258,7 @@ export const AppRouter: React.FC = () => {
                 <Route path="dashboard" element={<SuperAdminDashboard />} />
                 <Route path="users" element={<UserManagement />} />
                 <Route path="institutions" element={<InstitutionsList />} />
-                <Route path="audit" element={<AuditLogsList />} />
+                <Route path="audit" element={<AuditLogs />} />
                 <Route path="analytics" element={<SuperAdminAnalytics />} />
                 <Route path="health" element={<Health />} />
                 <Route path="configuration" element={<Configuration />} />

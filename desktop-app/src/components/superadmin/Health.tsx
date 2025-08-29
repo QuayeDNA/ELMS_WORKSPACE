@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useAuthStore } from '../../stores/authStore'
-import { getHealth } from '../../lib/superadminApi'
+import { superAdminApi } from '../../services/superadmin'
 import {
   Activity,
   Server,
@@ -36,7 +36,7 @@ const Health: React.FC = () => {
     try {
       setLoading(true)
       setError(null)
-      const res = await getHealth(token)
+      const res = await superAdminApi.getHealth()
       setData(res)
     } catch (err: unknown) {
       setError((err as Error).message || String(err))
@@ -51,7 +51,7 @@ const Health: React.FC = () => {
       try {
         setLoading(true)
         setError(null)
-        const res = await getHealth(token)
+        const res = await superAdminApi.getHealth()
         setData(res)
       } catch (err: unknown) {
         setError((err as Error).message || String(err))

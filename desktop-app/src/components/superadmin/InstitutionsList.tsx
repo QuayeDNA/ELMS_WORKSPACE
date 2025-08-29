@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useAuthStore } from '../../stores/authStore'
-import { getInstitutions, postInstitution, putInstitution, deleteInstitution } from '../../lib/superadminApi'
+import { superAdminApi } from '../../services/superadmin'
+import { Institution, CreateInstitutionData, UpdateInstitutionData, Address } from '../../types/superadmin/superadmin.types'
 import {
   Building2,
   Plus,
@@ -22,64 +23,6 @@ import {
 } from 'lucide-react'
 import { Button } from '../ui/button'
 
-// Interfaces based on your API response
-interface Address {
-  street?: string
-  city?: string
-  region?: string
-  country?: string
-  postalCode?: string
-}
-
-interface ContactInfo {
-  email?: string
-  phone?: string
-  website?: string
-}
-
-interface AcademicCalendar {
-  semesters: number
-  examPeriods: string[]
-  academicYearEnd: string
-  academicYearStart: string
-}
-
-interface InstitutionCounts {
-  faculties: number
-  academicYears: number
-  campuses: number
-  schools: number
-}
-
-interface Institution {
-  id: string
-  name: string
-  shortName?: string
-  code?: string
-  type?: 'UNIVERSITY' | 'COLLEGE' | 'INSTITUTE' | 'ACADEMY'
-  category?: 'PUBLIC' | 'PRIVATE'
-  address?: Address
-  contactInfo?: ContactInfo
-  logo?: string | null
-  motto?: string
-  description?: string | null
-  establishedYear?: number
-  charter?: string | null
-  accreditation?: string | null
-  affiliations?: string[]
-  timezone?: string
-  language?: string
-  currencies?: string[]
-  academicCalendar?: AcademicCalendar
-  customFields?: Record<string, unknown>
-  config?: Record<string, unknown>
-  isActive?: boolean
-  createdAt?: string
-  updatedAt?: string
-  settings?: Record<string, unknown>
-  _count?: InstitutionCounts
-}
-
 interface FormData {
   name: string
   shortName: string
@@ -100,10 +43,10 @@ interface FormData {
 
 // Skeleton component for loading state
 const InstitutionSkeleton: React.FC = () => (
-  <div className="bg-white rounded-lg shadow border border-gray-200 p-6 animate-pulse">
+  <div className="bg-card rounded-lg shadow-sm border border-border p-6 animate-pulse">
     <div className="flex items-start justify-between mb-4">
       <div className="flex items-center">
-        <div className="h-12 w-12 bg-gray-200 rounded-lg"></div>
+        <div className="h-12 w-12 bg-muted rounded-lg"></div>
         <div className="ml-4">
           <div className="h-6 bg-gray-200 rounded w-32 mb-2"></div>
           <div className="h-4 bg-gray-200 rounded w-20"></div>
@@ -201,11 +144,15 @@ export const InstitutionsList: React.FC = () => {
   useEffect(() => {
     const load = async () => {
       if (!token) return setLoading(false)
+      
+      // Set token in the API client
+      superAdminApi.setToken(token)
+      
       try {
         setLoading(true)
         setError(null)
-        const data = await getInstitutions(token)
-        setInstitutions(Array.isArray(data) ? data : (data.institutions || data))
+        const data = await superAdminApi.getInstitutions()
+        setInstitutions(Array.isArray(data) ? data : [])
       } catch (err: unknown) {
         setError((err as Error).message || String(err))
       } finally {
@@ -263,7 +210,7 @@ export const InstitutionsList: React.FC = () => {
         establishedYear: formData.establishedYear ? parseInt(formData.establishedYear) : undefined
       }
 
-      const newInstitution = await postInstitution(token, institutionData)
+      const newInstitution = await superAdminApi.createInstitution(institutionData as CreateInstitutionData)
       setInstitutions(prev => [newInstitution, ...prev])
       setShowCreateModal(false)
       resetForm()
@@ -323,7 +270,7 @@ export const InstitutionsList: React.FC = () => {
         establishedYear: formData.establishedYear ? parseInt(formData.establishedYear) : undefined
       }
 
-      const updatedInstitution = await putInstitution(token, editingInstitution.id, institutionData)
+      const updatedInstitution = await superAdminApi.updateInstitution(editingInstitution.id, institutionData as UpdateInstitutionData)
       setInstitutions(prev => 
         prev.map(inst => inst.id === editingInstitution.id ? updatedInstitution : inst)
       )
@@ -340,7 +287,7 @@ export const InstitutionsList: React.FC = () => {
     if (!token || !confirm('Are you sure you want to delete this institution?')) return
 
     try {
-      await deleteInstitution(token, institutionId)
+      await superAdminApi.deleteInstitution(institutionId)
       setInstitutions(prev => prev.filter(inst => inst.id !== institutionId))
     } catch (err: unknown) {
       setError((err as Error).message || String(err))

@@ -13,7 +13,7 @@ interface User {
     phoneNumber?: string
     dateOfBirth?: string
     nationality?: string
-    emergencyContact?: any
+    emergencyContact?: Record<string, unknown>
   }
 }
 

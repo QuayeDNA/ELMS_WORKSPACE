@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useAuthStore } from '../../stores/authStore'
-import { getAnalytics } from '../../lib/superadminApi'
+import { superAdminApi } from '../../services/superadmin'
 
 interface AnalyticsResponse {
   timeframe?: string
@@ -19,9 +19,13 @@ export const Analytics: React.FC = () => {
   useEffect(() => {
     const load = async () => {
       if (!token) return setLoading(false)
+
+      // Set token in the API client
+      superAdminApi.setToken(token)
+
       try {
         setLoading(true)
-        const res = await getAnalytics(token)
+        const res = await superAdminApi.getAnalytics('7d')
         setData(res)
       } catch (err: unknown) {
         setError((err as Error).message || 'Failed to load analytics')
@@ -41,10 +45,10 @@ export const Analytics: React.FC = () => {
     <div className="p-6">
       <h2 className="text-xl font-semibold mb-4">System Analytics</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-  <div className="bg-white rounded shadow p-4">Users Activity: {JSON.stringify(parsed.userActivity || {})}</div>
-  <div className="bg-white rounded shadow p-4">Role Distribution: {JSON.stringify(parsed.roleDistribution || {})}</div>
-  <div className="bg-white rounded shadow p-4">Incident Trends: {JSON.stringify(parsed.incidentTrends || {})}</div>
-  <div className="bg-white rounded shadow p-4">Exam Activity: {JSON.stringify(parsed.examActivity ?? '-')}</div>
+        <div className="bg-white rounded shadow p-4">Users Activity: {JSON.stringify(parsed.userActivity || {})}</div>
+        <div className="bg-white rounded shadow p-4">Role Distribution: {JSON.stringify(parsed.roleDistribution || {})}</div>
+        <div className="bg-white rounded shadow p-4">Incident Trends: {JSON.stringify(parsed.incidentTrends || {})}</div>
+        <div className="bg-white rounded shadow p-4">Exam Activity: {JSON.stringify(parsed.examActivity ?? '-')}</div>
       </div>
       <div className="bg-white rounded shadow p-4">Charts placeholder (implement with Chart.js)</div>
     </div>

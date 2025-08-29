@@ -1,19 +1,68 @@
 // SuperAdmin Module Types
+export interface Address {
+  street?: string;
+  city?: string;
+  region?: string;
+  country?: string;
+  postalCode?: string;
+}
+
+export interface ContactInfo {
+  email?: string;
+  phone?: string;
+  website?: string;
+}
+
+export interface AcademicCalendar {
+  semesters: number;
+  examPeriods: string[];
+  academicYearEnd: string;
+  academicYearStart: string;
+}
+
+export interface InstitutionCounts {
+  faculties: number;
+  academicYears: number;
+  campuses: number;
+  schools: number;
+}
+
 export interface Institution {
   id: string;
   name: string;
-  code: string;
-  type: 'university' | 'college' | 'institute' | 'technical';
-  location: string;
-  contactEmail: string;
-  contactPhone: string;
+  shortName?: string;
+  code?: string;
+  type?: 'university' | 'college' | 'institute' | 'academy' | 'technical';
+  category?: 'public' | 'private';
+  address?: Address;
+  contactInfo?: ContactInfo;
+  logo?: string | null;
+  motto?: string;
+  description?: string | null;
+  establishedYear?: number;
+  charter?: string | null;
+  accreditation?: string | null;
+  affiliations?: string[];
+  timezone?: string;
+  language?: string;
+  currencies?: string[];
+  academicCalendar?: AcademicCalendar;
+  customFields?: Record<string, unknown>;
+  config?: Record<string, unknown>;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  settings?: Record<string, unknown>;
+  _count?: InstitutionCounts;
+  // Legacy fields for backward compatibility
+  location?: string;
+  contactEmail?: string;
+  contactPhone?: string;
   website?: string;
-  established: string;
-  status: 'active' | 'inactive' | 'suspended';
-  totalUsers: number;
-  totalExams: number;
-  createdAt: string;
-  updatedAt: string;
+  established?: string;
+  status?: 'active' | 'inactive' | 'suspended';
+  totalUsers?: number;
+  totalExams?: number;
 }
 
 export interface User {
@@ -99,13 +148,33 @@ export interface SystemOverview {
 
 export interface CreateInstitutionData {
   name: string;
-  code: string;
-  type: 'university' | 'college' | 'institute' | 'technical';
-  location: string;
-  contactEmail: string;
-  contactPhone: string;
+  shortName?: string;
+  code?: string;
+  type?: 'university' | 'college' | 'institute' | 'academy' | 'technical';
+  category?: 'public' | 'private';
+  address?: Address;
+  contactInfo?: ContactInfo;
+  logo?: string | null;
+  motto?: string;
+  description?: string | null;
+  establishedYear?: number;
+  charter?: string | null;
+  accreditation?: string | null;
+  affiliations?: string[];
+  timezone?: string;
+  language?: string;
+  currencies?: string[];
+  academicCalendar?: AcademicCalendar;
+  customFields?: Record<string, unknown>;
+  config?: Record<string, unknown>;
+  isActive?: boolean;
+  settings?: Record<string, unknown>;
+  // Legacy fields for backward compatibility
+  location?: string;
+  contactEmail?: string;
+  contactPhone?: string;
   website?: string;
-  established: string;
+  established?: string;
 }
 
 export interface UpdateInstitutionData extends Partial<CreateInstitutionData> {

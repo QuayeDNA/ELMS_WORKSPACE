@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react'
 import { useAuthStore } from '../../stores/authStore'
-import { getOverview, updateConfiguration } from '../../lib/superadminApi'
+import { superAdminApi } from '../../services/superadmin'
+import { ConfigurationItem } from '../../types/superadmin/superadmin.types'
 
 const Configuration: React.FC = () => {
   const { token } = useAuthStore()
-  const [configs, setConfigs] = useState<unknown[]>([])
+  const [configs, setConfigs] = useState<ConfigurationItem[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -12,11 +13,15 @@ const Configuration: React.FC = () => {
   useEffect(() => {
     const load = async () => {
       if (!token) return setLoading(false)
+      
+      // Set token in the API client
+      superAdminApi.setToken(token)
+      
       try {
         setLoading(true)
         // reuse overview for fetching configurations quickly (backend exposes /configuration separately but overview gives a quick snapshot)
-        const res = await getOverview(token)
-        if (res && typeof res === 'object' && res !== null && 'systemStats' in (res as Record<string, unknown>)) {
+        const res = await superAdminApi.getOverview()
+        if (res && 'systemStats' in res) {
           setConfigs([])
         }
       } catch (err: unknown) {
@@ -33,8 +38,10 @@ const Configuration: React.FC = () => {
     setSaving(true)
     setError(null)
     try {
+      // Set token in the API client
+      superAdminApi.setToken(token)
       // for now just send the existing configs back
-      await updateConfiguration(token, configs)
+      await superAdminApi.updateConfiguration(configs)
     } catch (err: unknown) {
       setError((err as Error).message || String(err))
     } finally {
