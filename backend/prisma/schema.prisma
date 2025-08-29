@@ -59,6 +59,15 @@ model User {
   createdById       String?
   createdUsers      User[]             @relation("UserCreatedBy")
 
+  // Phase 2 Relations
+  createdReports    CustomReport[]    @relation("CustomReportCreatedBy")
+  updatedReports    CustomReport[]    @relation("CustomReportUpdatedBy")
+  executedReports   ReportExecution[]
+  resolvedAlerts    SystemAlert[]
+  createdWebhooks   Webhook[]
+  createdSchedules  ReportSchedule[]  @relation("ReportScheduleCreatedBy")
+  updatedSchedules  ReportSchedule[]  @relation("ReportScheduleUpdatedBy")
+
   @@map("users")
 }
 
@@ -881,7 +890,7 @@ model Campus {
   address       Json // Full Ghana address with region, district, etc.
   coordinates   Json? // GPS coordinates
   isMain        Boolean   @default(false)
-  isActive      Boolean   @default(true)
+  isActive      Boolean  @default(true)
   facilities    Json? // Available facilities and amenities
   capacity      Int? // Total student capacity
   established   DateTime?
@@ -1874,4 +1883,140 @@ enum Environment {
   DEVELOPMENT
   STAGING
   PRODUCTION
+}
+
+// Phase 2: Advanced Super Admin Features
+
+// Custom Reports System
+model CustomReport {
+  id            Int      @id @default(autoincrement())
+  name          String   @db.VarChar(255)
+  description   String?  @db.Text
+  queryConfig   Json?
+  scheduleConfig Json?
+  isActive      Boolean  @default(true)
+  createdBy     String?
+  updatedBy     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  createdByUser User?           @relation("CustomReportCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User?           @relation("CustomReportUpdatedBy", fields: [updatedBy], references: [id])
+  executions    ReportExecution[]
+  schedules     ReportSchedule[]
+
+  @@map("custom_reports")
+}
+
+model ReportExecution {
+  id            Int         @id @default(autoincrement())
+  reportId      Int
+  scheduleId    Int?        // Optional: null for manual executions
+  status        String      @default("pending") @db.VarChar(50)
+  parameters    Json?
+  resultData    Json?
+  executionTime Int?
+  errorMessage  String?     @db.Text
+  executedBy    String?
+  executedAt    DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime    @default(now())
+
+  // Relations
+  report        CustomReport   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  schedule      ReportSchedule? @relation(fields: [scheduleId], references: [id])
+  executedByUser User?          @relation(fields: [executedBy], references: [id])
+
+  @@map("report_executions")
+}
+
+// Report Scheduler System
+model ReportSchedule {
+  id            Int      @id @default(autoincrement())
+  reportId      Int
+  name          String   @db.VarChar(255)
+  description   String?  @db.Text
+  frequency     String   @db.VarChar(50) // daily, weekly, monthly
+  time          String   @db.VarChar(10) // HH:MM format
+  recipients    String[] // Email addresses
+  format        String   @db.VarChar(10) // json, csv, pdf
+  parameters    Json?    // Default parameters for the report
+  isActive      Boolean  @default(true)
+  lastRun       DateTime?
+  nextRun       DateTime?
+  createdBy     String?
+  updatedBy     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  report        CustomReport    @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  createdByUser User?           @relation("ReportScheduleCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User?           @relation("ReportScheduleUpdatedBy", fields: [updatedBy], references: [id])
+  executions    ReportExecution[]
+
+  @@map("report_schedules")
+}
+
+// System Monitoring and Alerts
+model SystemAlert {
+  id         Int      @id @default(autoincrement())
+  type       String   @db.VarChar(50)
+  severity   String   @db.VarChar(20)
+  title      String   @db.VarChar(255)
+  message    String   @db.Text
+  metadata   Json?
+  isActive   Boolean  @default(true)
+  resolved   Boolean  @default(false)
+  resolvedAt DateTime?
+  resolvedBy String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  resolvedByUser User? @relation(fields: [resolvedBy], references: [id])
+
+  @@map("system_alerts")
+}
+
+// Webhook Management
+model Webhook {
+  id         Int      @id @default(autoincrement())
+  name       String   @db.VarChar(255)
+  url        String   @db.VarChar(500)
+  events     String[]
+  secret     String?  @db.VarChar(255)
+  headers    Json?
+  isActive   Boolean  @default(true)
+  retryCount Int      @default(3)
+  timeout    Int      @default(30000)
+  createdBy  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  createdByUser User?            @relation(fields: [createdBy], references: [id])
+  deliveries    WebhookDelivery[]
+
+  @@map("webhooks")
+}
+
+model WebhookDelivery {
+  id             Int      @id @default(autoincrement())
+  webhookId      Int
+  eventType      String   @db.VarChar(100)
+  payload        Json
+  status         String   @db.VarChar(50)
+  responseStatus Int?
+  responseBody   String?  @db.Text
+  errorMessage   String?  @db.Text
+  attempts       Int      @default(1)
+  deliveredAt    DateTime?
+  createdAt      DateTime @default(now())
+
+  // Relations
+  webhook Webhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@map("webhook_deliveries")
 }

@@ -2,7 +2,6 @@ import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuthStore } from "../stores/authStore";
 import { ProtectedRoute } from "../components/auth/ProtectedRoute";
-import AuthSwitcher from "../components/auth/AuthSwitcher";
 import { Layout } from "../components/Layout";
 import { DashboardContent } from "../components/DashboardContent";
 import { ExamManagement } from "../components/exams/ExamManagement";
@@ -22,8 +21,8 @@ import Health from "../components/superadmin/Health";
 import Configuration from "../components/superadmin/Configuration";
 import AuditLogs from "@/components/superadmin/AuditLogs";
 
-// Auth components
-import AuthLayout from "@/components/layout/AuthLayout";
+// Test Components
+import SuperAdminAPITester from "../components/SuperAdminAPITester";
 
 // Placeholder components for other roles (will be implemented later)
 const InstitutionAdminDashboard = () => (
@@ -143,20 +142,6 @@ const Help = () => (
   </div>
 );
 
-interface PublicRouteProps {
-  children: React.ReactNode;
-}
-
-const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-
-  return !isAuthenticated ? (
-    <>{children}</>
-  ) : (
-    <Navigate to="/dashboard" replace />
-  );
-};
-
 export const AppRouter: React.FC = () => {
  const { isAuthenticated, user } = useAuthStore()
 
@@ -164,37 +149,11 @@ export const AppRouter: React.FC = () => {
     return (
       <Routes>
         <Route
-          path="/login"
-          element={
-            <PublicRoute>
-              <AuthLayout>
-                <AuthSwitcher initialMode="login" />
-              </AuthLayout>
-            </PublicRoute>
-          }
+          path="/test"
+          element={<SuperAdminAPITester />}
         />
-        <Route
-          path="/register"
-          element={
-            <PublicRoute>
-              <AuthLayout>
-                <AuthSwitcher initialMode="register" />
-              </AuthLayout>
-            </PublicRoute>
-          }
-        />
-        <Route
-          path="/forgot-password"
-          element={
-            <PublicRoute>
-              <AuthLayout>
-                <AuthSwitcher initialMode="forgot-password" />
-              </AuthLayout>
-            </PublicRoute>
-          }
-        />
-        <Route path="/" element={<Navigate to="/login" replace />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="/" element={<Navigate to="/test" replace />} />
+        <Route path="*" element={<Navigate to="/test" replace />} />
       </Routes>
     )
   }

@@ -30,6 +30,9 @@ import { createAnalyticsRoutes } from '@/routes/analytics.routes';
 import { createFileRoutes } from '@/routes/file.routes';
 import { createSuperAdminRoutes } from '@/routes/superadmin.routes';
 
+// Import report scheduler cron
+import reportSchedulerCron from '@/services/reporting/ReportSchedulerCron';
+
 class ElmsServer {
   private readonly app: express.Application;
   private readonly server: any;
@@ -58,15 +61,13 @@ class ElmsServer {
       const dbService = DatabaseService.getInstance();
       this.prisma = dbService.prisma;
       await dbService.connect();
-      logger.info('Database connected successfully');
 
       // Initialize Redis
       const redisService = RedisService.getInstance();
       this.redis = redisService.client;
-      logger.info('Redis connected successfully');
 
     } catch (error) {
-      logger.error('Failed to initialize services:', error);
+      logger.error('❌ Failed to initialize services:', error);
       process.exit(1);
     }
   }
@@ -255,7 +256,7 @@ class ElmsServer {
 
     // Initialize socket service
     this.socketService = new SocketService(this.server);
-    logger.info('Socket.IO initialized');
+    logger.info('🔌 Socket.IO initialized');
   }
 
   private initializeErrorHandling(): void {
@@ -263,48 +264,48 @@ class ElmsServer {
 
     // Global error handlers
     process.on('uncaughtException', (error: Error) => {
-      logger.error('Uncaught Exception:', error);
+      logger.error('💥 Uncaught Exception:', error);
       process.exit(1);
     });
 
     process.on('unhandledRejection', (reason: any) => {
-      logger.error('Unhandled Rejection:', reason);
+      logger.error('🚨 Unhandled Rejection:', reason);
       process.exit(1);
     });
 
     process.on('SIGTERM', () => {
-      logger.info('SIGTERM received, shutting down gracefully');
+      logger.info('🛑 SIGTERM received, shutting down gracefully');
       this.shutdown();
     });
 
     process.on('SIGINT', () => {
-      logger.info('SIGINT received, shutting down gracefully');
+      logger.info('🛑 SIGINT received, shutting down gracefully');
       this.shutdown();
     });
   }
 
   private async shutdown(): Promise<void> {
     try {
-      logger.info('Starting graceful shutdown...');
+      logger.info('🔄 Starting graceful shutdown...');
 
       // Close server
       this.server.close(() => {
-        logger.info('HTTP server closed');
+        logger.info('🔒 HTTP server closed');
       });
 
       // Close database connections
       const dbService = DatabaseService.getInstance();
       await dbService.disconnect();
-      logger.info('Database disconnected');
+      logger.info('🗄️ Database disconnected');
 
       // Close Redis connection
       const redisService = RedisService.getInstance();
       await redisService.disconnect();
-      logger.info('Redis disconnected');
+      logger.info('🔴 Redis disconnected');
 
       process.exit(0);
     } catch (error) {
-      logger.error('Error during shutdown:', error);
+      logger.error('💥 Error during shutdown:', error);
       process.exit(1);
     }
   }
@@ -323,6 +324,9 @@ class ElmsServer {
       if (process.env.NODE_ENV === 'development') {
         logger.info(`🔍 Database Studio: Run 'npm run db:studio' to open Prisma Studio`);
       }
+
+      // Start report scheduler cron job
+      reportSchedulerCron.start();
     });
   }
 }
@@ -330,7 +334,7 @@ class ElmsServer {
 // Start the server
 const server = new ElmsServer();
 server.start().catch((error) => {
-  logger.error('Failed to start server:', error);
+  logger.error('💥 Failed to start server:', error);
   process.exit(1);
 });
 

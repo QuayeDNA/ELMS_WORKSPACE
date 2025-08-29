@@ -4,9 +4,16 @@ import { authenticateToken, AuthenticatedRequest } from '@/middleware/auth.middl
 import logger from '@/utils/logger';
 import { config } from '@/config/environment';
 
+// Import services
+import { SystemMonitoringService } from '@/services/monitoring/SystemMonitoringService';
+
+// Import report scheduler routes
+import reportSchedulerRoutes from './superadmin/report-scheduler';
+
 export function createSuperAdminRoutes(): Router {
   const router = Router();
   const prisma = new PrismaClient();
+  const monitoringService = new SystemMonitoringService(prisma);
 
   // Apply authentication middleware to all routes
   router.use(authenticateToken);
@@ -51,7 +58,7 @@ export function createSuperAdminRoutes(): Router {
         backup: backupInfo
       });
     } catch (error) {
-      logger.error('Failed to create backup:', error);
+      logger.error('💾 Failed to create backup:', error);
       res.status(500).json({ error: 'Failed to create backup' });
     }
   });
@@ -84,6 +91,75 @@ export function createSuperAdminRoutes(): Router {
     } catch (error) {
       logger.error('Failed to fetch backups:', error);
       res.status(500).json({ error: 'Failed to fetch backups' });
+    }
+  });
+
+  // System health check
+  router.get('/system/health', async (req: Request, res: Response) => {
+    try {
+      const healthStatus = await monitoringService.checkSystemHealth();
+
+      res.json({
+        success: true,
+        data: healthStatus,
+        message: 'System health check completed successfully'
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('🏥 Failed to check system health:', error);
+      res.status(500).json({
+        success: false,
+        message: `Failed to check system health: ${message}`
+      });
+    }
+  });
+
+  // System metrics
+  router.get('/system/metrics', async (req: Request, res: Response) => {
+    try {
+      const metrics = await monitoringService.collectSystemMetrics();
+
+      res.json({
+        success: true,
+        data: metrics,
+        message: 'System metrics retrieved successfully'
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('📊 Failed to collect system metrics:', error);
+      res.status(500).json({
+        success: false,
+        message: `Failed to collect system metrics: ${message}`
+      });
+    }
+  });
+
+  // System alerts
+  router.get('/system/alerts', async (req: Request, res: Response) => {
+    try {
+      // Get recent system alerts from database
+      const alerts = await prisma.systemAlert.findMany({
+        where: {
+          isActive: true
+        },
+        orderBy: {
+          createdAt: 'desc'
+        },
+        take: 50
+      });
+
+      res.json({
+        success: true,
+        data: alerts,
+        message: 'System alerts retrieved successfully'
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('🚨 Failed to fetch system alerts:', error);
+      res.status(500).json({
+        success: false,
+        message: `Failed to fetch system alerts: ${message}`
+      });
     }
   });
 
@@ -211,7 +287,7 @@ export function createSuperAdminRoutes(): Router {
 
       // In a real implementation, this would update the security configuration
       // For now, we'll just log the change
-      logger.info(`Security policy update requested: ${section}`, policies);
+      logger.info(`🔒 Security policy update requested: ${section}`, policies);
 
       // Log the action
       await prisma.auditLog.create({
@@ -311,7 +387,7 @@ export function createSuperAdminRoutes(): Router {
         }
       });
     } catch (error) {
-      logger.error('Failed to fetch security incidents:', error);
+      logger.error('🚨 Failed to fetch security incidents:', error);
       res.status(500).json({ error: 'Failed to fetch security incidents' });
     }
   });
@@ -404,7 +480,7 @@ export function createSuperAdminRoutes(): Router {
 
       res.json(analytics);
     } catch (error) {
-      logger.error('Failed to fetch analytics:', error);
+      logger.error('📈 Failed to fetch analytics:', error);
       res.status(500).json({ error: 'Failed to fetch analytics data' });
     }
   });
@@ -731,7 +807,7 @@ export function createSuperAdminRoutes(): Router {
         }
       });
     } catch (error) {
-      logger.error('Failed to fetch institutions:', error);
+      logger.error('🏫 Failed to fetch institutions:', error);
       res.status(500).json({ error: 'Failed to fetch institutions' });
     }
   });
@@ -1727,6 +1803,13 @@ export function createSuperAdminRoutes(): Router {
       res.status(500).json({ error: 'Failed to fetch system statistics' });
     }
   });
+
+  // ==========================================
+  // REPORT SCHEDULER
+  // ==========================================
+
+  // Mount report scheduler routes
+  router.use('/reports/scheduler', reportSchedulerRoutes);
 
   return router;
 }

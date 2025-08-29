@@ -16,18 +16,18 @@ class RedisService {
     });
 
     this.client.on('connect', () => {
-      logger.info('Redis connected successfully');
+      logger.info('🔴 Redis connected successfully');
     });
 
     this.client.on('error', (error) => {
       // Only log error if it's not an authentication error in development
       if (process.env.NODE_ENV === 'production' || !error.message.includes('NOAUTH')) {
-        logger.error('Redis connection error:', error);
+        logger.error('❌ Redis connection error:', error);
       }
     });
 
     this.client.on('ready', () => {
-      logger.info('Redis client ready');
+      logger.info('✅ Redis client ready');
     });
 
     // Connect to Redis

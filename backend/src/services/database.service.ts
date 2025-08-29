@@ -21,9 +21,9 @@ class DatabaseService {
   public async connect(): Promise<void> {
     try {
       await this.prisma.$connect();
-      logger.info('Database connected successfully');
+      logger.info('🗄️ Database connected successfully');
     } catch (error) {
-      logger.error('Database connection failed:', error);
+      logger.error('❌ Database connection failed:', error);
       throw error;
     }
   }
@@ -31,9 +31,9 @@ class DatabaseService {
   public async disconnect(): Promise<void> {
     try {
       await this.prisma.$disconnect();
-      logger.info('Database disconnected successfully');
+      logger.info('🔌 Database disconnected successfully');
     } catch (error) {
-      logger.error('Database disconnection failed:', error);
+      logger.error('❌ Database disconnection failed:', error);
       throw error;
     }
   }
@@ -43,7 +43,7 @@ class DatabaseService {
       await this.prisma.$queryRaw`SELECT 1`;
       return true;
     } catch (error) {
-      logger.error('Database health check failed:', error);
+      logger.error('🏥 Database health check failed:', error);
       return false;
     }
   }
