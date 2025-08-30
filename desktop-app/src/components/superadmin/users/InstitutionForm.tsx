@@ -6,13 +6,13 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter
-} from '@/ui/dialog';
-import { Button } from '@/ui/button';
-import { Input } from '@/ui/input';
-import { Label } from '@/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/ui/card';
-import { Alert, AlertDescription } from '@/ui/alert';
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Building2, AlertCircle, CheckCircle } from 'lucide-react';
 import { InstitutionResponse, CreateInstitutionRequest, UpdateInstitutionRequest, InstitutionType, InstitutionCategory, InstitutionSettings } from '@/types/superadmin/users/user-management-types';
 

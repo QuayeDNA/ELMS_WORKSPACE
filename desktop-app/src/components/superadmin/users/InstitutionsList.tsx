@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
-import { useAuthStore } from '../../../stores/authStore'
-import { superAdminApi } from '../../../services/superadmin'
-import { Institution, CreateInstitutionData, UpdateInstitutionData, Address } from '../../../types/superadmin/superadmin.types'
+import { useAuthStore } from '@/stores/authStore'
+import { superAdminApi } from '@/services/superadmin'
+import { Institution, CreateInstitutionData, UpdateInstitutionData, Address } from '@/types/superadmin/superadmin.types'
 import {
   Building2,
   Plus,
@@ -21,7 +21,7 @@ import {
   School,
   BookOpen
 } from 'lucide-react'
-import { Button } from '../../ui/button'
+import { Button } from '@/components/ui/button'
 
 interface FormData {
   name: string

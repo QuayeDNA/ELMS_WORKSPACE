@@ -1,5 +1,5 @@
-import { apiClient } from '../../../lib/api-client';
-import { API_ENDPOINTS } from '../../../lib/api-config';
+import { apiClient } from '@/lib/api-client';
+import { API_ENDPOINTS } from '@/lib/api-config';
 import {
   CreateInstitutionRequest,
   UpdateInstitutionRequest,
@@ -8,7 +8,7 @@ import {
   UpdateUserStatusRequest,
   BulkUpdateUsersRequest,
   InstitutionResponse
-} from '../../../types/superadmin/users/user-management-types';
+} from '@/types/superadmin/users/user-management-types';
 
 /**
  * User Management Service

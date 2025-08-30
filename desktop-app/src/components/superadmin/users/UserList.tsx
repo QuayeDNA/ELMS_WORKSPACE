@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { UserSummary, GetUsersRequest, InstitutionResponse } from '@/types/superadmin/users/user-management-types';
-import { Button } from '@/ui/button';
-import { Input } from '@/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/select';
-import { Card, CardContent } from '@/ui/card';
-import { Badge } from '@/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Table,
   TableBody,
@@ -13,7 +13,7 @@ import {
   TableHead,
   TableHeader,
   TableRow
-} from '@/ui/table';
+} from '@/components/ui/table';
 import {
   Search,
   Filter,
