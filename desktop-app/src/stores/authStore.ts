@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { apiClient } from '../lib/api-client'
 
 interface User {
   id: string
@@ -178,6 +179,9 @@ export const useAuthStore = create<AuthState>()(
             permissions: userPermissions,
           })
 
+          // Set token on API client
+          apiClient.setToken(data.token)
+
           return data;
         } catch (error) {
           console.error('Login error:', error)
@@ -192,6 +196,8 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: false,
           permissions: [],
         })
+        // Clear token from API client
+        apiClient.clearToken()
       },
 
       checkAuth: () => {
@@ -229,6 +235,8 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: true,
           permissions: userPermissions,
         })
+        // Set token on API client
+        apiClient.setToken(token)
       },
     }),
     {

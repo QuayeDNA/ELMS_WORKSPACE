@@ -6,7 +6,6 @@ const NotFoundPage = lazy(() => import('../components/NotFoundPage').then(module
 
 // Dashboard components
 const Overview = lazy(() => import('../components/superadmin/Overview').then(module => ({ default: module.Overview })));
-const InstitutionsList = lazy(() => import('../components/superadmin/users/InstitutionsList').then(module => ({ default: module.InstitutionsList })));
 const SuperAdminAnalytics = lazy(() => import('../components/superadmin/Analytics').then(module => ({ default: module.Analytics })));
 const Health = lazy(() => import('../components/superadmin/Health').then(module => ({ default: module.default })));
 const Configuration = lazy(() => import('../components/superadmin/Configuration').then(module => ({ default: module.default })));
@@ -99,12 +98,6 @@ export const routeConfig = {
         path: '/superadmin/users',
         element: UserManagement,
         title: 'User Management',
-        roles: ['SUPER_ADMIN']
-      },
-      {
-        path: '/superadmin/institutions',
-        element: InstitutionsList,
-        title: 'Institutions',
         roles: ['SUPER_ADMIN']
       },
       {
