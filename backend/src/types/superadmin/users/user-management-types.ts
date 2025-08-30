@@ -1,31 +1,108 @@
+import { InstitutionType, InstitutionCategory } from '@prisma/client';
+
+export interface Address {
+  street?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  postalCode?: string;
+}
+
+export interface ContactInfo {
+  phone?: string;
+  email?: string;
+  website?: string;
+  emergencyContact?: string;
+}
+
+export interface AcademicCalendar {
+  academicYearStart?: string;
+  academicYearEnd?: string;
+  semesterStart?: string;
+  semesterEnd?: string;
+  holidays?: string[];
+}
+
+export interface InstitutionConfig {
+  timezone?: string;
+  language?: string;
+  currencies?: string[];
+  academicCalendar?: AcademicCalendar;
+  customFields?: Record<string, any>;
+  settings?: Record<string, any>;
+}
+
 export interface CreateInstitutionRequest {
   name: string;
-  type: 'UNIVERSITY' | 'COLLEGE' | 'POLYTECHNIC' | 'INSTITUTE';
-  category: 'PUBLIC' | 'PRIVATE' | 'MISSION';
-  settings?: {
-    timezone?: string;
-    currency?: string;
-    academicYearStart?: string;
-  };
+  type: InstitutionType;
+  category: InstitutionCategory;
+  code?: string;
+  address?: Address;
+  contactInfo?: ContactInfo;
+  logo?: string;
+  motto?: string;
+  description?: string;
+  establishedYear?: number;
+  charter?: string;
+  accreditation?: string;
+  affiliations?: string[];
+  timezone?: string;
+  language?: string;
+  currencies?: string[];
+  academicCalendar?: AcademicCalendar;
+  customFields?: Record<string, any>;
+  config?: InstitutionConfig;
+  settings?: Record<string, any>;
+  isActive?: boolean;
 }
 
 export interface UpdateInstitutionRequest {
   name?: string;
-  type?: 'UNIVERSITY' | 'COLLEGE' | 'POLYTECHNIC' | 'INSTITUTE';
-  category?: 'PUBLIC' | 'PRIVATE' | 'MISSION';
-  settings?: {
-    timezone?: string;
-    currency?: string;
-    academicYearStart?: string;
-  };
+  type?: InstitutionType;
+  category?: InstitutionCategory;
+  code?: string;
+  address?: Address;
+  contactInfo?: ContactInfo;
+  logo?: string;
+  motto?: string;
+  description?: string;
+  establishedYear?: number;
+  charter?: string;
+  accreditation?: string;
+  affiliations?: string[];
+  timezone?: string;
+  language?: string;
+  currencies?: string[];
+  academicCalendar?: AcademicCalendar;
+  customFields?: Record<string, any>;
+  config?: InstitutionConfig;
+  settings?: Record<string, any>;
+  isActive?: boolean;
 }
 
 export interface InstitutionResponse {
   id: string;
   name: string;
-  type: string;
-  category: string;
-  settings: object;
+  type: InstitutionType;
+  category: InstitutionCategory;
+  code?: string;
+  address?: Address;
+  contactInfo?: ContactInfo;
+  logo?: string;
+  motto?: string;
+  description?: string;
+  establishedYear?: number;
+  charter?: string;
+  accreditation?: string;
+  affiliations?: string[];
+  timezone?: string;
+  language?: string;
+  currencies?: string[];
+  academicCalendar?: AcademicCalendar;
+  customFields?: Record<string, any>;
+  config?: InstitutionConfig;
+  settings?: Record<string, any>;
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }

@@ -13,15 +13,25 @@ export class UserManagementService {
     const institution = await this.prisma.institution.create({
       data: {
         name: data.name,
-        type: data.type as any,
-        category: data.category as any,
-        code: `${data.name.replace(/\s+/g, '').toUpperCase()}${Date.now()}`,
-        address: {},
-        contactInfo: {},
-        academicCalendar: {},
-        config: data.settings || {},
-        timezone: data.settings?.timezone || 'Africa/Accra',
-        currencies: data.settings?.currency ? [data.settings.currency] : ['GHS'],
+        type: data.type,
+        category: data.category,
+        code: data.code || `${data.name.replace(/\s+/g, '').toUpperCase()}${Date.now()}`,
+        address: data.address as any || {},
+        contactInfo: data.contactInfo as any || {},
+        logo: data.logo,
+        motto: data.motto,
+        description: data.description,
+        establishedYear: data.establishedYear,
+        charter: data.charter,
+        accreditation: data.accreditation,
+        affiliations: data.affiliations || [],
+        timezone: data.timezone || 'Africa/Accra',
+        language: data.language || 'en',
+        currencies: data.currencies || ['GHS'],
+        academicCalendar: data.academicCalendar as any || {},
+        customFields: data.customFields as any || {},
+        config: data.config as any || {},
+        isActive: data.isActive ?? true,
       },
     });
 
@@ -30,7 +40,24 @@ export class UserManagementService {
       name: institution.name,
       type: institution.type,
       category: institution.category,
-      settings: (institution.config as object) || {},
+      code: institution.code,
+      address: institution.address as any,
+      contactInfo: institution.contactInfo as any,
+      logo: institution.logo || undefined,
+      motto: institution.motto || undefined,
+      description: institution.description || undefined,
+      establishedYear: institution.establishedYear || undefined,
+      charter: institution.charter as string || undefined,
+      accreditation: institution.accreditation as string || undefined,
+      affiliations: institution.affiliations,
+      timezone: institution.timezone,
+      language: institution.language,
+      currencies: institution.currencies,
+      academicCalendar: institution.academicCalendar as any,
+      customFields: institution.customFields as any,
+      config: institution.config as any,
+      settings: institution.config as any,
+      isActive: institution.isActive,
       createdAt: institution.createdAt.toISOString(),
       updatedAt: institution.updatedAt.toISOString(),
     };
@@ -66,7 +93,24 @@ export class UserManagementService {
       name: inst.name,
       type: inst.type,
       category: inst.category,
-      settings: (inst.config as object) || {},
+      code: inst.code,
+      address: inst.address as any,
+      contactInfo: inst.contactInfo as any,
+      logo: inst.logo || undefined,
+      motto: inst.motto || undefined,
+      description: inst.description || undefined,
+      establishedYear: inst.establishedYear || undefined,
+      charter: inst.charter as string || undefined,
+      accreditation: inst.accreditation as string || undefined,
+      affiliations: inst.affiliations,
+      timezone: inst.timezone,
+      language: inst.language,
+      currencies: inst.currencies,
+      academicCalendar: inst.academicCalendar as any,
+      customFields: inst.customFields as any,
+      config: inst.config as any,
+      settings: inst.config as any,
+      isActive: inst.isActive,
       createdAt: inst.createdAt.toISOString(),
       updatedAt: inst.updatedAt.toISOString(),
     }));
@@ -78,14 +122,31 @@ export class UserManagementService {
     const oldInstitution = await this.prisma.institution.findUnique({ where: { id } });
     if (!oldInstitution) throw new Error('Institution not found');
 
+    const updateData: any = {};
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.type !== undefined) updateData.type = data.type;
+    if (data.category !== undefined) updateData.category = data.category;
+    if (data.code !== undefined) updateData.code = data.code;
+    if (data.address !== undefined) updateData.address = data.address as any;
+    if (data.contactInfo !== undefined) updateData.contactInfo = data.contactInfo as any;
+    if (data.logo !== undefined) updateData.logo = data.logo;
+    if (data.motto !== undefined) updateData.motto = data.motto;
+    if (data.description !== undefined) updateData.description = data.description;
+    if (data.establishedYear !== undefined) updateData.establishedYear = data.establishedYear;
+    if (data.charter !== undefined) updateData.charter = data.charter;
+    if (data.accreditation !== undefined) updateData.accreditation = data.accreditation;
+    if (data.affiliations !== undefined) updateData.affiliations = data.affiliations;
+    if (data.timezone !== undefined) updateData.timezone = data.timezone;
+    if (data.language !== undefined) updateData.language = data.language;
+    if (data.currencies !== undefined) updateData.currencies = data.currencies;
+    if (data.academicCalendar !== undefined) updateData.academicCalendar = data.academicCalendar as any;
+    if (data.customFields !== undefined) updateData.customFields = data.customFields as any;
+    if (data.config !== undefined) updateData.config = data.config as any;
+    if (data.isActive !== undefined) updateData.isActive = data.isActive;
+
     const institution = await this.prisma.institution.update({
       where: { id },
-      data: {
-        name: data.name,
-        type: data.type as any,
-        category: data.category as any,
-        config: data.settings,
-      },
+      data: updateData,
     });
 
     const response: InstitutionResponse = {
@@ -93,7 +154,24 @@ export class UserManagementService {
       name: institution.name,
       type: institution.type,
       category: institution.category,
-      settings: (institution.config as object) || {},
+      code: institution.code,
+      address: institution.address as any,
+      contactInfo: institution.contactInfo as any,
+      logo: institution.logo || undefined,
+      motto: institution.motto || undefined,
+      description: institution.description || undefined,
+      establishedYear: institution.establishedYear || undefined,
+      charter: institution.charter as string || undefined,
+      accreditation: institution.accreditation as string || undefined,
+      affiliations: institution.affiliations,
+      timezone: institution.timezone,
+      language: institution.language,
+      currencies: institution.currencies,
+      academicCalendar: institution.academicCalendar as any,
+      customFields: institution.customFields as any,
+      config: institution.config as any,
+      settings: institution.config as any,
+      isActive: institution.isActive,
       createdAt: institution.createdAt.toISOString(),
       updatedAt: institution.updatedAt.toISOString(),
     };
@@ -104,7 +182,23 @@ export class UserManagementService {
       if (oldInstitution.name !== institution.name) changes.name = { from: oldInstitution.name, to: institution.name };
       if (oldInstitution.type !== institution.type) changes.type = { from: oldInstitution.type, to: institution.type };
       if (oldInstitution.category !== institution.category) changes.category = { from: oldInstitution.category, to: institution.category };
-      if (JSON.stringify(oldInstitution.config) !== JSON.stringify(institution.config)) changes.settings = { from: oldInstitution.config, to: institution.config };
+      if (oldInstitution.code !== institution.code) changes.code = { from: oldInstitution.code, to: institution.code };
+      if (JSON.stringify(oldInstitution.address) !== JSON.stringify(institution.address)) changes.address = { from: oldInstitution.address, to: institution.address };
+      if (JSON.stringify(oldInstitution.contactInfo) !== JSON.stringify(institution.contactInfo)) changes.contactInfo = { from: oldInstitution.contactInfo, to: institution.contactInfo };
+      if (oldInstitution.logo !== institution.logo) changes.logo = { from: oldInstitution.logo, to: institution.logo };
+      if (oldInstitution.motto !== institution.motto) changes.motto = { from: oldInstitution.motto, to: institution.motto };
+      if (oldInstitution.description !== institution.description) changes.description = { from: oldInstitution.description, to: institution.description };
+      if (oldInstitution.establishedYear !== institution.establishedYear) changes.establishedYear = { from: oldInstitution.establishedYear, to: institution.establishedYear };
+      if (oldInstitution.charter !== institution.charter) changes.charter = { from: oldInstitution.charter, to: institution.charter };
+      if (oldInstitution.accreditation !== institution.accreditation) changes.accreditation = { from: oldInstitution.accreditation, to: institution.accreditation };
+      if (JSON.stringify(oldInstitution.affiliations) !== JSON.stringify(institution.affiliations)) changes.affiliations = { from: oldInstitution.affiliations, to: institution.affiliations };
+      if (oldInstitution.timezone !== institution.timezone) changes.timezone = { from: oldInstitution.timezone, to: institution.timezone };
+      if (oldInstitution.language !== institution.language) changes.language = { from: oldInstitution.language, to: institution.language };
+      if (JSON.stringify(oldInstitution.currencies) !== JSON.stringify(institution.currencies)) changes.currencies = { from: oldInstitution.currencies, to: institution.currencies };
+      if (JSON.stringify(oldInstitution.academicCalendar) !== JSON.stringify(institution.academicCalendar)) changes.academicCalendar = { from: oldInstitution.academicCalendar, to: institution.academicCalendar };
+      if (JSON.stringify(oldInstitution.customFields) !== JSON.stringify(institution.customFields)) changes.customFields = { from: oldInstitution.customFields, to: institution.customFields };
+      if (JSON.stringify(oldInstitution.config) !== JSON.stringify(institution.config)) changes.config = { from: oldInstitution.config, to: institution.config };
+      if (oldInstitution.isActive !== institution.isActive) changes.isActive = { from: oldInstitution.isActive, to: institution.isActive };
 
       this.socketService.emitToRoom(
         USER_MANAGEMENT_ROOMS.SUPERADMIN_DASHBOARD,
