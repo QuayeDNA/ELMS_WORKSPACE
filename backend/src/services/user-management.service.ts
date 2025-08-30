@@ -1102,4 +1102,112 @@ export class UserManagementService {
       // Don't throw error - user creation should succeed even if email fails
     }
   }
+
+  // Password reset methods
+  async initiatePasswordReset(email: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      // Don't throw error for security - pretend we sent the email
+      return;
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordResetToken: resetToken,
+        passwordResetExpires: resetExpires,
+      },
+    });
+
+    // Send password reset email
+    await this.sendPasswordResetEmail(user, resetToken);
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        passwordResetToken: token,
+        passwordResetExpires: {
+          gt: new Date(),
+        },
+      },
+    });
+
+    if (!user) {
+      throw new Error('Invalid or expired reset token');
+    }
+
+    // Validate password policy
+    if (!this.validatePasswordPolicy(newPassword)) {
+      throw new Error('Password does not meet security requirements');
+    }
+
+    // Hash new password
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+
+    // Update user with new password and clear reset token
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash,
+        passwordResetToken: null,
+        passwordResetExpires: null,
+        passwordChangedAt: new Date(),
+      },
+    });
+  }
+
+  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Verify current password
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!isCurrentPasswordValid) {
+      throw new Error('Current password is incorrect');
+    }
+
+    // Validate new password policy
+    if (!this.validatePasswordPolicy(newPassword)) {
+      throw new Error('Password does not meet security requirements');
+    }
+
+    // Hash new password
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+
+    // Update user
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        passwordHash,
+        passwordChangedAt: new Date(),
+      },
+    });
+  }
+
+  private async sendPasswordResetEmail(user: any, resetToken: string): Promise<void> {
+    try {
+      const resetLink = `${process.env['FRONTEND_URL']}/reset-password/${resetToken}`;
+
+      // In a real implementation, you'd use a proper email service
+      console.log(`Password reset email would be sent to ${user.email}`);
+      console.log(`Reset link: ${resetLink}`);
+
+      // TODO: Implement actual email sending
+    } catch (error) {
+      logger.error('Error sending password reset email:', error);
+      // Don't throw error - password reset initiation should succeed
+    }
+  }
 }

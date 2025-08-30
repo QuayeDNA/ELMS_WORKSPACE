@@ -28,12 +28,13 @@ interface AuthState {
   hasPermission: (permission: string) => boolean
   hasRole: (role: string) => boolean
   hasAnyRole: (roles: string[]) => boolean
+  setAuthState: (user: User, token: string) => void
 }
 
 // role hierarchy removed; not currently used
 
 // Permissions mapping for each role (mirrored from backend)
-const ROLE_PERMISSIONS: Record<string, string[]> = {
+export const ROLE_PERMISSIONS: Record<string, string[]> = {
   SUPER_ADMIN: [
     'system:manage',
     'users:create',
@@ -218,6 +219,16 @@ export const useAuthStore = create<AuthState>()(
       hasAnyRole: (roles: string[]) => {
         const { user } = get()
         return user ? roles.includes(user.role) : false
+      },
+
+      setAuthState: (user: User, token: string) => {
+        const userPermissions = ROLE_PERMISSIONS[user.role] || []
+        set({
+          user,
+          token,
+          isAuthenticated: true,
+          permissions: userPermissions,
+        })
       },
     }),
     {

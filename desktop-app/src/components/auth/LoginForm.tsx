@@ -30,7 +30,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const navigate = useNavigate();
-  const login = useAuthStore((state) => state.login);
+  const setAuthState = useAuthStore((state) => state.setAuthState);
 
   const {
     register,
@@ -55,7 +55,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
     try {
       const response = await authService.login(data);
-      await login(data.email, data.password);
+
+      // Update auth store with the response data
+      setAuthState(response.user, response.token);
 
       toast.success('Login successful!', {
         description: `Welcome back, ${response.user.profile.firstName}!`

@@ -2,6 +2,7 @@ import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuthStore } from "../stores/authStore";
 import { ProtectedRoute } from "../components/auth/ProtectedRoute";
+import { AuthPage } from "../components/auth/AuthPage";
 import { Layout } from "../components/Layout";
 import { DashboardContent } from "../components/DashboardContent";
 import { ExamManagement } from "../components/exams/ExamManagement";
@@ -20,9 +21,6 @@ import { Analytics as SuperAdminAnalytics } from "../components/superadmin/Analy
 import Health from "../components/superadmin/Health";
 import Configuration from "../components/superadmin/Configuration";
 import AuditLogs from "@/components/superadmin/AuditLogs";
-
-// Test Components
-import SuperAdminAPITester from "../components/SuperAdminAPITester";
 
 // Placeholder components for other roles (will be implemented later)
 const InstitutionAdminDashboard = () => (
@@ -148,12 +146,9 @@ export const AppRouter: React.FC = () => {
   if (!isAuthenticated) {
     return (
       <Routes>
-        <Route
-          path="/test"
-          element={<SuperAdminAPITester />}
-        />
-        <Route path="/" element={<Navigate to="/test" replace />} />
-        <Route path="*" element={<Navigate to="/test" replace />} />
+        <Route path="/auth" element={<AuthPage />} />
+        <Route path="/" element={<Navigate to="/auth" replace />} />
+        <Route path="*" element={<Navigate to="/auth" replace />} />
       </Routes>
     )
   }
