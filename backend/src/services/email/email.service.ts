@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
-import { ConfigService } from './config.service';
-import { LoggerService } from './logger.service';
+import { ConfigService } from '../config/config.service';
+import { LoggerService } from '../logger/logger.service';
 
 export interface EmailOptions {
   to: string;
@@ -11,9 +11,9 @@ export interface EmailOptions {
 
 export class EmailService {
   private static instance: EmailService;
-  private transporter: nodemailer.Transporter;
-  private configService: ConfigService;
-  private loggerService: LoggerService;
+  private readonly transporter: nodemailer.Transporter;
+  private readonly configService: ConfigService;
+  private readonly loggerService: LoggerService;
 
   private constructor() {
     this.configService = ConfigService.getInstance();

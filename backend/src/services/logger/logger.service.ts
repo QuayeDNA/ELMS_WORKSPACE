@@ -1,4 +1,4 @@
-import logger from '../utils/logger';
+import logger from '../../utils/logger';
 
 export class LoggerService {
   private static instance: LoggerService;

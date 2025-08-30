@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { LoginForm } from './LoginForm';
 import { RegisterForm } from './RegisterForm';
 import { ForgotPasswordForm } from './ForgotPasswordForm';
+import { AuthLayout } from './AuthLayout';
 
 interface AuthPageProps {}
 
@@ -13,10 +14,35 @@ export const AuthPage: React.FC<AuthPageProps> = () => {
   const handleSwitchToLogin = () => setMode('login');
   const handleSwitchToRegister = () => setMode('register');
   const handleSwitchToForgotPassword = () => setMode('forgot-password');
-  const handleRegisterSuccess = () => setMode('login');
+
+  const getFormTitle = () => {
+    switch (mode) {
+      case 'login':
+        return 'Welcome Back';
+      case 'register':
+        return 'Create Account';
+      case 'forgot-password':
+        return 'Reset Password';
+      default:
+        return 'ELMS';
+    }
+  };
+
+  const getFormSubtitle = () => {
+    switch (mode) {
+      case 'login':
+        return 'Sign in to your ELMS account';
+      case 'register':
+        return 'Join ELMS and start your learning journey';
+      case 'forgot-password':
+        return 'Enter your email to reset your password';
+      default:
+        return 'Education Learning Management System';
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <AuthLayout title={getFormTitle()} subtitle={getFormSubtitle()}>
       {mode === 'login' && (
         <LoginForm
           onSwitchToRegister={handleSwitchToRegister}
@@ -25,7 +51,6 @@ export const AuthPage: React.FC<AuthPageProps> = () => {
       )}
       {mode === 'register' && (
         <RegisterForm
-          onRegister={handleRegisterSuccess}
           onSwitchToLogin={handleSwitchToLogin}
         />
       )}
@@ -34,6 +59,6 @@ export const AuthPage: React.FC<AuthPageProps> = () => {
           onBackToLogin={handleSwitchToLogin}
         />
       )}
-    </div>
+    </AuthLayout>
   );
 };
