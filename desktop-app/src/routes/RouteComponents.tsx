@@ -5,7 +5,7 @@ const AuthPage = lazy(() => import('../components/auth/AuthPage').then(module =>
 const NotFoundPage = lazy(() => import('../components/NotFoundPage').then(module => ({ default: module.NotFoundPage })));
 
 // Dashboard components
-const SuperAdminDashboard = lazy(() => import('../components/superadmin/SuperAdminDashboard').then(module => ({ default: module.SuperAdminDashboard })));
+const Overview = lazy(() => import('../components/superadmin/Overview').then(module => ({ default: module.Overview })));
 const InstitutionsList = lazy(() => import('../components/superadmin/InstitutionsList').then(module => ({ default: module.InstitutionsList })));
 const SuperAdminAnalytics = lazy(() => import('../components/superadmin/Analytics').then(module => ({ default: module.Analytics })));
 const Health = lazy(() => import('../components/superadmin/Health').then(module => ({ default: module.default })));
@@ -42,7 +42,7 @@ const createPlaceholderDashboard = (title: string, description: string) => () =>
   );
 
 export const DashboardComponents = {
-  SUPER_ADMIN: SuperAdminDashboard,
+  SUPER_ADMIN: Overview,
   INSTITUTION_ADMIN: createPlaceholderDashboard('Institution Admin Dashboard', 'Coming soon...'),
   DEPARTMENT_HEAD: createPlaceholderDashboard('Department Head Dashboard', 'Coming soon...'),
   REGISTRY_STAFF: createPlaceholderDashboard('Registry Staff Dashboard', 'Coming soon...'),
@@ -64,7 +64,7 @@ export const DashboardComponents = {
 export const RouteComponents = {
   AuthPage,
   NotFoundPage,
-  SuperAdminDashboard,
+  Overview,
   InstitutionsList,
   SuperAdminAnalytics,
   Health,
