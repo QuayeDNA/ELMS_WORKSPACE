@@ -5,13 +5,10 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { LoadingButton } from '@/components/ui/LoadingButton';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { HealthIndicator } from '@/components/dashboard/HealthIndicator';
-import { DashboardService } from '@/services/superadmin/dashboardService';
 import { dashboardUtils } from '@/services/superadmin/dashboardUtils';
-import { useAuthStore } from '@/stores/authStore';
 import {
   MockDashboardData,
-  SystemHealthData,
-  HealthIndicatorProps
+  SystemHealthData
 } from '@/types/dashboard';
 
 // Define types for the component
@@ -39,72 +36,165 @@ export const Overview: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { token } = useAuthStore();
-  // const realtimeService = realTimeService;
-
   const fetchDashboardData = useCallback(async () => {
-    if (!token) return;
-
     try {
       setError(null);
-      const service = DashboardService.getInstance();
-      service.setToken(token);
+      setIsLoading(true);
 
-      const [overview, health] = await Promise.all([
-        service.fetchSystemOverview(),
-        service.fetchSystemHealth()
-      ]);
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Transform the data to match our component's expected format
+      // Dummy data for system overview
       const mockData: MockDashboardData = {
         systemStats: {
-          totalUsers: overview.overview.totalUsers,
-          totalInstitutions: 0, // We'll need to fetch this separately
-          totalExams: 0,
-          totalIncidents: 0,
-          activeUsers: overview.overview.activeUsers,
-          totalRevenue: 0,
-          serverLoad: 0,
-          storageUsed: 0
+          totalUsers: 1250,
+          totalInstitutions: 45,
+          totalExams: 320,
+          totalIncidents: 12,
+          activeUsers: 980,
+          totalRevenue: 45000,
+          serverLoad: 65,
+          storageUsed: 75
         },
         systemHealth: {
-          database: health.data.status,
-          uptime: health.data.metrics.uptime,
+          database: 'healthy',
+          uptime: 99.8,
           memory: {
-            heapUsed: health.data.metrics.memoryUsage,
+            heapUsed: 68,
             heapTotal: 100,
-            external: 0
+            external: 12
           },
-          cpu: health.data.metrics.cpuUsage,
-          disk: health.data.metrics.diskUsage,
+          cpu: 45,
+          disk: 72,
           network: 'stable',
           timestamp: new Date().toISOString()
         },
-        recentActivity: [],
-        institutionStats: [],
-        examStats: [],
-        regionalDistribution: []
+        recentActivity: [
+          {
+            id: '1',
+            user: 'John Doe',
+            action: 'logged in',
+            target: 'system',
+            timestamp: new Date(Date.now() - 300000).toISOString(),
+            severity: 'low' as const
+          },
+          {
+            id: '2',
+            user: 'System',
+            action: 'completed exam processing',
+            target: 'Mathematics Final',
+            timestamp: new Date(Date.now() - 900000).toISOString(),
+            severity: 'medium' as const
+          },
+          {
+            id: '3',
+            user: 'Admin',
+            action: 'created institution',
+            target: 'Tech University',
+            timestamp: new Date(Date.now() - 1800000).toISOString(),
+            severity: 'high' as const
+          }
+        ],
+        institutionStats: [
+          { name: 'University of Ghana', value: 450, color: '#3b82f6' },
+          { name: 'KNUST', value: 380, color: '#10b981' },
+          { name: 'University of Cape Coast', value: 320, color: '#f59e0b' }
+        ],
+        examStats: [
+          { name: 'Mathematics', value: 45, color: '#3b82f6' },
+          { name: 'Science', value: 38, color: '#10b981' },
+          { name: 'English', value: 52, color: '#f59e0b' }
+        ],
+        regionalDistribution: [
+          { name: 'Greater Accra', value: 36, color: '#3b82f6' },
+          { name: 'Ashanti', value: 26, color: '#10b981' },
+          { name: 'Eastern', value: 22, color: '#f59e0b' },
+          { name: 'Central', value: 16, color: '#ef4444' }
+        ]
+      };
+
+      // Dummy system health data
+      const healthData: SystemHealthData = {
+        success: true,
+        data: {
+          status: 'healthy',
+          services: [
+            {
+              name: 'database',
+              status: 'healthy',
+              responseTime: 45,
+              uptime: 99.8
+            },
+            {
+              name: 'redis',
+              status: 'healthy',
+              responseTime: 12,
+              uptime: 99.9
+            },
+            {
+              name: 'api',
+              status: 'healthy',
+              responseTime: 120,
+              uptime: 99.5
+            }
+          ],
+          metrics: {
+            cpuUsage: 45,
+            memoryUsage: 68,
+            diskUsage: 72,
+            uptime: 99.8
+          }
+        },
+        message: 'System health check completed successfully'
       };
 
       setDashboardData(mockData);
-      setSystemHealth(health);
+      setSystemHealth(healthData);
 
-      // Mock recent activities
+      // Mock recent activities for display
       setRecentActivities([
         {
           id: '1',
           user: 'System',
-          action: 'Health check completed',
+          action: 'Health check completed successfully',
           timestamp: new Date().toISOString(),
           type: 'success'
+        },
+        {
+          id: '2',
+          user: 'John Doe',
+          action: 'Completed Mathematics exam',
+          timestamp: new Date(Date.now() - 300000).toISOString(),
+          type: 'success'
+        },
+        {
+          id: '3',
+          user: 'Admin',
+          action: 'Created new institution',
+          timestamp: new Date(Date.now() - 900000).toISOString(),
+          type: 'success'
+        },
+        {
+          id: '4',
+          user: 'System',
+          action: 'Database backup completed',
+          timestamp: new Date(Date.now() - 1800000).toISOString(),
+          type: 'success'
+        },
+        {
+          id: '5',
+          user: 'Jane Smith',
+          action: 'Updated profile information',
+          timestamp: new Date(Date.now() - 3600000).toISOString(),
+          type: 'warning'
         }
       ]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch dashboard data');
+      setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
     } finally {
       setIsLoading(false);
     }
-  }, [token]);
+  }, []);
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -113,7 +203,7 @@ export const Overview: React.FC = () => {
   }, [fetchDashboardData]);
 
   const handleExportData = useCallback(async () => {
-    if (!dashboardData || !token) return;
+    if (!dashboardData) return;
 
     try {
       const csvData = dashboardUtils.exportToCSV(dashboardData);
@@ -127,15 +217,14 @@ export const Overview: React.FC = () => {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     } catch (err) {
+      console.error('Export failed:', err);
       setError('Failed to export data');
     }
-  }, [dashboardData, token]);
+  }, [dashboardData]);
 
   useEffect(() => {
     fetchDashboardData();
   }, [fetchDashboardData]);
-
-  // Realtime functionality removed for now
 
   if (isLoading) {
     return (
@@ -149,8 +238,8 @@ export const Overview: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Card key={i}>
+          {Array.from({ length: 4 }, (_, i) => i).map((i) => (
+            <Card key={`stat-skeleton-${i}`}>
               <CardHeader className="pb-2">
                 <Skeleton className="h-4 w-24" />
               </CardHeader>
@@ -169,8 +258,8 @@ export const Overview: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-4 w-full" />
+                {Array.from({ length: 3 }, (_, i) => i).map((i) => (
+                  <Skeleton key={`activity-skeleton-${i}`} className="h-4 w-full" />
                 ))}
               </div>
             </CardContent>
@@ -182,8 +271,8 @@ export const Overview: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Skeleton key={i} className="h-4 w-full" />
+                {Array.from({ length: 5 }, (_, i) => i).map((i) => (
+                  <Skeleton key={`health-skeleton-${i}`} className="h-4 w-full" />
                 ))}
               </div>
             </CardContent>
@@ -291,7 +380,7 @@ export const Overview: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
-          <StatCard key={index} {...stat} />
+          <StatCard key={`stat-${stat.title}-${index}`} {...stat} />
         ))}
       </div>
 
@@ -305,7 +394,7 @@ export const Overview: React.FC = () => {
               <HealthIndicator
                 label="Database"
                 value={dashboardData.systemHealth.database}
-                status={dashboardData.systemHealth.database as HealthIndicatorProps['status']}
+                status={dashboardData.systemHealth.database}
               />
               <HealthIndicator
                 label="CPU Usage"
@@ -327,8 +416,8 @@ export const Overview: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {recentActivities.slice(0, 5).map((activity, index) => (
-                <div key={index} className="flex items-center justify-between">
+              {recentActivities.slice(0, 5).map((activity) => (
+                <div key={`activity-${activity.id}`} className="flex items-center justify-between">
                   <div className="flex-1">
                     <p className="text-sm font-medium">{activity.action}</p>
                     <p className="text-xs text-muted-foreground">

@@ -9,8 +9,8 @@ import { DashboardComponents } from "./RouteConfig";
 
 // Import components
 import { Overview } from '../components/superadmin/Overview'
-import { InstitutionsList } from "../components/superadmin/InstitutionsList";
-import { UserManagement } from "../components/users/UserManagement";
+import { InstitutionsList } from "../components/superadmin/users/InstitutionsList";
+import { UserManagement } from "../components/superadmin/users/UserManagement";
 import { Profile } from "../components/common/Profile";
 import { Help } from "../components/common/Help";
 

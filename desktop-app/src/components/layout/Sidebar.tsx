@@ -10,7 +10,6 @@ import {
   Settings,
   LogOut,
   FileText,
-  Building2,
   GraduationCap,
   Database,
   Server,
@@ -46,8 +45,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     if (user.role === 'SUPER_ADMIN') {
       return [
         { id: 'dashboard', label: 'Dashboard', icon: Monitor, path: '/dashboard' },
-        { id: 'users', label: 'User Management', icon: Users, path: '/superadmin/users' },
-        { id: 'institutions', label: 'Institutions', icon: Building2, path: '/superadmin/institutions' },
+        { id: 'institutions', label: 'Institutions', icon: Building, path: '/superadmin/institutions' },
         { id: 'audit', label: 'Audit Logs', icon: Database, path: '/superadmin/audit' },
         { id: 'analytics', label: 'Analytics', icon: BarChart3, path: '/superadmin/analytics' },
         { id: 'health', label: 'System Health', icon: Activity, path: '/superadmin/health' },
@@ -145,6 +143,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         <div 
           className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
           onClick={onClose}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              onClose()
+            }
+          }}
+          tabIndex={-1}
+          role="button"
+          aria-label="Close sidebar"
         />
       )}
       

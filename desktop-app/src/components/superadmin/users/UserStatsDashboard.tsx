@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
 import { UserStats } from '@/types/superadmin/users/user-management-types';
 import {
   Users,
