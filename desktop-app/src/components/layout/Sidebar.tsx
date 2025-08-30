@@ -45,7 +45,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     if (user.role === 'SUPER_ADMIN') {
       return [
         { id: 'dashboard', label: 'Dashboard', icon: Monitor, path: '/dashboard' },
-        { id: 'institutions', label: 'Institutions', icon: Building, path: '/superadmin/institutions' },
+        { id: 'users', label: 'Users', icon: Building, path: '/users' },
         { id: 'audit', label: 'Audit Logs', icon: Database, path: '/superadmin/audit' },
         { id: 'analytics', label: 'Analytics', icon: BarChart3, path: '/superadmin/analytics' },
         { id: 'health', label: 'System Health', icon: Activity, path: '/superadmin/health' },
@@ -53,7 +53,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         { id: 'incidents', label: 'Incidents', icon: AlertTriangle, path: '/incidents' },
         { id: 'scripts', label: 'Scripts', icon: FileText, path: '/scripts' }
       ]
-    }
+    } 
 
     // Institution Admin navigation
     if (user.role === 'INSTITUTION_ADMIN') {

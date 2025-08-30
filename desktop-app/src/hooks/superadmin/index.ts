@@ -1,2 +1,2 @@
 // SuperAdmin Hooks Exports
-export * from './useSuperAdmin';
+export { useUserManagement } from './users/user-management-hooks';

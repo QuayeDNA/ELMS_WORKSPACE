@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuthStore } from '@/stores/authStore'
 import { apiClient } from '@/lib/api-client'
-import { InstitutionResponse, CreateInstitutionRequest, UpdateInstitutionRequest, InstitutionType, InstitutionCategory } from '@/types/superadmin/users/user-management-types'
+import { InstitutionResponse, CreateInstitutionRequest, UpdateInstitutionRequest, InstitutionType, InstitutionCategory, InstitutionFormData } from '@/types/superadmin/users/user-management-types'
 import {
   Building2,
   Plus,
@@ -21,11 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/Skeleton'
 
-interface FormData {
-  name: string
-  type: InstitutionType
-  category: InstitutionCategory
-}
+interface FormData extends InstitutionFormData {}
 
 export const InstitutionsList: React.FC = () => {
   const { token } = useAuthStore()
@@ -40,15 +36,51 @@ export const InstitutionsList: React.FC = () => {
 
   const [formData, setFormData] = useState<FormData>({
     name: '',
-    type: 'university' as InstitutionType,
-    category: 'public' as InstitutionCategory
+    type: 'UNIVERSITY' as InstitutionType,
+    category: 'PUBLIC' as InstitutionCategory,
+    code: '',
+    address: {},
+    contactInfo: {},
+    logo: '',
+    motto: '',
+    description: '',
+    establishedYear: undefined,
+    charter: '',
+    accreditation: '',
+    affiliations: [],
+    timezone: 'Africa/Accra',
+    language: 'en',
+    currencies: ['GHS'],
+    academicCalendar: {},
+    customFields: {},
+    config: {},
+    settings: {},
+    isActive: true
   })
 
   const resetForm = useCallback(() => {
     setFormData({
       name: '',
-      type: 'university' as InstitutionType,
-      category: 'public' as InstitutionCategory
+      type: 'UNIVERSITY' as InstitutionType,
+      category: 'PUBLIC' as InstitutionCategory,
+      code: '',
+      address: {},
+      contactInfo: {},
+      logo: '',
+      motto: '',
+      description: '',
+      establishedYear: undefined,
+      charter: '',
+      accreditation: '',
+      affiliations: [],
+      timezone: 'Africa/Accra',
+      language: 'en',
+      currencies: ['GHS'],
+      academicCalendar: {},
+      customFields: {},
+      config: {},
+      settings: {},
+      isActive: true
     })
   }, [])
 
@@ -80,7 +112,25 @@ export const InstitutionsList: React.FC = () => {
       const institutionData: CreateInstitutionRequest = {
         name: formData.name,
         type: formData.type,
-        category: formData.category
+        category: formData.category,
+        code: formData.code || undefined,
+        address: formData.address,
+        contactInfo: formData.contactInfo,
+        logo: formData.logo || undefined,
+        motto: formData.motto || undefined,
+        description: formData.description || undefined,
+        establishedYear: formData.establishedYear,
+        charter: formData.charter || undefined,
+        accreditation: formData.accreditation || undefined,
+        affiliations: formData.affiliations,
+        timezone: formData.timezone,
+        language: formData.language,
+        currencies: formData.currencies,
+        academicCalendar: formData.academicCalendar,
+        customFields: formData.customFields,
+        config: formData.config,
+        settings: formData.settings,
+        isActive: formData.isActive
       }
 
       const newInstitution = await apiClient.post<InstitutionResponse>('/superadmin/users/institutions', institutionData)
@@ -105,7 +155,25 @@ export const InstitutionsList: React.FC = () => {
       const institutionData: UpdateInstitutionRequest = {
         name: formData.name,
         type: formData.type,
-        category: formData.category
+        category: formData.category,
+        code: formData.code || undefined,
+        address: formData.address,
+        contactInfo: formData.contactInfo,
+        logo: formData.logo || undefined,
+        motto: formData.motto || undefined,
+        description: formData.description || undefined,
+        establishedYear: formData.establishedYear,
+        charter: formData.charter || undefined,
+        accreditation: formData.accreditation || undefined,
+        affiliations: formData.affiliations,
+        timezone: formData.timezone,
+        language: formData.language,
+        currencies: formData.currencies,
+        academicCalendar: formData.academicCalendar,
+        customFields: formData.customFields,
+        config: formData.config,
+        settings: formData.settings,
+        isActive: formData.isActive
       }
 
       const updatedInstitution = await apiClient.put<InstitutionResponse>(`/superadmin/users/institutions/${editingInstitution.id}`, institutionData)
@@ -140,8 +208,26 @@ export const InstitutionsList: React.FC = () => {
     setEditingInstitution(institution)
     setFormData({
       name: institution.name || '',
-      type: (institution.type as InstitutionType) || 'university',
-      category: (institution.category as InstitutionCategory) || 'public'
+      type: institution.type || 'UNIVERSITY',
+      category: institution.category || 'PUBLIC',
+      code: institution.code || '',
+      address: institution.address || {},
+      contactInfo: institution.contactInfo || {},
+      logo: institution.logo || '',
+      motto: institution.motto || '',
+      description: institution.description || '',
+      establishedYear: institution.establishedYear,
+      charter: institution.charter || '',
+      accreditation: institution.accreditation || '',
+      affiliations: institution.affiliations || [],
+      timezone: institution.timezone || 'Africa/Accra',
+      language: institution.language || 'en',
+      currencies: institution.currencies || ['GHS'],
+      academicCalendar: institution.academicCalendar || {},
+      customFields: institution.customFields || {},
+      config: institution.config || {},
+      settings: institution.settings || {},
+      isActive: institution.isActive ?? true
     })
   }, [])
 
@@ -205,48 +291,197 @@ export const InstitutionsList: React.FC = () => {
               Add Institution
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create New Institution</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleCreate} className="space-y-4">
+            <form onSubmit={handleCreate} className="space-y-6">
+              {/* Basic Information */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="name">Institution Name *</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="code">Institution Code</Label>
+                  <Input
+                    id="code"
+                    value={formData.code}
+                    onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value }))}
+                    placeholder="e.g., TTU, KNUST"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="type">Type *</Label>
+                  <Select value={formData.type} onValueChange={(value: InstitutionType) => setFormData(prev => ({ ...prev, type: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="UNIVERSITY">University</SelectItem>
+                      <SelectItem value="COLLEGE">College</SelectItem>
+                      <SelectItem value="POLYTECHNIC">Polytechnic</SelectItem>
+                      <SelectItem value="INSTITUTE">Institute</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="category">Category *</Label>
+                  <Select value={formData.category} onValueChange={(value: InstitutionCategory) => setFormData(prev => ({ ...prev, category: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="PUBLIC">Public</SelectItem>
+                      <SelectItem value="PRIVATE">Private</SelectItem>
+                      <SelectItem value="MISSION">Mission</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Address Information */}
+              <div className="space-y-4">
+                <h4 className="text-sm font-medium">Address Information</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="street">Street Address</Label>
+                    <Input
+                      id="street"
+                      value={formData.address?.street || ''}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        address: { ...prev.address, street: e.target.value }
+                      }))}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="city">City</Label>
+                    <Input
+                      id="city"
+                      value={formData.address?.city || ''}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        address: { ...prev.address, city: e.target.value }
+                      }))}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="region">Region/State</Label>
+                    <Input
+                      id="region"
+                      value={formData.address?.region || ''}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        address: { ...prev.address, region: e.target.value }
+                      }))}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="country">Country</Label>
+                    <Input
+                      id="country"
+                      value={formData.address?.country || ''}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        address: { ...prev.address, country: e.target.value }
+                      }))}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="postalCode">Postal Code</Label>
+                    <Input
+                      id="postalCode"
+                      value={formData.address?.postalCode || ''}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        address: { ...prev.address, postalCode: e.target.value }
+                      }))}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Contact Information */}
+              <div className="space-y-4">
+                <h4 className="text-sm font-medium">Contact Information</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="phone">Phone</Label>
+                    <Input
+                      id="phone"
+                      value={formData.contactInfo?.phone || ''}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        contactInfo: { ...prev.contactInfo, phone: e.target.value }
+                      }))}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.contactInfo?.email || ''}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        contactInfo: { ...prev.contactInfo, email: e.target.value }
+                      }))}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="website">Website</Label>
+                  <Input
+                    id="website"
+                    value={formData.contactInfo?.website || ''}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      contactInfo: { ...prev.contactInfo, website: e.target.value }
+                    }))}
+                  />
+                </div>
+              </div>
+
+              {/* Additional Information */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="motto">Motto</Label>
+                  <Input
+                    id="motto"
+                    value={formData.motto}
+                    onChange={(e) => setFormData(prev => ({ ...prev, motto: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="establishedYear">Established Year</Label>
+                  <Input
+                    id="establishedYear"
+                    type="number"
+                    value={formData.establishedYear || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, establishedYear: parseInt(e.target.value) || undefined }))}
+                  />
+                </div>
+              </div>
+
               <div>
-                <Label htmlFor="name">Institution Name *</Label>
+                <Label htmlFor="description">Description</Label>
                 <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  required
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 />
-              </div>
-
-              <div>
-                <Label htmlFor="type">Type *</Label>
-                <Select value={formData.type} onValueChange={(value: InstitutionType) => setFormData(prev => ({ ...prev, type: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="university">University</SelectItem>
-                    <SelectItem value="college">College</SelectItem>
-                    <SelectItem value="institute">Institute</SelectItem>
-                    <SelectItem value="academy">Academy</SelectItem>
-                    <SelectItem value="technical">Technical</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="category">Category *</Label>
-                <Select value={formData.category} onValueChange={(value: InstitutionCategory) => setFormData(prev => ({ ...prev, category: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="public">Public</SelectItem>
-                    <SelectItem value="private">Private</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
 
               <div className="flex justify-end space-x-2 pt-4">
@@ -323,7 +558,7 @@ export const InstitutionsList: React.FC = () => {
             <CardContent>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <Badge variant={institution.category === 'public' ? 'default' : 'secondary'}>
+                  <Badge variant={institution.category === 'PUBLIC' ? 'default' : 'secondary'}>
                     {institution.category}
                   </Badge>
                   <Badge variant="outline">
@@ -331,8 +566,35 @@ export const InstitutionsList: React.FC = () => {
                   </Badge>
                 </div>
 
+                {institution.code && (
+                  <p className="text-sm text-muted-foreground">Code: {institution.code}</p>
+                )}
+
+                {institution.motto && (
+                  <p className="text-sm italic text-muted-foreground">"{institution.motto}"</p>
+                )}
+
+                {institution.establishedYear && (
+                  <p className="text-sm text-muted-foreground">Established: {institution.establishedYear}</p>
+                )}
+
+                {institution.contactInfo?.email && (
+                  <p className="text-sm text-muted-foreground">📧 {institution.contactInfo.email}</p>
+                )}
+
+                {institution.contactInfo?.phone && (
+                  <p className="text-sm text-muted-foreground">📞 {institution.contactInfo.phone}</p>
+                )}
+
+                {institution.address?.city && (
+                  <p className="text-sm text-muted-foreground">📍 {institution.address.city}, {institution.address.country}</p>
+                )}
+
                 <div className="text-xs text-muted-foreground">
                   Created: {new Date(institution.createdAt).toLocaleDateString()}
+                  {institution.isActive === false && (
+                    <Badge variant="destructive" className="ml-2">Inactive</Badge>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -343,48 +605,197 @@ export const InstitutionsList: React.FC = () => {
       {/* Edit Dialog */}
       {editingInstitution && (
         <Dialog open={!!editingInstitution} onOpenChange={() => cancelEdit()}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit Institution</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleUpdate} className="space-y-4">
+            <form onSubmit={handleUpdate} className="space-y-6">
+              {/* Basic Information */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-name">Institution Name *</Label>
+                  <Input
+                    id="edit-name"
+                    value={formData.name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-code">Institution Code</Label>
+                  <Input
+                    id="edit-code"
+                    value={formData.code}
+                    onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value }))}
+                    placeholder="e.g., TTU, KNUST"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-type">Type *</Label>
+                  <Select value={formData.type} onValueChange={(value: InstitutionType) => setFormData(prev => ({ ...prev, type: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="UNIVERSITY">University</SelectItem>
+                      <SelectItem value="COLLEGE">College</SelectItem>
+                      <SelectItem value="POLYTECHNIC">Polytechnic</SelectItem>
+                      <SelectItem value="INSTITUTE">Institute</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="edit-category">Category *</Label>
+                  <Select value={formData.category} onValueChange={(value: InstitutionCategory) => setFormData(prev => ({ ...prev, category: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="PUBLIC">Public</SelectItem>
+                      <SelectItem value="PRIVATE">Private</SelectItem>
+                      <SelectItem value="MISSION">Mission</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Address Information */}
+              <div className="space-y-4">
+                <h4 className="text-sm font-medium">Address Information</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="edit-street">Street Address</Label>
+                    <Input
+                      id="edit-street"
+                      value={formData.address?.street || ''}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        address: { ...prev.address, street: e.target.value }
+                      }))}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-city">City</Label>
+                    <Input
+                      id="edit-city"
+                      value={formData.address?.city || ''}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        address: { ...prev.address, city: e.target.value }
+                      }))}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="edit-region">Region/State</Label>
+                    <Input
+                      id="edit-region"
+                      value={formData.address?.region || ''}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        address: { ...prev.address, region: e.target.value }
+                      }))}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-country">Country</Label>
+                    <Input
+                      id="edit-country"
+                      value={formData.address?.country || ''}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        address: { ...prev.address, country: e.target.value }
+                      }))}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-postalCode">Postal Code</Label>
+                    <Input
+                      id="edit-postalCode"
+                      value={formData.address?.postalCode || ''}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        address: { ...prev.address, postalCode: e.target.value }
+                      }))}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Contact Information */}
+              <div className="space-y-4">
+                <h4 className="text-sm font-medium">Contact Information</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="edit-phone">Phone</Label>
+                    <Input
+                      id="edit-phone"
+                      value={formData.contactInfo?.phone || ''}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        contactInfo: { ...prev.contactInfo, phone: e.target.value }
+                      }))}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-email">Email</Label>
+                    <Input
+                      id="edit-email"
+                      type="email"
+                      value={formData.contactInfo?.email || ''}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        contactInfo: { ...prev.contactInfo, email: e.target.value }
+                      }))}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="edit-website">Website</Label>
+                  <Input
+                    id="edit-website"
+                    value={formData.contactInfo?.website || ''}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      contactInfo: { ...prev.contactInfo, website: e.target.value }
+                    }))}
+                  />
+                </div>
+              </div>
+
+              {/* Additional Information */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-motto">Motto</Label>
+                  <Input
+                    id="edit-motto"
+                    value={formData.motto}
+                    onChange={(e) => setFormData(prev => ({ ...prev, motto: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-establishedYear">Established Year</Label>
+                  <Input
+                    id="edit-establishedYear"
+                    type="number"
+                    value={formData.establishedYear || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, establishedYear: parseInt(e.target.value) || undefined }))}
+                  />
+                </div>
+              </div>
+
               <div>
-                <Label htmlFor="edit-name">Institution Name *</Label>
+                <Label htmlFor="edit-description">Description</Label>
                 <Input
-                  id="edit-name"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  required
+                  id="edit-description"
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 />
-              </div>
-
-              <div>
-                <Label htmlFor="edit-type">Type *</Label>
-                <Select value={formData.type} onValueChange={(value: InstitutionType) => setFormData(prev => ({ ...prev, type: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="university">University</SelectItem>
-                    <SelectItem value="college">College</SelectItem>
-                    <SelectItem value="institute">Institute</SelectItem>
-                    <SelectItem value="academy">Academy</SelectItem>
-                    <SelectItem value="technical">Technical</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="edit-category">Category *</Label>
-                <Select value={formData.category} onValueChange={(value: InstitutionCategory) => setFormData(prev => ({ ...prev, category: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="public">Public</SelectItem>
-                    <SelectItem value="private">Private</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
 
               <div className="flex justify-end space-x-2 pt-4">

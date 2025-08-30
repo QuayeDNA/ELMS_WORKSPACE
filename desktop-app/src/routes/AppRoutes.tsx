@@ -9,7 +9,6 @@ import { DashboardComponents } from "./RouteConfig";
 
 // Import components
 import { Overview } from '../components/superadmin/Overview'
-import { InstitutionsList } from "../components/superadmin/users/InstitutionsList";
 import { UserManagement } from "../components/superadmin/users/UserManagement";
 import { Profile } from "../components/common/Profile";
 import { Help } from "../components/common/Help";
@@ -122,7 +121,7 @@ export const AppRouter: React.FC = () => {
 
               {/* Super Admin Routes */}
               <Route
-                path="superadmin/overview"
+                path="/overview"
                 element={
                   <ProtectedRoute requiredRoles={["SUPER_ADMIN"]}>
                     <LazyWrapper>
@@ -132,21 +131,11 @@ export const AppRouter: React.FC = () => {
                 }
               />
               <Route
-                path="superadmin/users"
+                path="/users"
                 element={
                   <ProtectedRoute requiredRoles={["SUPER_ADMIN"]}>
                     <LazyWrapper>
                       <UserManagement />
-                    </LazyWrapper>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="superadmin/institutions"
-                element={
-                  <ProtectedRoute requiredRoles={["SUPER_ADMIN"]}>
-                    <LazyWrapper>
-                      <InstitutionsList />
                     </LazyWrapper>
                   </ProtectedRoute>
                 }

@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Building2, AlertCircle, CheckCircle } from 'lucide-react';
-import { InstitutionResponse, CreateInstitutionRequest, UpdateInstitutionRequest, InstitutionType, InstitutionCategory, InstitutionSettings } from '@/types/superadmin/users/user-management-types';
+import { InstitutionResponse, CreateInstitutionRequest, UpdateInstitutionRequest, InstitutionType, InstitutionCategory, InstitutionFormData } from '@/types/superadmin/users/user-management-types';
 
 interface InstitutionFormProps {
   institution?: InstitutionResponse | null;
@@ -22,22 +22,30 @@ interface InstitutionFormProps {
   onSuccess: () => void;
 }
 
-interface FormData {
-  name: string;
-  type: string;
-  category: string;
-  settings: InstitutionSettings;
-}
+interface FormData extends InstitutionFormData {}
 
 const initialFormData: FormData = {
   name: '',
-  type: 'university',
-  category: 'public',
-  settings: {
-    timezone: 'UTC',
-    currency: 'USD',
-    language: 'en'
-  }
+  type: 'UNIVERSITY' as InstitutionType,
+  category: 'PUBLIC' as InstitutionCategory,
+  code: '',
+  address: {},
+  contactInfo: {},
+  logo: '',
+  motto: '',
+  description: '',
+  establishedYear: undefined,
+  charter: '',
+  accreditation: '',
+  affiliations: [],
+  timezone: 'Africa/Accra',
+  language: 'en',
+  currencies: ['GHS'],
+  academicCalendar: {},
+  customFields: {},
+  config: {},
+  settings: {},
+  isActive: true
 };
 
 export const InstitutionForm: React.FC<InstitutionFormProps> = ({
@@ -55,14 +63,27 @@ export const InstitutionForm: React.FC<InstitutionFormProps> = ({
   useEffect(() => {
     if (institution) {
       setFormData({
-        name: institution.name,
-        type: institution.type,
-        category: institution.category,
-        settings: institution.settings || {
-          timezone: 'UTC',
-          currency: 'USD',
-          language: 'en'
-        }
+        name: institution.name || '',
+        type: institution.type || 'UNIVERSITY',
+        category: institution.category || 'PUBLIC',
+        code: institution.code || '',
+        address: institution.address || {},
+        contactInfo: institution.contactInfo || {},
+        logo: institution.logo || '',
+        motto: institution.motto || '',
+        description: institution.description || '',
+        establishedYear: institution.establishedYear,
+        charter: institution.charter || '',
+        accreditation: institution.accreditation || '',
+        affiliations: institution.affiliations || [],
+        timezone: institution.timezone || 'Africa/Accra',
+        language: institution.language || 'en',
+        currencies: institution.currencies || ['GHS'],
+        academicCalendar: institution.academicCalendar || {},
+        customFields: institution.customFields || {},
+        config: institution.config || {},
+        settings: institution.settings || {},
+        isActive: institution.isActive ?? true
       });
     } else {
       setFormData(initialFormData);
@@ -105,18 +126,52 @@ export const InstitutionForm: React.FC<InstitutionFormProps> = ({
         // Update existing institution
         const updateData: UpdateInstitutionRequest = {
           name: formData.name,
-          type: formData.type as InstitutionType,
-          category: formData.category as InstitutionCategory,
-          settings: formData.settings
+          type: formData.type,
+          category: formData.category,
+          code: formData.code || undefined,
+          address: formData.address,
+          contactInfo: formData.contactInfo,
+          logo: formData.logo || undefined,
+          motto: formData.motto || undefined,
+          description: formData.description || undefined,
+          establishedYear: formData.establishedYear,
+          charter: formData.charter || undefined,
+          accreditation: formData.accreditation || undefined,
+          affiliations: formData.affiliations,
+          timezone: formData.timezone,
+          language: formData.language,
+          currencies: formData.currencies,
+          academicCalendar: formData.academicCalendar,
+          customFields: formData.customFields,
+          config: formData.config,
+          settings: formData.settings,
+          isActive: formData.isActive
         };
         await updateInstitution(institution.id, updateData);
       } else {
         // Create new institution
         const createData: CreateInstitutionRequest = {
           name: formData.name,
-          type: formData.type as InstitutionType,
-          category: formData.category as InstitutionCategory,
-          settings: formData.settings
+          type: formData.type,
+          category: formData.category,
+          code: formData.code || undefined,
+          address: formData.address,
+          contactInfo: formData.contactInfo,
+          logo: formData.logo || undefined,
+          motto: formData.motto || undefined,
+          description: formData.description || undefined,
+          establishedYear: formData.establishedYear,
+          charter: formData.charter || undefined,
+          accreditation: formData.accreditation || undefined,
+          affiliations: formData.affiliations,
+          timezone: formData.timezone,
+          language: formData.language,
+          currencies: formData.currencies,
+          academicCalendar: formData.academicCalendar,
+          customFields: formData.customFields,
+          config: formData.config,
+          settings: formData.settings,
+          isActive: formData.isActive
         };
         await createInstitution(createData);
       }
@@ -130,7 +185,7 @@ export const InstitutionForm: React.FC<InstitutionFormProps> = ({
     }
   };
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: string, value: string | string[]) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -145,30 +200,24 @@ export const InstitutionForm: React.FC<InstitutionFormProps> = ({
     }
   };
 
-  const handleSettingsChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      settings: {
-        ...prev.settings,
-        [field]: value
-      }
-    }));
-  };
-
   const institutionTypes = [
-    { value: 'university', label: 'University' },
-    { value: 'college', label: 'College' },
-    { value: 'institute', label: 'Institute' },
-    { value: 'academy', label: 'Academy' },
-    { value: 'technical', label: 'Technical Institute' }
+    { value: 'UNIVERSITY', label: 'University' },
+    { value: 'COLLEGE', label: 'College' },
+    { value: 'POLYTECHNIC', label: 'Polytechnic' },
+    { value: 'INSTITUTE', label: 'Institute' }
   ];
 
   const institutionCategories = [
-    { value: 'public', label: 'Public' },
-    { value: 'private', label: 'Private' }
+    { value: 'PUBLIC', label: 'Public' },
+    { value: 'PRIVATE', label: 'Private' },
+    { value: 'MISSION', label: 'Mission' }
   ];
 
   const timezones = [
+    { value: 'Africa/Accra', label: 'West Africa (GMT+0)' },
+    { value: 'Africa/Lagos', label: 'West Africa (GMT+1)' },
+    { value: 'Africa/Nairobi', label: 'East Africa (GMT+3)' },
+    { value: 'Africa/Johannesburg', label: 'South Africa (GMT+2)' },
     { value: 'UTC', label: 'UTC' },
     { value: 'America/New_York', label: 'Eastern Time' },
     { value: 'America/Chicago', label: 'Central Time' },
@@ -182,6 +231,7 @@ export const InstitutionForm: React.FC<InstitutionFormProps> = ({
   ];
 
   const currencies = [
+    { value: 'GHS', label: 'Ghanaian Cedi (₵)' },
     { value: 'USD', label: 'US Dollar ($)' },
     { value: 'EUR', label: 'Euro (€)' },
     { value: 'GBP', label: 'British Pound (£)' },
@@ -302,8 +352,8 @@ export const InstitutionForm: React.FC<InstitutionFormProps> = ({
                 <div className="space-y-2">
                   <Label htmlFor="timezone">Timezone</Label>
                   <Select
-                    value={formData.settings.timezone}
-                    onValueChange={(value: string) => handleSettingsChange('timezone', value)}
+                    value={formData.timezone}
+                    onValueChange={(value: string) => handleInputChange('timezone', value)}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -319,29 +369,10 @@ export const InstitutionForm: React.FC<InstitutionFormProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="currency">Currency</Label>
-                  <Select
-                    value={formData.settings.currency}
-                    onValueChange={(value: string) => handleSettingsChange('currency', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {currencies.map((currency) => (
-                        <SelectItem key={currency.value} value={currency.value}>
-                          {currency.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
                   <Label htmlFor="language">Language</Label>
                   <Select
-                    value={formData.settings.language}
-                    onValueChange={(value: string) => handleSettingsChange('language', value)}
+                    value={formData.language}
+                    onValueChange={(value: string) => handleInputChange('language', value)}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -350,6 +381,25 @@ export const InstitutionForm: React.FC<InstitutionFormProps> = ({
                       {languages.map((lang) => (
                         <SelectItem key={lang.value} value={lang.value}>
                           {lang.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="currency">Primary Currency</Label>
+                  <Select
+                    value={formData.currencies?.[0] || 'GHS'}
+                    onValueChange={(value: string) => handleInputChange('currencies', [value])}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {currencies.map((currency) => (
+                        <SelectItem key={currency.value} value={currency.value}>
+                          {currency.label}
                         </SelectItem>
                       ))}
                     </SelectContent>

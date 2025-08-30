@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 interface BulkActionsProps {
-  users: UserSummary[];
+  users?: UserSummary[];
   onBulkUpdate: (userIds: string[], action: 'ACTIVATE' | 'DEACTIVATE') => void;
   loading: boolean;
 }
@@ -30,7 +30,7 @@ export const BulkActions: React.FC<BulkActionsProps> = ({
   const [showConfirmation, setShowConfirmation] = useState(false);
 
   const handleSelectAll = (checked: boolean) => {
-    if (checked) {
+    if (checked && users) {
       setSelectedUsers(users.map(user => user.id));
     } else {
       setSelectedUsers([]);
@@ -61,7 +61,7 @@ export const BulkActions: React.FC<BulkActionsProps> = ({
   };
 
   const getSelectedUsersDetails = () => {
-    return users.filter(user => selectedUsers.includes(user.id));
+    return users ? users.filter(user => selectedUsers.includes(user.id)) : [];
   };
 
   const getActionDescription = () => {
@@ -78,7 +78,7 @@ export const BulkActions: React.FC<BulkActionsProps> = ({
     );
   };
 
-  if (users.length === 0) {
+  if (!users || users.length === 0) {
     return (
       <Card>
         <CardContent className="pt-6">
@@ -110,12 +110,12 @@ export const BulkActions: React.FC<BulkActionsProps> = ({
             <div className="flex items-center gap-2">
               <Checkbox
                 id="select-all"
-                checked={selectedUsers.length === users.length && users.length > 0}
+                checked={selectedUsers.length === (users?.length || 0) && (users?.length || 0) > 0}
                 onCheckedChange={handleSelectAll}
                 disabled={loading}
               />
               <label htmlFor="select-all" className="text-sm font-medium">
-                Select All ({users.length} users)
+                Select All ({users?.length || 0} users)
               </label>
             </div>
 
@@ -188,7 +188,7 @@ export const BulkActions: React.FC<BulkActionsProps> = ({
         </CardHeader>
         <CardContent>
           <div className="space-y-3 max-h-96 overflow-y-auto">
-            {users.map((user) => (
+            {users && users.map((user) => (
               <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg">
                 <div className="flex items-center gap-3">
                   <Checkbox

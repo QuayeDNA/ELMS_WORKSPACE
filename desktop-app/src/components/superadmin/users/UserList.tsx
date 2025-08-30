@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 
 interface UserListProps {
-  users: UserSummary[];
+  users?: UserSummary[];
   loading: boolean;
   pagination: {
     page: number;
@@ -63,22 +63,26 @@ export const UserList: React.FC<UserListProps> = ({
   // Get unique departments from users
   const departments = useMemo(() => {
     const depts = new Set<string>();
-    users.forEach(user => {
-      if (user.profile?.department) {
-        depts.add(user.profile.department);
-      }
-    });
+    if (users && users.length > 0) {
+      users.forEach(user => {
+        if (user.profile?.department) {
+          depts.add(user.profile.department);
+        }
+      });
+    }
     return Array.from(depts).sort();
   }, [users]);
 
   // Get unique roles from users
   const roles = useMemo(() => {
     const roleSet = new Set<string>();
-    users.forEach(user => {
-      if (user.role) {
-        roleSet.add(user.role);
-      }
-    });
+    if (users && users.length > 0) {
+      users.forEach(user => {
+        if (user.role) {
+          roleSet.add(user.role);
+        }
+      });
+    }
     return Array.from(roleSet).sort();
   }, [users]);
 
@@ -139,7 +143,7 @@ export const UserList: React.FC<UserListProps> = ({
     });
   };
 
-  if (loading && users.length === 0) {
+  if (loading && (!users || users.length === 0)) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="flex items-center gap-3">
@@ -262,7 +266,7 @@ export const UserList: React.FC<UserListProps> = ({
       {/* Users Table */}
       <Card>
         <CardContent className="pt-6">
-          {users.length === 0 ? (
+          {!users || users.length === 0 ? (
             <div className="text-center py-12">
               <UserCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-medium text-muted-foreground mb-2">No users found</h3>
@@ -287,7 +291,7 @@ export const UserList: React.FC<UserListProps> = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users.map((user) => (
+                  {users && users.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">

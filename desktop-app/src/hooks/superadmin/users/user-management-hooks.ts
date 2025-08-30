@@ -90,12 +90,13 @@ export function useInstitutions() {
       const eventData = event.data as SocketEventData[UserManagementEvents.INSTITUTION_CREATED];
       // Create a full InstitutionResponse from the event data
       const newInstitution: InstitutionResponse = {
-        id: eventData.institution.id,
-        name: eventData.institution.name,
-        type: eventData.institution.type,
-        category: eventData.institution.category,
-        createdAt: eventData.timestamp,
-        updatedAt: eventData.timestamp
+          id: eventData.institution.id,
+          name: eventData.institution.name,
+          type: eventData.institution.type,
+          category: eventData.institution.category,
+          createdAt: eventData.timestamp,
+          updatedAt: eventData.timestamp,
+          isActive: false
       };
       setInstitutions(prev => [...prev, newInstitution]);
     };

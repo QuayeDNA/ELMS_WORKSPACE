@@ -6,17 +6,10 @@ const NotFoundPage = lazy(() => import('../components/NotFoundPage').then(module
 
 // Dashboard components
 const Overview = lazy(() => import('../components/superadmin/Overview').then(module => ({ default: module.Overview })));
-const InstitutionsList = lazy(() => import('../components/superadmin/users/InstitutionsList').then(module => ({ default: module.InstitutionsList })));
-const SuperAdminAnalytics = lazy(() => import('../components/superadmin/Analytics').then(module => ({ default: module.Analytics })));
-const Health = lazy(() => import('../components/superadmin/Health').then(module => ({ default: module.default })));
-const Configuration = lazy(() => import('../components/superadmin/Configuration').then(module => ({ default: module.default })));
-const AuditLogs = lazy(() => import('../components/superadmin/AuditLogs').then(module => ({ default: module.default })));
+const Analytics = lazy(() => import('../components/analytics/Analytics').then(module => ({ default: module.Analytics })));
 
 // User Management
 const UserManagement = lazy(() => import('../components/superadmin/users/UserManagement').then(module => ({ default: module.UserManagement })));
-
-// Analytics
-const Analytics = lazy(() => import('../components/analytics/Analytics').then(module => ({ default: module.Analytics })));
 
 // Exam Management
 const ExamManagement = lazy(() => import('../components/exams/ExamManagement').then(module => ({ default: module.ExamManagement })));
@@ -65,11 +58,6 @@ export const RouteComponents = {
   AuthPage,
   NotFoundPage,
   Overview,
-  InstitutionsList,
-  SuperAdminAnalytics,
-  Health,
-  Configuration,
-  AuditLogs,
   UserManagement,
   Analytics,
   ExamManagement,

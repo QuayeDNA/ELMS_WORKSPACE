@@ -6,10 +6,6 @@ const NotFoundPage = lazy(() => import('../components/NotFoundPage').then(module
 
 // Dashboard components
 const Overview = lazy(() => import('../components/superadmin/Overview').then(module => ({ default: module.Overview })));
-const SuperAdminAnalytics = lazy(() => import('../components/superadmin/Analytics').then(module => ({ default: module.Analytics })));
-const Health = lazy(() => import('../components/superadmin/Health').then(module => ({ default: module.default })));
-const Configuration = lazy(() => import('../components/superadmin/Configuration').then(module => ({ default: module.default })));
-const AuditLogs = lazy(() => import('../components/superadmin/AuditLogs').then(module => ({ default: module.default })));
 
 // User Management
 const UserManagement = lazy(() => import('../components/superadmin/users/UserManagement').then(module => ({ default: module.UserManagement })));
@@ -98,30 +94,6 @@ export const routeConfig = {
         path: '/superadmin/users',
         element: UserManagement,
         title: 'User Management',
-        roles: ['SUPER_ADMIN']
-      },
-      {
-        path: '/superadmin/audit',
-        element: AuditLogs,
-        title: 'Audit Logs',
-        roles: ['SUPER_ADMIN']
-      },
-      {
-        path: '/superadmin/analytics',
-        element: SuperAdminAnalytics,
-        title: 'Analytics',
-        roles: ['SUPER_ADMIN']
-      },
-      {
-        path: '/superadmin/health',
-        element: Health,
-        title: 'System Health',
-        roles: ['SUPER_ADMIN']
-      },
-      {
-        path: '/superadmin/configuration',
-        element: Configuration,
-        title: 'Configuration',
         roles: ['SUPER_ADMIN']
       }
     ],

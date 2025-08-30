@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { AppRouter } from './routes/AppRoutesNew'
+import { AppRouter } from './routes/AppRoutes'
 import { useAuthStore } from './stores/authStore'
 import { useThemeStore } from './stores/themeStore'
 import { apiClient } from './lib/api-client'

@@ -1,14 +1,43 @@
-// Type aliases
-export type InstitutionType = 'university' | 'college' | 'institute' | 'academy' | 'technical';
-export type InstitutionCategory = 'public' | 'private';
+// Type aliases - Updated to match backend enums
+export type InstitutionType = 'UNIVERSITY' | 'COLLEGE' | 'POLYTECHNIC' | 'INSTITUTE';
+export type InstitutionCategory = 'PUBLIC' | 'PRIVATE' | 'MISSION';
 export type UserStatus = 'ACTIVE' | 'INACTIVE';
 export type BulkAction = 'ACTIVATE' | 'DEACTIVATE';
 
-// Institution Settings Interface
+// Address Interface - Updated to match actual API response
+export interface Address {
+  street?: string;
+  city?: string;
+  region?: string;
+  country?: string;
+  postalCode?: string;
+}
+
+// Contact Info Interface
+export interface ContactInfo {
+  phone?: string;
+  email?: string;
+  website?: string;
+  emergencyContact?: string;
+}
+
+// Academic Calendar Interface - Updated to match actual API response
+export interface AcademicCalendar {
+  semesters?: number;
+  examPeriods?: string[];
+  academicYearStart?: string;
+  academicYearEnd?: string;
+  holidays?: string[];
+}
+
+// Institution Settings Interface - Updated for comprehensive config
 export interface InstitutionSettings {
   timezone?: string;
-  currency?: string;
   language?: string;
+  currencies?: string[];
+  academicCalendar?: AcademicCalendar;
+  customFields?: Record<string, unknown>;
+  config?: Record<string, unknown>;
 }
 
 // User Statistics Interface
@@ -41,27 +70,78 @@ export interface UserStats {
   }>;
 }
 
-// User Management Types for Frontend
+// User Management Types for Frontend - Updated to match backend
 export interface CreateInstitutionRequest {
   name: string;
   type: InstitutionType;
   category: InstitutionCategory;
-  settings?: InstitutionSettings;
+  code?: string;
+  address?: Address;
+  contactInfo?: ContactInfo;
+  logo?: string;
+  motto?: string;
+  description?: string;
+  establishedYear?: number;
+  charter?: string;
+  accreditation?: string;
+  affiliations?: string[];
+  timezone?: string;
+  language?: string;
+  currencies?: string[];
+  academicCalendar?: AcademicCalendar;
+  customFields?: Record<string, unknown>;
+  config?: Record<string, unknown>;
+  settings?: Record<string, unknown>;
+  isActive?: boolean;
 }
 
 export interface UpdateInstitutionRequest {
   name?: string;
   type?: InstitutionType;
   category?: InstitutionCategory;
-  settings?: InstitutionSettings;
+  code?: string;
+  address?: Address;
+  contactInfo?: ContactInfo;
+  logo?: string;
+  motto?: string;
+  description?: string;
+  establishedYear?: number;
+  charter?: string;
+  accreditation?: string;
+  affiliations?: string[];
+  timezone?: string;
+  language?: string;
+  currencies?: string[];
+  academicCalendar?: AcademicCalendar;
+  customFields?: Record<string, unknown>;
+  config?: Record<string, unknown>;
+  settings?: Record<string, unknown>;
+  isActive?: boolean;
 }
 
 export interface InstitutionResponse {
   id: string;
   name: string;
-  type: string;
-  category: string;
-  settings?: InstitutionSettings;
+  type: InstitutionType;
+  category: InstitutionCategory;
+  code?: string;
+  address?: Address;
+  contactInfo?: ContactInfo;
+  logo?: string;
+  motto?: string;
+  description?: string;
+  establishedYear?: number;
+  charter?: string;
+  accreditation?: string;
+  affiliations?: string[];
+  timezone?: string;
+  language?: string;
+  currencies?: string[];
+  academicCalendar?: AcademicCalendar;
+  customFields?: Record<string, unknown> | null;
+  config?: Record<string, unknown>;
+  settings?: Record<string, unknown>;
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -124,8 +204,9 @@ export interface SocketEventData {
     institution: {
       id: string;
       name: string;
-      type: string;
-      category: string;
+      type: InstitutionType;
+      category: InstitutionCategory;
+      code?: string;
     };
     timestamp: string;
     triggeredBy: string;
@@ -135,8 +216,9 @@ export interface SocketEventData {
     institution: {
       id: string;
       name: string;
-      type: string;
-      category: string;
+      type: InstitutionType;
+      category: InstitutionCategory;
+      code?: string;
     };
     changes: Record<string, unknown>;
     timestamp: string;
@@ -188,14 +270,30 @@ export interface SocketEventData {
   };
 }
 
-// Form Types
+// Form Types - Updated to match comprehensive institution data
 export interface InstitutionFormData {
   name: string;
   type: InstitutionType;
   category: InstitutionCategory;
-  timezone: string;
-  currency: string;
-  language: string;
+  code?: string;
+  address?: Address;
+  contactInfo?: ContactInfo;
+  logo?: string;
+  motto?: string;
+  description?: string;
+  establishedYear?: number;
+  charter?: string;
+  accreditation?: string;
+  affiliations?: string[];
+  timezone?: string;
+  language?: string;
+  currencies?: string[];
+  academicCalendar?: AcademicCalendar;
+  customFields?: Record<string, unknown>;
+  config?: Record<string, unknown>;
+  settings?: Record<string, unknown>;
+  isActive?: boolean;
+  currency?: string;
 }
 
 export interface UserFilterData {
