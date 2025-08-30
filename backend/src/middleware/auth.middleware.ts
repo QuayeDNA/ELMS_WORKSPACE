@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import AuthService from '@/services/auth.service';
+import AuthService from '@/services/auth/auth.service';
 import { PrismaClient } from '@prisma/client';
 
 export interface AuthenticatedRequest extends Request {

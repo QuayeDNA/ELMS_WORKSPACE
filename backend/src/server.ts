@@ -10,7 +10,7 @@ import RedisStore from 'connect-redis';
 import { PrismaClient } from '@prisma/client';
 
 import logger from '@/utils/logger';
-import DatabaseService from '@/services/database.service';
+import DatabaseService from '@/services/database/database.service';
 import RedisService from '@/services/redis.service';
 import SocketService from '@/services/socket.service';
 
@@ -21,14 +21,13 @@ import { errorHandler } from '@/middleware/error-handler.middleware';
 import { requestLogger } from '@/middleware/request-logger.middleware';
 
 // Import routes
-import { createAuthRoutes } from '@/routes/auth.routes';
+import { createAuthRoutes } from '@/routes/auth/auth.routes';
 import { createUserRoutes } from '@/routes/user.routes';
 import { createExamRoutes } from '@/routes/exam.routes';
 import { createScriptRoutes } from '@/routes/script.routes';
 import { createIncidentRoutes } from '@/routes/incident.routes';
-import { createAnalyticsRoutes } from '@/routes/analytics.routes';
+import { createAnalyticsRoutes } from '@/routes/superadmin/analytics/analytics.routes';
 import { createFileRoutes } from '@/routes/file.routes';
-import { createSuperAdminRoutes } from '@/routes/superadmin.routes';
 
 // Import report scheduler cron
 import reportSchedulerCron from '@/services/reporting/ReportSchedulerCron';
@@ -190,8 +189,6 @@ class ElmsServer {
     this.app.use('/api/incidents', authenticateToken(this.prisma), createIncidentRoutes(this.prisma));
     this.app.use('/api/analytics', authenticateToken(this.prisma), createAnalyticsRoutes(this.prisma));
     this.app.use('/api/files', authenticateToken(this.prisma), createFileRoutes(this.prisma));
-    this.app.use('/api/superadmin', createSuperAdminRoutes(this.prisma));
-
     // API documentation
     this.app.get('/api/docs', (req, res) => {
       res.json({

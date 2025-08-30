@@ -2,12 +2,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
 import logger from '@/utils/logger';
-
-interface JwtPayload {
-  userId: string;
-  email: string;
-  role: string;
-}
+import { JwtPayload } from '@/types/superadmin/auth/auth.types';
 
 class AuthService {
   private prisma: PrismaClient;

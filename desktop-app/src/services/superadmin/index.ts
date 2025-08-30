@@ -1,5 +1,7 @@
 // SuperAdmin Service Exports
 export { SuperAdminApiClient, superAdminApi, ApiError } from './superadmin.service';
+export { DashboardService, dashboardService } from './dashboardService';
+export { dashboardUtils } from './dashboardUtils';
 export type {
   Institution,
   User,

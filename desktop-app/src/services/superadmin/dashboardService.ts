@@ -7,10 +7,10 @@ import {
   ExamData,
   InstitutionData,
   TimeRange
-} from '../types/dashboard';
+} from '../../types/dashboard';
 
 // API Base URL
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/superadmin';
 
 // Generic API response handler
 const handleApiResponse = async <T>(response: Response): Promise<T> => {
@@ -44,7 +44,7 @@ export class DashboardService {
   // Fetch system overview data
   async fetchSystemOverview(period: TimeRange = '7d'): Promise<SystemOverviewData> {
     try {
-      const response = await fetch(`${API_BASE_URL}/superadmin/analytics/overview?period=${period}`, {
+      const response = await fetch(`${API_BASE_URL}/analytics/overview?period=${period}`, {
         headers: {
           'Authorization': `Bearer ${this.token}`,
           'Content-Type': 'application/json',
@@ -61,7 +61,7 @@ export class DashboardService {
   // Fetch system health data
   async fetchSystemHealth(): Promise<SystemHealthData> {
     try {
-      const response = await fetch(`${API_BASE_URL}/monitoring/health`, {
+      const response = await fetch(`${API_BASE_URL}/system/health`, {
         headers: {
           'Authorization': `Bearer ${this.token}`,
           'Content-Type': 'application/json',
@@ -78,7 +78,7 @@ export class DashboardService {
   // Fetch system metrics
   async fetchSystemMetrics(): Promise<SystemMetricsData> {
     try {
-      const response = await fetch(`${API_BASE_URL}/monitoring/metrics`, {
+      const response = await fetch(`${API_BASE_URL}/system/metrics`, {
         headers: {
           'Authorization': `Bearer ${this.token}`,
           'Content-Type': 'application/json',
@@ -95,7 +95,7 @@ export class DashboardService {
   // Fetch recent audit logs
   async fetchAuditLogs(limit: number = 10): Promise<{ logs: AuditLogEntry[] }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/superadmin/audit/logs?limit=${limit}`, {
+      const response = await fetch(`${API_BASE_URL}/audit/logs?limit=${limit}`, {
         headers: {
           'Authorization': `Bearer ${this.token}`,
           'Content-Type': 'application/json',
