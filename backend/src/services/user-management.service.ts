@@ -872,7 +872,7 @@ export class UserManagementService {
           template: 'password-reset',
           data: {
             name: user.profile?.firstName || user.email,
-            resetLink: `${process.env.FRONTEND_URL}/reset-password/${resetToken}`,
+            resetLink: `${process.env['FRONTEND_URL']}/reset-password/${resetToken}`,
           },
         });
       }
@@ -1094,7 +1094,7 @@ export class UserManagementService {
           name: (user as any).profile?.firstName || user.email,
           email: user.email,
           temporaryPassword: password,
-          verificationLink: `${process.env.FRONTEND_URL}/verify-email/${user.emailVerificationToken}`,
+          verificationLink: `${process.env['FRONTEND_URL']}/verify-email/${user.emailVerificationToken}`,
         },
       });
     } catch (error) {

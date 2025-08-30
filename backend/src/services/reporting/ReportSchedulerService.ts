@@ -248,7 +248,9 @@ export class ReportSchedulerService {
    */
   private calculateNextRun(frequency: string, time: string): Date {
     const now = new Date();
-    const [hours, minutes] = time.split(':').map(Number);
+    const timeParts = time.split(':').map(Number);
+    const hours = timeParts[0] ?? 0;
+    const minutes = timeParts[1] ?? 0;
 
     let nextRun = new Date(now);
     nextRun.setHours(hours, minutes, 0, 0);
@@ -319,7 +321,7 @@ export class ReportSchedulerService {
   /**
    * Generate JSON file
    */
-  private async generateJsonFile(data: any, filename: string): Promise<string> {
+  private async generateJsonFile(_data: any, filename: string): Promise<string> {
     // In a real implementation, you'd save to cloud storage
     const filePath = `/reports/${filename}.json`;
     console.log(`Generated JSON file: ${filePath}`);
@@ -329,7 +331,7 @@ export class ReportSchedulerService {
   /**
    * Generate CSV file
    */
-  private async generateCsvFile(data: any, filename: string): Promise<string> {
+  private async generateCsvFile(_data: any, filename: string): Promise<string> {
     // In a real implementation, you'd convert data to CSV and save
     const filePath = `/reports/${filename}.csv`;
     console.log(`Generated CSV file: ${filePath}`);
@@ -339,7 +341,7 @@ export class ReportSchedulerService {
   /**
    * Generate PDF file
    */
-  private async generatePdfFile(data: any, filename: string): Promise<string> {
+  private async generatePdfFile(_data: any, filename: string): Promise<string> {
     // In a real implementation, you'd use a PDF generation library
     const filePath = `/reports/${filename}.pdf`;
     console.log(`Generated PDF file: ${filePath}`);
@@ -381,8 +383,8 @@ export class ReportSchedulerService {
   private async sendEmail(
     to: string,
     subject: string,
-    message: string,
-    attachmentUrl?: string
+    _message: string,
+    _attachmentUrl?: string
   ): Promise<void> {
     // In a real implementation, you'd use an email service like SendGrid
     console.log(`Sending email to ${to}: ${subject}`);

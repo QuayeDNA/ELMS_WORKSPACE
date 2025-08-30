@@ -75,6 +75,7 @@ router.get('/:id', authMiddleware, superAdminOnly, async (req: Request, res: Res
       success: false,
       message: `Failed to retrieve webhook: ${message}`
     });
+    return;
   }
 });
 

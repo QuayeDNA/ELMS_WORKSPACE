@@ -1,20 +1,41 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "lib": ["ES2022"],
+    "target": "ES2023",
+    "lib": ["ES2023"],
     "module": "CommonJS",
+    "moduleResolution": "node",
     "outDir": "./dist",
+    "rootDir": "./",
     "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "noImplicitReturns": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "exactOptionalPropertyTypes": false,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": false,
+    "noUncheckedIndexedAccess": false,
     "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node",
-    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": false,
+    "allowImportingTsExtensions": false,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "resolveJsonModule": true,
     "declaration": true,
+    "declarationMap": true,
     "sourceMap": true,
+    "removeComments": false,
+    "importHelpers": false,
+    "downlevelIteration": true,
     "baseUrl": "./src",
     "paths": {
       "@/*": ["*"],
@@ -24,8 +45,10 @@
       "@/middleware/*": ["middleware/*"],
       "@/models/*": ["models/*"],
       "@/utils/*": ["utils/*"],
-      "@/config/*": ["config/*"]
-    }
+      "@/config/*": ["config/*"],
+      "@/routes/*": ["routes/*"]
+    },
+    "typeRoots": ["./node_modules/@types", "./src/types"],
   },
   "include": [
     "src/**/*",
@@ -35,9 +58,12 @@
     "node_modules",
     "dist",
     "**/*.test.ts",
-    "**/*.spec.ts"
+    "**/*.spec.ts",
+    "**/*.d.ts"
   ],
   "ts-node": {
+    "esm": false,
+    "experimentalSpecifierResolution": "node",
     "require": ["tsconfig-paths/register"]
   }
 }

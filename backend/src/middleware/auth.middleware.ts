@@ -28,6 +28,7 @@ export const authenticateToken = (prisma: PrismaClient) => {
 
     (req as AuthenticatedRequest).user = payload;
     next();
+    return;
   };
 };
 
@@ -44,5 +45,6 @@ export const authorize = (roles: string[]) => {
     }
 
     next();
+    return;
   };
 };

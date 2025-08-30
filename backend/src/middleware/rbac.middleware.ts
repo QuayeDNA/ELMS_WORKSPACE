@@ -169,6 +169,7 @@ export const requirePermission = (permission: string) => {
     }
 
     next();
+    return;
   };
 };
 
@@ -192,20 +193,22 @@ export const requireRole = (minimumRole: string) => {
     }
 
     next();
+    return;
   };
 };
 
 /**
  * Super Admin only middleware
  */
-export const requireSuperAdmin = (req: Request, res: Response, next: NextFunction) => {
+export const requireSuperAdmin = (req: Request, res: Response, next: NextFunction): void => {
   const user = (req as AuthenticatedRequest).user;
   
   if (!user || user.role !== 'SUPER_ADMIN') {
-    return res.status(403).json({ 
+    res.status(403).json({ 
       error: 'Super Admin access required',
       userRole: user?.role || 'none'
     });
+    return;
   }
 
   next();

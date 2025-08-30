@@ -61,9 +61,10 @@ const SuperAdminAPITester: React.FC = () => {
   const makeRequest = async (
     endpoint: string,
     method: string = 'GET',
-    body?: Record<string, unknown>
+    body?: Record<string, unknown>,
+    baseUrl?: string
   ): Promise<ApiResponse> => {
-    const url = `${API_BASE}${endpoint}`;
+    const url = `${baseUrl || API_BASE}${endpoint}`;
     const token = getAuthToken();
 
     const headers: HeadersInit = {
@@ -98,12 +99,44 @@ const SuperAdminAPITester: React.FC = () => {
   };
 
   const getMethodForEndpoint = (endpoint: string): string => {
-    if (endpoint.includes('/health') || endpoint.includes('/stats') || endpoint.includes('/status')) return 'GET';
-    if (endpoint.includes('/execute') || endpoint.includes('/trigger') || endpoint.includes('/start') || endpoint.includes('/stop')) return 'POST';
-    if (endpoint.includes('/schedule') || endpoint.includes('/alerts') || endpoint.includes('/webhooks')) {
-      return endpoint.split('/').pop()?.includes('schedule') || endpoint.split('/').pop()?.includes('alert') || endpoint.split('/').pop()?.includes('webhook') ? 'POST' : 'GET';
+    // Auth endpoints
+    if (endpoint === '/auth/health') return 'GET';
+    if (endpoint === '/auth/login') return 'POST';
+
+    // System endpoints
+    if (endpoint.includes('/system/health') || endpoint.includes('/system/metrics') ||
+        endpoint.includes('/system/alerts') || endpoint.includes('/system/backups') ||
+        endpoint.includes('/system/maintenance')) return 'GET';
+    if (endpoint === '/system/backup') return 'POST';
+    if (endpoint === '/system/maintenance') return 'PUT';
+
+    // Security endpoints
+    if (endpoint.includes('/security/policies') || endpoint.includes('/security/incidents')) return 'GET';
+    if (endpoint === '/security/policies') return 'PUT';
+
+    // Analytics endpoints
+    if (endpoint.includes('/analytics')) return 'GET';
+
+    // Institution endpoints
+    if (endpoint === '/institutions') return 'GET';
+    if (endpoint.includes('/institutions/') && endpoint !== '/institutions') {
+      // Check if it's an ID-based endpoint (GET/PUT/DELETE)
+      const parts = endpoint.split('/');
+      if (parts.length === 3 && /^\d+$/.test(parts[2])) {
+        return 'GET'; // GET /institutions/:id
+      }
+      return 'PUT'; // PUT /institutions/:id
     }
-    return 'GET';
+
+    // Report scheduler endpoints
+    if (endpoint === '/reports/scheduler') return 'GET';
+    if (endpoint === '/reports/scheduler/stats' || endpoint === '/reports/scheduler/cron/status') return 'GET';
+    if (endpoint === '/reports/scheduler' || endpoint === '/reports/scheduler/execute' ||
+        endpoint.includes('/reports/scheduler/cron/')) return 'POST';
+    if (endpoint.includes('/reports/scheduler/') && endpoint !== '/reports/scheduler' &&
+        !endpoint.includes('/execute') && !endpoint.includes('/cron/')) return 'PUT';
+
+    return 'GET'; // Default fallback
   };
 
   const testEndpoint = async (endpoint: string, method?: string, body?: Record<string, unknown>) => {
@@ -111,7 +144,9 @@ const SuperAdminAPITester: React.FC = () => {
     updateResult(key, 'loading');
 
     try {
-      const response = await makeRequest(endpoint, method, body);
+      // Determine the correct base URL based on the endpoint
+      const baseUrl = endpoint.startsWith('/auth/') ? 'http://localhost:3000/api' : API_BASE;
+      const response = await makeRequest(endpoint, method, body, baseUrl);
       updateResult(key, response.success ? 'success' : 'error', response);
     } catch (error) {
       updateResult(key, 'error', undefined, error instanceof Error ? error.message : 'Unknown error');
@@ -122,15 +157,34 @@ const SuperAdminAPITester: React.FC = () => {
     setIsRunningAll(true);
 
     const testCases = [
-      // System Monitoring
-      { endpoint: '/system/health', method: 'GET' },
-      { endpoint: '/system/metrics', method: 'GET' },
-      { endpoint: '/system/alerts', method: 'GET' },
+      // Authentication
+      { endpoint: '/auth/health', method: getMethodForEndpoint('/auth/health') },
+
+      // System Management
+      { endpoint: '/system/health', method: getMethodForEndpoint('/system/health') },
+      { endpoint: '/system/metrics', method: getMethodForEndpoint('/system/metrics') },
+      { endpoint: '/system/alerts', method: getMethodForEndpoint('/system/alerts') },
+      { endpoint: '/system/backups', method: getMethodForEndpoint('/system/backups') },
+      { endpoint: '/system/maintenance', method: getMethodForEndpoint('/system/maintenance') },
+
+      // Security
+      { endpoint: '/security/policies', method: getMethodForEndpoint('/security/policies') },
+      { endpoint: '/security/incidents', method: getMethodForEndpoint('/security/incidents') },
+
+      // Analytics
+      { endpoint: '/analytics', method: getMethodForEndpoint('/analytics') },
+      { endpoint: '/analytics/overview', method: getMethodForEndpoint('/analytics/overview') },
+      { endpoint: '/analytics/user-activity', method: getMethodForEndpoint('/analytics/user-activity') },
+      { endpoint: '/analytics/performance', method: getMethodForEndpoint('/analytics/performance') },
+      { endpoint: '/analytics/security', method: getMethodForEndpoint('/analytics/security') },
+
+      // Institutions
+      { endpoint: '/institutions', method: getMethodForEndpoint('/institutions') },
 
       // Report Scheduler
-      { endpoint: '/reports/scheduler', method: 'GET' },
-      { endpoint: '/reports/scheduler/stats', method: 'GET' },
-      { endpoint: '/reports/scheduler/cron/status', method: 'GET' },
+      { endpoint: '/reports/scheduler', method: getMethodForEndpoint('/reports/scheduler') },
+      { endpoint: '/reports/scheduler/stats', method: getMethodForEndpoint('/reports/scheduler/stats') },
+      { endpoint: '/reports/scheduler/cron/status', method: getMethodForEndpoint('/reports/scheduler/cron/status') },
     ];
 
     for (const testCase of testCases) {
@@ -142,19 +196,30 @@ const SuperAdminAPITester: React.FC = () => {
     setIsRunningAll(false);
   };
 
+  const testUserManagement = async () => {
+    // Note: User management endpoints are not available in superadmin routes
+    // Testing institution management instead as it's the closest equivalent
+    await Promise.all([
+      testEndpoint('/institutions', getMethodForEndpoint('/institutions')),
+      testEndpoint('/analytics/user-activity', getMethodForEndpoint('/analytics/user-activity')),
+    ]);
+  };
+
   const testSystemMonitoring = async () => {
     await Promise.all([
-      testEndpoint('/system/health'),
-      testEndpoint('/system/metrics'),
-      testEndpoint('/system/alerts'),
+      testEndpoint('/system/health', getMethodForEndpoint('/system/health')),
+      testEndpoint('/system/metrics', getMethodForEndpoint('/system/metrics')),
+      testEndpoint('/system/alerts', getMethodForEndpoint('/system/alerts')),
+      testEndpoint('/system/backups', getMethodForEndpoint('/system/backups')),
+      testEndpoint('/system/maintenance', getMethodForEndpoint('/system/maintenance')),
     ]);
   };
 
   const testReportScheduler = async () => {
     await Promise.all([
-      testEndpoint('/reports/scheduler'),
-      testEndpoint('/reports/scheduler/stats'),
-      testEndpoint('/reports/scheduler/cron/status'),
+      testEndpoint('/reports/scheduler', getMethodForEndpoint('/reports/scheduler')),
+      testEndpoint('/reports/scheduler/stats', getMethodForEndpoint('/reports/scheduler/stats')),
+      testEndpoint('/reports/scheduler/cron/status', getMethodForEndpoint('/reports/scheduler/cron/status')),
     ]);
   };
 
@@ -187,8 +252,8 @@ const SuperAdminAPITester: React.FC = () => {
   };
 
   const testAuthentication = async () => {
-    // Test the general health endpoint instead of auth-specific health
-    await testEndpoint('/system/health');
+    // Test the auth health endpoint
+    await testEndpoint('/auth/health', getMethodForEndpoint('/auth/health'));
   };
 
   const logout = () => {
@@ -200,7 +265,7 @@ const SuperAdminAPITester: React.FC = () => {
 
   const createTestData = async () => {
     // Create a test scheduled report
-    await testEndpoint('/reports/scheduler', 'POST', {
+    await testEndpoint('/reports/scheduler', getMethodForEndpoint('/reports/scheduler'), {
       reportId: 1,
       frequency: 'daily',
       time: '09:00',
@@ -239,6 +304,7 @@ const SuperAdminAPITester: React.FC = () => {
   const sections = [
     { id: 'overview', name: 'Overview' },
     { id: 'auth', name: 'Authentication' },
+    { id: 'users', name: 'Institution Management' },
     { id: 'monitoring', name: 'System Monitoring' },
     { id: 'scheduler', name: 'Report Scheduler' },
   ];
@@ -300,8 +366,9 @@ const SuperAdminAPITester: React.FC = () => {
 
   const renderSection = (sectionId: string) => {
     const endpoints = {
-      auth: ['/system/health'], // Using system health as auth test
-      monitoring: ['/system/health', '/system/metrics', '/system/alerts'],
+      auth: ['/auth/health'],
+      users: ['/institutions', '/analytics/user-activity'], // Using institutions as user management equivalent
+      monitoring: ['/system/health', '/system/metrics', '/system/alerts', '/system/backups', '/system/maintenance'],
       scheduler: ['/reports/scheduler', '/reports/scheduler/stats', '/reports/scheduler/cron/status']
     };
 
@@ -376,7 +443,7 @@ const SuperAdminAPITester: React.FC = () => {
                           {result && getStatusIcon(result.status)}
                           <span className="font-mono">{endpoint}</span>
                           <span className="text-xs bg-gray-100 px-2 py-1 rounded">
-                            GET
+                            {getMethodForEndpoint(endpoint)}
                           </span>
                         </div>
                         <Button
@@ -416,7 +483,8 @@ const SuperAdminAPITester: React.FC = () => {
       <div className="space-y-4">
         <Button
           onClick={() => {
-            if (sectionId === 'monitoring') testSystemMonitoring();
+            if (sectionId === 'users') testUserManagement();
+            else if (sectionId === 'monitoring') testSystemMonitoring();
             else if (sectionId === 'scheduler') testReportScheduler();
           }}
         >
@@ -434,7 +502,7 @@ const SuperAdminAPITester: React.FC = () => {
                       {result && getStatusIcon(result.status)}
                       <span className="font-mono">{endpoint}</span>
                       <span className="text-xs bg-gray-100 px-2 py-1 rounded">
-                        GET
+                        {getMethodForEndpoint(endpoint)}
                       </span>
                     </div>
                     <Button

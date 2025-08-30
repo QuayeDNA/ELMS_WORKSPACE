@@ -38,6 +38,7 @@ export const createAuthRoutes = (prisma: PrismaClient) => {
       });
     } catch (error) {
       res.status(500).json({ error: 'Internal server error' });
+      return;
     }
   });
 

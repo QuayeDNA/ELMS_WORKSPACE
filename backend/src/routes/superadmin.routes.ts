@@ -396,28 +396,30 @@ export function createSuperAdminRoutes(prisma: PrismaClient): Router {
     try {
       const { startDate, endDate } = req.query;
 
-      const dateFilter = startDate && endDate ? {
-        createdAt: {
-          gte: new Date(startDate as string),
-          lte: new Date(endDate as string)
-        }
-      } : {};
+      // Parse dates safely
+      const start = startDate ? new Date(startDate as string) : new Date('2024-01-01');
+      const end = endDate ? new Date(endDate as string) : new Date();
 
       // Get user growth data
       const userGrowth = await prisma.$queryRaw`
         SELECT
           DATE_TRUNC('month', "createdAt") as month,
           COUNT(*) as count
-        FROM "User"
-        WHERE "createdAt" >= ${dateFilter.createdAt?.gte || new Date('2024-01-01')}
-        AND "createdAt" <= ${dateFilter.createdAt?.lte || new Date()}
+        FROM "users"
+        WHERE "createdAt" >= ${start}
+        AND "createdAt" <= ${end}
         GROUP BY DATE_TRUNC('month', "createdAt")
         ORDER BY month
       `;
 
       // Get exam session statistics
       const examStats = await prisma.examSession.aggregate({
-        where: dateFilter,
+        where: {
+          createdAt: {
+            gte: start,
+            lte: end
+          }
+        },
         _count: { id: true },
         _avg: { duration: true }
       });
@@ -432,7 +434,7 @@ export function createSuperAdminRoutes(prisma: PrismaClient): Router {
         SELECT
           (address->>'region') as region,
           COUNT(*) as institution_count
-        FROM "Institution"
+        FROM "institutions"
         GROUP BY (address->>'region')
         ORDER BY institution_count DESC
       `;
@@ -467,7 +469,7 @@ export function createSuperAdminRoutes(prisma: PrismaClient): Router {
         regionalStats: regionalStats || [],
         recentActivity: recentActivity.map(activity => ({
           id: activity.id,
-          user: activity.user.profile ? {
+          user: activity.user?.profile ? {
             firstName: activity.user.profile.firstName,
             lastName: activity.user.profile.lastName
           } : null,
