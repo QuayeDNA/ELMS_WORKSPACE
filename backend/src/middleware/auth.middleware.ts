@@ -15,8 +15,7 @@ export const authenticateToken = (prisma: PrismaClient) => {
 
   return (req: Request, res: Response, next: NextFunction) => {
     const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1];
-
+    const token = authHeader?.split(' ')[1];
     if (!token) {
       return res.status(401).json({ error: 'Access token required' });
     }
@@ -28,7 +27,6 @@ export const authenticateToken = (prisma: PrismaClient) => {
 
     (req as AuthenticatedRequest).user = payload;
     next();
-    return;
   };
 };
 
@@ -45,6 +43,5 @@ export const authorize = (roles: string[]) => {
     }
 
     next();
-    return;
   };
 };

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import AuthService from '@/services/superadmin/auth/auth.service';
+import AuthService from '@/services/auth/auth.service';
 import { UserManagementService } from '@/services/user-management.service';
 import RedisService from '@/services/redis.service';
 import { NotificationService } from '@/services/notification.service';
