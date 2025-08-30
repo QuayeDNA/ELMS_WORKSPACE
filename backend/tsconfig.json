@@ -48,7 +48,7 @@
       "@/config/*": ["config/*"],
       "@/routes/*": ["routes/*"]
     },
-    "typeRoots": ["./node_modules/@types", "./src/types"],
+    "typeRoots": ["./node_modules/@types"],
   },
   "include": [
     "src/**/*",

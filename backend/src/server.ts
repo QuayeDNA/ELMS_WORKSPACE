@@ -28,6 +28,7 @@ import { createScriptRoutes } from '@/routes/script.routes';
 import { createIncidentRoutes } from '@/routes/incident.routes';
 import { createAnalyticsRoutes } from '@/routes/superadmin/analytics/analytics.routes';
 import { createFileRoutes } from '@/routes/file.routes';
+import userManagementRoutes from '@/routes/superadmin/users/user-management-routes';
 
 // Import report scheduler cron
 import reportSchedulerCron from '@/services/reporting/ReportSchedulerCron';
@@ -49,8 +50,8 @@ class ElmsServer {
   public async initialize(): Promise<void> {
     await this.initializeServices();
     this.initializeMiddleware();
-    this.initializeRoutes();
     this.initializeSocketIO();
+    this.initializeRoutes();
     this.initializeErrorHandling();
   }
 
@@ -189,6 +190,7 @@ class ElmsServer {
     this.app.use('/api/incidents', authenticateToken(this.prisma), createIncidentRoutes(this.prisma));
     this.app.use('/api/analytics', authenticateToken(this.prisma), createAnalyticsRoutes(this.prisma));
     this.app.use('/api/files', authenticateToken(this.prisma), createFileRoutes(this.prisma));
+    this.app.use('/api/superadmin/users', userManagementRoutes(this.prisma, this.socketService));
     // API documentation
     this.app.get('/api/docs', (req, res) => {
       res.json({

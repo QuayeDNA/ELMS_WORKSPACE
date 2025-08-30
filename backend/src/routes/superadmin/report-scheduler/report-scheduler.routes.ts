@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
-import { ReportSchedulerService } from '../../services/reporting/ReportSchedulerService';
-import { CustomReportService } from '../../services/reporting/CustomReportService';
+import { ReportSchedulerService } from '../../../services/reporting/ReportSchedulerService';
+import { CustomReportService } from '../../../services/reporting/CustomReportService';
 import { PrismaClient } from '@prisma/client';
-import { authenticateToken, authorize } from '../../middleware/auth.middleware';
+import { authenticateToken, authorize } from '../../../middleware/auth.middleware';
 
 const router = Router();
 const prisma = new PrismaClient();

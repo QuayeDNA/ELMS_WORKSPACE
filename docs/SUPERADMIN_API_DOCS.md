@@ -733,7 +733,166 @@ interface DeleteInstitutionResponse {
 
 ---
 
-## 5. AUDIT LOGS
+## 5. USER MANAGEMENT
+
+### 5.1 Create Institution
+
+**Endpoint:** `POST /users/institutions`
+
+**Request Body:**
+
+```typescript
+interface CreateInstitutionRequest {
+  name: string;
+  type: 'UNIVERSITY' | 'COLLEGE' | 'POLYTECHNIC' | 'INSTITUTE';
+  category: 'PUBLIC' | 'PRIVATE' | 'MISSION';
+  settings?: {
+    timezone?: string;
+    currency?: string;
+    academicYearStart?: string;
+  };
+}
+```
+
+**Response:**
+
+```typescript
+interface InstitutionResponse {
+  id: string;
+  name: string;
+  type: string;
+  category: string;
+  settings: object;
+  createdAt: string;
+  updatedAt: string;
+}
+```
+
+### 5.2 Get All Institutions
+
+**Endpoint:** `GET /users/institutions`
+
+**Response:**
+
+```typescript
+interface GetInstitutionsResponse {
+  institutions: InstitutionResponse[];
+}
+```
+
+### 5.3 Update Institution
+
+**Endpoint:** `PUT /users/institutions/:id`
+
+**Path Parameters:**
+
+- `id`: Institution ID
+
+**Request Body:** Same as CreateInstitutionRequest (all fields optional)
+
+**Response:** Same as InstitutionResponse
+
+### 5.4 Delete Institution
+
+**Endpoint:** `DELETE /users/institutions/:id`
+
+**Path Parameters:**
+
+- `id`: Institution ID
+
+**Response:**
+
+```typescript
+interface DeleteInstitutionResponse {
+  message: string;
+}
+```
+
+### 5.5 Get Users by Institution
+
+**Endpoint:** `GET /users/institutions/:institutionId/users`
+
+**Path Parameters:**
+
+- `institutionId`: Institution ID
+
+**Query Parameters:**
+
+- `page` (optional): Page number - default: 1
+- `limit` (optional): Items per page - default: 10
+- `role` (optional): Filter by user role
+- `status` (optional): Filter by user status
+- `department` (optional): Filter by department
+
+**Response:**
+
+```typescript
+interface UserSummary {
+  id: string;
+  email: string;
+  role: string;
+  status: string;
+  profile?: {
+    firstName?: string;
+    lastName?: string;
+    department?: string;
+  };
+  lastActivityAt?: string;
+}
+
+interface GetUsersResponse {
+  users: UserSummary[];
+  total: number;
+  page: number;
+  limit: number;
+}
+```
+
+### 5.6 Update User Status
+
+**Endpoint:** `PUT /users/status`
+
+**Request Body:**
+
+```typescript
+interface UpdateUserStatusRequest {
+  userId: string;
+  status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
+}
+```
+
+**Response:**
+
+```typescript
+interface UpdateUserStatusResponse {
+  message: string;
+}
+```
+
+### 5.7 Bulk Update Users
+
+**Endpoint:** `PUT /users/bulk`
+
+**Request Body:**
+
+```typescript
+interface BulkUpdateUsersRequest {
+  userIds: string[];
+  action: 'ACTIVATE' | 'DEACTIVATE' | 'SUSPEND';
+}
+```
+
+**Response:**
+
+```typescript
+interface BulkUpdateUsersResponse {
+  message: string;
+}
+```
+
+---
+
+## 6. AUDIT LOGS
 
 ### 5.1 Get Audit Logs
 
