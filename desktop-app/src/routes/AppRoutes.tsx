@@ -2,7 +2,7 @@ import React, { Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuthStore } from "../stores/authStore";
 import { ProtectedRoute } from "../components/auth/ProtectedRoute";
-import { Layout } from "../components/Layout";
+import { Layout } from "../components/layout/Layout";
 import { AuthPage } from "../components/auth/AuthPage";
 import { NotFoundPage } from "../components/NotFoundPage";
 import { DashboardComponents } from "./RouteConfig";
@@ -12,6 +12,7 @@ import { Overview } from '../components/superadmin/Overview'
 import { UserManagement } from "../components/superadmin/users/UserManagement";
 import { Profile } from "../components/common/Profile";
 import { Help } from "../components/common/Help";
+import { Notifications } from "../pages/Notifications";
 
 // Loading component for Suspense fallback
 const LoadingSpinner = () => (
@@ -144,6 +145,7 @@ export const AppRouter: React.FC = () => {
               {/* Common Routes */}
               <Route path="profile" element={<LazyWrapper><Profile /></LazyWrapper>} />
               <Route path="help" element={<LazyWrapper><Help /></LazyWrapper>} />
+              <Route path="notifications" element={<LazyWrapper><Notifications /></LazyWrapper>} />
 
               {/* 404 Route - inside Layout for authenticated users */}
               <Route path="404" element={
