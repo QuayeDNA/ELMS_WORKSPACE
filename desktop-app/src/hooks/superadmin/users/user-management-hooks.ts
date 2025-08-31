@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { userManagementService } from '../../../services/superadmin/users/user-management-service';
 import { realTimeService } from '../../../services/realTimeService';
+import { useAuthStore } from '../../../stores/authStore';
 import {
   InstitutionResponse,
   UserSummary,
@@ -19,8 +20,10 @@ export function useInstitutions() {
   const [institutions, setInstitutions] = useState<InstitutionResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { isAuthenticated } = useAuthStore();
 
   const fetchInstitutions = useCallback(async () => {
+    if (!isAuthenticated) return;
     try {
       setLoading(true);
       setError(null);
@@ -32,9 +35,10 @@ export function useInstitutions() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAuthenticated]);
 
   const createInstitution = useCallback(async (institutionData: CreateInstitutionRequest) => {
+    if (!isAuthenticated) throw new Error('Not authenticated');
     try {
       setLoading(true);
       const newInstitution = await userManagementService.createInstitution(institutionData);
@@ -47,9 +51,10 @@ export function useInstitutions() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAuthenticated]);
 
   const updateInstitution = useCallback(async (id: string, institutionData: UpdateInstitutionRequest) => {
+    if (!isAuthenticated) throw new Error('Not authenticated');
     try {
       setLoading(true);
       const updatedInstitution = await userManagementService.updateInstitution(id, institutionData);
@@ -64,9 +69,10 @@ export function useInstitutions() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAuthenticated]);
 
   const deleteInstitution = useCallback(async (id: string) => {
+    if (!isAuthenticated) throw new Error('Not authenticated');
     try {
       setLoading(true);
       await userManagementService.deleteInstitution(id);
@@ -78,11 +84,13 @@ export function useInstitutions() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
-    fetchInstitutions();
-  }, [fetchInstitutions]);
+    if (isAuthenticated) {
+      fetchInstitutions();
+    }
+  }, [fetchInstitutions, isAuthenticated]);
 
   // Real-time updates
   useEffect(() => {
@@ -158,8 +166,10 @@ export function useUsers(institutionId?: string) {
     totalPages: 0
   });
   const [filters, setFilters] = useState<GetUsersRequest>({});
+  const { isAuthenticated } = useAuthStore();
 
   const fetchUsers = useCallback(async (query: GetUsersRequest = {}) => {
+    if (!isAuthenticated || institutionId === undefined) return;
     try {
       setLoading(true);
       setError(null);
@@ -186,9 +196,10 @@ export function useUsers(institutionId?: string) {
     } finally {
       setLoading(false);
     }
-  }, [institutionId]);
+  }, [institutionId, isAuthenticated]);
 
   const updateUserStatus = useCallback(async (userId: string, status: 'ACTIVE' | 'INACTIVE') => {
+    if (!isAuthenticated) throw new Error('Not authenticated');
     try {
       await userManagementService.updateUserStatus({ userId, status });
       setUsers(prev =>
@@ -201,9 +212,10 @@ export function useUsers(institutionId?: string) {
       setError(message);
       throw err;
     }
-  }, []);
+  }, [isAuthenticated]);
 
   const bulkUpdateUsers = useCallback(async (userIds: string[], action: 'ACTIVATE' | 'DEACTIVATE') => {
+    if (!isAuthenticated) throw new Error('Not authenticated');
     try {
       await userManagementService.bulkUpdateUsers({ userIds, action });
       const newStatus = action === 'ACTIVATE' ? 'ACTIVE' : 'INACTIVE';
@@ -217,29 +229,34 @@ export function useUsers(institutionId?: string) {
       setError(message);
       throw err;
     }
-  }, []);
+  }, [isAuthenticated]);
 
   const searchUsers = useCallback(async (searchTerm: string) => {
+    if (institutionId === undefined) return;
     if (searchTerm.trim()) {
       await fetchUsers({ ...filters, search: searchTerm.trim() });
     } else {
       await fetchUsers({ ...filters, search: undefined });
     }
-  }, [filters, fetchUsers]);
+  }, [filters, fetchUsers, institutionId]);
 
   const changePage = useCallback(async (page: number) => {
+    if (institutionId === undefined) return;
     await fetchUsers({ ...filters, page });
-  }, [filters, fetchUsers]);
+  }, [filters, fetchUsers, institutionId]);
 
   const changeFilters = useCallback(async (newFilters: Partial<GetUsersRequest>) => {
+    if (institutionId === undefined) return;
     const updatedFilters = { ...filters, ...newFilters, page: 1 };
     setFilters(updatedFilters);
     await fetchUsers(updatedFilters);
-  }, [filters, fetchUsers]);
+  }, [filters, fetchUsers, institutionId]);
 
   useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+    if (isAuthenticated && institutionId !== undefined) {
+      fetchUsers();
+    }
+  }, [fetchUsers, isAuthenticated, institutionId]);
 
   // Real-time updates
   useEffect(() => {
@@ -314,8 +331,10 @@ export function useUserStats() {
   const [stats, setStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { isAuthenticated } = useAuthStore();
 
   const fetchStats = useCallback(async () => {
+    if (!isAuthenticated) return;
     try {
       setLoading(true);
       setError(null);
@@ -364,11 +383,13 @@ export function useUserStats() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
+    if (isAuthenticated) {
+      fetchStats();
+    }
+  }, [fetchStats, isAuthenticated]);
 
   return {
     stats,

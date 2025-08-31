@@ -162,7 +162,7 @@ export class UserManagementService {
 
     const url = `${API_ENDPOINTS.SUPERADMIN.USERS.INSTITUTIONS}/export?${params.toString()}`;
 
-    const response = await fetch(`${apiClient.getToken() ? 'http://localhost:3000/api' : ''}${url}`, {
+    const response = await fetch(`${apiClient.getToken() ? apiClient.getBaseUrl() : ''}${url}`, {
       method: 'GET',
       headers: {
         'Authorization': apiClient.getToken() ? `Bearer ${apiClient.getToken()}` : '',

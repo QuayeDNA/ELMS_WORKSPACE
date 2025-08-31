@@ -11,7 +11,7 @@ import {
  */
 export class BaseApiClient {
   private static instance: BaseApiClient;
-  private baseUrl: string;
+  private readonly baseUrl: string;
   private token: string | null = null;
 
   private constructor() {
@@ -34,7 +34,26 @@ export class BaseApiClient {
   }
 
   getToken(): string | null {
-    return this.token;
+    if (this.token) return this.token;
+    
+    // Try to get from localStorage
+    const persistedAuth = localStorage.getItem('elms-auth');
+    if (persistedAuth) {
+      try {
+        const authData = JSON.parse(persistedAuth);
+        if (authData.state?.token) {
+          this.token = authData.state.token;
+          return this.token;
+        }
+      } catch (e) {
+        console.warn('Failed to parse persisted auth data:', e);
+      }
+    }
+    return null;
+  }
+
+  getBaseUrl(): string {
+    return this.baseUrl;
   }
 
   /**
@@ -58,8 +77,10 @@ export class BaseApiClient {
       ...((fetchConfig.headers as Record<string, string>) || {}),
     };
 
-    if (this.token) {
-      headers.Authorization = `Bearer ${this.token}`;
+    // Get token (from instance or localStorage)
+    const token = this.getToken();
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
     }
 
     const requestConfig: RequestInit = {
