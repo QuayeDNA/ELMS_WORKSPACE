@@ -21,11 +21,11 @@ import {
   CACHE_TTL,
   AlertSeverity
 } from '../../../types/superadmin/dashboard/dashboard.types';
-import { logger } from '../../../utils/logger';
+import logger from '../../../utils/logger';
 
 export class DashboardService {
-  private prisma: PrismaClient;
-  private redis: Redis;
+  private readonly prisma: PrismaClient;
+  private readonly redis: Redis;
 
   constructor(prisma: PrismaClient, redis: Redis) {
     this.prisma = prisma;

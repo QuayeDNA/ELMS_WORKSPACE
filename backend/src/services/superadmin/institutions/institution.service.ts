@@ -1,8 +1,7 @@
-import { PrismaClient, InstitutionType, InstitutionCategory } from '@prisma/client';
+import { PrismaClient, InstitutionType as PrismaInstitutionType, InstitutionCategory as PrismaInstitutionCategory } from '@prisma/client';
 import RedisService from '../../redis.service';
 import { LoggerService } from '../../logger/logger.service';
 import {
-  InstitutionOverview,
   InstitutionDetails,
   CreateInstitutionRequest,
   UpdateInstitutionRequest,
@@ -12,10 +11,60 @@ import {
   InstitutionConfiguration,
   Address,
   ContactInfo,
-  InstitutionStatus
+  InstitutionType,
+  InstitutionCategory
 } from '../../../types/superadmin/institutions/institution.types';
 
 const loggerService = LoggerService.getInstance();
+
+// Helper functions to convert between Prisma enums and our custom enums
+const convertPrismaTypeToCustom = (prismaType: PrismaInstitutionType): InstitutionType => {
+  const mapping: Record<PrismaInstitutionType, InstitutionType> = {
+    UNIVERSITY: InstitutionType.UNIVERSITY,
+    COLLEGE: InstitutionType.COLLEGE,
+    INSTITUTE: InstitutionType.TECHNICAL_INSTITUTE,
+    SCHOOL: InstitutionType.HIGH_SCHOOL,
+    ACADEMY: InstitutionType.HIGH_SCHOOL,
+    POLYTECHNIC: InstitutionType.POLYTECHNIC,
+    TECHNICAL_UNIVERSITY: InstitutionType.TECHNICAL_INSTITUTE,
+    HIGH_SCHOOL: InstitutionType.HIGH_SCHOOL,
+    TRAINING_CENTER: InstitutionType.TRAINING_CENTER
+  };
+  return mapping[prismaType] || InstitutionType.UNIVERSITY;
+};
+
+const convertCustomTypeToPrisma = (customType: InstitutionType): PrismaInstitutionType => {
+  const mapping: Record<InstitutionType, PrismaInstitutionType> = {
+    [InstitutionType.UNIVERSITY]: 'UNIVERSITY',
+    [InstitutionType.COLLEGE]: 'COLLEGE',
+    [InstitutionType.HIGH_SCHOOL]: 'HIGH_SCHOOL',
+    [InstitutionType.TRAINING_CENTER]: 'TRAINING_CENTER',
+    [InstitutionType.POLYTECHNIC]: 'POLYTECHNIC',
+    [InstitutionType.TECHNICAL_INSTITUTE]: 'TECHNICAL_UNIVERSITY'
+  };
+  return mapping[customType] || 'UNIVERSITY';
+};
+
+const convertPrismaCategoryToCustom = (prismaCategory: PrismaInstitutionCategory): InstitutionCategory => {
+  const mapping: Record<PrismaInstitutionCategory, InstitutionCategory> = {
+    PUBLIC: InstitutionCategory.PUBLIC,
+    PRIVATE: InstitutionCategory.PRIVATE,
+    QUASI_GOVERNMENT: InstitutionCategory.GOVERNMENT,
+    RELIGIOUS: InstitutionCategory.PRIVATE,
+    INTERNATIONAL: InstitutionCategory.PRIVATE
+  };
+  return mapping[prismaCategory] || InstitutionCategory.PUBLIC;
+};
+
+const convertCustomCategoryToPrisma = (customCategory: InstitutionCategory): PrismaInstitutionCategory => {
+  const mapping: Record<InstitutionCategory, PrismaInstitutionCategory> = {
+    [InstitutionCategory.PUBLIC]: 'PUBLIC',
+    [InstitutionCategory.PRIVATE]: 'PRIVATE',
+    [InstitutionCategory.GOVERNMENT]: 'QUASI_GOVERNMENT',
+    [InstitutionCategory.NON_PROFIT]: 'PRIVATE'
+  };
+  return mapping[customCategory] || 'PUBLIC';
+};
 
 export class InstitutionService {
   private readonly prisma: PrismaClient;
@@ -87,13 +136,13 @@ export class InstitutionService {
       ]);
 
       // Transform to response format
-      const institutionOverviews: InstitutionOverview[] = institutions.map(institution => ({
+      const institutionList = institutions.map(institution => ({
         id: institution.id,
         name: institution.name,
         shortName: institution.shortName || '',
         code: institution.code,
-        type: institution.type,
-        category: institution.category,
+        type: convertPrismaTypeToCustom(institution.type),
+        category: convertPrismaCategoryToCustom(institution.category),
         totalUsers: institution._count?.users || 0,
         totalFaculties: institution._count?.faculties || 0,
         totalCampuses: institution._count?.campuses || 0,
@@ -102,21 +151,25 @@ export class InstitutionService {
         createdAt: institution.createdAt
       }));
 
-      // Calculate aggregations for summary
+      // Calculate aggregations
       const aggregations = {
         byType: {} as Record<string, number>,
         byCategory: {} as Record<string, number>,
+        byStatus: { ACTIVE: total } as Record<string, number>,
         bySubscriptionPlan: {} as Record<string, number>,
         byRegion: {} as Record<string, number>
       };
 
       // Count by each category
       institutions.forEach(institution => {
+        const customType = convertPrismaTypeToCustom(institution.type);
+        const customCategory = convertPrismaCategoryToCustom(institution.category);
+        
         // Type aggregation
-        aggregations.byType[institution.type] = (aggregations.byType[institution.type] || 0) + 1;
+        aggregations.byType[customType] = (aggregations.byType[customType] || 0) + 1;
         
         // Category aggregation
-        aggregations.byCategory[institution.category] = (aggregations.byCategory[institution.category] || 0) + 1;
+        aggregations.byCategory[customCategory] = (aggregations.byCategory[customCategory] || 0) + 1;
         
         // Subscription plan aggregation
         aggregations.bySubscriptionPlan[institution.subscriptionPlan] = 
@@ -129,20 +182,21 @@ export class InstitutionService {
             aggregations.byRegion[address.region] = 
               (aggregations.byRegion[address.region] || 0) + 1;
           }
-        } catch (e) {
-          // Ignore address parsing errors
+        } catch (error) {
+          // Log address parsing errors but continue processing
+          loggerService.warn('Error parsing institution address:', error);
         }
       });
 
-      const response: GetInstitutionsResponse = {
-        institutions: institutionOverviews,
+      const response: any = {
+        institutions: institutionList,
         pagination: {
           page,
           limit,
           total,
           totalPages: Math.ceil(total / limit)
         },
-        aggregations
+        aggregations: aggregations as any
       };
 
       // Cache for 5 minutes
@@ -173,10 +227,28 @@ export class InstitutionService {
         include: {
           settings: true,
           createdByUser: {
-            select: { id: true, firstName: true, lastName: true, email: true }
+            select: { 
+              id: true, 
+              email: true,
+              profile: {
+                select: {
+                  firstName: true,
+                  lastName: true
+                }
+              }
+            }
           },
           lastModifiedByUser: {
-            select: { id: true, firstName: true, lastName: true, email: true }
+            select: { 
+              id: true, 
+              email: true,
+              profile: {
+                select: {
+                  firstName: true,
+                  lastName: true
+                }
+              }
+            }
           },
           _count: {
             select: {
@@ -197,14 +269,14 @@ export class InstitutionService {
         name: institution.name,
         shortName: institution.shortName || '',
         code: institution.code,
-        type: institution.type,
-        category: institution.category,
+        type: convertPrismaTypeToCustom(institution.type),
+        category: convertPrismaCategoryToCustom(institution.category),
         address: institution.address as unknown as Address,
         contactInfo: institution.contactInfo as unknown as ContactInfo,
-        logo: institution.logo,
-        motto: institution.motto,
-        description: institution.description,
-        establishedYear: institution.establishedYear,
+        logo: institution.logo || undefined,
+        motto: institution.motto || undefined,
+        description: institution.description || undefined,
+        establishedYear: institution.establishedYear || undefined,
         timezone: institution.timezone,
         language: institution.language,
         currencies: institution.currencies,
@@ -212,17 +284,27 @@ export class InstitutionService {
         customFields: institution.customFields,
         configuration: institution.configuration as unknown as InstitutionConfiguration,
         subscriptionPlan: institution.subscriptionPlan,
-        billingEmail: institution.billingEmail,
+        billingEmail: institution.billingEmail || undefined,
         subscriptionData: institution.subscriptionData,
-        settings: institution.settings,
+        settings: institution.settings || undefined,
         isActive: institution.isActive,
         totalUsers: institution._count?.users || 0,
         totalFaculties: institution._count?.faculties || 0,
         totalCampuses: institution._count?.campuses || 0,
         createdAt: institution.createdAt,
         updatedAt: institution.updatedAt,
-        createdBy: institution.createdByUser,
-        lastModifiedBy: institution.lastModifiedByUser
+        createdBy: institution.createdByUser ? {
+          id: institution.createdByUser.id,
+          email: institution.createdByUser.email,
+          firstName: institution.createdByUser.profile?.firstName || '',
+          lastName: institution.createdByUser.profile?.lastName || ''
+        } : undefined,
+        lastModifiedBy: institution.lastModifiedByUser ? {
+          id: institution.lastModifiedByUser.id,
+          email: institution.lastModifiedByUser.email,
+          firstName: institution.lastModifiedByUser.profile?.firstName || '',
+          lastName: institution.lastModifiedByUser.profile?.lastName || ''
+        } : undefined
       };
 
       // Cache for 15 minutes
@@ -258,20 +340,24 @@ export class InstitutionService {
         },
         features: {
           examManagement: true,
-          courseManagement: true,
-          reportGeneration: true,
-          integrations: false,
-          advancedAnalytics: false,
-          customBranding: false,
+          scriptTracking: true,
+          analytics: false,
+          mobileApp: false,
+          desktopApp: false,
           apiAccess: false,
-          ssoIntegration: false,
+          webhooks: false,
+          customReports: false,
+          bulkOperations: false,
           advancedSecurity: false
         },
         limits: {
           maxUsers: 1000,
           maxExams: 100,
-          storageLimit: 1024,
-          bandwidthLimit: 10240
+          maxConcurrentExams: 10,
+          storageQuota: 1,
+          apiRequestLimit: 1000,
+          webhookLimit: 10,
+          customReportLimit: 5
         },
         integrations: {
           sso: { enabled: false },
@@ -285,8 +371,8 @@ export class InstitutionService {
           name: data.name,
           shortName: data.shortName,
           code: data.code,
-          type: data.type as InstitutionType,
-          category: data.category as InstitutionCategory,
+          type: convertCustomTypeToPrisma(data.type),
+          category: convertCustomCategoryToPrisma(data.category),
           address: data.address as any,
           contactInfo: data.contactInfo as any,
           logo: data.logo,
@@ -296,6 +382,7 @@ export class InstitutionService {
           timezone: 'Africa/Accra',
           language: 'en',
           currencies: ['GHS'],
+          academicCalendar: {},
           configuration: defaultConfig as any,
           subscriptionPlan: 'basic',
           createdBy,
@@ -323,7 +410,16 @@ export class InstitutionService {
         include: {
           settings: true,
           createdByUser: {
-            select: { id: true, firstName: true, lastName: true, email: true }
+            select: { 
+              id: true, 
+              email: true,
+              profile: {
+                select: {
+                  firstName: true,
+                  lastName: true
+                }
+              }
+            }
           },
           _count: {
             select: {
@@ -362,23 +458,50 @@ export class InstitutionService {
         throw new Error('Institution not found');
       }
 
+      const updateData: any = {
+        ...data,
+        address: data.address ? (data.address as any) : undefined,
+        contactInfo: data.contactInfo ? (data.contactInfo as any) : undefined,
+        lastModifiedBy: updatedBy,
+        updatedAt: new Date()
+      };
+
+      // Convert enums if provided
+      if (data.type) {
+        updateData.type = convertCustomTypeToPrisma(data.type);
+      }
+      if (data.category) {
+        updateData.category = convertCustomCategoryToPrisma(data.category);
+      }
+
       const institution = await this.prisma.institution.update({
         where: { id },
-        data: {
-          ...data,
-          address: data.address ? (data.address as any) : undefined,
-          contactInfo: data.contactInfo ? (data.contactInfo as any) : undefined,
-          configuration: data.configuration ? (data.configuration as any) : undefined,
-          lastModifiedBy: updatedBy,
-          updatedAt: new Date()
-        },
+        data: updateData,
         include: {
           settings: true,
           createdByUser: {
-            select: { id: true, firstName: true, lastName: true, email: true }
+            select: { 
+              id: true, 
+              email: true,
+              profile: {
+                select: {
+                  firstName: true,
+                  lastName: true
+                }
+              }
+            }
           },
           lastModifiedByUser: {
-            select: { id: true, firstName: true, lastName: true, email: true }
+            select: { 
+              id: true, 
+              email: true,
+              profile: {
+                select: {
+                  firstName: true,
+                  lastName: true
+                }
+              }
+            }
           },
           _count: {
             select: {
@@ -447,10 +570,28 @@ export class InstitutionService {
         include: {
           settings: true,
           createdByUser: {
-            select: { id: true, firstName: true, lastName: true, email: true }
+            select: { 
+              id: true, 
+              email: true,
+              profile: {
+                select: {
+                  firstName: true,
+                  lastName: true
+                }
+              }
+            }
           },
           lastModifiedByUser: {
-            select: { id: true, firstName: true, lastName: true, email: true }
+            select: { 
+              id: true, 
+              email: true,
+              profile: {
+                select: {
+                  firstName: true,
+                  lastName: true
+                }
+              }
+            }
           },
           _count: {
             select: {
@@ -617,14 +758,14 @@ export class InstitutionService {
       name: institution.name,
       shortName: institution.shortName || '',
       code: institution.code,
-      type: institution.type,
-      category: institution.category,
+      type: convertPrismaTypeToCustom(institution.type),
+      category: convertPrismaCategoryToCustom(institution.category),
       address: institution.address,
       contactInfo: institution.contactInfo,
-      logo: institution.logo,
-      motto: institution.motto,
-      description: institution.description,
-      establishedYear: institution.establishedYear,
+      logo: institution.logo || undefined,
+      motto: institution.motto || undefined,
+      description: institution.description || undefined,
+      establishedYear: institution.establishedYear || undefined,
       timezone: institution.timezone,
       language: institution.language,
       currencies: institution.currencies,
@@ -632,17 +773,27 @@ export class InstitutionService {
       customFields: institution.customFields,
       configuration: institution.configuration,
       subscriptionPlan: institution.subscriptionPlan,
-      billingEmail: institution.billingEmail,
+      billingEmail: institution.billingEmail || undefined,
       subscriptionData: institution.subscriptionData,
-      settings: institution.settings,
+      settings: institution.settings || undefined,
       isActive: institution.isActive,
       totalUsers: institution._count?.users || 0,
       totalFaculties: institution._count?.faculties || 0,
       totalCampuses: institution._count?.campuses || 0,
       createdAt: institution.createdAt,
       updatedAt: institution.updatedAt,
-      createdBy: institution.createdByUser,
-      lastModifiedBy: institution.lastModifiedByUser
+      createdBy: institution.createdByUser ? {
+        id: institution.createdByUser.id,
+        email: institution.createdByUser.email,
+        firstName: institution.createdByUser.profile?.firstName || '',
+        lastName: institution.createdByUser.profile?.lastName || ''
+      } : undefined,
+      lastModifiedBy: institution.lastModifiedByUser ? {
+        id: institution.lastModifiedByUser.id,
+        email: institution.lastModifiedByUser.email,
+        firstName: institution.lastModifiedByUser.profile?.firstName || '',
+        lastName: institution.lastModifiedByUser.profile?.lastName || ''
+      } : undefined
     };
   }
 

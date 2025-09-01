@@ -3,7 +3,7 @@
     "target": "ES2023",
     "lib": ["ES2023"],
     "module": "CommonJS",
-    "moduleResolution": "bundler",
+    "moduleResolution": "node10",
     "outDir": "./dist",
     "rootDir": "./",
     "strict": true,
