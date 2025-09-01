@@ -77,6 +77,13 @@ model User {
   createdInstitutions    Institution[] @relation("InstitutionCreatedBy")
   modifiedInstitutions   Institution[] @relation("InstitutionModifiedBy")
 
+  // Advanced User Management Relations
+  activities             UserActivity[] @relation("UserActivities")
+  impersonationSessions  ImpersonationSession[] @relation("ImpersonationBySuperAdmin")
+  impersonatedSessions   ImpersonationSession[] @relation("ImpersonatedUser")
+  bulkOperations         BulkOperation[] @relation("BulkOperationsPerformed")
+  analyticsData          UserAnalyticsData[] @relation("UserAnalytics")
+
   @@map("users")
 }
 
@@ -98,6 +105,172 @@ enum UserRole {
   TEACHING_ASSISTANT // TA support
   STUDENT // Student access
   GUEST // Limited guest access
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+  LOCKED
+  DELETED
+}
+
+// User Activity Tracking
+model UserActivity {
+  id           String   @id @default(cuid())
+  userId       String
+  action       String
+  resource     String
+  resourceId   String?
+  details      Json
+  ipAddress    String
+  userAgent    String
+  timestamp    DateTime @default(now())
+  institutionId String?
+
+  // Relations
+  user         User         @relation("UserActivities", fields: [userId], references: [id], onDelete: Cascade)
+  institution  Institution? @relation("InstitutionActivities", fields: [institutionId], references: [id])
+
+  @@index([userId, timestamp])
+  @@index([institutionId, timestamp])
+  @@index([action, timestamp])
+  @@map("user_activities")
+}
+
+// Impersonation Sessions for Support
+model ImpersonationSession {
+  id               String               @id @default(cuid())
+  superAdminId     String
+  superAdminEmail  String
+  targetUserId     String
+  targetUserEmail  String
+  reason           String
+  startTime        DateTime             @default(now())
+  endTime          DateTime?
+  duration         Int? // in minutes
+  status           ImpersonationStatus  @default(ACTIVE)
+  ipAddress        String
+  userAgent        String
+  actions          ImpersonationAction[]
+  auditLog         Json[]
+
+  // Relations
+  superAdmin       User @relation("ImpersonationBySuperAdmin", fields: [superAdminId], references: [id])
+  targetUser       User @relation("ImpersonatedUser", fields: [targetUserId], references: [id])
+
+  @@index([superAdminId])
+  @@index([targetUserId])
+  @@index([status, startTime])
+  @@map("impersonation_sessions")
+}
+
+enum ImpersonationStatus {
+  ACTIVE
+  ENDED
+  EXPIRED
+  TERMINATED
+}
+
+model ImpersonationAction {
+  id                     String              @id @default(cuid())
+  impersonationSessionId String
+  action                 String
+  endpoint               String
+  method                 String
+  timestamp              DateTime            @default(now())
+  details                Json?
+
+  // Relations
+  session                ImpersonationSession @relation(fields: [impersonationSessionId], references: [id], onDelete: Cascade)
+
+  @@index([impersonationSessionId, timestamp])
+  @@map("impersonation_actions")
+}
+
+// Bulk Operations Management
+model BulkOperation {
+  id              String               @id @default(cuid())
+  operation       BulkOperationType
+  performedBy     String
+  performedByEmail String
+  userIds         String[]
+  data            Json?
+  reason          String
+  scheduledFor    DateTime?
+  status          BulkOperationStatus  @default(PENDING)
+  totalUsers      Int
+  processedUsers  Int                  @default(0)
+  successCount    Int                  @default(0)
+  failureCount    Int                  @default(0)
+  results         Json[]
+  startTime       DateTime?
+  endTime         DateTime?
+  errors          String[]
+  notifyUsers     Boolean              @default(false)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  // Relations
+  performedByUser User @relation("BulkOperationsPerformed", fields: [performedBy], references: [id])
+
+  @@index([performedBy])
+  @@index([status, createdAt])
+  @@index([operation, status])
+  @@map("bulk_operations")
+}
+
+enum BulkOperationType {
+  ACTIVATE
+  DEACTIVATE
+  SUSPEND
+  UNLOCK
+  CHANGE_ROLE
+  TRANSFER_INSTITUTION
+  RESET_PASSWORD
+  SEND_NOTIFICATION
+  DELETE
+  EXPORT_DATA
+}
+
+enum BulkOperationStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  PARTIAL
+  CANCELLED
+}
+
+// User Analytics Data
+model UserAnalyticsData {
+  id                    String   @id @default(cuid())
+  userId                String
+  date                  DateTime @db.Date
+  loginCount            Int      @default(0)
+  sessionDuration       Int      @default(0) // in minutes
+  featuresUsed          String[]
+  peakHours             Int[] // hours of day (0-23)
+  deviceType            String?
+  browser               String?
+  operatingSystem       String?
+  screenResolution      String?
+  examCount             Int      @default(0)
+  examScore             Float?
+  responseTime          Float?   // average response time in ms
+  errorCount            Int      @default(0)
+  engagementScore       Float?   // 0-100
+  retentionIndicators   Json?    // various retention metrics
+  createdAt             DateTime @default(now())
+
+  // Relations
+  user                  User @relation("UserAnalytics", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, date])
+  @@index([date])
+  @@map("user_analytics_data")
 }
 
 model UserProfile {
@@ -834,6 +1007,9 @@ model Institution {
   // Super Admin relations
   createdByUser     User? @relation("InstitutionCreatedBy", fields: [createdBy], references: [id])
   lastModifiedByUser User? @relation("InstitutionModifiedBy", fields: [lastModifiedBy], references: [id])
+  
+  // User Management relations
+  userActivities    UserActivity[] @relation("InstitutionActivities")
 
   @@map("institutions")
 }

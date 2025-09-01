@@ -29,6 +29,7 @@ import { createIncidentRoutes } from '@/routes/incident.routes';
 import { createAnalyticsRoutes } from '@/routes/superadmin/analytics/analytics.routes';
 import { createFileRoutes } from '@/routes/file.routes';
 import userManagementRoutes from '@/routes/superadmin/users/user-management-routes';
+import superAdminRoutes from '@/routes/superadmin/index';
 
 // Import report scheduler cron
 import reportSchedulerCron from '@/services/reporting/ReportSchedulerCron';
@@ -191,7 +192,7 @@ class ElmsServer {
     this.app.use('/api/analytics', authenticateToken(this.prisma), createAnalyticsRoutes(this.prisma));
     this.app.use('/api/files', authenticateToken(this.prisma), createFileRoutes(this.prisma));
     this.app.use('/api/superadmin/users', userManagementRoutes(this.prisma, this.socketService));
-    // API documentation
+    this.app.use('/api/superadmin', superAdminRoutes);
     this.app.get('/api/docs', (req, res) => {
       res.json({
         message: 'ELMS API Documentation',

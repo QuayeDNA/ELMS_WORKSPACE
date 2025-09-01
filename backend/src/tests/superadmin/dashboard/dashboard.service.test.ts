@@ -6,7 +6,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { DashboardService } from '../../../services/superadmin/dashboard/dashboard.service';
-import { HealthStatus, AlertSeverity } from '../../../types/superadmin/dashboard/dashboard.types';
+import { HealthStatus, AlertSeverity, AlertSource } from '../../../types/superadmin/dashboard/dashboard.types';
 
 // Mock Prisma Client
 const mockPrisma = {
