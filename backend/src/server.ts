@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 
 // Import routes
 import authRoutes from './routes/authRoutes';
+import { institutionRoutes } from './routes/institutionRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -75,6 +76,9 @@ app.get('/api', (req, res) => {
 
 // Authentication routes
 app.use('/api/auth', authRoutes);
+
+// Institution routes  
+app.use('/api/institutions', institutionRoutes);
 
 // 404 handler for API routes
 app.use('/api', (req, res) => {

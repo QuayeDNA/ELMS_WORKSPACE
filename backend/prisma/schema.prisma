@@ -300,12 +300,18 @@ model Institution {
   id          Int       @id @default(autoincrement())
   name        String
   code        String    @unique
-  type        String    @default("university") // 'university', 'technical_university', 'college'
+  type        String    @default("UNIVERSITY") // 'UNIVERSITY', 'POLYTECHNIC', 'COLLEGE', 'OTHER'
+  status      String    @default("ACTIVE") // 'ACTIVE', 'INACTIVE', 'PENDING', 'SUSPENDED'
   establishedYear Int?
   address     String?
+  city        String?
+  state       String?
+  country     String?
   contactEmail String?
   contactPhone String?
-  contactInfo  String?   // JSON string for additional contact details
+  website     String?
+  description String?
+  logoUrl     String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
