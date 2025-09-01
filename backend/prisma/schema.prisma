@@ -40,6 +40,11 @@ model User {
   passwordChangedAt        DateTime  @default(now())
   agreedToTermsAt          DateTime?
   privacyPolicyAcceptedAt  DateTime?
+  
+  // Institution relation
+  institutionId            String?
+  institution              Institution? @relation(fields: [institutionId], references: [id])
+  
   createdAt                DateTime  @default(now())
   updatedAt                DateTime  @updatedAt
 
@@ -67,6 +72,10 @@ model User {
   createdWebhooks   Webhook[]
   createdSchedules  ReportSchedule[]  @relation("ReportScheduleCreatedBy")
   updatedSchedules  ReportSchedule[]  @relation("ReportScheduleUpdatedBy")
+  
+  // Institution Management Relations
+  createdInstitutions    Institution[] @relation("InstitutionCreatedBy")
+  modifiedInstitutions   Institution[] @relation("InstitutionModifiedBy")
 
   @@map("users")
 }
@@ -780,6 +789,7 @@ model Institution {
   shortName        String?
   code             String               @unique
   type             InstitutionType
+  status           InstitutionStatus    @default(ACTIVE)
   category         InstitutionCategory  @default(PUBLIC) // Public/Private classification
   address          Json // Complete address structure with Ghana regions
   contactInfo      Json // Phone, email, website, etc.
@@ -795,17 +805,35 @@ model Institution {
   currencies       String[]             @default(["GHS"]) // Supported currencies
   academicCalendar Json // Ghanaian academic calendar structure
   customFields     Json? // Institution-specific additional fields
-  config           Json // Institution-specific configuration
+  
+  // Enhanced Configuration
+  configuration    Json                 @default("{}")  // Institution-specific configuration including branding, features, limits, integrations
+  
+  // Subscription Management
+  subscriptionPlan String               @default("basic")
+  billingEmail     String?
+  subscriptionData Json?                // Subscription details, billing info, etc.
+  
+  // Settings and Status
   settings         InstitutionSettings?
-  isActive         Boolean              @default(true)
+  isActive         Boolean              @default(true) // Keep for backward compatibility
+  
+  // Audit fields
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
+  createdBy        String?
+  lastModifiedBy   String?
 
   // Relations
+  users         User[]                   // Users belonging to this institution
   faculties     Faculty[]
   academicYears AcademicYear[]
   campuses      Campus[]
-  schools       School[] // Some universities use schools instead of faculties
+  schools       School[]                 // Some universities use schools instead of faculties
+  
+  // Super Admin relations
+  createdByUser     User? @relation("InstitutionCreatedBy", fields: [createdBy], references: [id])
+  lastModifiedByUser User? @relation("InstitutionModifiedBy", fields: [lastModifiedBy], references: [id])
 
   @@map("institutions")
 }
@@ -818,6 +846,15 @@ enum InstitutionType {
   ACADEMY
   POLYTECHNIC
   TECHNICAL_UNIVERSITY
+  HIGH_SCHOOL
+  TRAINING_CENTER
+}
+
+enum InstitutionStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING
 }
 
 enum InstitutionCategory {
