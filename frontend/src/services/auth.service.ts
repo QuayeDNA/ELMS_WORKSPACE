@@ -12,22 +12,31 @@ import type {
 
 class AuthService {
   async login(credentials: LoginRequest): Promise<AuthResponse> {
-    const loginData = {
-      email: credentials.email,
-      password: credentials.password,
-      rememberMe: credentials.rememberMe || false,
-    };
+    try {
+      const loginData = {
+        email: credentials.email,
+        password: credentials.password,
+        rememberMe: credentials.rememberMe || false,
+      };
 
-    const response = await apiService.post<{ success: boolean; message: string; data: AuthResponse }>(
-      API_ENDPOINTS.AUTH.LOGIN,
-      loginData
-    );
+      const response = await apiService.post<{ success: boolean; message: string; data: AuthResponse }>(
+        API_ENDPOINTS.AUTH.LOGIN,
+        loginData
+      );
 
-    if (response.success && response.data?.success && response.data.data) {
-      return response.data.data;
+      if (response.success && response.data?.success && response.data.data) {
+        return response.data.data;
+      }
+
+      // Return user-friendly error message
+      throw new Error(response.data?.message || 'Invalid email or password');
+    } catch (error) {
+      // Handle network or other errors
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unable to connect to server. Please try again.');
     }
-
-    throw new Error(response.data?.message || response.message || 'Login failed');
   }
 
   async register(userData: RegisterRequest): Promise<AuthResponse> {
