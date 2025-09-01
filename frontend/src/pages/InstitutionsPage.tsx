@@ -113,11 +113,7 @@ export function InstitutionsPage() {
   // ========================================
 
   useEffect(() => {
-    fetchInstitutions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
+    // Fetch institutions whenever filters change (including initial load)
     fetchInstitutions(filters, 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);

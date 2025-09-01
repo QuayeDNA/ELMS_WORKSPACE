@@ -22,7 +22,7 @@ class ApiService {
     // Request interceptor to add auth token
     this.api.interceptors.request.use(
       (config) => {
-        // Get token synchronously for now
+        // Get token synchronously
         const token = storageService.getToken();
         if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`;
@@ -44,14 +44,14 @@ class ApiService {
           axiosError.config._retry = true;
 
           // Try to refresh token
-          const refreshToken = await storageService.getRefreshToken();
+          const refreshToken = storageService.getRefreshToken();
           if (refreshToken) {
             const response = await this.api.post('/auth/refresh', {
               refreshToken,
             });
             const responseData = response.data as { data: { token: string } };
             const { token } = responseData.data;
-            await storageService.setToken(token);
+            storageService.setToken(token);
 
             // Retry original request
             axiosError.config.headers = axiosError.config.headers || {};
