@@ -5,6 +5,7 @@ import { RoleGuard } from '@/components/auth/RoleGuard';
 import { Layout } from '@/components/layout/Layout';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { DashboardPage } from '@/pages/dashboard/DashboardPage';
+import { InstitutionsPage } from '@/pages/InstitutionsPage';
 import { useAuthStore } from '@/stores/auth.store';
 import { UserRole } from '@/types/auth';
 import './App.css';
@@ -22,7 +23,7 @@ function App() {
       <div className="min-h-screen bg-gray-50">
         <Routes>
           {/* Public Routes */}
-          <Route path="/auth/login" element={<LoginPage />} />
+          <Route path="/login" element={<LoginPage />} />
           
           {/* Protected Routes */}
           <Route
@@ -35,63 +36,31 @@ function App() {
               </AuthGuard>
             }
           />
-          
-          {/* Admin Routes */}
+
+          {/* Institution Management (Super Admin Only) */}
           <Route
-            path="/admin/*"
+            path="/institutions"
             element={
               <AuthGuard>
-                <RoleGuard allowedRoles={[UserRole.SUPER_ADMIN, UserRole.ADMIN]}>
+                <RoleGuard allowedRoles={[UserRole.SUPER_ADMIN]}>
                   <Layout>
-                    <div className="p-6">
-                      <h1>Admin Panel - Coming Soon</h1>
-                    </div>
+                    <InstitutionsPage />
                   </Layout>
                 </RoleGuard>
               </AuthGuard>
             }
           />
-          
-          {/* Faculty Routes */}
+
+          {/* Settings */}
           <Route
-            path="/faculty/*"
+            path="/settings"
             element={
               <AuthGuard>
-                <RoleGuard allowedRoles={[UserRole.FACULTY_ADMIN, UserRole.DEAN]}>
-                  <Layout>
-                    <div className="p-6">
-                      <h1>Faculty Management - Coming Soon</h1>
-                    </div>
-                  </Layout>
-                </RoleGuard>
-              </AuthGuard>
-            }
-          />
-          
-          {/* Lecturer Routes */}
-          <Route
-            path="/lecturer/*"
-            element={
-              <AuthGuard>
-                <RoleGuard allowedRoles={[UserRole.LECTURER]}>
+                <Layout>
                   <div className="p-6">
-                    <h1>Lecturer Dashboard - Coming Soon</h1>
+                    <h1>Settings - Coming Soon</h1>
                   </div>
-                </RoleGuard>
-              </AuthGuard>
-            }
-          />
-          
-          {/* Student Routes */}
-          <Route
-            path="/student/*"
-            element={
-              <AuthGuard>
-                <RoleGuard allowedRoles={[UserRole.STUDENT]}>
-                  <div className="p-6">
-                    <h1>Student Dashboard - Coming Soon</h1>
-                  </div>
-                </RoleGuard>
+                </Layout>
               </AuthGuard>
             }
           />
