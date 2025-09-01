@@ -104,6 +104,7 @@ export interface RegisterRequest {
   facultyId?: number;
   departmentId?: number;
   studentId?: string; // For students
+  staffId?: string; // For lecturers and staff
   inviteToken?: string; // For invited users
 }
 

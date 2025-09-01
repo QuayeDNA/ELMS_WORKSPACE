@@ -18,11 +18,71 @@ enum UserRole {
   SUPER_ADMIN      // System-wide control, manages all institutions
   ADMIN            // Institution-level admin, manages faculty admins
   FACULTY_ADMIN    // Faculty-level admin, manages departments, exams, officers
+  DEAN             // Faculty dean
+  HOD              // Head of Department
   EXAMS_OFFICER    // Handles exam logistics, incidents, scheduling
   SCRIPT_HANDLER   // Manages script transit and handling
   INVIGILATOR      // Conducts exams, reports incidents
-  LECTURER         // Creates exams, grades scripts
-  STUDENT          // Takes exams
+  LECTURER         // Creates exams, grades scripts, teaches courses
+  STUDENT          // Takes exams, enrolled in courses
+}
+
+enum AcademicRankLevel {
+  GRADUATE_ASSISTANT     // 1
+  ASSISTANT_LECTURER     // 2
+  LECTURER              // 3
+  SENIOR_LECTURER       // 4
+  PRINCIPAL_LECTURER    // 5
+  ASSOCIATE_PROFESSOR   // 6
+  PROFESSOR            // 7
+}
+
+enum ProgramType {
+  CERTIFICATE
+  DIPLOMA
+  HND
+  BACHELOR
+  MASTERS
+  PHD
+}
+
+enum ProgramLevel {
+  UNDERGRADUATE
+  POSTGRADUATE
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  DEFERRED
+  GRADUATED
+  WITHDRAWN
+  SUSPENDED
+}
+
+enum AcademicStatus {
+  GOOD_STANDING
+  PROBATION
+  SUSPENDED
+}
+
+enum CourseType {
+  CORE
+  ELECTIVE
+  GENERAL
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  VISITING
+}
+
+enum EmploymentStatus {
+  ACTIVE
+  ON_LEAVE
+  RETIRED
+  TERMINATED
 }
 
 enum UserStatus {
@@ -38,11 +98,21 @@ model User {
   password        String
   firstName       String
   lastName        String
+  middleName      String?
+  title           String?   // 'Mr', 'Mrs', 'Dr', 'Prof'
   role            UserRole
   status          UserStatus @default(PENDING_VERIFICATION)
   lastLogin       DateTime?
   emailVerified   Boolean   @default(false)
   twoFactorEnabled Boolean  @default(false)
+  
+  // Personal information
+  phone           String?
+  dateOfBirth     DateTime?
+  gender          String?
+  nationality     String?
+  address         String?
+  
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -65,11 +135,25 @@ model User {
   lecturerProfiles    LecturerProfile[]
   studentProfiles     StudentProfile[]
 
+  // Academic relationships (for lecturers)
+  lecturerDepartments LecturerDepartment[]
+  courseOfferings     CourseOffering[]
+  courseLecturers     CourseLecturer[]
+  
+  // Student relationships
+  enrollments         Enrollment[]
+  studentAssessments  StudentAssessment[]
+  
+  // Faculty leadership
+  facultiesAsDean     Faculty[] @relation("FacultyDean")
+  departmentsAsHOD    Department[] @relation("DepartmentHOD")
+  
   // Activity tracking
   auditLogs       AuditLog[]
   incidentsReported Incident[] @relation("ReportedBy")
   incidentsAssigned Incident[] @relation("AssignedTo")
   scriptMovements   ScriptMovement[]
+  assessmentsGraded StudentAssessment[] @relation("GradedBy")
 
   // Indexes for performance
   @@index([institutionId, role])
@@ -149,10 +233,30 @@ model LecturerProfile {
   id          Int     @id @default(autoincrement())
   userId      Int     @unique
   user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Academic staff details
+  staffId     String  @unique
+  academicRank AcademicRankLevel?
+  employmentType EmploymentType @default(FULL_TIME)
+  employmentStatus EmploymentStatus @default(ACTIVE)
+  hireDate    DateTime?
+  
+  // Academic qualifications
+  highestQualification String?
+  specialization      String?
+  researchInterests   String?
+  
+  // Contact and office info
+  officeLocation      String?
+  officeHours        String?
+  biography          String?
+  profileImageUrl    String?
+  
   permissions Json    // Lecturer permissions
   canCreateExams      Boolean @default(true)
   canGradeScripts     Boolean @default(true)
   canViewResults      Boolean @default(true)
+  canTeachCourses     Boolean @default(true)
   
   @@map("lecturer_profiles")
 }
@@ -161,9 +265,29 @@ model StudentProfile {
   id          Int     @id @default(autoincrement())
   userId      Int     @unique
   user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Student academic details
   studentId   String  @unique // Student registration number
-  level       String  // e.g., "100", "200", "300", "400"
-  program     String?
+  indexNumber String? @unique
+  level       Int     // 100, 200, 300, 400
+  semester    Int     @default(1)
+  academicYear String? // e.g., '2023/2024'
+  
+  // Program enrollment
+  programId   Int?
+  program     Program? @relation(fields: [programId], references: [id])
+  admissionDate DateTime?
+  expectedGraduation DateTime?
+  
+  // Status
+  enrollmentStatus EnrollmentStatus @default(ACTIVE)
+  academicStatus   AcademicStatus @default(GOOD_STANDING)
+  
+  // Guardian/Emergency contact
+  guardianName    String?
+  guardianPhone   String?
+  guardianEmail   String?
+  emergencyContact String? // JSON string
   
   @@map("student_profiles")
 }
@@ -176,15 +300,19 @@ model Institution {
   id          Int       @id @default(autoincrement())
   name        String
   code        String    @unique
+  type        String    @default("university") // 'university', 'technical_university', 'college'
+  establishedYear Int?
   address     String?
   contactEmail String?
   contactPhone String?
+  contactInfo  String?   // JSON string for additional contact details
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
   users       User[]
   faculties   Faculty[]
   venues      Venue[]
+  academicYears AcademicYear[]
 
   @@map("institutions")
 }
@@ -193,8 +321,15 @@ model Faculty {
   id            Int         @id @default(autoincrement())
   name          String
   code          String
+  description   String?
+  establishedYear Int?
+  
   institutionId Int
   institution   Institution @relation(fields: [institutionId], references: [id])
+  
+  deanId        Int?
+  dean          User?       @relation("FacultyDean", fields: [deanId], references: [id])
+  
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
@@ -210,31 +345,292 @@ model Department {
   id        Int      @id @default(autoincrement())
   name      String
   code      String
+  type      String   @default("department") // 'department', 'school', 'institute'
+  description String?
+  officeLocation String?
+  contactInfo    String? // JSON string
+  
   facultyId Int
   faculty   Faculty  @relation(fields: [facultyId], references: [id])
+  
+  hodId     Int?
+  hod       User?    @relation("DepartmentHOD", fields: [hodId], references: [id])
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   users     User[]
   courses   Course[]
+  programs  Program[]
+  lecturerDepartments LecturerDepartment[]
 
   @@unique([facultyId, code])
   @@map("departments")
+}
+
+// ========================================
+// ACADEMIC PROGRAMS & COURSES
+// ========================================
+
+model Program {
+  id           Int         @id @default(autoincrement())
+  name         String
+  code         String
+  type         ProgramType
+  level        ProgramLevel
+  durationYears Float       // e.g., 4.0, 1.5
+  creditHours  Int?
+  description  String?
+  admissionRequirements String?
+  isActive     Boolean     @default(true)
+  
+  departmentId Int
+  department   Department  @relation(fields: [departmentId], references: [id])
+  
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  students     StudentProfile[]
+  programCourses ProgramCourse[]
+
+  @@unique([departmentId, code])
+  @@map("programs")
 }
 
 model Course {
   id           Int        @id @default(autoincrement())
   name         String
   code         String     @unique
-  credits      Int        @default(3)
+  description  String?
+  creditHours  Int        @default(3)
+  contactHours Int?
+  level        Int        // 100, 200, 300, 400
+  courseType   CourseType @default(CORE)
+  
+  // Prerequisites and corequisites
+  prerequisites String?   // JSON array of course codes
+  corequisites  String?   // JSON array of course codes
+  
+  // Course content
+  learningOutcomes    String?
+  syllabus           String?
+  assessmentMethods  String?
+  recommendedBooks   String?
+  
   departmentId Int
   department   Department @relation(fields: [departmentId], references: [id])
+  
+  isActive     Boolean    @default(true)
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
   exams        Exam[]
+  programCourses ProgramCourse[]
+  courseOfferings CourseOffering[]
 
   @@map("courses")
+}
+
+// Program curriculum - many-to-many relationship
+model ProgramCourse {
+  id         Int     @id @default(autoincrement())
+  programId  Int
+  program    Program @relation(fields: [programId], references: [id], onDelete: Cascade)
+  courseId   Int
+  course     Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  level      Int     // 100, 200, 300, 400
+  semester   Int     // 1 or 2
+  isRequired Boolean @default(true)
+  
+  createdAt  DateTime @default(now())
+
+  @@unique([programId, courseId, level, semester])
+  @@map("program_courses")
+}
+
+// ========================================
+// ACADEMIC CALENDAR & SCHEDULING
+// ========================================
+
+model AcademicYear {
+  id            Int         @id @default(autoincrement())
+  yearCode      String      @unique // e.g., '2023/2024'
+  startDate     DateTime
+  endDate       DateTime
+  isCurrent     Boolean     @default(false)
+  
+  institutionId Int
+  institution   Institution @relation(fields: [institutionId], references: [id])
+  
+  createdAt     DateTime    @default(now())
+
+  semesters     Semester[]
+
+  @@map("academic_years")
+}
+
+model Semester {
+  id               Int          @id @default(autoincrement())
+  academicYearId   Int
+  academicYear     AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  
+  semesterNumber   Int          // 1 or 2
+  name             String       // 'First Semester', 'Second Semester'
+  startDate        DateTime
+  endDate          DateTime
+  isCurrent        Boolean      @default(false)
+  
+  createdAt        DateTime     @default(now())
+
+  courseOfferings  CourseOffering[]
+
+  @@unique([academicYearId, semesterNumber])
+  @@map("semesters")
+}
+
+// ========================================
+// COURSE OFFERINGS & TEACHING
+// ========================================
+
+model CourseOffering {
+  id               Int        @id @default(autoincrement())
+  courseId         Int
+  course           Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  semesterId       Int
+  semester         Semester   @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  
+  primaryLecturerId Int?
+  primaryLecturer   User?      @relation(fields: [primaryLecturerId], references: [id])
+  
+  maxEnrollment    Int?
+  currentEnrollment Int       @default(0)
+  classroom        String?
+  schedule         String?    // JSON string for class times and days
+  status           String     @default("active") // 'active', 'cancelled', 'completed'
+  
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  courseLecturers  CourseLecturer[]
+  enrollments      Enrollment[]
+  assessments      Assessment[]
+
+  @@unique([courseId, semesterId])
+  @@map("course_offerings")
+}
+
+// Team-taught courses - many-to-many
+model CourseLecturer {
+  id                Int            @id @default(autoincrement())
+  courseOfferingId  Int
+  courseOffering    CourseOffering @relation(fields: [courseOfferingId], references: [id], onDelete: Cascade)
+  lecturerId        Int
+  lecturer          User           @relation(fields: [lecturerId], references: [id], onDelete: Cascade)
+  
+  role              String         @default("instructor") // 'instructor', 'coordinator', 'assistant'
+  createdAt         DateTime       @default(now())
+
+  @@unique([courseOfferingId, lecturerId])
+  @@map("course_lecturers")
+}
+
+// Lecturer department affiliations - many-to-many
+model LecturerDepartment {
+  id           Int        @id @default(autoincrement())
+  lecturerId   Int
+  lecturer     User       @relation(fields: [lecturerId], references: [id], onDelete: Cascade)
+  departmentId Int
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  
+  isPrimary    Boolean    @default(false)
+  role         String?    // 'member', 'coordinator', 'assistant_hod'
+  createdAt    DateTime   @default(now())
+
+  @@unique([lecturerId, departmentId])
+  @@map("lecturer_departments")
+}
+
+// ========================================
+// STUDENT ENROLLMENT & ACADEMIC RECORDS
+// ========================================
+
+model Enrollment {
+  id                Int            @id @default(autoincrement())
+  studentId         Int
+  student           User           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  courseOfferingId  Int
+  courseOffering    CourseOffering @relation(fields: [courseOfferingId], references: [id], onDelete: Cascade)
+  
+  enrollmentDate    DateTime       @default(now())
+  status            String         @default("enrolled") // 'enrolled', 'dropped', 'completed', 'deferred'
+  grade             String?        // 'A', 'B+', 'B', 'C+', 'C', 'D+', 'D', 'F'
+  gradePoints       Float?         // 4.0 scale
+  attendancePercentage Float?
+  
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@unique([studentId, courseOfferingId])
+  @@map("enrollments")
+}
+
+// ========================================
+// ASSESSMENT & GRADING SYSTEM
+// ========================================
+
+model AssessmentType {
+  id            Int     @id @default(autoincrement())
+  name          String  @unique // 'quiz', 'assignment', 'midterm', 'final', 'project'
+  description   String?
+  defaultWeight Float?  // Default percentage weight
+
+  assessments   Assessment[]
+
+  @@map("assessment_types")
+}
+
+model Assessment {
+  id                Int            @id @default(autoincrement())
+  courseOfferingId  Int
+  courseOffering    CourseOffering @relation(fields: [courseOfferingId], references: [id], onDelete: Cascade)
+  assessmentTypeId  Int
+  assessmentType    AssessmentType @relation(fields: [assessmentTypeId], references: [id])
+  
+  title             String
+  description       String?
+  totalMarks        Float
+  weightPercentage  Float          // Percentage of final grade
+  dueDate           DateTime?
+  instructions      String?
+  
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  studentAssessments StudentAssessment[]
+
+  @@map("assessments")
+}
+
+model StudentAssessment {
+  id           Int        @id @default(autoincrement())
+  assessmentId Int
+  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  studentId    Int
+  student      User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  
+  score        Float?
+  submittedAt  DateTime?
+  gradedAt     DateTime?
+  gradedById   Int?
+  gradedBy     User?      @relation("GradedBy", fields: [gradedById], references: [id])
+  feedback     String?
+  
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([assessmentId, studentId])
+  @@map("student_assessments")
 }
 
 // ========================================

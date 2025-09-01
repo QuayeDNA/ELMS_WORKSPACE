@@ -306,10 +306,12 @@ export class AuthService {
         await prisma.lecturerProfile.create({
           data: {
             userId,
+            staffId: data.staffId || `STAFF${userId}${Date.now()}`,
             permissions: {},
             canCreateExams: true,
             canGradeScripts: true,
             canViewResults: true,
+            canTeachCourses: true,
           }
         });
         break;
@@ -319,8 +321,7 @@ export class AuthService {
           data: {
             userId,
             studentId: data.studentId || `STU${userId}${Date.now()}`,
-            level: '100', // Default level
-            program: data.departmentId ? 'General' : undefined,
+            level: 100, // Default level as number
           }
         });
         break;
