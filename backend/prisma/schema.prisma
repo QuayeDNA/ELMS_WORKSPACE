@@ -1961,18 +1961,17 @@ model ReportSchedule {
 
 // System Monitoring and Alerts
 model SystemAlert {
-  id         Int      @id @default(autoincrement())
-  type       String   @db.VarChar(50)
-  severity   String   @db.VarChar(20)
-  title      String   @db.VarChar(255)
-  message    String   @db.Text
-  metadata   Json?
-  isActive   Boolean  @default(true)
-  resolved   Boolean  @default(false)
-  resolvedAt DateTime?
-  resolvedBy String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id          String   @id @default(cuid())
+  severity    String   @db.VarChar(20)
+  title       String   @db.VarChar(255)
+  description String   @db.Text
+  source      String   @db.VarChar(100)
+  metadata    Json?
+  resolved    Boolean  @default(false)
+  resolvedAt  DateTime?
+  resolvedBy  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relations
   resolvedByUser User? @relation(fields: [resolvedBy], references: [id])
@@ -2019,4 +2018,16 @@ model WebhookDelivery {
   webhook Webhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
 
   @@map("webhook_deliveries")
+}
+
+// System Monitoring Models
+model SystemMetric {
+  id          Int      @id @default(autoincrement())
+  metricType  String   @db.VarChar(50)
+  metricValue Json
+  timestamp   DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@index([metricType, timestamp])
+  @@map("system_metrics")
 }
