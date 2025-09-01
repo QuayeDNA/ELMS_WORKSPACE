@@ -1,0 +1,505 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ========================================
+// CORE USER MANAGEMENT & AUTHENTICATION
+// ========================================
+
+enum UserRole {
+  SUPER_ADMIN      // System-wide control, manages all institutions
+  ADMIN            // Institution-level admin, manages faculty admins
+  FACULTY_ADMIN    // Faculty-level admin, manages departments, exams, officers
+  EXAMS_OFFICER    // Handles exam logistics, incidents, scheduling
+  SCRIPT_HANDLER   // Manages script transit and handling
+  INVIGILATOR      // Conducts exams, reports incidents
+  LECTURER         // Creates exams, grades scripts
+  STUDENT          // Takes exams
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+}
+
+model User {
+  id              Int       @id @default(autoincrement())
+  email           String    @unique
+  password        String
+  firstName       String
+  lastName        String
+  role            UserRole
+  status          UserStatus @default(PENDING_VERIFICATION)
+  lastLogin       DateTime?
+  emailVerified   Boolean   @default(false)
+  twoFactorEnabled Boolean  @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Institutional relationships
+  institutionId   Int?
+  institution     Institution? @relation(fields: [institutionId], references: [id])
+  
+  facultyId       Int?
+  faculty         Faculty?     @relation(fields: [facultyId], references: [id])
+  
+  departmentId    Int?
+  department      Department?  @relation(fields: [departmentId], references: [id])
+
+  // Role-specific relationships
+  adminProfiles     AdminProfile[]
+  facultyProfiles   FacultyAdminProfile[]
+  examOfficerProfiles ExamOfficerProfile[]
+  scriptHandlerProfiles ScriptHandlerProfile[]
+  invigilatorProfiles InvigilatorProfile[]
+  lecturerProfiles    LecturerProfile[]
+  studentProfiles     StudentProfile[]
+
+  // Activity tracking
+  auditLogs       AuditLog[]
+  incidentsReported Incident[] @relation("ReportedBy")
+  incidentsAssigned Incident[] @relation("AssignedTo")
+  scriptMovements   ScriptMovement[]
+
+  // Indexes for performance
+  @@index([institutionId, role])
+  @@index([facultyId, role])
+  @@index([email, status])
+  @@map("users")
+}
+
+// ========================================
+// ROLE-SPECIFIC PROFILES
+// ========================================
+
+model AdminProfile {
+  id          Int     @id @default(autoincrement())
+  userId      Int     @unique
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permissions Json    // Flexible permissions object
+  canManageFaculties Boolean @default(true)
+  canManageUsers     Boolean @default(true)
+  canViewAnalytics   Boolean @default(true)
+  
+  @@map("admin_profiles")
+}
+
+model FacultyAdminProfile {
+  id          Int     @id @default(autoincrement())
+  userId      Int     @unique
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permissions Json    // Faculty-specific permissions
+  canManageDepartments Boolean @default(true)
+  canCreateExams      Boolean @default(true)
+  canManageOfficers   Boolean @default(true)
+  canViewFacultyData  Boolean @default(true)
+  
+  @@map("faculty_admin_profiles")
+}
+
+model ExamOfficerProfile {
+  id          Int     @id @default(autoincrement())
+  userId      Int     @unique
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permissions Json    // Exam-specific permissions
+  canScheduleExams    Boolean @default(true)
+  canManageIncidents  Boolean @default(true)
+  canAssignInvigilators Boolean @default(true)
+  canManageVenues     Boolean @default(true)
+  
+  @@map("exam_officer_profiles")
+}
+
+model ScriptHandlerProfile {
+  id          Int     @id @default(autoincrement())
+  userId      Int     @unique
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permissions Json    // Script handling permissions
+  canReceiveScripts   Boolean @default(true)
+  canDispatchScripts  Boolean @default(true)
+  canScanQrCodes     Boolean @default(true)
+  canReportIncidents Boolean @default(true)
+  
+  @@map("script_handler_profiles")
+}
+
+model InvigilatorProfile {
+  id          Int     @id @default(autoincrement())
+  userId      Int     @unique
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permissions Json    // Invigilator permissions
+  canConductExams     Boolean @default(true)
+  canReportIncidents  Boolean @default(true)
+  canManageScripts    Boolean @default(true)
+  
+  @@map("invigilator_profiles")
+}
+
+model LecturerProfile {
+  id          Int     @id @default(autoincrement())
+  userId      Int     @unique
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permissions Json    // Lecturer permissions
+  canCreateExams      Boolean @default(true)
+  canGradeScripts     Boolean @default(true)
+  canViewResults      Boolean @default(true)
+  
+  @@map("lecturer_profiles")
+}
+
+model StudentProfile {
+  id          Int     @id @default(autoincrement())
+  userId      Int     @unique
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  studentId   String  @unique // Student registration number
+  level       String  // e.g., "100", "200", "300", "400"
+  program     String?
+  
+  @@map("student_profiles")
+}
+
+// ========================================
+// INSTITUTIONAL STRUCTURE
+// ========================================
+
+model Institution {
+  id          Int       @id @default(autoincrement())
+  name        String
+  code        String    @unique
+  address     String?
+  contactEmail String?
+  contactPhone String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  users       User[]
+  faculties   Faculty[]
+  venues      Venue[]
+
+  @@map("institutions")
+}
+
+model Faculty {
+  id            Int         @id @default(autoincrement())
+  name          String
+  code          String
+  institutionId Int
+  institution   Institution @relation(fields: [institutionId], references: [id])
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  users         User[]
+  departments   Department[]
+  exams         Exam[]
+
+  @@unique([institutionId, code])
+  @@map("faculties")
+}
+
+model Department {
+  id        Int      @id @default(autoincrement())
+  name      String
+  code      String
+  facultyId Int
+  faculty   Faculty  @relation(fields: [facultyId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users     User[]
+  courses   Course[]
+
+  @@unique([facultyId, code])
+  @@map("departments")
+}
+
+model Course {
+  id           Int        @id @default(autoincrement())
+  name         String
+  code         String     @unique
+  credits      Int        @default(3)
+  departmentId Int
+  department   Department @relation(fields: [departmentId], references: [id])
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  exams        Exam[]
+
+  @@map("courses")
+}
+
+// ========================================
+// EXAMINATION MANAGEMENT
+// ========================================
+
+enum ExamStatus {
+  PLANNED
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  POSTPONED
+}
+
+model Exam {
+  id          Int        @id @default(autoincrement())
+  title       String
+  courseId    Int
+  course      Course     @relation(fields: [courseId], references: [id])
+  facultyId   Int
+  faculty     Faculty    @relation(fields: [facultyId], references: [id])
+  
+  // Exam scheduling
+  examDate    DateTime
+  startTime   DateTime
+  endTime     DateTime
+  duration    Int        // Duration in minutes
+  
+  // Venue information
+  venueId     Int?
+  venue       Venue?     @relation(fields: [venueId], references: [id])
+  roomId      Int?
+  room        Room?      @relation(fields: [roomId], references: [id])
+  
+  status      ExamStatus @default(PLANNED)
+  instructions String?
+  specialRequirements String?
+  
+  // Metadata
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  createdBy   Int
+  
+  // Relationships
+  scripts     Script[]
+  incidents   Incident[]
+  examSessions ExamSession[]
+
+  @@map("exams")
+}
+
+model ExamSession {
+  id        Int      @id @default(autoincrement())
+  examId    Int
+  exam      Exam     @relation(fields: [examId], references: [id])
+  sessionDate DateTime
+  startTime DateTime
+  endTime   DateTime
+  
+  // Session management
+  actualStartTime DateTime?
+  actualEndTime   DateTime?
+  notes          String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("exam_sessions")
+}
+
+// ========================================
+// VENUE MANAGEMENT
+// ========================================
+
+model Venue {
+  id            Int         @id @default(autoincrement())
+  name          String
+  location      String
+  capacity      Int
+  institutionId Int
+  institution   Institution @relation(fields: [institutionId], references: [id])
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  rooms         Room[]
+  exams         Exam[]
+
+  @@map("venues")
+}
+
+model Room {
+  id        Int      @id @default(autoincrement())
+  name      String
+  capacity  Int
+  venueId   Int
+  venue     Venue    @relation(fields: [venueId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  exams     Exam[]
+
+  @@unique([venueId, name])
+  @@map("rooms")
+}
+
+// ========================================
+// SCRIPT TRACKING SYSTEM
+// ========================================
+
+enum ScriptStatus {
+  GENERATED
+  DISTRIBUTED
+  COLLECTED
+  VERIFIED
+  SCANNED
+  DISPATCHED
+  RECEIVED_FOR_GRADING
+  GRADED
+  RETURNED
+}
+
+model Script {
+  id        Int          @id @default(autoincrement())
+  qrCode    String       @unique
+  studentId String       // Student registration number
+  examId    Int
+  exam      Exam         @relation(fields: [examId], references: [id])
+  
+  status    ScriptStatus @default(GENERATED)
+  notes     String?
+  
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  movements ScriptMovement[]
+  incidents Incident[]
+
+  // Indexes for performance
+  @@index([examId, status])
+  @@map("scripts")
+}
+
+enum MovementType {
+  GENERATED
+  DISTRIBUTED_TO_VENUE
+  COLLECTED_FROM_STUDENT
+  VERIFIED_BY_INVIGILATOR
+  SCANNED_BY_HANDLER
+  DISPATCHED_TO_GRADER
+  RECEIVED_BY_GRADER
+  GRADED
+  RETURNED_TO_REGISTRY
+}
+
+model ScriptMovement {
+  id        Int          @id @default(autoincrement())
+  scriptId  Int
+  script    Script       @relation(fields: [scriptId], references: [id])
+  
+  type      MovementType
+  fromUserId Int?
+  toUserId  Int?
+  handledBy User?        @relation(fields: [toUserId], references: [id])
+  
+  location  String?
+  notes     String?
+  timestamp DateTime     @default(now())
+
+  @@map("script_movements")
+}
+
+// ========================================
+// INCIDENT MANAGEMENT
+// ========================================
+
+enum IncidentType {
+  ACADEMIC_MISCONDUCT
+  TECHNICAL_ISSUE
+  MEDICAL_EMERGENCY
+  MISSING_SCRIPT
+  DAMAGED_SCRIPT
+  LATE_ARRIVAL
+  IDENTITY_VERIFICATION
+  VENUE_ISSUE
+  OTHER
+}
+
+enum IncidentSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum IncidentStatus {
+  REPORTED
+  UNDER_INVESTIGATION
+  RESOLVED
+  CLOSED
+  ESCALATED
+}
+
+model Incident {
+  id          Int              @id @default(autoincrement())
+  type        IncidentType
+  severity    IncidentSeverity @default(MEDIUM)
+  status      IncidentStatus   @default(REPORTED)
+  
+  title       String
+  description String
+  
+  // Relationships
+  examId      Int?
+  exam        Exam?            @relation(fields: [examId], references: [id])
+  scriptId    Int?
+  script      Script?          @relation(fields: [scriptId], references: [id])
+  
+  reportedById Int
+  reportedBy   User            @relation("ReportedBy", fields: [reportedById], references: [id])
+  assignedToId Int?
+  assignedTo   User?           @relation("AssignedTo", fields: [assignedToId], references: [id])
+  
+  resolution  String?
+  resolvedAt  DateTime?
+  
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  // Indexes for performance
+  @@index([examId, status])
+  @@map("incidents")
+}
+
+// ========================================
+// AUDIT & LOGGING
+// ========================================
+
+enum ActionType {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  EXPORT
+  IMPORT
+}
+
+model AuditLog {
+  id        Int        @id @default(autoincrement())
+  userId    Int
+  user      User       @relation(fields: [userId], references: [id])
+  
+  action    ActionType
+  entity    String     // Table/model name
+  entityId  String?    // ID of the affected record
+  oldValues Json?      // Previous values (for updates)
+  newValues Json?      // New values (for creates/updates)
+  
+  ipAddress String?
+  userAgent String?
+  timestamp DateTime   @default(now())
+
+  // Indexes for performance
+  @@index([userId, timestamp])
+  @@map("audit_logs")
+}
