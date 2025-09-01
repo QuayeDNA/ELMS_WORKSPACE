@@ -5,7 +5,7 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 
 // Import routes
-import authRoutes from './routes/authRoutes.test';
+import authRoutes from './routes/authRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -67,11 +67,11 @@ app.get('/api', (req, res) => {
 app.use('/api/auth', authRoutes);
 
 // 404 handler for API routes
-app.use('/api/*', (req, res) => {
+app.use('/api', (req, res) => {
   res.status(404).json({
     success: false,
     message: 'API endpoint not found',
-    path: req.path,
+    path: req.originalUrl,
     method: req.method
   });
 });
