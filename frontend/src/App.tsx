@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useEffect } from 'react';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { RoleGuard } from '@/components/auth/RoleGuard';
+import { RootRedirect } from '@/components/auth/RedirectMiddleware';
 import { Layout } from '@/components/layout/Layout';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { DashboardPage } from '@/pages/dashboard/DashboardPage';
@@ -107,9 +108,9 @@ function App() {
             }
           />
           
-          {/* Default Redirects */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          {/* Root and Default Redirects */}
+          <Route path="/" element={<RootRedirect />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
     </Router>
