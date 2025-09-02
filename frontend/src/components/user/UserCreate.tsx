@@ -9,11 +9,14 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { userService } from '@/services/user.service';
 import { facultyService } from '@/services/faculty.service';
-import { UserFormData, USER_ROLES, GENDERS } from '@/types/user';
+import { institutionService } from '@/services/institution.service';
+import { useAuthStore } from '@/stores/auth.store';
+import { UserFormData, USER_ROLES, GENDERS, UserRole } from '@/types/user';
 import { Faculty } from '@/types/faculty';
+import { Institution } from '@/types/institution';
 
 const userSchema = z.object({
-  email: z.string().email('Invalid email address'),
+  email: z.string().email(),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   confirmPassword: z.string(),
   firstName: z.string().min(1, 'First name is required'),
@@ -43,32 +46,89 @@ interface UserCreateProps {
 }
 
 export const UserCreate: React.FC<UserCreateProps> = ({ onSuccess, onCancel, institutionId }) => {
+  const { user: currentUser } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [faculties, setFaculties] = useState<Faculty[]>([]);
+  const [institutions, setInstitutions] = useState<Institution[]>([]);
   const [isLoadingFaculties, setIsLoadingFaculties] = useState(false);
+  const [isLoadingInstitutions, setIsLoadingInstitutions] = useState(false);
+
+  // Determine access level
+  const isSuperAdmin = currentUser?.role === UserRole.SUPER_ADMIN;
+  const isAdmin = currentUser?.role === UserRole.ADMIN;
+  const isFacultyAdmin = currentUser?.role === UserRole.FACULTY_ADMIN;
+
+  // Determine available roles based on current user's role
+  const getAvailableRoles = () => {
+    if (isSuperAdmin) {
+      return USER_ROLES; // Super Admin can create any role
+    } else if (isAdmin) {
+      // Admin can create roles below them in their institution
+      return USER_ROLES.filter(role => ![UserRole.SUPER_ADMIN].includes(role.value));
+    } else if (isFacultyAdmin) {
+      // Faculty Admin can create roles below them in their faculty
+      return USER_ROLES.filter(role => 
+        [UserRole.EXAMS_OFFICER, UserRole.SCRIPT_HANDLER, UserRole.INVIGILATOR, UserRole.LECTURER, UserRole.STUDENT].includes(role.value)
+      );
+    }
+    return [];
+  };
+
+  // Determine default institution
+  const getDefaultInstitutionId = () => {
+    if (institutionId) return institutionId;
+    if (!isSuperAdmin && currentUser?.institutionId) return currentUser.institutionId;
+    return undefined;
+  };
 
   const {
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<UserFormValues>({
     resolver: zodResolver(userSchema),
     defaultValues: {
-      institutionId: institutionId?.toString() || '',
+      institutionId: getDefaultInstitutionId()?.toString() || '',
+      facultyId: isFacultyAdmin ? currentUser?.facultyId?.toString() || '' : '',
     },
   });
+
+  const watchInstitutionId = watch('institutionId');
+
+  // Fetch institutions (Super Admin only)
+  useEffect(() => {
+    const fetchInstitutions = async () => {
+      if (!isSuperAdmin) return;
+
+      setIsLoadingInstitutions(true);
+      try {
+        const response = await institutionService.getInstitutions();
+        if (response.success && response.data) {
+          setInstitutions(response.data.institutions);
+        }
+      } catch (error) {
+        console.error('Error fetching institutions:', error);
+      } finally {
+        setIsLoadingInstitutions(false);
+      }
+    };
+
+    fetchInstitutions();
+  }, [isSuperAdmin]);
 
   // Fetch faculties when institution changes
   useEffect(() => {
     const fetchFaculties = async () => {
-      if (!institutionId) return;
+      const selectedInstitutionId = watchInstitutionId ? parseInt(watchInstitutionId) : null;
+      if (!selectedInstitutionId) return;
 
       setIsLoadingFaculties(true);
       try {
         const response = await facultyService.getFaculties({
-          institutionId: parseInt(institutionId.toString())
+          institutionId: selectedInstitutionId
         });
 
         if (response.success && response.data) {
@@ -84,8 +144,12 @@ export const UserCreate: React.FC<UserCreateProps> = ({ onSuccess, onCancel, ins
       }
     };
 
-    fetchFaculties();
-  }, [institutionId]);
+    if (watchInstitutionId) {
+      fetchFaculties();
+      // Reset faculty selection when institution changes
+      setValue('facultyId', '');
+    }
+  }, [watchInstitutionId, setValue]);
 
   const onSubmit = async (data: UserFormValues) => {
     setIsLoading(true);
@@ -113,6 +177,15 @@ export const UserCreate: React.FC<UserCreateProps> = ({ onSuccess, onCancel, ins
       };
 
       const requestData = userService.transformFormData(formData);
+      
+      // Handle special "NONE_OPTIONAL" values
+      if (requestData.facultyId && requestData.facultyId.toString() === 'NONE_OPTIONAL') {
+        requestData.facultyId = undefined;
+      }
+      if (requestData.departmentId && requestData.departmentId.toString() === 'NONE_OPTIONAL') {
+        requestData.departmentId = undefined;
+      }
+      
       const response = await userService.createUser(requestData);
 
       if (response.success) {
@@ -207,7 +280,7 @@ export const UserCreate: React.FC<UserCreateProps> = ({ onSuccess, onCancel, ins
               <SelectValue placeholder="Select a role" />
             </SelectTrigger>
             <SelectContent>
-              {USER_ROLES.map((role) => (
+              {getAvailableRoles().map((role) => (
                 <SelectItem key={role.value} value={role.value}>
                   {role.label}
                 </SelectItem>
@@ -316,21 +389,29 @@ export const UserCreate: React.FC<UserCreateProps> = ({ onSuccess, onCancel, ins
           <Label htmlFor="institutionId">Institution</Label>
           <Select
             onValueChange={(value) => setValue('institutionId', value)}
-            disabled={!!institutionId}
+            disabled={!isSuperAdmin}
+            defaultValue={getDefaultInstitutionId()?.toString()}
           >
             <SelectTrigger>
-              <SelectValue placeholder={institutionId ? "Institution pre-selected" : "Select institution"} />
+              <SelectValue placeholder={
+                !isSuperAdmin 
+                  ? "Institution pre-selected" 
+                  : isLoadingInstitutions
+                    ? "Loading institutions..."
+                    : "Select institution"
+              } />
             </SelectTrigger>
             <SelectContent>
-              {institutionId ? (
-                <SelectItem value={institutionId.toString()}>
-                  Current Institution (ID: {institutionId})
-                </SelectItem>
+              {isSuperAdmin ? (
+                institutions.map((institution) => (
+                  <SelectItem key={institution.id} value={institution.id.toString()}>
+                    {institution.name}
+                  </SelectItem>
+                ))
               ) : (
-                <>
-                  <SelectItem value="1">Sample University</SelectItem>
-                  <SelectItem value="2">Tech Institute</SelectItem>
-                </>
+                <SelectItem value={getDefaultInstitutionId()?.toString() || ''}>
+                  {currentUser?.institutionId ? `Institution ID: ${currentUser.institutionId}` : 'Current Institution'}
+                </SelectItem>
               )}
             </SelectContent>
           </Select>
@@ -340,38 +421,29 @@ export const UserCreate: React.FC<UserCreateProps> = ({ onSuccess, onCancel, ins
           <Label htmlFor="facultyId">Faculty</Label>
           <Select
             onValueChange={(value) => setValue('facultyId', value)}
-            disabled={isLoadingFaculties || !institutionId}
+            disabled={isLoadingFaculties || !watchInstitutionId || isFacultyAdmin}
+            defaultValue={isFacultyAdmin ? currentUser?.facultyId?.toString() : ''}
           >
             <SelectTrigger>
               <SelectValue placeholder={
-                isLoadingFaculties
-                  ? "Loading faculties..."
-                  : !institutionId
-                    ? "Select institution first"
-                    : faculties.length === 0
-                      ? "No faculties available"
-                      : "Select faculty"
+                isFacultyAdmin
+                  ? "Faculty pre-selected"
+                  : isLoadingFaculties
+                    ? "Loading faculties..."
+                    : !watchInstitutionId
+                      ? "Select institution first"
+                      : faculties.length === 0
+                        ? "No faculties available"
+                        : "Select faculty (optional)"
               } />
             </SelectTrigger>
             <SelectContent>
-              {faculties.length > 0 ? (
-                faculties.map((faculty) => (
-                  <SelectItem
-                    key={`faculty-${faculty.id}`}
-                    value={faculty.id.toString()}
-                  >
-                    {faculty.name}
-                  </SelectItem>
-                ))
-              ) : (
-                <SelectItem value="" disabled>
-                  {isLoadingFaculties
-                    ? "Loading..."
-                    : !institutionId
-                      ? "Select institution first"
-                      : "No faculties available"}
+              {!isFacultyAdmin && <SelectItem value="NONE_OPTIONAL">None (optional)</SelectItem>}
+              {faculties.map((faculty) => (
+                <SelectItem key={faculty.id} value={faculty.id.toString()}>
+                  {faculty.name}
                 </SelectItem>
-              )}
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -380,17 +452,17 @@ export const UserCreate: React.FC<UserCreateProps> = ({ onSuccess, onCancel, ins
           <Label htmlFor="departmentId">Department</Label>
           <Select
             onValueChange={(value) => setValue('departmentId', value)}
-            disabled={!institutionId}
+            disabled={!watchInstitutionId}
           >
             <SelectTrigger>
               <SelectValue placeholder={
-                !institutionId
+                !watchInstitutionId
                   ? "Select institution first"
                   : "Select department (optional)"
               } />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">None (optional)</SelectItem>
+              <SelectItem value="NONE_OPTIONAL">None (optional)</SelectItem>
               <SelectItem value="1">Computer Science</SelectItem>
               <SelectItem value="2">Mathematics</SelectItem>
               <SelectItem value="3">Physics</SelectItem>

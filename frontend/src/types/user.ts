@@ -19,6 +19,7 @@ export interface User {
   institutionId?: number;
   facultyId?: number;
   departmentId?: number;
+  lastLogin?: string;
   createdAt: string;
   updatedAt: string;
   institution?: {

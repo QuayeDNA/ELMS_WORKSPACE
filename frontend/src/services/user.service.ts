@@ -136,8 +136,8 @@ class UserService {
       lastName: formData.lastName,
       role: formData.role as UserRole, // Will be validated by backend
       institutionId: formData.institutionId ? parseInt(formData.institutionId) : undefined,
-      facultyId: formData.facultyId ? parseInt(formData.facultyId) : undefined,
-      departmentId: formData.departmentId ? parseInt(formData.departmentId) : undefined,
+      facultyId: formData.facultyId && formData.facultyId !== 'NONE_OPTIONAL' ? parseInt(formData.facultyId) : undefined,
+      departmentId: formData.departmentId && formData.departmentId !== 'NONE_OPTIONAL' ? parseInt(formData.departmentId) : undefined,
       phone: formData.phone || undefined,
       middleName: formData.middleName || undefined,
       title: formData.title || undefined,

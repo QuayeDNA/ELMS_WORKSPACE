@@ -369,7 +369,7 @@ export const UserEdit: React.FC<UserEditProps> = ({ user, onSuccess, onCancel })
                   </SelectItem>
                 ))
               ) : (
-                <SelectItem value="" disabled>
+                <SelectItem value="NO_FACULTIES" disabled>
                   {isLoadingFaculties
                     ? "Loading..."
                     : "No faculties available"}
@@ -389,7 +389,7 @@ export const UserEdit: React.FC<UserEditProps> = ({ user, onSuccess, onCancel })
               <SelectValue placeholder="Select department (optional)" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">None (optional)</SelectItem>
+              <SelectItem value="NONE_OPTIONAL">None (optional)</SelectItem>
               {user.departmentId && (
                 <SelectItem key={`current-department-${user.departmentId}`} value={user.departmentId.toString()}>
                   {user.department?.name || 'Current Department'}
