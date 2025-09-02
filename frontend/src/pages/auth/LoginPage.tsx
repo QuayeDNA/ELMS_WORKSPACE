@@ -15,10 +15,8 @@ export function LoginPage() {
 
   const handleLoginSuccess = () => {
     console.log('Login success - using role-based redirect');
-    // Use role-based redirect instead of hardcoded dashboard
-    setTimeout(() => {
-      redirectAfterLogin();
-    }, 100);
+    // Use role-based redirect (delay is handled in the hook)
+    redirectAfterLogin();
   };
 
   return (
