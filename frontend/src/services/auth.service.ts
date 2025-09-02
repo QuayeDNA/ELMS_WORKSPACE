@@ -19,17 +19,17 @@ class AuthService {
         rememberMe: credentials.rememberMe || false,
       };
 
-      const response = await apiService.post<{ success: boolean; message: string; data: AuthResponse }>(
+      const response = await apiService.post<AuthResponse>(
         API_ENDPOINTS.AUTH.LOGIN,
         loginData
       );
 
-      if (response.success && response.data?.success && response.data.data) {
-        return response.data.data;
+      if (response.success && response.data) {
+        return response.data;
       }
 
       // Return user-friendly error message
-      throw new Error(response.data?.message || 'Invalid email or password');
+      throw new Error(response.message || 'Invalid email or password');
     } catch (error) {
       // Handle network or other errors
       if (error instanceof Error) {
@@ -40,16 +40,16 @@ class AuthService {
   }
 
   async register(userData: RegisterRequest): Promise<AuthResponse> {
-    const response = await apiService.post<{ success: boolean; message: string; data: AuthResponse }>(
+    const response = await apiService.post<AuthResponse>(
       API_ENDPOINTS.AUTH.REGISTER,
       userData
     );
 
-    if (response.success && response.data?.success && response.data.data) {
-      return response.data.data;
+    if (response.success && response.data) {
+      return response.data;
     }
 
-    throw new Error(response.data?.message || response.message || 'Registration failed');
+    throw new Error(response.message || 'Registration failed');
   }
 
   async logout(): Promise<void> {

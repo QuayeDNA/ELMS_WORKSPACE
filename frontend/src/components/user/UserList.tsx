@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { userService } from '@/services/user.service';
@@ -142,6 +142,9 @@ export const UserList: React.FC<UserListProps> = ({ institutionId, facultyId, de
           <DialogContent className="max-w-4xl">
             <DialogHeader>
               <DialogTitle>Create New User</DialogTitle>
+              <DialogDescription>
+                Fill in the details below to create a new user account.
+              </DialogDescription>
             </DialogHeader>
             <UserCreate
               onSuccess={handleCreateSuccess}
@@ -297,6 +300,9 @@ export const UserList: React.FC<UserListProps> = ({ institutionId, facultyId, de
         <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>Edit User</DialogTitle>
+            <DialogDescription>
+              Update the user information below. Changes will be saved when you submit.
+            </DialogDescription>
           </DialogHeader>
           {selectedUser && (
             <UserEdit
@@ -316,6 +322,9 @@ export const UserList: React.FC<UserListProps> = ({ institutionId, facultyId, de
         <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>User Details</DialogTitle>
+            <DialogDescription>
+              View detailed information about the selected user.
+            </DialogDescription>
           </DialogHeader>
           {selectedUser && (
             <UserView

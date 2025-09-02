@@ -12,6 +12,7 @@ import { UserRole } from '@/types/auth';
 import './App.css';
 import { SettingsPage } from './pages/SettingsPage';
 import { UsersPage } from './pages/UsersPage';
+import { InstitutionAdminDashboard } from './pages/admin/InstitutionAdminDashboard';
 
 function App() {
   const { initializeAuth } = useAuthStore();
@@ -74,6 +75,20 @@ function App() {
                 <RoleGuard allowedRoles={[UserRole.SUPER_ADMIN, UserRole.ADMIN]}>
                   <Layout>
                     <UsersPage />
+                  </Layout>
+                </RoleGuard>
+              </AuthGuard>
+            }
+          />
+
+          {/* Institution Admin Dashboard */}
+          <Route
+            path="/admin/institution"
+            element={
+              <AuthGuard>
+                <RoleGuard allowedRoles={[UserRole.ADMIN]}>
+                  <Layout>
+                    <InstitutionAdminDashboard />
                   </Layout>
                 </RoleGuard>
               </AuthGuard>

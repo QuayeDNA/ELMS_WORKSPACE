@@ -6,7 +6,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { userService } from '@/services/user.service';
+import { facultyService } from '@/services/faculty.service';
 import { User, USER_ROLES, USER_STATUSES, GENDERS, UserRole } from '@/types/user';
+import { Faculty } from '@/types/faculty';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 
@@ -38,6 +40,8 @@ interface UserEditProps {
 export const UserEdit: React.FC<UserEditProps> = ({ user, onSuccess, onCancel }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [faculties, setFaculties] = useState<Faculty[]>([]);
+  const [isLoadingFaculties, setIsLoadingFaculties] = useState(false);
 
   const {
     register,
@@ -80,6 +84,34 @@ export const UserEdit: React.FC<UserEditProps> = ({ user, onSuccess, onCancel })
     setValue('facultyId', user.facultyId?.toString() || '');
     setValue('departmentId', user.departmentId?.toString() || '');
   }, [user, setValue]);
+
+  // Fetch faculties when institution changes
+  useEffect(() => {
+    const fetchFaculties = async () => {
+      const institutionId = user.institutionId;
+      if (!institutionId) return;
+
+      setIsLoadingFaculties(true);
+      try {
+        const response = await facultyService.getFaculties({
+          institutionId: institutionId
+        });
+
+        if (response.success && response.data) {
+          setFaculties(response.data.faculties);
+        } else {
+          setFaculties([]);
+        }
+      } catch (error) {
+        console.error('Error fetching faculties:', error);
+        setFaculties([]);
+      } finally {
+        setIsLoadingFaculties(false);
+      }
+    };
+
+    fetchFaculties();
+  }, [user.institutionId]);
 
   const onSubmit = async (data: UserFormValues) => {
     setIsLoading(true);
@@ -295,11 +327,17 @@ export const UserEdit: React.FC<UserEditProps> = ({ user, onSuccess, onCancel })
               <SelectValue placeholder="Select institution" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={user.institutionId?.toString() || ''}>
-                {user.institution?.name || 'Current Institution'}
-              </SelectItem>
-              <SelectItem value="1">Sample University</SelectItem>
-              <SelectItem value="2">Tech Institute</SelectItem>
+              {user.institutionId && (
+                <SelectItem key={`current-institution-${user.institutionId}`} value={user.institutionId.toString()}>
+                  {user.institution?.name || 'Current Institution'}
+                </SelectItem>
+              )}
+              {user.institutionId !== 1 && (
+                <SelectItem key="sample-university" value="1">Sample University</SelectItem>
+              )}
+              {user.institutionId !== 2 && (
+                <SelectItem key="tech-institute" value="2">Tech Institute</SelectItem>
+              )}
             </SelectContent>
           </Select>
         </div>
@@ -309,16 +347,34 @@ export const UserEdit: React.FC<UserEditProps> = ({ user, onSuccess, onCancel })
           <Select
             value={user.facultyId?.toString() || ''}
             onValueChange={(value) => setValue('facultyId', value)}
+            disabled={isLoadingFaculties}
           >
             <SelectTrigger>
-              <SelectValue placeholder="Select faculty" />
+              <SelectValue placeholder={
+                isLoadingFaculties
+                  ? "Loading faculties..."
+                  : faculties.length === 0
+                    ? "No faculties available"
+                    : "Select faculty"
+              } />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={user.facultyId?.toString() || ''}>
-                {user.faculty?.name || 'Current Faculty'}
-              </SelectItem>
-              <SelectItem value="1">Faculty of Science</SelectItem>
-              <SelectItem value="2">Faculty of Arts</SelectItem>
+              {faculties.length > 0 ? (
+                faculties.map((faculty) => (
+                  <SelectItem
+                    key={`faculty-${faculty.id}`}
+                    value={faculty.id.toString()}
+                  >
+                    {faculty.name}
+                  </SelectItem>
+                ))
+              ) : (
+                <SelectItem value="" disabled>
+                  {isLoadingFaculties
+                    ? "Loading..."
+                    : "No faculties available"}
+                </SelectItem>
+              )}
             </SelectContent>
           </Select>
         </div>
@@ -330,14 +386,27 @@ export const UserEdit: React.FC<UserEditProps> = ({ user, onSuccess, onCancel })
             onValueChange={(value) => setValue('departmentId', value)}
           >
             <SelectTrigger>
-              <SelectValue placeholder="Select department" />
+              <SelectValue placeholder="Select department (optional)" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={user.departmentId?.toString() || ''}>
-                {user.department?.name || 'Current Department'}
-              </SelectItem>
-              <SelectItem value="1">Computer Science</SelectItem>
-              <SelectItem value="2">Mathematics</SelectItem>
+              <SelectItem value="">None (optional)</SelectItem>
+              {user.departmentId && (
+                <SelectItem key={`current-department-${user.departmentId}`} value={user.departmentId.toString()}>
+                  {user.department?.name || 'Current Department'}
+                </SelectItem>
+              )}
+              {user.departmentId !== 1 && (
+                <SelectItem key="department-cs" value="1">Computer Science</SelectItem>
+              )}
+              {user.departmentId !== 2 && (
+                <SelectItem key="department-math" value="2">Mathematics</SelectItem>
+              )}
+              {user.departmentId !== 3 && (
+                <SelectItem key="department-physics" value="3">Physics</SelectItem>
+              )}
+              {user.departmentId !== 4 && (
+                <SelectItem key="department-chemistry" value="4">Chemistry</SelectItem>
+              )}
             </SelectContent>
           </Select>
         </div>

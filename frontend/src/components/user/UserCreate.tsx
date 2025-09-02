@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -8,7 +8,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { userService } from '@/services/user.service';
+import { facultyService } from '@/services/faculty.service';
 import { UserFormData, USER_ROLES, GENDERS } from '@/types/user';
+import { Faculty } from '@/types/faculty';
 
 const userSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -43,6 +45,8 @@ interface UserCreateProps {
 export const UserCreate: React.FC<UserCreateProps> = ({ onSuccess, onCancel, institutionId }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [faculties, setFaculties] = useState<Faculty[]>([]);
+  const [isLoadingFaculties, setIsLoadingFaculties] = useState(false);
 
   const {
     register,
@@ -55,6 +59,33 @@ export const UserCreate: React.FC<UserCreateProps> = ({ onSuccess, onCancel, ins
       institutionId: institutionId?.toString() || '',
     },
   });
+
+  // Fetch faculties when institution changes
+  useEffect(() => {
+    const fetchFaculties = async () => {
+      if (!institutionId) return;
+
+      setIsLoadingFaculties(true);
+      try {
+        const response = await facultyService.getFaculties({
+          institutionId: parseInt(institutionId.toString())
+        });
+
+        if (response.success && response.data) {
+          setFaculties(response.data.faculties);
+        } else {
+          setFaculties([]);
+        }
+      } catch (error) {
+        console.error('Error fetching faculties:', error);
+        setFaculties([]);
+      } finally {
+        setIsLoadingFaculties(false);
+      }
+    };
+
+    fetchFaculties();
+  }, [institutionId]);
 
   const onSubmit = async (data: UserFormValues) => {
     setIsLoading(true);
@@ -307,26 +338,63 @@ export const UserCreate: React.FC<UserCreateProps> = ({ onSuccess, onCancel, ins
 
         <div className="space-y-2">
           <Label htmlFor="facultyId">Faculty</Label>
-          <Select onValueChange={(value) => setValue('facultyId', value)}>
+          <Select
+            onValueChange={(value) => setValue('facultyId', value)}
+            disabled={isLoadingFaculties || !institutionId}
+          >
             <SelectTrigger>
-              <SelectValue placeholder="Select faculty" />
+              <SelectValue placeholder={
+                isLoadingFaculties
+                  ? "Loading faculties..."
+                  : !institutionId
+                    ? "Select institution first"
+                    : faculties.length === 0
+                      ? "No faculties available"
+                      : "Select faculty"
+              } />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="1">Faculty of Science</SelectItem>
-              <SelectItem value="2">Faculty of Arts</SelectItem>
+              {faculties.length > 0 ? (
+                faculties.map((faculty) => (
+                  <SelectItem
+                    key={`faculty-${faculty.id}`}
+                    value={faculty.id.toString()}
+                  >
+                    {faculty.name}
+                  </SelectItem>
+                ))
+              ) : (
+                <SelectItem value="" disabled>
+                  {isLoadingFaculties
+                    ? "Loading..."
+                    : !institutionId
+                      ? "Select institution first"
+                      : "No faculties available"}
+                </SelectItem>
+              )}
             </SelectContent>
           </Select>
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="departmentId">Department</Label>
-          <Select onValueChange={(value) => setValue('departmentId', value)}>
+          <Select
+            onValueChange={(value) => setValue('departmentId', value)}
+            disabled={!institutionId}
+          >
             <SelectTrigger>
-              <SelectValue placeholder="Select department" />
+              <SelectValue placeholder={
+                !institutionId
+                  ? "Select institution first"
+                  : "Select department (optional)"
+              } />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="">None (optional)</SelectItem>
               <SelectItem value="1">Computer Science</SelectItem>
               <SelectItem value="2">Mathematics</SelectItem>
+              <SelectItem value="3">Physics</SelectItem>
+              <SelectItem value="4">Chemistry</SelectItem>
             </SelectContent>
           </Select>
         </div>
