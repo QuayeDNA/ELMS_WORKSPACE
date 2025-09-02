@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { facultyService } from '@/services/faculty.service';
+import { useAuthStore } from '@/stores/auth.store';
 import { FacultyFormData } from '@/types/faculty';
 
 const facultySchema = z.object({
@@ -25,6 +25,7 @@ interface FacultyCreateProps {
 }
 
 export const FacultyCreate: React.FC<FacultyCreateProps> = ({ onSuccess, onCancel }) => {
+  const { user } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,6 +37,13 @@ export const FacultyCreate: React.FC<FacultyCreateProps> = ({ onSuccess, onCance
   } = useForm<FacultyFormValues>({
     resolver: zodResolver(facultySchema),
   });
+
+  // Set the user's institution automatically for ADMIN users
+  useEffect(() => {
+    if (user?.institutionId) {
+      setValue('institutionId', user.institutionId.toString());
+    }
+  }, [user, setValue]);
 
   const onSubmit = async (data: FacultyFormValues) => {
     setIsLoading(true);
@@ -97,18 +105,14 @@ export const FacultyCreate: React.FC<FacultyCreateProps> = ({ onSuccess, onCance
 
       <div className="space-y-2">
         <Label htmlFor="institutionId">Institution *</Label>
-        <Select onValueChange={(value) => setValue('institutionId', value)}>
-          <SelectTrigger className={errors.institutionId ? 'border-red-500' : ''}>
-            <SelectValue placeholder="Select an institution" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="1">Sample University</SelectItem>
-            <SelectItem value="2">Tech Institute</SelectItem>
-          </SelectContent>
-        </Select>
-        {errors.institutionId && (
-          <p className="text-red-500 text-sm">{errors.institutionId.message}</p>
-        )}
+        <Input
+          value={`Institution ID: ${user?.institutionId || 'Not Available'}`}
+          disabled
+          className="bg-gray-50"
+        />
+        <p className="text-sm text-gray-500">
+          Faculties will be created under your current institution
+        </p>
       </div>
 
       <div className="space-y-2">
