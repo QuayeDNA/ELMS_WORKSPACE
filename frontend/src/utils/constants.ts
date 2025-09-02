@@ -12,7 +12,13 @@ export const API_ENDPOINTS = {
     PROFILE: '/api/auth/profile',
   },
   USERS: '/api/users',
-  INSTITUTIONS: '/api/institutions',
+  INSTITUTIONS: {
+    BASE: '/api/institutions',
+    BY_ID: (id: number) => `/api/institutions/${id}`,
+    WITH_ADMIN: '/api/institutions/with-admin',
+    ANALYTICS: (id: number) => `/api/institutions/${id}/analytics`,
+    OVERVIEW_ANALYTICS: '/api/institutions/analytics/overview',
+  },
   FACULTIES: '/api/faculties',
   DEPARTMENTS: '/api/departments',
 } as const;

@@ -1,21 +1,19 @@
 import { Building2, TrendingUp, AlertTriangle, Archive } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { InstitutionType } from '@/types/institution';
+import { Institution, InstitutionType } from '@/types/institution';
 
 // ========================================
 // INTERFACE DEFINITIONS
 // ========================================
 
 export interface InstitutionAnalyticsData {
-  total: number;
-  active: number;
-  inactive: number;
-  pending: number;
-  suspended: number;
-  byType: Record<InstitutionType, number>;
-  recentlyCreated: number;
-  recentlyUpdated: number;
+  totalInstitutions?: number;
+  activeInstitutions?: number;
+  inactiveInstitutions?: number;
+  pendingInstitutions?: number;
+  institutionsByType?: Record<InstitutionType, number>;
+  recentInstitutions?: Institution[];
 }
 
 interface InstitutionAnalyticsProps {
@@ -66,7 +64,7 @@ const StatCard = ({ title, value, icon, color, description, trend }: StatCardPro
 );
 
 const TypeDistributionCard = ({ data }: { data: Record<InstitutionType, number> }) => {
-  const total = Object.values(data).reduce((sum, count) => sum + count, 0);
+  const total = Object.values(data || {}).reduce((sum, count) => sum + (count || 0), 0);
   
   const typeLabels: Record<InstitutionType, string> = {
     UNIVERSITY: 'Universities',
@@ -115,10 +113,9 @@ const TypeDistributionCard = ({ data }: { data: Record<InstitutionType, number> 
 
 const StatusDistributionCard = ({ data }: { data: InstitutionAnalyticsData }) => {
   const statusData = [
-    { status: 'Active', count: data.active, color: 'bg-green-100 text-green-800' },
-    { status: 'Inactive', count: data.inactive, color: 'bg-gray-100 text-gray-800' },
-    { status: 'Pending', count: data.pending, color: 'bg-yellow-100 text-yellow-800' },
-    { status: 'Suspended', count: data.suspended, color: 'bg-red-100 text-red-800' }
+    { status: 'Active', count: data.activeInstitutions || 0, color: 'bg-green-100 text-green-800' },
+    { status: 'Inactive', count: data.inactiveInstitutions || 0, color: 'bg-gray-100 text-gray-800' },
+    { status: 'Pending', count: data.pendingInstitutions || 0, color: 'bg-yellow-100 text-yellow-800' },
   ];
 
   return (
@@ -129,7 +126,7 @@ const StatusDistributionCard = ({ data }: { data: InstitutionAnalyticsData }) =>
       <CardContent>
         <div className="space-y-3">
           {statusData.map(({ status, count, color }) => {
-            const percentage = data.total > 0 ? Math.round((count / data.total) * 100) : 0;
+            const percentage = (data.totalInstitutions || 0) > 0 ? Math.round((count / (data.totalInstitutions || 1)) * 100) : 0;
             return (
               <div key={status} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -177,7 +174,7 @@ export const InstitutionAnalytics = ({ data, loading = false }: InstitutionAnaly
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Total Institutions"
-          value={data.total}
+          value={data.totalInstitutions || 0}
           icon={<Building2 className="h-4 w-4" />}
           color="bg-blue-100 text-blue-600"
           description="All registered institutions"
@@ -185,23 +182,23 @@ export const InstitutionAnalytics = ({ data, loading = false }: InstitutionAnaly
         
         <StatCard
           title="Active Institutions"
-          value={data.active}
+          value={data.activeInstitutions || 0}
           icon={<TrendingUp className="h-4 w-4" />}
           color="bg-green-100 text-green-600"
-          description={`${data.total > 0 ? Math.round((data.active / data.total) * 100) : 0}% of total`}
+          description={`${(data.totalInstitutions || 0) > 0 ? Math.round(((data.activeInstitutions || 0) / (data.totalInstitutions || 1)) * 100) : 0}% of total`}
         />
         
         <StatCard
           title="Needs Attention"
-          value={data.pending + data.suspended}
+          value={data.pendingInstitutions || 0}
           icon={<AlertTriangle className="h-4 w-4" />}
           color="bg-yellow-100 text-yellow-600"
-          description="Pending or suspended institutions"
+          description="Pending institutions"
         />
         
         <StatCard
           title="Inactive"
-          value={data.inactive}
+          value={data.inactiveInstitutions || 0}
           icon={<Archive className="h-4 w-4" />}
           color="bg-gray-100 text-gray-600"
           description="Temporarily disabled institutions"
@@ -211,7 +208,14 @@ export const InstitutionAnalytics = ({ data, loading = false }: InstitutionAnaly
       {/* Distribution Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <StatusDistributionCard data={data} />
-        <TypeDistributionCard data={data.byType} />
+        <TypeDistributionCard data={data.institutionsByType || {
+          UNIVERSITY: 0,
+          TECHNICAL_UNIVERSITY: 0,
+          POLYTECHNIC: 0,
+          COLLEGE: 0,
+          INSTITUTE: 0,
+          OTHER: 0
+        }} />
       </div>
 
       {/* Recent Activity */}
@@ -223,13 +227,23 @@ export const InstitutionAnalytics = ({ data, loading = false }: InstitutionAnaly
           <CardContent>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Recently Created</span>
-                <Badge variant="outline">{data.recentlyCreated}</Badge>
+                <span className="text-sm text-gray-600">Recent Institutions</span>
+                <Badge variant="outline">{data.recentInstitutions?.length || 0}</Badge>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Recently Updated</span>
-                <Badge variant="outline">{data.recentlyUpdated}</Badge>
-              </div>
+              {data.recentInstitutions && data.recentInstitutions.length > 0 && (
+                <div className="space-y-2">
+                  {data.recentInstitutions.slice(0, 3).map((institution) => (
+                    <div key={institution.id} className="text-xs text-gray-500 truncate">
+                      {institution.name}
+                    </div>
+                  ))}
+                  {data.recentInstitutions.length > 3 && (
+                    <div className="text-xs text-gray-400">
+                      +{data.recentInstitutions.length - 3} more
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -241,7 +255,7 @@ export const InstitutionAnalytics = ({ data, loading = false }: InstitutionAnaly
           <CardContent>
             <div className="space-y-3">
               <div className="text-2xl font-bold text-green-600">
-                {data.total > 0 ? Math.round((data.active / data.total) * 100) : 0}%
+                {(data.totalInstitutions || 0) > 0 ? Math.round(((data.activeInstitutions || 0) / (data.totalInstitutions || 1)) * 100) : 0}%
               </div>
               <p className="text-sm text-gray-600">
                 System health based on active institutions
@@ -250,7 +264,7 @@ export const InstitutionAnalytics = ({ data, loading = false }: InstitutionAnaly
                 <div 
                   className="bg-green-600 h-2 rounded-full transition-all duration-300"
                   style={{ 
-                    width: `${data.total > 0 ? (data.active / data.total) * 100 : 0}%` 
+                    width: `${(data.totalInstitutions || 0) > 0 ? ((data.activeInstitutions || 0) / (data.totalInstitutions || 1)) * 100 : 0}%` 
                   }}
                 ></div>
               </div>

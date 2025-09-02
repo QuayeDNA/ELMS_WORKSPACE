@@ -20,7 +20,7 @@ import {
 // ========================================
 
 class InstitutionService {
-  private readonly endpoint = API_ENDPOINTS.INSTITUTIONS;
+  private readonly endpoint = API_ENDPOINTS.INSTITUTIONS.BASE;
 
   // ========================================
   // CORE CRUD OPERATIONS
@@ -110,7 +110,7 @@ class InstitutionService {
     data: CreateInstitutionWithAdminRequest
   ): Promise<ApiResponse<InstitutionWithAdminResponse>> {
     try {
-      return await apiService.post<InstitutionWithAdminResponse>(`${this.endpoint}/with-admin`, data);
+      return await apiService.post<InstitutionWithAdminResponse>(API_ENDPOINTS.INSTITUTIONS.WITH_ADMIN, data);
     } catch (error) {
       console.error('Error creating institution with admin:', error);
       throw error;
@@ -126,7 +126,7 @@ class InstitutionService {
    */
   async getInstitutionAnalytics(id: number): Promise<ApiResponse<InstitutionStats>> {
     try {
-      return await apiService.get<InstitutionStats>(`${this.endpoint}/${id}/analytics`);
+      return await apiService.get<InstitutionStats>(API_ENDPOINTS.INSTITUTIONS.ANALYTICS(id));
     } catch (error) {
       console.error(`Error fetching analytics for institution ${id}:`, error);
       throw error;
@@ -138,7 +138,7 @@ class InstitutionService {
    */
   async getOverallAnalytics(): Promise<ApiResponse<InstitutionStats>> {
     try {
-      return await apiService.get<InstitutionStats>(`${this.endpoint}/analytics/overview`);
+      return await apiService.get<InstitutionStats>(API_ENDPOINTS.INSTITUTIONS.OVERVIEW_ANALYTICS);
     } catch (error) {
       console.error('Error fetching overall analytics:', error);
       throw error;
