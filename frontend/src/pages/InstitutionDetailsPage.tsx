@@ -12,6 +12,9 @@ import { institutionService } from "@/services/institution.service";
 // Import the new analytics component
 import InstitutionSpecificAnalytics from "@/components/institutions/InstitutionSpecificAnalytics";
 
+// Import user management components
+import { UserList } from "@/components/user";
+
 // ========================================
 // HELPER COMPONENTS
 // ========================================
@@ -46,53 +49,6 @@ const TypeBadge = ({ type }: { type: InstitutionType }) => {
     <Badge variant="secondary">
       {typeLabels[type] || "Unknown"}
     </Badge>
-  );
-};
-
-const UserCard = ({ user }: { user: NonNullable<Institution['users']>[0] }) => {
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-  };
-
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'SUPER_ADMIN': return 'bg-purple-100 text-purple-800';
-      case 'INSTITUTION_ADMIN': return 'bg-blue-100 text-blue-800';
-      case 'LECTURER': return 'bg-green-100 text-green-800';
-      case 'STUDENT': return 'bg-orange-100 text-orange-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="flex items-center space-x-4">
-          <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-            <span className="text-sm font-medium text-primary">
-              {getInitials(user.firstName, user.lastName)}
-            </span>
-          </div>
-          <div className="flex-1">
-            <h4 className="font-medium">{user.firstName} {user.lastName}</h4>
-            <p className="text-sm text-gray-600">{user.email}</p>
-            <div className="flex items-center space-x-2 mt-1">
-              <Badge className={`text-xs ${getRoleColor(user.role)}`}>
-                {user.role.replace('_', ' ')}
-              </Badge>
-              <Badge variant="outline" className="text-xs">
-                {user.status}
-              </Badge>
-            </div>
-            {user.lastLogin && (
-              <p className="text-xs text-gray-500 mt-1">
-                Last login: {new Date(user.lastLogin).toLocaleDateString()}
-              </p>
-            )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
   );
 };
 
@@ -466,19 +422,11 @@ export const InstitutionDetailsPage = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
-            Users ({institution.users?.length || 0})
+            Users Management
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {(institution.users?.length || 0) > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {institution.users?.map((user) => (
-                <UserCard key={user.id} user={user} />
-              ))}
-            </div>
-          ) : (
-            <p className="text-gray-600 text-center py-8">No users associated with this institution</p>
-          )}
+          <UserList institutionId={parseInt(id!)} />
         </CardContent>
       </Card>
 

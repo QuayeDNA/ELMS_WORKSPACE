@@ -11,6 +11,7 @@ import { useAuthStore } from '@/stores/auth.store';
 import { UserRole } from '@/types/auth';
 import './App.css';
 import { SettingsPage } from './pages/SettingsPage';
+import { UsersPage } from './pages/UsersPage';
 
 function App() {
   const { initializeAuth } = useAuthStore();
@@ -59,6 +60,20 @@ function App() {
                 <RoleGuard allowedRoles={[UserRole.SUPER_ADMIN]}>
                   <Layout>
                     <InstitutionDetailsPage />
+                  </Layout>
+                </RoleGuard>
+              </AuthGuard>
+            }
+          />
+
+          {/* User Management */}
+          <Route
+            path="/users"
+            element={
+              <AuthGuard>
+                <RoleGuard allowedRoles={[UserRole.SUPER_ADMIN, UserRole.ADMIN]}>
+                  <Layout>
+                    <UsersPage />
                   </Layout>
                 </RoleGuard>
               </AuthGuard>

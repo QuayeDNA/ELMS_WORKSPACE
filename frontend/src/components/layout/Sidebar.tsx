@@ -5,7 +5,8 @@ import { UserRole } from '@/types/auth';
 import {
   LayoutDashboard,
   Building,
-  Settings
+  Settings,
+  Users
 } from 'lucide-react';
 
 interface SidebarItem {
@@ -36,6 +37,13 @@ const getSidebarItemsForRole = (role: UserRole): SidebarItem[] => {
           description: 'Register and manage institutions'
         },
         {
+          title: 'Users',
+          href: '/users',
+          icon: Users,
+          roles: [UserRole.SUPER_ADMIN],
+          description: 'Manage all users in the system'
+        },
+        {
           title: 'Settings',
           href: '/settings',
           icon: Settings,
@@ -52,6 +60,13 @@ const getSidebarItemsForRole = (role: UserRole): SidebarItem[] => {
           icon: LayoutDashboard,
           roles: [UserRole.ADMIN],
           description: 'Institution overview'
+        },
+        {
+          title: 'Users',
+          href: '/users',
+          icon: Users,
+          roles: [UserRole.ADMIN],
+          description: 'Manage institution users'
         },
         {
           title: 'Settings',
