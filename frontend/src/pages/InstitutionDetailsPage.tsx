@@ -1,13 +1,16 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Building2, Users, BookOpen, Mail, Phone, MapPin, Globe, Calendar, Edit, CheckCircle, XCircle } from "lucide-react";
+import { ArrowLeft, Building2, Users, BookOpen, Mail, Phone, MapPin, Globe, Calendar, Edit, CheckCircle, XCircle, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 // Import types and services
-import { Institution, InstitutionStatus, InstitutionType } from "@/types/institution";
+import { Institution, InstitutionStatus, InstitutionType, InstitutionSpecificAnalytics as InstituteAnalyticsTypes } from "@/types/institution";
 import { institutionService } from "@/services/institution.service";
+
+// Import the new analytics component
+import InstitutionSpecificAnalytics from "@/components/institutions/InstitutionSpecificAnalytics";
 
 // ========================================
 // HELPER COMPONENTS
@@ -118,8 +121,11 @@ export const InstitutionDetailsPage = () => {
   const navigate = useNavigate();
 
   const [institution, setInstitution] = useState<Institution | null>(null);
+  const [analytics, setAnalytics] = useState<InstituteAnalyticsTypes | null>(null);
   const [loading, setLoading] = useState(true);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showAnalytics, setShowAnalytics] = useState(false);
 
   // ========================================
   // DATA FETCHING
@@ -149,6 +155,23 @@ export const InstitutionDetailsPage = () => {
 
     fetchInstitutionDetails();
   }, [id]);
+
+  // Fetch analytics function
+  const fetchAnalytics = async () => {
+    if (!id || analytics) return; // Don't fetch if already loaded
+
+    try {
+      setAnalyticsLoading(true);
+      const response = await institutionService.getInstitutionAnalytics(parseInt(id));
+      if (response.data) {
+        setAnalytics(response.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch institution analytics:', err);
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  };
 
   // ========================================
   // EVENT HANDLERS
@@ -295,6 +318,19 @@ export const InstitutionDetailsPage = () => {
           </div>
         </div>
         <div className="flex items-center space-x-2">
+          <Button 
+            onClick={() => {
+              setShowAnalytics(!showAnalytics);
+              if (!showAnalytics && !analytics) {
+                fetchAnalytics();
+              }
+            }} 
+            variant={showAnalytics ? "default" : "outline"}
+            className="flex items-center gap-2"
+          >
+            <BarChart3 className="h-4 w-4" />
+            {showAnalytics ? 'Hide Analytics' : 'View Analytics'}
+          </Button>
           {institution.status !== InstitutionStatus.ACTIVE && (
             <Button onClick={handleActivate} className="flex items-center gap-2">
               <CheckCircle className="h-4 w-4" />
@@ -488,6 +524,41 @@ export const InstitutionDetailsPage = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Analytics Section */}
+      {showAnalytics && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Institution Analytics
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {analytics ? (
+              <InstitutionSpecificAnalytics 
+                data={analytics} 
+                loading={analyticsLoading}
+                institutionName={institution.name}
+              />
+            ) : (
+              <div className="flex items-center justify-center py-12">
+                {analyticsLoading ? (
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    <p className="text-gray-600 mt-2">Loading analytics...</p>
+                  </div>
+                ) : (
+                  <div className="text-center">
+                    <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600">Analytics data will appear here</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

@@ -6,6 +6,7 @@ import {
   InstitutionQuery,
   InstitutionListResponse,
   InstitutionStats,
+  InstitutionSpecificAnalytics,
   CreateInstitutionWithAdminRequest,
   InstitutionWithAdminResponse,
   InstitutionType,
@@ -341,6 +342,167 @@ export class InstitutionService {
       };
     } catch (error) {
       console.error('Error fetching institution stats:', error);
+      throw error;
+    }
+  }
+
+  async getInstitutionAnalytics(institutionId: number): Promise<InstitutionSpecificAnalytics> {
+    try {
+      // First check if institution exists
+      const institution = await prisma.institution.findUnique({
+        where: { id: institutionId }
+      });
+
+      if (!institution) {
+        throw new Error('Institution not found');
+      }
+
+      const [
+        totalUsers,
+        activeUsers,
+        totalStudents,
+        totalLecturers,
+        totalAdmins,
+        totalFaculties,
+        usersByRole,
+        facultyDetails,
+        recentUserRegistrations,
+        recentFacultyCreations
+      ] = await Promise.all([
+        // Total users in institution
+        prisma.user.count({
+          where: { institutionId }
+        }),
+
+        // Active users count
+        prisma.user.count({
+          where: {
+            institutionId,
+            status: UserStatus.ACTIVE
+          }
+        }),
+
+        // Students count
+        prisma.user.count({
+          where: {
+            institutionId,
+            role: UserRole.STUDENT
+          }
+        }),
+
+        // Lecturers count
+        prisma.user.count({
+          where: {
+            institutionId,
+            role: UserRole.LECTURER
+          }
+        }),
+
+        // Admins count
+        prisma.user.count({
+          where: {
+            institutionId,
+            role: {
+              in: [UserRole.ADMIN, UserRole.FACULTY_ADMIN]
+            }
+          }
+        }),
+
+        // Total faculties
+        prisma.faculty.count({
+          where: { institutionId }
+        }),
+
+        // Users grouped by role
+        prisma.user.groupBy({
+          by: ['role'],
+          where: { institutionId },
+          _count: {
+            role: true
+          }
+        }),
+
+        // Faculty details with user counts
+        prisma.faculty.findMany({
+          where: { institutionId },
+          include: {
+            _count: {
+              select: {
+                users: true
+              }
+            }
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 5
+        }),
+
+        // Recent user registrations (last 7 days)
+        prisma.user.count({
+          where: {
+            institutionId,
+            createdAt: {
+              gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+            }
+          }
+        }),
+
+        // Recent faculty creations (last 7 days)
+        prisma.faculty.count({
+          where: {
+            institutionId,
+            createdAt: {
+              gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+            }
+          }
+        })
+      ]);
+
+      // Transform usersByRole to a simple record
+      const usersByRoleMap: Record<string, number> = {};
+      usersByRole.forEach(item => {
+        usersByRoleMap[item.role] = item._count.role;
+      });
+
+      // Transform faculty details
+      const facultyDetailsTransformed = facultyDetails.map(faculty => ({
+        id: faculty.id,
+        name: faculty.name,
+        code: faculty.code,
+        userCount: faculty._count.users
+      }));
+
+      // Create recent activity data
+      const recentActivity = [
+        {
+          type: 'User Registration',
+          count: recentUserRegistrations,
+          time: 'Last 7 days'
+        },
+        {
+          type: 'Faculty Created',
+          count: recentFacultyCreations,
+          time: 'Last 7 days'
+        }
+      ];
+
+      return {
+        totalUsers,
+        activeUsers,
+        totalStudents,
+        totalLecturers,
+        totalAdmins,
+        totalFaculties,
+        usersByRole: usersByRoleMap,
+        facultyDetails: facultyDetailsTransformed,
+        recentActivity,
+        performanceMetrics: {
+          studentSatisfaction: 95, // This could be calculated from actual data
+          courseCompletion: 88,    // This could be calculated from actual data
+          facultyRating: 92        // This could be calculated from actual data
+        }
+      };
+    } catch (error) {
+      console.error('Error fetching institution analytics:', error);
       throw error;
     }
   }

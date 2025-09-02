@@ -10,6 +10,7 @@ import {
   CreateInstitutionWithAdminRequest,
   InstitutionWithAdminResponse,
   InstitutionStats,
+  InstitutionSpecificAnalytics,
   InstitutionFormData,
   AdminFormData,
   InstitutionType
@@ -124,9 +125,9 @@ class InstitutionService {
   /**
    * Get institution analytics
    */
-  async getInstitutionAnalytics(id: number): Promise<ApiResponse<InstitutionStats>> {
+  async getInstitutionAnalytics(id: number): Promise<ApiResponse<InstitutionSpecificAnalytics>> {
     try {
-      return await apiService.get<InstitutionStats>(API_ENDPOINTS.INSTITUTIONS.ANALYTICS(id));
+      return await apiService.get<InstitutionSpecificAnalytics>(API_ENDPOINTS.INSTITUTIONS.ANALYTICS(id));
     } catch (error) {
       console.error(`Error fetching analytics for institution ${id}:`, error);
       throw error;

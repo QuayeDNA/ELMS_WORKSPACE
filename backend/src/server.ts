@@ -7,6 +7,8 @@ import dotenv from 'dotenv';
 // Import routes
 import authRoutes from './routes/authRoutes';
 import { institutionRoutes } from './routes/institutionRoutes';
+import { facultyRoutes } from './routes/facultyRoutes';
+import { userRoutes } from './routes/userRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -79,6 +81,12 @@ app.use('/api/auth', authRoutes);
 
 // Institution routes  
 app.use('/api/institutions', institutionRoutes);
+
+// Faculty routes
+app.use('/api/faculties', facultyRoutes);
+
+// User routes
+app.use('/api/users', userRoutes);
 
 // 404 handler for API routes
 app.use('/api', (req, res) => {
