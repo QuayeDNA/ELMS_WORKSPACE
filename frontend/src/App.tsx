@@ -6,9 +6,11 @@ import { Layout } from '@/components/layout/Layout';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { DashboardPage } from '@/pages/dashboard/DashboardPage';
 import { InstitutionsPage } from '@/pages/InstitutionsPage';
+import { InstitutionDetailsPage } from '@/pages/InstitutionDetailsPage';
 import { useAuthStore } from '@/stores/auth.store';
 import { UserRole } from '@/types/auth';
 import './App.css';
+import { SettingsPage } from './pages/SettingsPage';
 
 function App() {
   const { initializeAuth } = useAuthStore();
@@ -50,6 +52,18 @@ function App() {
               </AuthGuard>
             }
           />
+          <Route
+            path="/institutions/:id"
+            element={
+              <AuthGuard>
+                <RoleGuard allowedRoles={[UserRole.SUPER_ADMIN]}>
+                  <Layout>
+                    <InstitutionDetailsPage />
+                  </Layout>
+                </RoleGuard>
+              </AuthGuard>
+            }
+          />
 
           {/* Settings */}
           <Route
@@ -57,9 +71,7 @@ function App() {
             element={
               <AuthGuard>
                 <Layout>
-                  <div className="p-6">
-                    <h1>Settings - Coming Soon</h1>
-                  </div>
+                  <SettingsPage />
                 </Layout>
               </AuthGuard>
             }

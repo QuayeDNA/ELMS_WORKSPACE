@@ -1,4 +1,4 @@
-import { MoreHorizontal, Edit, Trash2, Users, MapPin, Mail, Phone, Eye } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, Users, MapPin, Mail, Phone, Eye, CheckCircle, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -20,6 +20,9 @@ interface InstitutionTableProps {
   onDelete: (institution: Institution) => void;
   onView: (institution: Institution) => void;
   onManageAdmins?: (institution: Institution) => void;
+  onActivate?: (id: number) => void;
+  onDeactivate?: (id: number) => void;
+  actionLoading?: {[key: number]: boolean};
 }
 
 interface TableActionMenuProps {
@@ -28,6 +31,9 @@ interface TableActionMenuProps {
   onDelete: (institution: Institution) => void;
   onView: (institution: Institution) => void;
   onManageAdmins?: (institution: Institution) => void;
+  onActivate?: (id: number) => void;
+  onDeactivate?: (id: number) => void;
+  isActionLoading?: boolean;
 }
 
 // ========================================
@@ -75,34 +81,50 @@ const TableActionMenu = ({
   onEdit, 
   onDelete, 
   onView, 
-  onManageAdmins 
+  onManageAdmins,
+  onActivate,
+  onDeactivate,
+  isActionLoading = false
 }: TableActionMenuProps) => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="h-8 w-8 p-0">
+        <Button variant="ghost" className="h-8 w-8 p-0" disabled={isActionLoading}>
           <span className="sr-only">Open menu</span>
           <MoreHorizontal className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
-        <DropdownMenuItem onClick={() => onView(institution)}>
+        <DropdownMenuItem onClick={() => onView(institution)} disabled={isActionLoading}>
           <Eye className="mr-2 h-4 w-4" />
           View Details
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onEdit(institution)}>
+        <DropdownMenuItem onClick={() => onEdit(institution)} disabled={isActionLoading}>
           <Edit className="mr-2 h-4 w-4" />
           Edit Institution
         </DropdownMenuItem>
         {onManageAdmins && (
-          <DropdownMenuItem onClick={() => onManageAdmins(institution)}>
+          <DropdownMenuItem onClick={() => onManageAdmins(institution)} disabled={isActionLoading}>
             <Users className="mr-2 h-4 w-4" />
             Manage Admins
+          </DropdownMenuItem>
+        )}
+        {onActivate && institution.status !== InstitutionStatus.ACTIVE && (
+          <DropdownMenuItem onClick={() => onActivate(institution.id)} disabled={isActionLoading}>
+            <CheckCircle className="mr-2 h-4 w-4" />
+            {isActionLoading ? 'Activating...' : 'Activate'}
+          </DropdownMenuItem>
+        )}
+        {onDeactivate && institution.status === InstitutionStatus.ACTIVE && (
+          <DropdownMenuItem onClick={() => onDeactivate(institution.id)} disabled={isActionLoading}>
+            <XCircle className="mr-2 h-4 w-4" />
+            {isActionLoading ? 'Deactivating...' : 'Deactivate'}
           </DropdownMenuItem>
         )}
         <DropdownMenuItem 
           onClick={() => onDelete(institution)}
           className="text-red-600 focus:text-red-600"
+          disabled={isActionLoading}
         >
           <Trash2 className="mr-2 h-4 w-4" />
           Delete
@@ -123,6 +145,9 @@ export const InstitutionTable = ({
   onDelete,
   onView,
   onManageAdmins,
+  onActivate,
+  onDeactivate,
+  actionLoading = {},
 }: InstitutionTableProps) => {
   const formatDate = (dateString: string | Date) => {
     const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
@@ -150,8 +175,8 @@ export const InstitutionTable = ({
             </tr>
           </thead>
           <tbody>
-            {Array.from({ length: 5 }).map((_, index) => (
-              <tr key={`loading-${index}`} className="border-t">
+            {Array.from({ length: 5 }, (_, index) => `loading-${Date.now()}-${index}`).map((key) => (
+              <tr key={key} className="border-t">
                 <td className="px-4 py-3">
                   <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
                 </td>
@@ -290,6 +315,9 @@ export const InstitutionTable = ({
                   onDelete={onDelete}
                   onView={onView}
                   onManageAdmins={onManageAdmins}
+                  onActivate={onActivate}
+                  onDeactivate={onDeactivate}
+                  isActionLoading={actionLoading[institution.id] || false}
                 />
               </td>
             </tr>

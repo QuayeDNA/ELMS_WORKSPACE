@@ -38,8 +38,22 @@ export interface Institution {
   website?: string;
   description?: string;
   logoUrl?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+  users?: Array<{
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    role: string;
+    status: string;
+    lastLogin: string | null;
+  }>;
+  faculties?: Array<{
+    id: number;
+    name: string;
+    code: string;
+  }>;
 }
 
 // ========================================

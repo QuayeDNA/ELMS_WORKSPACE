@@ -89,6 +89,14 @@ class ApiService {
   private async handleRequest<T>(requestPromise: Promise<AxiosResponse>): Promise<ApiResponse<T>> {
     try {
       const response: AxiosResponse = await requestPromise;
+      
+      // Check if the backend already returns a structured response
+      if (response.data && typeof response.data === 'object' && 'success' in response.data) {
+        // Backend already returns {success, data, message} structure
+        return response.data as ApiResponse<T>;
+      }
+      
+      // Backend returns raw data, wrap it
       return {
         success: true,
         data: response.data,

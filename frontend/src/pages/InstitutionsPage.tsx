@@ -1,10 +1,24 @@
-import { useState, useEffect } from 'react';
-import { Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from '@/components/ui/pagination';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis,
+} from "@/components/ui/pagination";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // Import our modular components
 import {
@@ -13,7 +27,7 @@ import {
   InstitutionAnalytics,
   InstitutionAnalyticsData,
   InstitutionForm,
-} from '@/components/institutions';
+} from "@/components/institutions";
 
 // Import types and services
 import {
@@ -22,8 +36,9 @@ import {
   DEFAULT_INSTITUTION_FILTERS,
   InstitutionFormData,
   AdminFormData,
-} from '@/types/institution';
-import { institutionService } from '@/services/institution.service';
+  InstitutionStatus,
+} from "@/types/institution";
+import { institutionService } from "@/services/institution.service";
 
 // ========================================
 // INTERFACE DEFINITIONS
@@ -44,7 +59,7 @@ interface InstitutionsPageState {
 
 interface FormState {
   isOpen: boolean;
-  mode: 'create' | 'edit' | 'create-with-admin';
+  mode: "create" | "edit" | "create-with-admin";
   editingInstitution: Institution | null;
   loading: boolean;
 }
@@ -61,9 +76,11 @@ interface AnalyticsState {
 
 export function InstitutionsPage() {
   // ========================================
-  // STATE MANAGEMENT
+  // HOOKS
   // ========================================
-  
+
+  const navigate = useNavigate();
+
   const [state, setState] = useState<InstitutionsPageState>({
     institutions: [],
     loading: false,
@@ -73,15 +90,15 @@ export function InstitutionsPage() {
       totalPages: 1,
       total: 0,
       hasNext: false,
-      hasPrev: false
-    }
+      hasPrev: false,
+    },
   });
 
   const [filters, setFilters] = useState<IFilters>(DEFAULT_INSTITUTION_FILTERS);
 
   const [formState, setFormState] = useState<FormState>({
     isOpen: false,
-    mode: 'create',
+    mode: "create",
     editingInstitution: null,
     loading: false,
   });
@@ -92,13 +109,15 @@ export function InstitutionsPage() {
     error: null,
   });
 
+  const [actionLoading, setActionLoading] = useState<{[key: number]: boolean}>({});
+
   // ========================================
   // DATA FETCHING
   // ========================================
 
   const fetchInstitutions = async (newFilters?: IFilters, page?: number) => {
     try {
-      setState(prev => ({ ...prev, loading: true, error: null }));
+      setState((prev) => ({ ...prev, loading: true, error: null }));
 
       const queryFilters = newFilters || filters;
       const queryPage = page || state.pagination.page;
@@ -107,16 +126,16 @@ export function InstitutionsPage() {
         page: queryPage,
         limit: 10,
         search: queryFilters.search || undefined,
-        type: queryFilters.type !== 'ALL' ? queryFilters.type : undefined,
-        status: queryFilters.status !== 'ALL' ? queryFilters.status : undefined,
+        type: queryFilters.type !== "ALL" ? queryFilters.type : undefined,
+        status: queryFilters.status !== "ALL" ? queryFilters.status : undefined,
         sortBy: queryFilters.sortBy,
-        sortOrder: queryFilters.sortOrder
+        sortOrder: queryFilters.sortOrder,
       });
 
       const data = response.data;
 
       if (data) {
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           institutions: data.institutions,
           pagination: {
@@ -124,25 +143,27 @@ export function InstitutionsPage() {
             totalPages: data.totalPages,
             total: data.total,
             hasNext: data.hasNext,
-            hasPrev: data.hasPrev
+            hasPrev: data.hasPrev,
           },
-          loading: false
+          loading: false,
         }));
       }
-
     } catch (error) {
-      console.error('Failed to fetch institutions:', error);
-      setState(prev => ({
+      console.error("Failed to fetch institutions:", error);
+      setState((prev) => ({
         ...prev,
         loading: false,
-        error: error instanceof Error ? error.message : 'Failed to fetch institutions'
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch institutions",
       }));
     }
   };
 
   const fetchAnalytics = async () => {
     try {
-      setAnalyticsState(prev => ({ ...prev, loading: true, error: null }));
+      setAnalyticsState((prev) => ({ ...prev, loading: true, error: null }));
 
       const response = await institutionService.getOverallAnalytics();
       const stats = response.data;
@@ -158,19 +179,19 @@ export function InstitutionsPage() {
           recentInstitutions: stats.recentInstitutions,
         };
 
-        setAnalyticsState(prev => ({
+        setAnalyticsState((prev) => ({
           ...prev,
           data: analyticsData,
-          loading: false
+          loading: false,
         }));
       }
-
     } catch (error) {
-      console.error('Failed to fetch analytics:', error);
-      setAnalyticsState(prev => ({
+      console.error("Failed to fetch analytics:", error);
+      setAnalyticsState((prev) => ({
         ...prev,
         loading: false,
-        error: error instanceof Error ? error.message : 'Failed to fetch analytics'
+        error:
+          error instanceof Error ? error.message : "Failed to fetch analytics",
       }));
     }
   };
@@ -202,13 +223,13 @@ export function InstitutionsPage() {
   };
 
   const handleViewInstitution = (institution: Institution) => {
-    console.log('View institution:', institution);
+    navigate(`/institutions/${institution.id}`);
   };
 
   const handleEditInstitution = (institution: Institution) => {
     setFormState({
       isOpen: true,
-      mode: 'edit',
+      mode: "edit",
       editingInstitution: institution,
       loading: false,
     });
@@ -217,44 +238,64 @@ export function InstitutionsPage() {
   const handleAddInstitution = () => {
     setFormState({
       isOpen: true,
-      mode: 'create-with-admin',
+      mode: "create-with-admin",
       editingInstitution: null,
       loading: false,
     });
   };
 
-  const handleFormSubmit = async (institutionData: InstitutionFormData, adminData?: AdminFormData) => {
+  const handleFormSubmit = async (
+    institutionData: InstitutionFormData,
+    adminData?: AdminFormData
+  ) => {
     try {
-      setFormState(prev => ({ ...prev, loading: true }));
+      setFormState((prev) => ({ ...prev, loading: true }));
 
-      if (formState.mode === 'create-with-admin' && adminData) {
+      if (formState.mode === "create-with-admin" && adminData) {
         // Create institution with admin
-        const requestData = institutionService.transformFormToWithAdminRequest(institutionData, adminData);
+        const requestData = institutionService.transformFormToWithAdminRequest(
+          institutionData,
+          adminData
+        );
         await institutionService.createInstitutionWithAdmin(requestData);
-      } else if (formState.mode === 'edit' && formState.editingInstitution) {
+      } else if (formState.mode === "edit" && formState.editingInstitution) {
         // Update existing institution
-        const requestData = institutionService.transformFormToRequest(institutionData);
-        await institutionService.updateInstitution(formState.editingInstitution.id, requestData);
+        const requestData =
+          institutionService.transformFormToRequest(institutionData);
+        await institutionService.updateInstitution(
+          formState.editingInstitution.id,
+          requestData
+        );
       } else {
         // Create institution without admin
-        const requestData = institutionService.transformFormToRequest(institutionData);
+        const requestData =
+          institutionService.transformFormToRequest(institutionData);
         await institutionService.createInstitution(requestData);
       }
 
       // Close form and refresh data
-      setFormState({ isOpen: false, mode: 'create', editingInstitution: null, loading: false });
+      setFormState({
+        isOpen: false,
+        mode: "create",
+        editingInstitution: null,
+        loading: false,
+      });
       fetchInstitutions();
       fetchAnalytics();
-
     } catch (error) {
-      console.error('Failed to save institution:', error);
-      setFormState(prev => ({ ...prev, loading: false }));
-      alert('Failed to save institution. Please try again.');
+      console.error("Failed to save institution:", error);
+      setFormState((prev) => ({ ...prev, loading: false }));
+      alert("Failed to save institution. Please try again.");
     }
   };
 
   const handleFormCancel = () => {
-    setFormState({ isOpen: false, mode: 'create', editingInstitution: null, loading: false });
+    setFormState({
+      isOpen: false,
+      mode: "create",
+      editingInstitution: null,
+      loading: false,
+    });
   };
 
   const handleDeleteInstitution = async (institution: Institution) => {
@@ -268,8 +309,46 @@ export function InstitutionsPage() {
       fetchInstitutions(); // Refresh data
       fetchAnalytics(); // Refresh analytics
     } catch (error) {
-      console.error('Failed to delete institution:', error);
-      alert('Failed to delete institution. Please try again.');
+      console.error("Failed to delete institution:", error);
+      alert("Failed to delete institution. Please try again.");
+    }
+  };
+
+  const handleActivateInstitution = async (id: number) => {
+    try {
+      setActionLoading(prev => ({ ...prev, [id]: true }));
+      await institutionService.updateInstitution(id, {
+        status: InstitutionStatus.ACTIVE,
+      });
+      fetchInstitutions(); // Refresh the list
+      fetchAnalytics(); // Refresh analytics
+      // Find institution name for success message
+      const institution = state.institutions.find(inst => inst.id === id);
+      alert(`Institution "${institution?.name || 'Unknown'}" has been activated successfully!`);
+    } catch (error) {
+      console.error("Failed to activate institution:", error);
+      alert("Failed to activate institution. Please try again.");
+    } finally {
+      setActionLoading(prev => ({ ...prev, [id]: false }));
+    }
+  };
+
+  const handleDeactivateInstitution = async (id: number) => {
+    try {
+      setActionLoading(prev => ({ ...prev, [id]: true }));
+      await institutionService.updateInstitution(id, {
+        status: InstitutionStatus.INACTIVE,
+      });
+      fetchInstitutions(); // Refresh the list
+      fetchAnalytics(); // Refresh analytics
+      // Find institution name for success message
+      const institution = state.institutions.find(inst => inst.id === id);
+      alert(`Institution "${institution?.name || 'Unknown'}" has been deactivated successfully!`);
+    } catch (error) {
+      console.error("Failed to deactivate institution:", error);
+      alert("Failed to deactivate institution. Please try again.");
+    } finally {
+      setActionLoading(prev => ({ ...prev, [id]: false }));
     }
   };
 
@@ -287,9 +366,7 @@ export function InstitutionsPage() {
         <Card>
           <CardContent className="p-6 text-center">
             <p className="text-red-600 mb-4">{state.error}</p>
-            <Button onClick={() => fetchInstitutions()}>
-              Try Again
-            </Button>
+            <Button onClick={() => fetchInstitutions()}>Try Again</Button>
           </CardContent>
         </Card>
       );
@@ -303,62 +380,76 @@ export function InstitutionsPage() {
           onView={handleViewInstitution}
           onEdit={handleEditInstitution}
           onDelete={handleDeleteInstitution}
+          onActivate={handleActivateInstitution}
+          onDeactivate={handleDeactivateInstitution}
+          actionLoading={actionLoading}
         />
-        
+
         {/* Pagination Controls */}
         {state.pagination.totalPages > 1 && (
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-700">
-              Showing {((state.pagination.page - 1) * 10) + 1} to{' '}
-              {Math.min(state.pagination.page * 10, state.pagination.total)} of{' '}
+              Showing {(state.pagination.page - 1) * 10 + 1} to{" "}
+              {Math.min(state.pagination.page * 10, state.pagination.total)} of{" "}
               {state.pagination.total} results
             </div>
             <Pagination>
               <PaginationContent>
                 <PaginationItem>
-                  <PaginationPrevious 
+                  <PaginationPrevious
                     href="#"
                     onClick={(e) => {
                       e.preventDefault();
                       handlePageChange(state.pagination.page - 1);
                     }}
-                    className={!state.pagination.hasPrev ? 'pointer-events-none opacity-50' : ''}
+                    className={
+                      !state.pagination.hasPrev
+                        ? "pointer-events-none opacity-50"
+                        : ""
+                    }
                   />
                 </PaginationItem>
-                
+
                 {/* Page numbers */}
-                {Array.from({ length: Math.min(state.pagination.totalPages, 5) }, (_, i) => {
-                  const page = i + 1;
-                  return (
-                    <PaginationItem key={page}>
-                      <PaginationLink
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handlePageChange(page);
-                        }}
-                        isActive={page === state.pagination.page}
-                      >
-                        {page}
-                      </PaginationLink>
-                    </PaginationItem>
-                  );
-                })}
-                
+                {Array.from(
+                  { length: Math.min(state.pagination.totalPages, 5) },
+                  (_, i) => {
+                    const page = i + 1;
+                    return (
+                      <PaginationItem key={page}>
+                        <PaginationLink
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handlePageChange(page);
+                          }}
+                          isActive={page === state.pagination.page}
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+                  }
+                )}
+
                 {state.pagination.totalPages > 5 && (
                   <PaginationItem>
                     <PaginationEllipsis />
                   </PaginationItem>
                 )}
-                
+
                 <PaginationItem>
-                  <PaginationNext 
+                  <PaginationNext
                     href="#"
                     onClick={(e) => {
                       e.preventDefault();
                       handlePageChange(state.pagination.page + 1);
                     }}
-                    className={!state.pagination.hasNext ? 'pointer-events-none opacity-50' : ''}
+                    className={
+                      !state.pagination.hasNext
+                        ? "pointer-events-none opacity-50"
+                        : ""
+                    }
                   />
                 </PaginationItem>
               </PaginationContent>
@@ -379,9 +470,14 @@ export function InstitutionsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Institutions</h1>
-          <p className="text-gray-600">Manage educational institutions and their administrators</p>
+          <p className="text-gray-600">
+            Manage educational institutions and their administrators
+          </p>
         </div>
-        <Button className="flex items-center gap-2" onClick={handleAddInstitution}>
+        <Button
+          className="flex items-center gap-2"
+          onClick={handleAddInstitution}
+        >
           <Plus className="h-4 w-4" />
           Add Institution
         </Button>
@@ -401,51 +497,58 @@ export function InstitutionsPage() {
             onClearFilters={handleClearFilters}
             loading={state.loading}
           />
-          
+
           {renderInstitutionsContent()}
         </TabsContent>
 
         {/* Analytics Tab */}
         <TabsContent value="analytics" className="space-y-6">
-          <InstitutionAnalytics 
-            data={analyticsState.data || {
-              totalInstitutions: 0,
-              activeInstitutions: 0,
-              inactiveInstitutions: 0,
-              pendingInstitutions: 0,
-              institutionsByType: {
-                UNIVERSITY: 0,
-                TECHNICAL_UNIVERSITY: 0,
-                POLYTECHNIC: 0,
-                COLLEGE: 0,
-                INSTITUTE: 0,
-                OTHER: 0
-              },
-              recentInstitutions: []
-            }}
-            loading={analyticsState.loading} 
+          <InstitutionAnalytics
+            data={
+              analyticsState.data || {
+                totalInstitutions: 0,
+                activeInstitutions: 0,
+                inactiveInstitutions: 0,
+                pendingInstitutions: 0,
+                institutionsByType: {
+                  UNIVERSITY: 0,
+                  TECHNICAL_UNIVERSITY: 0,
+                  POLYTECHNIC: 0,
+                  COLLEGE: 0,
+                  INSTITUTE: 0,
+                  OTHER: 0,
+                },
+                recentInstitutions: [],
+              }
+            }
+            loading={analyticsState.loading}
           />
         </TabsContent>
       </Tabs>
 
       {/* Institution Form Dialog */}
-      <Dialog open={formState.isOpen} onOpenChange={(open) => !open && handleFormCancel()}>
+      <Dialog
+        open={formState.isOpen}
+        onOpenChange={(open) => !open && handleFormCancel()}
+      >
         <DialogContent className="min-w-6xl w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {formState.mode === 'edit' 
-                ? 'Edit Institution'
-                : formState.mode === 'create-with-admin'
-                ? 'Create Institution with Admin'
-                : 'Create Institution'
-              }
+              {formState.mode === "edit"
+                ? "Edit Institution"
+                : formState.mode === "create-with-admin"
+                ? "Create Institution with Admin"
+                : "Create Institution"}
             </DialogTitle>
           </DialogHeader>
           <InstitutionForm
             mode={formState.mode}
-            initialData={formState.editingInstitution ? 
-              institutionService.institutionToFormData(formState.editingInstitution) : 
-              undefined
+            initialData={
+              formState.editingInstitution
+                ? institutionService.institutionToFormData(
+                    formState.editingInstitution
+                  )
+                : undefined
             }
             onSubmit={handleFormSubmit}
             onCancel={handleFormCancel}
