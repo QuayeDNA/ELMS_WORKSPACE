@@ -6,7 +6,14 @@ import {
   LayoutDashboard,
   Building,
   Settings,
-  Users
+  Users,
+  GraduationCap,
+  Building2,
+  BookOpen,
+  FileCheck,
+  AlertTriangle,
+  FileText,
+  BarChart3
 } from 'lucide-react';
 
 interface SidebarItem {
@@ -56,21 +63,70 @@ const getSidebarItemsForRole = (role: UserRole): SidebarItem[] => {
       return [
         {
           title: 'Dashboard',
-          href: '/dashboard',
+          href: '/admin/institution',
           icon: LayoutDashboard,
           roles: [UserRole.ADMIN],
           description: 'Institution overview'
         },
         {
           title: 'Users',
-          href: '/users',
+          href: '/admin/users',
           icon: Users,
           roles: [UserRole.ADMIN],
-          description: 'Manage institution users'
+          description: 'Manage users'
+        },
+        {
+          title: 'Faculty',
+          href: '/admin/faculty',
+          icon: GraduationCap,
+          roles: [UserRole.ADMIN],
+          description: 'Manage faculty members'
+        },
+        {
+          title: 'Departments',
+          href: '/admin/departments',
+          icon: Building2,
+          roles: [UserRole.ADMIN],
+          description: 'Manage departments'
+        },
+        {
+          title: 'Courses',
+          href: '/admin/courses',
+          icon: BookOpen,
+          roles: [UserRole.ADMIN],
+          description: 'Manage courses'
+        },
+        {
+          title: 'Exams',
+          href: '/admin/exams',
+          icon: FileCheck,
+          roles: [UserRole.ADMIN],
+          description: 'Manage examinations'
+        },
+        {
+          title: 'Incidents',
+          href: '/admin/incidents',
+          icon: AlertTriangle,
+          roles: [UserRole.ADMIN],
+          description: 'Track incidents'
+        },
+        {
+          title: 'Scripts',
+          href: '/admin/scripts',
+          icon: FileText,
+          roles: [UserRole.ADMIN],
+          description: 'Manage scripts'
+        },
+        {
+          title: 'Reports',
+          href: '/admin/reports',
+          icon: BarChart3,
+          roles: [UserRole.ADMIN],
+          description: 'View reports'
         },
         {
           title: 'Settings',
-          href: '/settings',
+          href: '/admin/settings',
           icon: Settings,
           roles: [UserRole.ADMIN],
           description: 'Institution settings'
@@ -134,7 +190,7 @@ const getSidebarItemsForRole = (role: UserRole): SidebarItem[] => {
 };
 
 interface SidebarProps {
-  collapsed?: boolean;
+  readonly collapsed?: boolean;
 }
 
 export function Sidebar({ collapsed = false }: SidebarProps) {

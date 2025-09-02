@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { useEffect } from 'react';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { RoleGuard } from '@/components/auth/RoleGuard';
@@ -8,12 +8,18 @@ import { LoginPage } from '@/pages/auth/LoginPage';
 import { DashboardPage } from '@/pages/dashboard/DashboardPage';
 import { InstitutionsPage } from '@/pages/InstitutionsPage';
 import { InstitutionDetailsPage } from '@/pages/InstitutionDetailsPage';
+import { NotFoundPage } from '@/pages/NotFoundPage';
 import { useAuthStore } from '@/stores/auth.store';
 import { UserRole } from '@/types/auth';
 import './App.css';
 import { SettingsPage } from './pages/SettingsPage';
 import { UsersPage } from './pages/UsersPage';
 import { InstitutionAdminDashboard } from './pages/admin/InstitutionAdminDashboard';
+import { UsersPage as AdminUsersPage } from './pages/admin/UsersPage';
+import { FacultyPage } from './pages/admin/FacultyPage';
+import { DepartmentsPage } from './pages/admin/DepartmentsPage';
+import { CoursesPage } from './pages/admin/CoursesPage';
+import { ExamsPage, IncidentsPage, ScriptsPage, ReportsPage, SettingsPage as AdminSettingsPage } from './pages/admin/PlaceholderPages';
 
 function App() {
   const { initializeAuth } = useAuthStore();
@@ -96,6 +102,116 @@ function App() {
             }
           />
 
+          {/* Admin Routes */}
+          <Route
+            path="/admin/users"
+            element={
+              <AuthGuard>
+                <RoleGuard allowedRoles={[UserRole.ADMIN]}>
+                  <Layout>
+                    <AdminUsersPage />
+                  </Layout>
+                </RoleGuard>
+              </AuthGuard>
+            }
+          />
+          <Route
+            path="/admin/faculty"
+            element={
+              <AuthGuard>
+                <RoleGuard allowedRoles={[UserRole.ADMIN]}>
+                  <Layout>
+                    <FacultyPage />
+                  </Layout>
+                </RoleGuard>
+              </AuthGuard>
+            }
+          />
+          <Route
+            path="/admin/departments"
+            element={
+              <AuthGuard>
+                <RoleGuard allowedRoles={[UserRole.ADMIN]}>
+                  <Layout>
+                    <DepartmentsPage />
+                  </Layout>
+                </RoleGuard>
+              </AuthGuard>
+            }
+          />
+          <Route
+            path="/admin/courses"
+            element={
+              <AuthGuard>
+                <RoleGuard allowedRoles={[UserRole.ADMIN]}>
+                  <Layout>
+                    <CoursesPage />
+                  </Layout>
+                </RoleGuard>
+              </AuthGuard>
+            }
+          />
+          <Route
+            path="/admin/exams"
+            element={
+              <AuthGuard>
+                <RoleGuard allowedRoles={[UserRole.ADMIN]}>
+                  <Layout>
+                    <ExamsPage />
+                  </Layout>
+                </RoleGuard>
+              </AuthGuard>
+            }
+          />
+          <Route
+            path="/admin/incidents"
+            element={
+              <AuthGuard>
+                <RoleGuard allowedRoles={[UserRole.ADMIN]}>
+                  <Layout>
+                    <IncidentsPage />
+                  </Layout>
+                </RoleGuard>
+              </AuthGuard>
+            }
+          />
+          <Route
+            path="/admin/scripts"
+            element={
+              <AuthGuard>
+                <RoleGuard allowedRoles={[UserRole.ADMIN]}>
+                  <Layout>
+                    <ScriptsPage />
+                  </Layout>
+                </RoleGuard>
+              </AuthGuard>
+            }
+          />
+          <Route
+            path="/admin/reports"
+            element={
+              <AuthGuard>
+                <RoleGuard allowedRoles={[UserRole.ADMIN]}>
+                  <Layout>
+                    <ReportsPage />
+                  </Layout>
+                </RoleGuard>
+              </AuthGuard>
+            }
+          />
+          <Route
+            path="/admin/settings"
+            element={
+              <AuthGuard>
+                <RoleGuard allowedRoles={[UserRole.ADMIN]}>
+                  <Layout>
+                    <AdminSettingsPage />
+                  </Layout>
+                </RoleGuard>
+              </AuthGuard>
+            }
+          />
+
           {/* Settings */}
           <Route
             path="/settings"
@@ -110,7 +226,9 @@ function App() {
           
           {/* Root and Default Redirects */}
           <Route path="/" element={<RootRedirect />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          
+          {/* 404 Page */}
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </div>
     </Router>
