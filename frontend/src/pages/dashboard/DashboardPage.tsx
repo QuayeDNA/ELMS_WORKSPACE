@@ -1,5 +1,5 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/stores/auth.store';
 import { UserRole } from '@/types/auth';
 import { 
@@ -11,7 +11,6 @@ import {
   Settings,
   LogOut
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
 
 interface DashboardCard {
   title: string;
@@ -30,37 +29,31 @@ export function DashboardPage() {
   const getRoleBasedCards = () => {
     const baseCards = [
       {
-        title: 'Settings',
+        title: 'Profile',
         description: 'View and edit your profile information',
-        icon: Settings,
-        href: '/settings',
+        icon: Users,
+        href: '/profile',
       },
     ];
 
     const roleSpecificCards: Record<UserRole, DashboardCard[]> = {
       [UserRole.SUPER_ADMIN]: [
         {
-          title: 'Institution Management',
-          description: 'Manage institutions and system settings',
-          icon: GraduationCap,
-          href: '/institutions',
+          title: 'System Management',
+          description: 'Manage institutions, users, and system settings',
+          icon: Settings,
+          href: '/admin/system',
         },
         {
-          title: 'User Management',
-          description: 'Manage all users and permissions',
-          icon: Users,
-          href: '/users',
-        },
-        {
-          title: 'System Analytics',
+          title: 'Analytics',
           description: 'View system-wide analytics and reports',
           icon: BarChart3,
-          href: '/settings', // Placeholder - can be updated when analytics route is added
+          href: '/admin/analytics',
         },
       ],
       [UserRole.ADMIN]: [
         {
-          title: 'Institution Dashboard',
+          title: 'Institution Management',
           description: 'Manage faculties, departments, and users',
           icon: GraduationCap,
           href: '/admin/institution',
@@ -69,7 +62,7 @@ export function DashboardPage() {
           title: 'User Management',
           description: 'Manage faculty and staff accounts',
           icon: Users,
-          href: '/users',
+          href: '/admin/users',
         },
       ],
       [UserRole.FACULTY_ADMIN]: [
@@ -77,13 +70,13 @@ export function DashboardPage() {
           title: 'Faculty Management',
           description: 'Manage departments and programs',
           icon: GraduationCap,
-          href: '/settings', // Placeholder - can be updated when faculty route is added
+          href: '/faculty/management',
         },
         {
           title: 'Exam Management',
           description: 'Schedule and manage examinations',
           icon: Calendar,
-          href: '/settings', // Placeholder - can be updated when exams route is added
+          href: '/faculty/exams',
         },
       ],
       [UserRole.DEAN]: [
@@ -91,7 +84,7 @@ export function DashboardPage() {
           title: 'Faculty Management',
           description: 'Manage faculty departments and programs',
           icon: GraduationCap,
-          href: '/settings', // Placeholder - can be updated when dean route is added
+          href: '/dean/management',
         },
       ],
       [UserRole.HOD]: [
@@ -99,7 +92,7 @@ export function DashboardPage() {
           title: 'Department Management',
           description: 'Manage department courses and staff',
           icon: GraduationCap,
-          href: '/settings', // Placeholder - can be updated when hod route is added
+          href: '/hod/management',
         },
       ],
       [UserRole.EXAMS_OFFICER]: [
@@ -107,7 +100,7 @@ export function DashboardPage() {
           title: 'Exam Scheduling',
           description: 'Schedule and coordinate examinations',
           icon: Calendar,
-          href: '/settings', // Placeholder - can be updated when exams route is added
+          href: '/exams/schedule',
         },
       ],
       [UserRole.SCRIPT_HANDLER]: [
@@ -115,7 +108,7 @@ export function DashboardPage() {
           title: 'Script Management',
           description: 'Handle script distribution and collection',
           icon: FileText,
-          href: '/settings', // Placeholder - can be updated when scripts route is added
+          href: '/scripts/management',
         },
       ],
       [UserRole.INVIGILATOR]: [
@@ -123,7 +116,7 @@ export function DashboardPage() {
           title: 'Exam Supervision',
           description: 'View assigned exam supervision duties',
           icon: Calendar,
-          href: '/settings', // Placeholder - can be updated when invigilator route is added
+          href: '/invigilator/duties',
         },
       ],
       [UserRole.LECTURER]: [
@@ -131,13 +124,13 @@ export function DashboardPage() {
           title: 'My Courses',
           description: 'View and manage your courses',
           icon: FileText,
-          href: '/settings', // Placeholder - can be updated when lecturer route is added
+          href: '/lecturer/courses',
         },
         {
           title: 'Exam Creation',
           description: 'Create and manage exam papers',
           icon: FileText,
-          href: '/settings', // Placeholder - can be updated when lecturer route is added
+          href: '/lecturer/exams',
         },
       ],
       [UserRole.STUDENT]: [
@@ -145,13 +138,13 @@ export function DashboardPage() {
           title: 'My Courses',
           description: 'View enrolled courses and materials',
           icon: GraduationCap,
-          href: '/settings', // Placeholder - can be updated when student route is added
+          href: '/student/courses',
         },
         {
           title: 'Exam Schedule',
           description: 'View upcoming examinations',
           icon: Calendar,
-          href: '/settings', // Placeholder - can be updated when student route is added
+          href: '/student/exams',
         },
       ],
     };
@@ -184,7 +177,7 @@ export function DashboardPage() {
         {dashboardCards.map((card, index) => {
           const IconComponent = card.icon;
           return (
-            <Card key={`${card.title}-${index}`} className="hover:shadow-lg transition-shadow cursor-pointer">
+            <Card key={index} className="hover:shadow-lg transition-shadow cursor-pointer">
               <CardHeader className="flex flex-row items-center space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
                   {card.title}
@@ -195,14 +188,8 @@ export function DashboardPage() {
                 <CardDescription>
                   {card.description}
                 </CardDescription>
-                <Button
-                  className="w-full mt-4"
-                  variant="outline"
-                  asChild
-                >
-                  <Link to={card.href}>
-                    Access
-                  </Link>
+                <Button className="w-full mt-4" variant="outline">
+                  Access
                 </Button>
               </CardContent>
             </Card>

@@ -1,22 +1,23 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { useAuthStore } from '@/stores/auth.store';
-import { useLoginRedirect } from '@/hooks/useLoginRedirect';
 
 export function LoginPage() {
   const { isAuthenticated } = useAuthStore();
-  const { redirectAfterLogin } = useLoginRedirect();
+  const navigate = useNavigate();
 
-  // Redirect to appropriate dashboard if already authenticated
+  // Redirect to dashboard if already authenticated
   if (isAuthenticated) {
-    console.log('LoginPage: User is authenticated, using redirect middleware');
+    console.log('LoginPage: User is authenticated, redirecting to dashboard');
     return <Navigate to="/dashboard" replace />;
   }
 
   const handleLoginSuccess = () => {
-    console.log('Login success - using role-based redirect');
-    // Use role-based redirect (delay is handled in the hook)
-    redirectAfterLogin();
+    console.log('Login success - redirecting to dashboard');
+    // Force navigation to dashboard
+    setTimeout(() => {
+      navigate('/dashboard', { replace: true });
+    }, 100);
   };
 
   return (

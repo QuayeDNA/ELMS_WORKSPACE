@@ -85,11 +85,9 @@ export class AuthController {
 
     } catch (error) {
       console.error('Registration error:', error);
-      
-      // Only log detailed errors on server, return generic message to client
       res.status(400).json({
         success: false,
-        message: 'Registration failed. Please check your information and try again.',
+        message: error instanceof Error ? error.message : 'Registration failed',
         code: 'REGISTRATION_FAILED'
       });
     }
@@ -125,11 +123,9 @@ export class AuthController {
 
     } catch (error) {
       console.error('Login error:', error);
-      
-      // Only log detailed errors on server, return generic message to client
       res.status(401).json({
         success: false,
-        message: 'Invalid email or password',
+        message: error instanceof Error ? error.message : 'Login failed',
         code: 'LOGIN_FAILED'
       });
     }

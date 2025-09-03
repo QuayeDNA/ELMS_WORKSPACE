@@ -2,11 +2,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Loader2, Mail, Lock } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Alert, AlertDescription } from '@/components/ui/Alert';
 import { useAuthStore } from '@/stores/auth.store';
 import type { LoginRequest } from '@/types/auth';
 
@@ -54,8 +54,8 @@ const {
 
   // Admin auto-fill function (temporary for development)
   const fillAdminCredentials = () => {
-    setValue('email', 'admin@elms.com');
-    setValue('password', 'admin123');
+    setValue('email', 'admin@elms.app');
+    setValue('password', 'Admin@123');
   };
 
   return (
@@ -139,7 +139,7 @@ const {
               >
                 🔑 Fill Admin Credentials
               </Button>
-              <p className="text-xs text-orange-500 mt-1">admin@elms.com / admin123</p>
+              <p className="text-xs text-orange-500 mt-1">admin@elms.app / Admin@123</p>
             </div>
           )}
 

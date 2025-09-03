@@ -101,32 +101,6 @@ export interface InstitutionStats {
   recentInstitutions: Institution[];
 }
 
-export interface InstitutionSpecificAnalytics {
-  totalUsers: number;
-  activeUsers: number;
-  totalStudents: number;
-  totalLecturers: number;
-  totalAdmins: number;
-  totalFaculties: number;
-  usersByRole: Record<string, number>;
-  facultyDetails: Array<{
-    id: number;
-    name: string;
-    code: string;
-    userCount: number;
-  }>;
-  recentActivity: Array<{
-    type: string;
-    count: number;
-    time: string;
-  }>;
-  performanceMetrics: {
-    studentSatisfaction: number;
-    courseCompletion: number;
-    facultyRating: number;
-  };
-}
-
 // ========================================
 // ADMIN REGISTRATION WITH INSTITUTION
 // ========================================

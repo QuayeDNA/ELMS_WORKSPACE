@@ -8,7 +8,7 @@ interface AuthGuardProps {
   redirectTo?: string;
 }
 
-export function AuthGuard({ children, redirectTo = '/login' }: Readonly<AuthGuardProps>) {
+export function AuthGuard({ children, redirectTo = '/auth/login' }: Readonly<AuthGuardProps>) {
   const { isAuthenticated, isLoading, initializeAuth } = useAuthStore();
   const location = useLocation();
   const initialized = useRef(false);

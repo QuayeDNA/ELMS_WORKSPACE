@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { authService } from '@/services/auth.service';
-import { storageService } from '@/services/storage.service';
 import type { AuthState, LoginRequest, RegisterRequest } from '@/types/auth';
 
 interface AuthActions {
@@ -19,7 +18,7 @@ type AuthStore = AuthState & AuthActions;
 export const useAuthStore = create<AuthStore>()(
   devtools(
     persist(
-      (set) => ({
+      (set, get) => ({
         // Initial state
         user: null,
         token: null,
@@ -34,11 +33,6 @@ export const useAuthStore = create<AuthStore>()(
           
           try {
             const authResponse = await authService.login(credentials);
-            
-            // Save to both Zustand store and storage service
-            storageService.setToken(authResponse.token);
-            storageService.setRefreshToken(authResponse.refreshToken);
-            storageService.setUser(authResponse.user);
             
             set({
               user: authResponse.user,
@@ -96,9 +90,6 @@ export const useAuthStore = create<AuthStore>()(
           } catch {
             // Continue with logout even if API call fails
           } finally {
-            // Clear from both Zustand store and storage service
-            storageService.clearAuthData();
-            
             set({
               user: null,
               token: null,
@@ -122,31 +113,19 @@ export const useAuthStore = create<AuthStore>()(
         },
 
         initializeAuth: async () => {
-          // Check if we have tokens in storage service
-          const token = storageService.getToken();
-          const user = storageService.getUser();
-          const refreshToken = storageService.getRefreshToken();
+          const state = get();
           
-          if (token && user) {
-            // Sync storage service data to Zustand store
-            set({
-              user,
-              token,
-              refreshToken,
-              isAuthenticated: true,
-              isLoading: false,
-              error: null,
-            });
+          // If already authenticated, don't re-initialize
+          if (state.isAuthenticated && state.user && state.token) {
+            return;
+          }
+          
+          // The persist middleware will automatically restore the state
+          // We just need to validate it
+          if (state.token && state.user) {
+            set({ isAuthenticated: true });
           } else {
-            // No valid auth data
-            set({
-              user: null,
-              token: null,
-              refreshToken: null,
-              isAuthenticated: false,
-              isLoading: false,
-              error: null,
-            });
+            set({ isAuthenticated: false });
           }
         },
 

@@ -246,7 +246,7 @@ export const institutionController = {
         });
       }
 
-      const analytics = await institutionService.getInstitutionAnalytics(id);
+      const analytics = await institutionService.getInstitutionStats();
       res.json({ success: true, data: analytics });
     } catch (error) {
       console.error('Error fetching institution analytics:', error);
