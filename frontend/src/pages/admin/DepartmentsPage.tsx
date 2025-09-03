@@ -46,28 +46,8 @@ import { facultyService } from '@/services/faculty.service';
 import { useAuth } from '@/hooks/useAuth';
 import { Department } from '@/types/department';
 import DepartmentCreate from '@/components/department/DepartmentCreate';
-// import DepartmentEdit from '@/components/department/DepartmentEdit';
-// import DepartmentView from '@/components/department/DepartmentView';
-
-// Temporary placeholder components
-const DepartmentEdit = ({ department, onSuccess, onCancel }: any) => (
-  <div className="p-4">
-    <h3>Edit {department.name}</h3>
-    <p>Edit form will be implemented here...</p>
-    <div className="flex gap-2 mt-4">
-      <button onClick={onCancel} className="px-4 py-2 border rounded">Cancel</button>
-      <button onClick={onSuccess} className="px-4 py-2 bg-blue-500 text-white rounded">Save</button>
-    </div>
-  </div>
-);
-
-const DepartmentView = ({ department, onClose }: any) => (
-  <div className="p-4">
-    <h3>{department.name}</h3>
-    <p>Department details will be shown here...</p>
-    <button onClick={onClose} className="px-4 py-2 border rounded mt-4">Close</button>
-  </div>
-);
+import DepartmentEdit from '@/components/department/DepartmentEdit';
+import DepartmentView from '@/components/department/DepartmentView';
 
 const DepartmentsPage: React.FC = () => {
   const { user } = useAuth();

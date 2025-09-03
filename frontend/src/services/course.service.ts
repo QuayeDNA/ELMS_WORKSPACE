@@ -8,7 +8,6 @@ import {
   ProgramCourse,
   CreateProgramCourseRequest,
   UpdateProgramCourseRequest,
-  CourseType
 } from '../types/course';
 
 export const courseService = {
