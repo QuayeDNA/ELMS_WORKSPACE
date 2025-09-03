@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Input } from '@/components/ui/Input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -39,15 +39,35 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription } from '@/components/ui/Alert';
 
 import { departmentService } from '@/services/department.service';
 import { facultyService } from '@/services/faculty.service';
 import { useAuth } from '@/hooks/useAuth';
 import { Department } from '@/types/department';
 import DepartmentCreate from '@/components/department/DepartmentCreate';
-import DepartmentEdit from '@/components/department/DepartmentEdit';
-import DepartmentView from '@/components/department/DepartmentView';
+// import DepartmentEdit from '@/components/department/DepartmentEdit';
+// import DepartmentView from '@/components/department/DepartmentView';
+
+// Temporary placeholder components
+const DepartmentEdit = ({ department, onSuccess, onCancel }: any) => (
+  <div className="p-4">
+    <h3>Edit {department.name}</h3>
+    <p>Edit form will be implemented here...</p>
+    <div className="flex gap-2 mt-4">
+      <button onClick={onCancel} className="px-4 py-2 border rounded">Cancel</button>
+      <button onClick={onSuccess} className="px-4 py-2 bg-blue-500 text-white rounded">Save</button>
+    </div>
+  </div>
+);
+
+const DepartmentView = ({ department, onClose }: any) => (
+  <div className="p-4">
+    <h3>{department.name}</h3>
+    <p>Department details will be shown here...</p>
+    <button onClick={onClose} className="px-4 py-2 border rounded mt-4">Close</button>
+  </div>
+);
 
 const DepartmentsPage: React.FC = () => {
   const { user } = useAuth();
@@ -107,13 +127,13 @@ const DepartmentsPage: React.FC = () => {
   // Fetch faculties for filter (only if user can see multiple faculties)
   const { data: facultiesData } = useQuery({
     queryKey: ['faculties-for-filter'],
-    queryFn: () => {
+    queryFn: async () => {
       if (user?.role === 'SUPER_ADMIN') {
-        return facultyService.getFaculties({});
+        return await facultyService.getFaculties({});
       } else if (user?.role === 'ADMIN' && user.institutionId) {
-        return facultyService.getFacultiesByInstitution(user.institutionId);
+        return await facultyService.getFacultiesByInstitution(user.institutionId);
       }
-      return Promise.resolve({ faculties: [] });
+      return { data: { faculties: [] } };
     },
     enabled: user?.role !== 'FACULTY_ADMIN'
   });
@@ -141,9 +161,9 @@ const DepartmentsPage: React.FC = () => {
     return <div className="flex items-center justify-center h-64">Loading departments...</div>;
   }
 
-  const departments = departmentsData?.departments || [];
-  const pagination = departmentsData?.pagination;
-  const stats = statsData;
+  const departments = departmentsData?.data?.departments || [];
+  const pagination = departmentsData?.data?.pagination;
+  const stats = statsData?.data;
 
   return (
     <div className="p-6 space-y-6">
@@ -242,14 +262,14 @@ const DepartmentsPage: React.FC = () => {
               </div>
             </div>
 
-            {user?.role !== 'FACULTY_ADMIN' && facultiesData?.faculties && facultiesData.faculties.length > 0 && (
+            {user?.role !== 'FACULTY_ADMIN' && facultiesData?.data?.faculties && facultiesData.data.faculties.length > 0 && (
               <Select value={selectedFaculty} onValueChange={setSelectedFaculty}>
                 <SelectTrigger className="w-[200px]">
                   <SelectValue placeholder="Select faculty" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL_FACULTIES">All Faculties</SelectItem>
-                  {facultiesData.faculties.map((faculty) => (
+                  {facultiesData.data.faculties.map((faculty: { id: number; name: string }) => (
                     <SelectItem key={faculty.id} value={faculty.id.toString()}>
                       {faculty.name}
                     </SelectItem>
@@ -301,7 +321,7 @@ const DepartmentsPage: React.FC = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {departments.map((department) => (
+                {departments.map((department: Department) => (
                   <TableRow key={department.id}>
                     <TableCell>
                       <div>
