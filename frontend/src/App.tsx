@@ -6,6 +6,9 @@ import { Layout } from '@/components/layout/Layout';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { DashboardPage } from '@/pages/dashboard/DashboardPage';
 import { InstitutionsPage } from '@/pages/InstitutionsPage';
+import DepartmentsPage from '@/pages/admin/DepartmentsPage';
+import ProgramsPage from '@/pages/admin/ProgramsPage';
+import CoursesPage from '@/pages/admin/CoursesPage';
 import { useAuthStore } from '@/stores/auth.store';
 import { UserRole } from '@/types/auth';
 import './App.css';
@@ -45,6 +48,46 @@ function App() {
                 <RoleGuard allowedRoles={[UserRole.SUPER_ADMIN]}>
                   <Layout>
                     <InstitutionsPage />
+                  </Layout>
+                </RoleGuard>
+              </AuthGuard>
+            }
+          />
+
+          {/* Academic Structure Management */}
+          <Route
+            path="/departments"
+            element={
+              <AuthGuard>
+                <RoleGuard allowedRoles={[UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.FACULTY_ADMIN]}>
+                  <Layout>
+                    <DepartmentsPage />
+                  </Layout>
+                </RoleGuard>
+              </AuthGuard>
+            }
+          />
+
+          <Route
+            path="/programs"
+            element={
+              <AuthGuard>
+                <RoleGuard allowedRoles={[UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.FACULTY_ADMIN]}>
+                  <Layout>
+                    <ProgramsPage />
+                  </Layout>
+                </RoleGuard>
+              </AuthGuard>
+            }
+          />
+
+          <Route
+            path="/courses"
+            element={
+              <AuthGuard>
+                <RoleGuard allowedRoles={[UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.FACULTY_ADMIN]}>
+                  <Layout>
+                    <CoursesPage />
                   </Layout>
                 </RoleGuard>
               </AuthGuard>

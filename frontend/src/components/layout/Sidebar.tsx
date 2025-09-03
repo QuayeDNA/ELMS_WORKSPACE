@@ -5,7 +5,11 @@ import { UserRole } from '@/types/auth';
 import {
   LayoutDashboard,
   Building,
-  Settings
+  Settings,
+  Users,
+  GraduationCap,
+  BookOpen,
+  School
 } from 'lucide-react';
 
 interface SidebarItem {
@@ -36,6 +40,41 @@ const getSidebarItemsForRole = (role: UserRole): SidebarItem[] => {
           description: 'Register and manage institutions'
         },
         {
+          title: 'Users',
+          href: '/users',
+          icon: Users,
+          roles: [UserRole.SUPER_ADMIN],
+          description: 'Manage system users'
+        },
+        {
+          title: 'Faculties',
+          href: '/faculties',
+          icon: School,
+          roles: [UserRole.SUPER_ADMIN],
+          description: 'Manage all faculties'
+        },
+        {
+          title: 'Departments',
+          href: '/departments',
+          icon: GraduationCap,
+          roles: [UserRole.SUPER_ADMIN],
+          description: 'Manage all departments'
+        },
+        {
+          title: 'Programs',
+          href: '/programs',
+          icon: BookOpen,
+          roles: [UserRole.SUPER_ADMIN],
+          description: 'Manage all programs'
+        },
+        {
+          title: 'Courses',
+          href: '/courses',
+          icon: BookOpen,
+          roles: [UserRole.SUPER_ADMIN],
+          description: 'Manage all courses'
+        },
+        {
           title: 'Settings',
           href: '/settings',
           icon: Settings,
@@ -54,6 +93,41 @@ const getSidebarItemsForRole = (role: UserRole): SidebarItem[] => {
           description: 'Institution overview'
         },
         {
+          title: 'Users',
+          href: '/users',
+          icon: Users,
+          roles: [UserRole.ADMIN],
+          description: 'Manage institution users'
+        },
+        {
+          title: 'Faculties',
+          href: '/faculties',
+          icon: School,
+          roles: [UserRole.ADMIN],
+          description: 'Manage institution faculties'
+        },
+        {
+          title: 'Departments',
+          href: '/departments',
+          icon: GraduationCap,
+          roles: [UserRole.ADMIN],
+          description: 'Manage institution departments'
+        },
+        {
+          title: 'Programs',
+          href: '/programs',
+          icon: BookOpen,
+          roles: [UserRole.ADMIN],
+          description: 'Manage institution programs'
+        },
+        {
+          title: 'Courses',
+          href: '/courses',
+          icon: BookOpen,
+          roles: [UserRole.ADMIN],
+          description: 'Manage institution courses'
+        },
+        {
           title: 'Settings',
           href: '/settings',
           icon: Settings,
@@ -70,6 +144,34 @@ const getSidebarItemsForRole = (role: UserRole): SidebarItem[] => {
           icon: LayoutDashboard,
           roles: [UserRole.FACULTY_ADMIN],
           description: 'Faculty overview'
+        },
+        {
+          title: 'Users',
+          href: '/users',
+          icon: Users,
+          roles: [UserRole.FACULTY_ADMIN],
+          description: 'Manage faculty users'
+        },
+        {
+          title: 'Departments',
+          href: '/departments',
+          icon: GraduationCap,
+          roles: [UserRole.FACULTY_ADMIN],
+          description: 'Manage faculty departments'
+        },
+        {
+          title: 'Programs',
+          href: '/programs',
+          icon: BookOpen,
+          roles: [UserRole.FACULTY_ADMIN],
+          description: 'Manage faculty programs'
+        },
+        {
+          title: 'Courses',
+          href: '/courses',
+          icon: BookOpen,
+          roles: [UserRole.FACULTY_ADMIN],
+          description: 'Manage faculty courses'
         },
         {
           title: 'Settings',
