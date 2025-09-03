@@ -1,7 +1,7 @@
 import { STORAGE_KEYS } from '@/utils/constants';
 
 class StorageService {
-  private isElectron = typeof window !== 'undefined' && window.electronAPI;
+  private readonly isElectron = typeof window !== 'undefined' && window.electronAPI;
 
   // Store data securely (Electron keychain or localStorage fallback)
   async setItem(key: string, value: string): Promise<void> {
@@ -27,7 +27,7 @@ class StorageService {
         // Use Electron's secure storage
         const value = await window.electronAPI?.store?.get(key);
         // Ensure we return null instead of undefined
-        return value !== undefined ? value : null;
+        return value ?? null;
       } else {
         // Fallback to localStorage for web
         return localStorage.getItem(key);
@@ -159,8 +159,8 @@ class StorageService {
       if (userData && userData !== 'undefined' && userData !== 'null') {
         try {
           JSON.parse(userData);
-        } catch (error) {
-          console.warn('Invalid JSON in user data, clearing auth storage');
+        } catch (error: unknown) {
+          console.warn('Invalid JSON in user data, clearing auth storage:', error);
           await this.clearAuthData();
         }
       }
