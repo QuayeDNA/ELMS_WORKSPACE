@@ -208,7 +208,7 @@ class UserService {
    * Get role display label
    */
   getRoleLabel(role: string): string {
-    const roleOption = USER_ROLES.find((r: { value: string; }) => r.value === role);
+    const roleOption = USER_ROLES.find(r => r.value === role);
     return roleOption?.label || role;
   }
 
@@ -216,7 +216,7 @@ class UserService {
    * Get status display label
    */
   getStatusLabel(status: string): string {
-    const statusOption = USER_STATUSES.find((s: { value: string; }) => s.value === status);
+    const statusOption = USER_STATUSES.find(s => s.value === status);
     return statusOption?.label || status;
   }
 }

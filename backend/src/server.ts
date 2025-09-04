@@ -7,8 +7,10 @@ import dotenv from 'dotenv';
 // Import routes
 import authRoutes from './routes/authRoutes';
 import { institutionRoutes } from './routes/institutionRoutes';
-import departmentRoutes from './routes/departmentRoutes';
-import programRoutes from './routes/programRoutes';
+import { facultyRoutes } from './routes/facultyRoutes';
+import { userRoutes } from './routes/userRoutes';
+import { departmentRoutes } from './routes/departmentRoutes';
+import { programRoutes } from './routes/programRoutes';
 import courseRoutes from './routes/courseRoutes';
 
 // Load environment variables
@@ -83,6 +85,9 @@ app.use('/api/auth', authRoutes);
 // Institution routes  
 app.use('/api/institutions', institutionRoutes);
 
+// Faculty routes
+app.use('/api/faculties', facultyRoutes);
+
 // Department routes
 app.use('/api/departments', departmentRoutes);
 
@@ -91,6 +96,9 @@ app.use('/api/programs', programRoutes);
 
 // Course routes
 app.use('/api/courses', courseRoutes);
+
+// User routes
+app.use('/api/users', userRoutes);
 
 // 404 handler for API routes
 app.use('/api', (req, res) => {

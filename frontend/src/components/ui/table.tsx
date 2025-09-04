@@ -2,8 +2,7 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
-function Table({ className, children, ...props }: React.ComponentProps<"table">) {
-  const hasHeader = React.Children.toArray(children).some(child => React.isValidElement(child) && child.type === TableHeader);
+function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
     <div
       data-slot="table-container"
@@ -13,23 +12,7 @@ function Table({ className, children, ...props }: React.ComponentProps<"table">)
         data-slot="table"
         className={cn("w-full caption-bottom text-sm", className)}
         {...props}
-      >
-        {!hasHeader && <thead
-          data-slot="table-header"
-          className="[&_tr]:border-b"
-        >
-          <tr
-            data-slot="table-row"
-            className="hover:bg-muted/50 data-[state=selected]:bg-muted border-b transition-colors"
-          >
-            <th
-              data-slot="table-head"
-              className="text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]"
-            ></th>
-          </tr>
-        </thead>}
-        {children}
-      </table>
+      />
     </div>
   )
 }

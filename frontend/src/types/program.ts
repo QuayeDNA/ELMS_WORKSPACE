@@ -1,65 +1,67 @@
+// ========================================
+// PROGRAM TYPES
+// ========================================
+
 export interface Program {
   id: number;
   name: string;
   code: string;
-  description: string | null;
-  departmentId: number;
-  duration: number;
-  degreeType: string;
-  creditHours: number | null;
-  tuitionFee: number | null;
-  applicationDeadline: string | null;
-  startDate: string | null;
-  endDate: string | null;
-  capacity: number | null;
+  type: string;
+  level: string;
+  durationYears: number;
+  creditHours?: number | null;
+  description?: string | null;
+  admissionRequirements?: string | null;
   isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+  departmentId: number;
+  createdAt: Date;
+  updatedAt: Date;
+
+  // Relations
   department?: {
     id: number;
     name: string;
-    faculty: {
+    code: string;
+    faculty?: {
       id: number;
       name: string;
-      institution: {
+      institution?: {
         id: number;
         name: string;
       };
     };
   };
-  _count?: {
-    students: number;
-    programCourses: number;
+
+  // Stats (computed)
+  stats?: {
+    totalStudents: number;
+    totalCourses: number;
+    totalCreditHours: number;
   };
 }
 
-export interface CreateProgramRequest {
+export interface CreateProgramData {
   name: string;
   code: string;
-  description?: string;
   departmentId: number;
-  duration: number;
-  degreeType: string;
+  type: string;
+  level: string;
+  durationYears: number;
   creditHours?: number;
-  tuitionFee?: number;
-  applicationDeadline?: string;
-  startDate?: string;
-  endDate?: string;
-  capacity?: number;
+  description?: string;
+  admissionRequirements?: string;
+  isActive?: boolean;
 }
 
-export interface UpdateProgramRequest {
+export interface UpdateProgramData {
   name?: string;
   code?: string;
-  description?: string;
-  duration?: number;
-  degreeType?: string;
+  type?: string;
+  level?: string;
+  durationYears?: number;
   creditHours?: number;
-  tuitionFee?: number;
-  applicationDeadline?: string;
-  startDate?: string;
-  endDate?: string;
-  capacity?: number;
+  description?: string;
+  admissionRequirements?: string;
   isActive?: boolean;
 }
 
@@ -67,19 +69,19 @@ export interface ProgramQuery {
   departmentId?: number;
   facultyId?: number;
   institutionId?: number;
-  degreeType?: string;
+  type?: string;
+  level?: string;
   isActive?: boolean;
-  search?: string;
   page?: number;
   limit?: number;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
 }
 
 export interface ProgramStats {
-  totalPrograms: number;
-  activePrograms: number;
-  inactivePrograms: number;
+  programId: number;
   totalStudents: number;
   totalCourses: number;
-  averageStudentsPerProgram: number;
-  recentPrograms: Program[];
+  totalCreditHours: number;
 }

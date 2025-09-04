@@ -1,37 +1,29 @@
-import { PrismaClient } from '@prisma/client';
-import { Course, CreateCourseRequest, UpdateCourseRequest, CourseQuery, CourseStats, ProgramCourse, CreateProgramCourseRequest, UpdateProgramCourseRequest } from '../types/course';
+import { PrismaClient, CourseType } from '@prisma/client';
+import { Course, CreateCourseData, UpdateCourseData, CourseQuery } from '../types/course';
 
 const prisma = new PrismaClient();
 
 export const courseService = {
-  // Get all courses with filtering and pagination
+  // Get all courses with pagination and filtering
   async getCourses(query: CourseQuery) {
     const {
-      page = 1,
-      limit = 10,
-      search = '',
       departmentId,
       facultyId,
       institutionId,
       level,
       courseType,
       isActive,
-      sortBy = 'name',
-      sortOrder = 'asc'
+      page = 1,
+      limit = 10,
+      search = '',
+      sortBy = 'createdAt',
+      sortOrder = 'desc'
     } = query;
 
     const skip = (page - 1) * limit;
 
     // Build where clause
     const where: any = {};
-
-    if (search) {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { code: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } }
-      ];
-    }
 
     if (departmentId) {
       where.departmentId = departmentId;
@@ -45,13 +37,14 @@ export const courseService = {
 
     if (institutionId) {
       where.department = {
+        ...where.department,
         faculty: {
           institutionId: institutionId
         }
       };
     }
 
-    if (level) {
+    if (level !== undefined) {
       where.level = level;
     }
 
@@ -63,51 +56,47 @@ export const courseService = {
       where.isActive = isActive;
     }
 
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { code: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } }
+      ];
+    }
+
     // Get total count
     const total = await prisma.course.count({ where });
 
-    // Get courses
+    // Get courses with relations
     const courses = await prisma.course.findMany({
       where,
       include: {
         department: {
-          select: {
-            id: true,
-            name: true,
-            facultyId: true,
+          include: {
             faculty: {
-              select: {
-                id: true,
-                name: true,
-                institutionId: true,
-                institution: {
-                  select: {
-                    id: true,
-                    name: true
-                  }
-                }
+              include: {
+                institution: true
               }
             }
           }
         },
         _count: {
           select: {
-            exams: true,
-            programCourses: true,
-            courseOfferings: true
+            courseOfferings: true,
+            programCourses: true
           }
         }
       },
+      skip,
+      take: limit,
       orderBy: {
         [sortBy]: sortOrder
-      },
-      skip,
-      take: limit
+      }
     });
 
     return {
       success: true,
-      courses,
+      data: courses,
       pagination: {
         page,
         limit,
@@ -117,115 +106,94 @@ export const courseService = {
     };
   },
 
-  // Get course by ID
-  async getCourseById(id: number) {
+  // Get single course by ID
+  async getCourseById(id: number): Promise<Course | null> {
     const course = await prisma.course.findUnique({
       where: { id },
       include: {
         department: {
-          select: {
-            id: true,
-            name: true,
-            facultyId: true,
+          include: {
             faculty: {
-              select: {
-                id: true,
-                name: true,
-                institutionId: true,
-                institution: {
+              include: {
+                institution: true
+              }
+            }
+          }
+        },
+        courseOfferings: {
+          include: {
+            enrollments: {
+              include: {
+                student: {
                   select: {
                     id: true,
-                    name: true
+                    firstName: true,
+                    lastName: true,
+                    email: true
                   }
                 }
               }
             }
           }
         },
-        programCourses: {
-          include: {
-            program: {
-              select: {
-                id: true,
-                name: true,
-                code: true,
-                type: true,
-                level: true
-              }
-            }
-          },
-          orderBy: [
-            { level: 'asc' },
-            { semester: 'asc' }
-          ]
-        },
-        exams: {
-          select: {
-            id: true,
-            title: true,
-            examDate: true,
-            duration: true,
-            status: true
-          },
-          orderBy: {
-            examDate: 'desc'
-          },
-          take: 10
-        },
         _count: {
           select: {
-            exams: true,
-            programCourses: true,
-            courseOfferings: true
+            courseOfferings: true,
+            programCourses: true
           }
         }
       }
     });
 
-    // Parse prerequisite and corequisite JSON strings
-    if (course) {
-      return {
-        ...course,
-        prerequisites: course.prerequisites ? JSON.parse(course.prerequisites) : [],
-        corequisites: course.corequisites ? JSON.parse(course.corequisites) : []
-      };
-    }
-
     return course;
   },
 
   // Create new course
-  async createCourse(courseData: CreateCourseRequest): Promise<Course> {
-    // Convert arrays to JSON strings
-    const prerequisites = courseData.prerequisites ? JSON.stringify(courseData.prerequisites) : null;
-    const corequisites = courseData.corequisites ? JSON.stringify(courseData.corequisites) : null;
+  async createCourse(data: CreateCourseData): Promise<Course> {
+    // Check if course code already exists
+    const existingCourse = await prisma.course.findUnique({
+      where: { code: data.code }
+    });
+
+    if (existingCourse) {
+      throw new Error(`Course with code '${data.code}' already exists`);
+    }
+
+    // Verify department exists
+    const department = await prisma.department.findUnique({
+      where: { id: data.departmentId }
+    });
+
+    if (!department) {
+      throw new Error('Department not found');
+    }
 
     const course = await prisma.course.create({
       data: {
-        ...courseData,
-        prerequisites,
-        corequisites
+        name: data.name,
+        code: data.code,
+        departmentId: data.departmentId,
+        level: data.level,
+        courseType: data.courseType,
+        creditHours: data.creditHours,
+        contactHours: data.contactHours,
+        description: data.description,
+        learningOutcomes: data.learningOutcomes,
+        syllabus: data.syllabus,
+        assessmentMethods: data.assessmentMethods,
+        prerequisites: data.prerequisites,
+        corequisites: data.corequisites,
+        recommendedBooks: data.recommendedBooks,
+        isActive: data.isActive
       },
       include: {
         department: {
-          select: {
-            id: true,
-            name: true,
-            facultyId: true,
+          include: {
             faculty: {
-              select: {
-                id: true,
-                name: true,
-                institutionId: true
+              include: {
+                institution: true
               }
             }
-          }
-        },
-        _count: {
-          select: {
-            exams: true,
-            programCourses: true,
-            courseOfferings: true
           }
         }
       }
@@ -235,41 +203,53 @@ export const courseService = {
   },
 
   // Update course
-  async updateCourse(id: number, updateData: UpdateCourseRequest): Promise<Course | null> {
-    // Convert arrays to JSON strings if provided
-    const dataToUpdate: any = { ...updateData };
-    
-    if (updateData.prerequisites !== undefined) {
-      dataToUpdate.prerequisites = updateData.prerequisites ? JSON.stringify(updateData.prerequisites) : null;
+  async updateCourse(id: number, data: UpdateCourseData): Promise<Course | null> {
+    // Check if course exists
+    const existingCourse = await prisma.course.findUnique({
+      where: { id }
+    });
+
+    if (!existingCourse) {
+      return null;
     }
-    
-    if (updateData.corequisites !== undefined) {
-      dataToUpdate.corequisites = updateData.corequisites ? JSON.stringify(updateData.corequisites) : null;
+
+    // Check if new code conflicts with another course
+    if (data.code && data.code !== existingCourse.code) {
+      const codeConflict = await prisma.course.findUnique({
+        where: { code: data.code }
+      });
+
+      if (codeConflict) {
+        throw new Error(`Course with code '${data.code}' already exists`);
+      }
     }
 
     const course = await prisma.course.update({
       where: { id },
-      data: dataToUpdate,
+      data: {
+        name: data.name,
+        code: data.code,
+        level: data.level,
+        courseType: data.courseType,
+        creditHours: data.creditHours,
+        contactHours: data.contactHours,
+        description: data.description,
+        learningOutcomes: data.learningOutcomes,
+        syllabus: data.syllabus,
+        assessmentMethods: data.assessmentMethods,
+        prerequisites: data.prerequisites,
+        corequisites: data.corequisites,
+        recommendedBooks: data.recommendedBooks,
+        isActive: data.isActive
+      },
       include: {
         department: {
-          select: {
-            id: true,
-            name: true,
-            facultyId: true,
+          include: {
             faculty: {
-              select: {
-                id: true,
-                name: true,
-                institutionId: true
+              include: {
+                institution: true
               }
             }
-          }
-        },
-        _count: {
-          select: {
-            exams: true,
-            programCourses: true,
-            courseOfferings: true
           }
         }
       }
@@ -281,313 +261,138 @@ export const courseService = {
   // Delete course
   async deleteCourse(id: number): Promise<boolean> {
     try {
+      // Check if course has enrollments through course offerings
+      const enrollmentCount = await prisma.enrollment.count({
+        where: {
+          courseOffering: {
+            courseId: id
+          }
+        }
+      });
+
+      if (enrollmentCount > 0) {
+        throw new Error('Cannot delete course with active enrollments');
+      }
+
       await prisma.course.delete({
         where: { id }
       });
+
       return true;
     } catch (error) {
-      console.error('Error deleting course:', error);
+      if (error instanceof Error && error.message.includes('Cannot delete course with active enrollments')) {
+        throw error;
+      }
       return false;
     }
   },
 
   // Get courses by department
-  async getCoursesByDepartment(departmentId: number) {
-    const courses = await prisma.course.findMany({
-      where: { departmentId },
-      include: {
-        _count: {
-          select: {
-            exams: true,
-            programCourses: true,
-            courseOfferings: true
-          }
-        }
-      },
-      orderBy: [
-        { level: 'asc' },
-        { name: 'asc' }
-      ]
-    });
+  async getCoursesByDepartment(departmentId: number, query: any) {
+    const {
+      page = 1,
+      limit = 10,
+      search = '',
+      level,
+      isActive
+    } = query;
 
-    return courses;
-  },
+    const skip = (page - 1) * limit;
 
-  // Get courses by faculty
-  async getCoursesByFaculty(facultyId: number) {
-    const courses = await prisma.course.findMany({
-      where: {
-        department: {
-          facultyId: facultyId
-        }
-      },
-      include: {
-        department: {
-          select: {
-            id: true,
-            name: true
-          }
-        },
-        _count: {
-          select: {
-            exams: true,
-            programCourses: true,
-            courseOfferings: true
-          }
-        }
-      },
-      orderBy: [
-        { level: 'asc' },
-        { name: 'asc' }
-      ]
-    });
+    const where: any = {
+      departmentId
+    };
 
-    return courses;
-  },
-
-  // Get courses by institution
-  async getCoursesByInstitution(institutionId: number) {
-    const courses = await prisma.course.findMany({
-      where: {
-        department: {
-          faculty: {
-            institutionId: institutionId
-          }
-        }
-      },
-      include: {
-        department: {
-          select: {
-            id: true,
-            name: true,
-            facultyId: true,
-            faculty: {
-              select: {
-                id: true,
-                name: true
-              }
-            }
-          }
-        },
-        _count: {
-          select: {
-            exams: true,
-            programCourses: true,
-            courseOfferings: true
-          }
-        }
-      },
-      orderBy: [
-        { level: 'asc' },
-        { name: 'asc' }
-      ]
-    });
-
-    return courses;
-  },
-
-  // Get course statistics
-  async getCourseStats(departmentId?: number, facultyId?: number, institutionId?: number): Promise<CourseStats> {
-    const where: any = {};
-
-    if (departmentId) {
-      where.departmentId = departmentId;
-    } else if (facultyId) {
-      where.department = {
-        facultyId: facultyId
-      };
-    } else if (institutionId) {
-      where.department = {
-        faculty: {
-          institutionId: institutionId
-        }
-      };
+    if (level !== undefined) {
+      where.level = level;
     }
 
-    // Get total count
-    const totalCourses = await prisma.course.count({ where });
+    if (isActive !== undefined) {
+      where.isActive = isActive;
+    }
 
-    // Get courses by level
-    const coursesByLevel = await prisma.course.groupBy({
-      by: ['level'],
-      where,
-      _count: {
-        id: true
-      }
-    });
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { code: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } }
+      ];
+    }
 
-    const byLevel = coursesByLevel.reduce((acc, item) => {
-      acc[`Level ${item.level}`] = item._count.id;
-      return acc;
-    }, {} as Record<string, number>);
+    const total = await prisma.course.count({ where });
 
-    // Get courses by type
-    const coursesByType = await prisma.course.groupBy({
-      by: ['courseType'],
-      where,
-      _count: {
-        id: true
-      }
-    });
-
-    const byType = coursesByType.reduce((acc, item) => {
-      acc[item.courseType] = item._count.id;
-      return acc;
-    }, {} as Record<string, number>);
-
-    // Get courses by department
-    const coursesByDepartment = await prisma.course.groupBy({
-      by: ['departmentId'],
-      where,
-      _count: {
-        id: true
-      }
-    });
-
-    const departmentNames = await prisma.department.findMany({
-      where: {
-        id: {
-          in: coursesByDepartment.map(c => c.departmentId)
-        }
-      },
-      select: {
-        id: true,
-        name: true
-      }
-    });
-
-    const byDepartment = coursesByDepartment.reduce((acc, item) => {
-      const department = departmentNames.find(d => d.id === item.departmentId);
-      if (department) {
-        acc[department.name] = item._count.id;
-      }
-      return acc;
-    }, {} as Record<string, number>);
-
-    // Get average credit hours
-    const avgResult = await prisma.course.aggregate({
-      where,
-      _avg: {
-        creditHours: true
-      }
-    });
-
-    const averageCreditHours = Math.round((avgResult._avg.creditHours || 0) * 10) / 10;
-
-    // Get recent courses
-    const recentCourses = await prisma.course.findMany({
+    const courses = await prisma.course.findMany({
       where,
       include: {
         department: {
-          select: {
-            id: true,
-            name: true,
-            facultyId: true,
+          include: {
             faculty: {
-              select: {
-                id: true,
-                name: true,
-                institutionId: true
+              include: {
+                institution: true
               }
             }
           }
         },
         _count: {
           select: {
-            exams: true,
-            programCourses: true,
             courseOfferings: true
           }
         }
       },
+      skip,
+      take: limit,
       orderBy: {
-        createdAt: 'desc'
-      },
-      take: 5
+        name: 'asc'
+      }
     });
 
     return {
-      totalCourses,
-      byLevel,
-      byType,
-      byDepartment,
-      averageCreditHours,
-      recentCourses
+      success: true,
+      data: courses,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
     };
   },
 
-  // Program-Course relationship management
-  async addCourseToProgram(data: CreateProgramCourseRequest): Promise<ProgramCourse> {
-    const programCourse = await prisma.programCourse.create({
-      data,
+  // Get course statistics
+  async getCourseStats(courseId: number) {
+    const course = await prisma.course.findUnique({
+      where: { id: courseId },
       include: {
-        program: {
-          select: {
-            id: true,
-            name: true,
-            code: true
+        courseOfferings: {
+          include: {
+            enrollments: true
           }
         },
-        course: true
-      }
-    });
-
-    return programCourse;
-  },
-
-  async updateProgramCourse(id: number, data: UpdateProgramCourseRequest): Promise<ProgramCourse | null> {
-    const programCourse = await prisma.programCourse.update({
-      where: { id },
-      data,
-      include: {
-        program: {
+        _count: {
           select: {
-            id: true,
-            name: true,
-            code: true
-          }
-        },
-        course: true
-      }
-    });
-
-    return programCourse;
-  },
-
-  async removeCourseFromProgram(id: number): Promise<boolean> {
-    try {
-      await prisma.programCourse.delete({
-        where: { id }
-      });
-      return true;
-    } catch (error) {
-      console.error('Error removing course from program:', error);
-      return false;
-    }
-  },
-
-  async getProgramCourses(programId: number) {
-    const programCourses = await prisma.programCourse.findMany({
-      where: { programId },
-      include: {
-        course: {
-          select: {
-            id: true,
-            name: true,
-            code: true,
-            creditHours: true,
-            courseType: true,
-            isActive: true
+            courseOfferings: true,
+            programCourses: true
           }
         }
-      },
-      orderBy: [
-        { level: 'asc' },
-        { semester: 'asc' },
-        { course: { name: 'asc' } }
-      ]
+      }
     });
 
-    return programCourses;
+    if (!course) {
+      return null;
+    }
+
+    // Calculate total enrollments across all course offerings
+    const totalEnrollments = course.courseOfferings.reduce(
+      (sum, offering) => sum + offering.enrollments.length,
+      0
+    );
+
+    return {
+      courseId,
+      enrollmentCount: totalEnrollments,
+      prerequisiteCount: course.prerequisites ? JSON.parse(course.prerequisites).length : 0,
+      corequisiteCount: course.corequisites ? JSON.parse(course.corequisites).length : 0,
+      totalStudents: totalEnrollments
+    };
   }
 };

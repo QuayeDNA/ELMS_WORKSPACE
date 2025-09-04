@@ -1,34 +1,16 @@
 import { PrismaClient } from '@prisma/client';
-import { Department, CreateDepartmentRequest, UpdateDepartmentRequest, DepartmentQuery, DepartmentStats } from '../types/department';
+import { Department, DepartmentQuery } from '../types/department';
 
 const prisma = new PrismaClient();
 
 export const departmentService = {
-  // Get all departments with filtering and pagination
+  // Get all departments with pagination and filtering
   async getDepartments(query: DepartmentQuery) {
-    const {
-      page = 1,
-      limit = 10,
-      search = '',
-      facultyId,
-      institutionId,
-      type,
-      sortBy = 'name',
-      sortOrder = 'asc'
-    } = query;
-
+    const { page = 1, limit = 10, search, facultyId, institutionId, sortBy = 'name', sortOrder = 'asc' } = query;
     const skip = (page - 1) * limit;
 
     // Build where clause
     const where: any = {};
-
-    if (search) {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { code: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } }
-      ];
-    }
 
     if (facultyId) {
       where.facultyId = facultyId;
@@ -40,28 +22,24 @@ export const departmentService = {
       };
     }
 
-    if (type) {
-      where.type = type;
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { code: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } }
+      ];
     }
 
     // Get total count
     const total = await prisma.department.count({ where });
 
-    // Get departments
+    // Get departments with relations
     const departments = await prisma.department.findMany({
       where,
       include: {
         faculty: {
-          select: {
-            id: true,
-            name: true,
-            institutionId: true,
-            institution: {
-              select: {
-                id: true,
-                name: true
-              }
-            }
+          include: {
+            institution: true
           }
         },
         hod: {
@@ -72,11 +50,31 @@ export const departmentService = {
             email: true
           }
         },
-        _count: {
+        courses: {
           select: {
-            users: true,
-            courses: true,
-            programs: true
+            id: true,
+            name: true,
+            code: true
+          }
+        },
+        users: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            role: true
+          }
+        },
+        lecturerDepartments: {
+          include: {
+            lecturer: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                role: true
+              }
+            }
           }
         }
       },
@@ -87,34 +85,38 @@ export const departmentService = {
       take: limit
     });
 
+    // Calculate stats for each department
+    const departmentsWithStats = departments.map(dept => ({
+      ...dept,
+      stats: {
+        totalUsers: dept.users.length,
+        totalCourses: dept.courses.length,
+        totalLecturers: dept.lecturerDepartments.length,
+        activePrograms: 0 // TODO: Calculate from programs table
+      }
+    }));
+
     return {
       success: true,
-      departments,
-      pagination: {
-        page,
-        limit,
+      data: {
+        departments: departmentsWithStats,
         total,
-        totalPages: Math.ceil(total / limit)
+        totalPages: Math.ceil(total / limit),
+        currentPage: page,
+        hasNext: page * limit < total,
+        hasPrev: page > 1
       }
     };
   },
 
-  // Get department by ID
-  async getDepartmentById(id: number) {
+  // Get single department by ID
+  async getDepartmentById(id: number): Promise<Department | null> {
     const department = await prisma.department.findUnique({
       where: { id },
       include: {
         faculty: {
-          select: {
-            id: true,
-            name: true,
-            institutionId: true,
-            institution: {
-              select: {
-                id: true,
-                name: true
-              }
-            }
+          include: {
+            institution: true
           }
         },
         hod: {
@@ -123,20 +125,7 @@ export const departmentService = {
             firstName: true,
             lastName: true,
             email: true,
-            title: true
-          }
-        },
-        programs: {
-          select: {
-            id: true,
-            name: true,
-            code: true,
-            type: true,
-            level: true,
-            isActive: true
-          },
-          orderBy: {
-            name: 'asc'
+            phone: true
           }
         },
         courses: {
@@ -144,62 +133,95 @@ export const departmentService = {
             id: true,
             name: true,
             code: true,
-            level: true,
-            courseType: true,
             creditHours: true,
+            courseType: true,
             isActive: true
-          },
-          orderBy: {
-            level: 'asc'
           }
         },
-        _count: {
+        users: {
           select: {
-            users: true,
-            courses: true,
-            programs: true
+            id: true,
+            firstName: true,
+            lastName: true,
+            role: true,
+            email: true
+          }
+        },
+        lecturerDepartments: {
+          include: {
+            lecturer: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true
+              }
+            }
           }
         }
       }
     });
 
-    return department;
+    if (!department) return null;
+
+    // Add stats
+    return {
+      ...department,
+      description: department.description ?? undefined,
+      stats: {
+        totalUsers: department.users.length,
+        totalCourses: department.courses.length,
+        totalLecturers: department.lecturerDepartments.length,
+        activePrograms: 0 // TODO: Calculate from programs table
+      }
+    };
   },
 
   // Create new department
-  async createDepartment(departmentData: CreateDepartmentRequest): Promise<Department> {
-    // Convert contactInfo to JSON string if it's an object
-    const contactInfo = typeof departmentData.contactInfo === 'object' 
-      ? JSON.stringify(departmentData.contactInfo)
-      : departmentData.contactInfo;
+  async createDepartment(data: {
+    name: string;
+    code: string;
+    facultyId: number;
+    type?: string;
+    description?: string;
+    officeLocation?: string;
+    contactInfo?: string;
+  }) {
+    // Check if faculty exists
+    const faculty = await prisma.faculty.findUnique({
+      where: { id: data.facultyId }
+    });
+
+    if (!faculty) {
+      throw new Error('Faculty not found');
+    }
+
+    // Check if department code is unique within faculty
+    const existingDepartment = await prisma.department.findFirst({
+      where: {
+        code: data.code,
+        facultyId: data.facultyId
+      }
+    });
+
+    if (existingDepartment) {
+      throw new Error(`Department with code '${data.code}' already exists in this faculty`);
+    }
 
     const department = await prisma.department.create({
       data: {
-        ...departmentData,
-        contactInfo,
-        type: departmentData.type || 'department'
+        name: data.name,
+        code: data.code,
+        facultyId: data.facultyId,
+        type: data.type || 'department',
+        description: data.description,
+        officeLocation: data.officeLocation,
+        contactInfo: data.contactInfo
       },
       include: {
         faculty: {
-          select: {
-            id: true,
-            name: true,
-            institutionId: true
-          }
-        },
-        hod: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true
-          }
-        },
-        _count: {
-          select: {
-            users: true,
-            courses: true,
-            programs: true
+          include: {
+            institution: true
           }
         }
       }
@@ -209,39 +231,45 @@ export const departmentService = {
   },
 
   // Update department
-  async updateDepartment(id: number, updateData: UpdateDepartmentRequest): Promise<Department | null> {
-    // Convert contactInfo to JSON string if it's an object
-    const contactInfo = typeof updateData.contactInfo === 'object' 
-      ? JSON.stringify(updateData.contactInfo)
-      : updateData.contactInfo;
+  async updateDepartment(id: number, data: {
+    name?: string;
+    code?: string;
+    type?: string;
+    description?: string;
+    officeLocation?: string;
+    contactInfo?: string;
+  }) {
+    // Check if department exists
+    const existingDepartment = await prisma.department.findUnique({
+      where: { id }
+    });
+
+    if (!existingDepartment) {
+      return null;
+    }
+
+    // Check if new code conflicts (if code is being updated)
+    if (data.code && data.code !== existingDepartment.code) {
+      const codeConflict = await prisma.department.findFirst({
+        where: {
+          code: data.code,
+          facultyId: existingDepartment.facultyId,
+          id: { not: id }
+        }
+      });
+
+      if (codeConflict) {
+        throw new Error(`Department with code '${data.code}' already exists in this faculty`);
+      }
+    }
 
     const department = await prisma.department.update({
       where: { id },
-      data: {
-        ...updateData,
-        contactInfo
-      },
+      data,
       include: {
         faculty: {
-          select: {
-            id: true,
-            name: true,
-            institutionId: true
-          }
-        },
-        hod: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true
-          }
-        },
-        _count: {
-          select: {
-            users: true,
-            courses: true,
-            programs: true
+          include: {
+            institution: true
           }
         }
       }
@@ -253,173 +281,87 @@ export const departmentService = {
   // Delete department
   async deleteDepartment(id: number): Promise<boolean> {
     try {
+      // Check if department has dependencies
+      const coursesCount = await prisma.course.count({
+        where: { departmentId: id }
+      });
+
+      const usersCount = await prisma.user.count({
+        where: { departmentId: id }
+      });
+
+      if (coursesCount > 0 || usersCount > 0) {
+        throw new Error('Cannot delete department with existing courses or users');
+      }
+
       await prisma.department.delete({
         where: { id }
       });
+
       return true;
     } catch (error) {
-      console.error('Error deleting department:', error);
+      if (error instanceof Error && error.message.includes('Cannot delete')) {
+        throw error;
+      }
       return false;
     }
   },
 
   // Get departments by faculty
-  async getDepartmentsByFaculty(facultyId: number) {
-    const departments = await prisma.department.findMany({
-      where: { facultyId },
-      include: {
-        hod: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true
-          }
-        },
-        _count: {
-          select: {
-            users: true,
-            courses: true,
-            programs: true
-          }
-        }
-      },
-      orderBy: {
-        name: 'asc'
-      }
-    });
+  async getDepartmentsByFaculty(facultyId: number, query: { page: number; limit: number; search?: string }) {
+    const { page, limit, search } = query;
+    const skip = (page - 1) * limit;
 
-    return departments;
-  },
+    const where: any = { facultyId };
 
-  // Get departments by institution
-  async getDepartmentsByInstitution(institutionId: number) {
-    const departments = await prisma.department.findMany({
-      where: {
-        faculty: {
-          institutionId: institutionId
-        }
-      },
-      include: {
-        faculty: {
-          select: {
-            id: true,
-            name: true,
-            institutionId: true
-          }
-        },
-        hod: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true
-          }
-        },
-        _count: {
-          select: {
-            users: true,
-            courses: true,
-            programs: true
-          }
-        }
-      },
-      orderBy: {
-        name: 'asc'
-      }
-    });
-
-    return departments;
-  },
-
-  // Get department statistics
-  async getDepartmentStats(facultyId?: number, institutionId?: number): Promise<DepartmentStats> {
-    const where: any = {};
-
-    if (facultyId) {
-      where.facultyId = facultyId;
-    } else if (institutionId) {
-      where.faculty = {
-        institutionId: institutionId
-      };
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { code: { contains: search, mode: 'insensitive' } }
+      ];
     }
 
-    // Get total count
-    const totalDepartments = await prisma.department.count({ where });
+    const total = await prisma.department.count({ where });
 
-    // Get departments by type
-    const departmentsByType = await prisma.department.groupBy({
-      by: ['type'],
-      where,
-      _count: {
-        id: true
-      }
-    });
-
-    const byType = departmentsByType.reduce((acc, item) => {
-      acc[item.type] = item._count.id;
-      return acc;
-    }, {} as Record<string, number>);
-
-    // Get departments by faculty
-    const departmentsByFaculty = await prisma.department.groupBy({
-      by: ['facultyId'],
-      where,
-      _count: {
-        id: true
-      }
-    });
-
-    const facultyNames = await prisma.faculty.findMany({
-      where: {
-        id: {
-          in: departmentsByFaculty.map(d => d.facultyId)
-        }
-      },
-      select: {
-        id: true,
-        name: true
-      }
-    });
-
-    const byFaculty = departmentsByFaculty.reduce((acc, item) => {
-      const faculty = facultyNames.find(f => f.id === item.facultyId);
-      if (faculty) {
-        acc[faculty.name] = item._count.id;
-      }
-      return acc;
-    }, {} as Record<string, number>);
-
-    // Get recent departments
-    const recentDepartments = await prisma.department.findMany({
+    const departments = await prisma.department.findMany({
       where,
       include: {
-        faculty: {
+        hod: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true
+          }
+        },
+        courses: {
           select: {
             id: true,
             name: true,
-            institutionId: true
+            code: true
           }
         },
-        _count: {
+        users: {
           select: {
-            users: true,
-            courses: true,
-            programs: true
+            id: true,
+            role: true
           }
         }
       },
-      orderBy: {
-        createdAt: 'desc'
-      },
-      take: 5
+      orderBy: { name: 'asc' },
+      skip,
+      take: limit
     });
 
     return {
-      totalDepartments,
-      byType,
-      byFaculty,
-      recentDepartments
+      success: true,
+      data: {
+        departments,
+        total,
+        totalPages: Math.ceil(total / limit),
+        currentPage: page,
+        hasNext: page * limit < total,
+        hasPrev: page > 1
+      }
     };
   }
 };

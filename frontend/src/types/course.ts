@@ -1,109 +1,101 @@
-export enum CourseType {
-  CORE = 'CORE',
-  ELECTIVE = 'ELECTIVE',
-  PRACTICAL = 'PRACTICAL',
-  SEMINAR = 'SEMINAR'
-}
+// ========================================
+// COURSE TYPES
+// ========================================
 
 export interface Course {
   id: number;
   name: string;
   code: string;
-  description: string | null;
+  departmentId: number;
+  level: number;
+  courseType: string;
   creditHours: number;
-  contactHours: number | null;
-  level: number | null;
-  courseType: CourseType;
-  prerequisites: string | null;
-  learningOutcomes: string | null;
-  assessmentMethods: string | null;
-  recommendedTexts: string | null;
+  contactHours?: number | null;
+  description?: string | null;
+  learningOutcomes?: string | null;
+  syllabus?: string | null;
+  assessmentMethods?: string | null;
+  prerequisites?: string | null;
+  corequisites?: string | null;
+  recommendedBooks?: string | null;
   isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-  _count?: {
-    programCourses: number;
-    students: number;
+  createdAt: Date;
+  updatedAt: Date;
+
+  // Relations
+  department?: {
+    id: number;
+    name: string;
+    code: string;
+    faculty?: {
+      id: number;
+      name: string;
+      institution?: {
+        id: number;
+        name: string;
+      };
+    };
   };
+
+  // Enrollment count (computed)
+  enrollmentCount?: number;
+  prerequisiteCount?: number;
+  corequisiteCount?: number;
 }
 
-export interface CreateCourseRequest {
+export interface CreateCourseData {
   name: string;
   code: string;
-  description?: string;
-  creditHours: number;
-  contactHours?: number;
-  level?: number;
-  courseType: CourseType;
-  prerequisites?: string;
-  learningOutcomes?: string;
-  assessmentMethods?: string;
-  recommendedTexts?: string;
-}
-
-export interface UpdateCourseRequest {
-  name?: string;
-  code?: string;
-  description?: string;
+  departmentId: number;
+  level: number;
+  courseType: string;
   creditHours?: number;
   contactHours?: number;
-  level?: number;
-  courseType?: CourseType;
-  prerequisites?: string;
+  description?: string;
   learningOutcomes?: string;
+  syllabus?: string;
   assessmentMethods?: string;
-  recommendedTexts?: string;
+  prerequisites?: string;
+  corequisites?: string;
+  recommendedBooks?: string;
+  isActive?: boolean;
+}
+
+export interface UpdateCourseData {
+  name?: string;
+  code?: string;
+  level?: number;
+  courseType?: string;
+  creditHours?: number;
+  contactHours?: number;
+  description?: string;
+  learningOutcomes?: string;
+  syllabus?: string;
+  assessmentMethods?: string;
+  prerequisites?: string;
+  corequisites?: string;
+  recommendedBooks?: string;
   isActive?: boolean;
 }
 
 export interface CourseQuery {
-  courseType?: CourseType;
+  departmentId?: number;
+  facultyId?: number;
+  institutionId?: number;
   level?: number;
+  courseType?: string;
   isActive?: boolean;
-  search?: string;
   page?: number;
   limit?: number;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
 }
 
 export interface CourseStats {
-  totalCourses: number;
-  activeCourses: number;
-  inactiveCourses: number;
-  coreCoursesCount: number;
-  electiveCoursesCount: number;
-  practicalCoursesCount: number;
-  seminarCoursesCount: number;
-  averageCreditHours: number;
-  recentCourses: Course[];
-}
-
-export interface ProgramCourse {
-  id: number;
-  programId: number;
   courseId: number;
-  semester: number | null;
-  year: number | null;
-  isRequired: boolean;
-  createdAt: string;
-  updatedAt: string;
-  program?: {
-    id: number;
-    name: string;
-    code: string;
-  };
-  course?: Course;
-}
-
-export interface CreateProgramCourseRequest {
-  programId: number;
-  courseId: number;
-  semester?: number;
-  year?: number;
-  isRequired: boolean;
-}
-
-export interface UpdateProgramCourseRequest {
-  semester?: number;
-  year?: number;
-  isRequired?: boolean;
+  enrollmentCount: number;
+  prerequisiteCount: number;
+  corequisiteCount: number;
+  totalStudents: number;
 }

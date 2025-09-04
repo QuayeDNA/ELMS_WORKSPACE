@@ -1,55 +1,71 @@
+import { ProgramType as PrismaProgramType, ProgramLevel as PrismaProgramLevel, CourseType as PrismaCourseType } from '@prisma/client';
+
+export { PrismaProgramType as ProgramType };
+export { PrismaProgramLevel as ProgramLevel };
+
 export interface Program {
   id: number;
   name: string;
   code: string;
-  type: 'CERTIFICATE' | 'DIPLOMA' | 'HND' | 'BACHELOR' | 'MASTERS' | 'PHD';
-  level: 'UNDERGRADUATE' | 'POSTGRADUATE';
+  type: PrismaProgramType;
+  level: PrismaProgramLevel;
   durationYears: number;
-  creditHours: number | null;
-  description: string | null;
-  admissionRequirements: string | null;
+  creditHours?: number | null;
+  description?: string | null;
+  admissionRequirements?: string | null;
   isActive: boolean;
   departmentId: number;
   createdAt: Date;
   updatedAt: Date;
+
+  // Relations
   department?: {
     id: number;
     name: string;
-    facultyId: number;
+    code: string;
     faculty?: {
       id: number;
       name: string;
-      institutionId: number;
+      code: string;
+      institution?: {
+        id: number;
+        name: string;
+        code: string;
+      };
     };
   };
-  _count?: {
-    students: number;
-    programCourses: number;
+
+  students?: {
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    studentId?: string;
+    indexNumber?: string;
+    level?: number;
+  }[];
+
+  programCourses?: {
+    id: number;
+    level: number;
+    semester: number;
+    isRequired: boolean;
+    course: {
+      id: number;
+      name: string;
+      code: string;
+      creditHours: number;
+      courseType: PrismaCourseType;
+      level: number;
+    };
+  }[];
+
+  // Computed stats
+  stats?: {
+    totalStudents: number;
+    totalCourses: number;
+    totalCreditHours: number;
   };
-}
-
-export interface CreateProgramRequest {
-  name: string;
-  code: string;
-  type: 'CERTIFICATE' | 'DIPLOMA' | 'HND' | 'BACHELOR' | 'MASTERS' | 'PHD';
-  level: 'UNDERGRADUATE' | 'POSTGRADUATE';
-  durationYears: number;
-  creditHours?: number;
-  description?: string;
-  admissionRequirements?: string;
-  departmentId: number;
-}
-
-export interface UpdateProgramRequest {
-  name?: string;
-  code?: string;
-  type?: 'CERTIFICATE' | 'DIPLOMA' | 'HND' | 'BACHELOR' | 'MASTERS' | 'PHD';
-  level?: 'UNDERGRADUATE' | 'POSTGRADUATE';
-  durationYears?: number;
-  creditHours?: number;
-  description?: string;
-  admissionRequirements?: string;
-  isActive?: boolean;
 }
 
 export interface ProgramQuery {
@@ -59,32 +75,48 @@ export interface ProgramQuery {
   departmentId?: number;
   facultyId?: number;
   institutionId?: number;
-  type?: 'CERTIFICATE' | 'DIPLOMA' | 'HND' | 'BACHELOR' | 'MASTERS' | 'PHD';
-  level?: 'UNDERGRADUATE' | 'POSTGRADUATE';
+  type?: PrismaProgramType;
+  level?: PrismaProgramLevel;
   isActive?: boolean;
-  sortBy?: 'name' | 'code' | 'type' | 'level' | 'createdAt' | 'updatedAt';
+  sortBy?: string;
   sortOrder?: 'asc' | 'desc';
 }
 
-export interface ProgramStats {
-  totalPrograms: number;
-  byType: Record<string, number>;
-  byLevel: Record<string, number>;
-  byDepartment: Record<string, number>;
-  recentPrograms: Program[];
+export interface ProgramCreateData {
+  name: string;
+  code: string;
+  departmentId: number;
+  type: PrismaProgramType;
+  level: PrismaProgramLevel;
+  durationYears: number;
+  creditHours?: number | null;
+  description?: string | null;
+  admissionRequirements?: string | null;
+  isActive?: boolean;
+}
+
+export interface ProgramUpdateData {
+  name?: string;
+  code?: string;
+  type?: PrismaProgramType;
+  level?: PrismaProgramLevel;
+  durationYears?: number;
+  creditHours?: number | null;
+  description?: string | null;
+  admissionRequirements?: string | null;
+  isActive?: boolean;
 }
 
 export interface ProgramResponse {
   success: boolean;
-  data?: Program;
-  programs?: Program[];
-  pagination?: {
-    page: number;
-    limit: number;
+  data?: {
+    programs: Program[];
     total: number;
     totalPages: number;
+    currentPage: number;
+    hasNext: boolean;
+    hasPrev: boolean;
   };
-  stats?: ProgramStats;
   message?: string;
   error?: string;
 }

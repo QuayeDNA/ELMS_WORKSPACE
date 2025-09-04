@@ -12,7 +12,7 @@ export const API_ENDPOINTS = {
     PROFILE: '/api/auth/profile',
   },
   USERS: '/api/users',
-   INSTITUTIONS: {
+  INSTITUTIONS: {
     BASE: '/api/institutions',
     BY_ID: (id: number) => `/api/institutions/${id}`,
     WITH_ADMIN: '/api/institutions/with-admin',
@@ -24,11 +24,7 @@ export const API_ENDPOINTS = {
     BY_ID: (id: number) => `/api/faculties/${id}`,
     BY_INSTITUTION: (institutionId: number) => `/api/institutions/${institutionId}/faculties`,
   },
-  DEPARTMENTS: {
-    BASE: '/api/departments',
-    BY_ID: (id: number) => `/api/departments/${id}`,
-    BY_FACULTY: (facultyId: number) => `/api/faculties/${facultyId}/departments`,
-  },
+  DEPARTMENTS: '/api/departments',
 } as const;
 
 export const STORAGE_KEYS = {

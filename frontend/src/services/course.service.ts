@@ -1,82 +1,69 @@
-import { apiService } from './api';
-import { 
-  Course, 
-  CreateCourseRequest, 
-  UpdateCourseRequest, 
-  CourseQuery, 
-  CourseStats,
-  ProgramCourse,
-  CreateProgramCourseRequest,
-  UpdateProgramCourseRequest,
-} from '../types/course';
+import apiService from './api';
+import { CreateCourseData, UpdateCourseData, CourseQuery } from '../types/course';
 
 export const courseService = {
-  // Get courses with filtering and pagination
-  async getCourses(query: CourseQuery = {}) {
+  // Get all courses with pagination and filtering
+  async getCourses(query?: CourseQuery) {
     const params = new URLSearchParams();
-    
-    if (query.courseType) params.append('courseType', query.courseType);
-    if (query.level) params.append('level', query.level.toString());
-    if (query.isActive !== undefined) params.append('isActive', query.isActive.toString());
-    if (query.search) params.append('search', query.search);
-    if (query.page) params.append('page', query.page.toString());
-    if (query.limit) params.append('limit', query.limit.toString());
 
-    return apiService.get<{
-      courses: Course[];
-      pagination: {
-        page: number;
-        limit: number;
-        total: number;
-        pages: number;
-      };
-    }>(`/courses?${params.toString()}`);
+    if (query?.departmentId) params.append('departmentId', query.departmentId.toString());
+    if (query?.facultyId) params.append('facultyId', query.facultyId.toString());
+    if (query?.institutionId) params.append('institutionId', query.institutionId.toString());
+    if (query?.level) params.append('level', query.level.toString());
+    if (query?.courseType) params.append('courseType', query.courseType);
+    if (query?.isActive !== undefined) params.append('isActive', query.isActive.toString());
+    if (query?.page) params.append('page', query.page.toString());
+    if (query?.limit) params.append('limit', query.limit.toString());
+    if (query?.search) params.append('search', query.search);
+    if (query?.sortBy) params.append('sortBy', query.sortBy);
+    if (query?.sortOrder) params.append('sortOrder', query.sortOrder);
+
+    const response = await apiService.get(`/courses?${params.toString()}`);
+    return response.data;
   },
 
-  // Get course by ID
+  // Get single course by ID
   async getCourseById(id: number) {
-    return apiService.get<Course>(`/courses/${id}`);
+    const response = await apiService.get(`/courses/${id}`);
+    return response.data;
   },
 
   // Create new course
-  async createCourse(data: CreateCourseRequest) {
-    return apiService.post<Course>('/courses', data);
+  async createCourse(data: CreateCourseData) {
+    const response = await apiService.post('/courses', data);
+    return response.data;
   },
 
   // Update course
-  async updateCourse(id: number, data: UpdateCourseRequest) {
-    return apiService.put<Course>(`/courses/${id}`, data);
+  async updateCourse(id: number, data: UpdateCourseData) {
+    const response = await apiService.put(`/courses/${id}`, data);
+    return response.data;
   },
 
   // Delete course
   async deleteCourse(id: number) {
-    return apiService.delete(`/courses/${id}`);
+    const response = await apiService.delete(`/courses/${id}`);
+    return response.data;
+  },
+
+  // Get courses by department
+  async getCoursesByDepartment(departmentId: number, query?: { page?: number; limit?: number; search?: string; level?: number; isActive?: boolean }) {
+    const params = new URLSearchParams();
+    params.append('departmentId', departmentId.toString());
+
+    if (query?.page) params.append('page', query.page.toString());
+    if (query?.limit) params.append('limit', query.limit.toString());
+    if (query?.search) params.append('search', query.search);
+    if (query?.level) params.append('level', query.level.toString());
+    if (query?.isActive !== undefined) params.append('isActive', query.isActive.toString());
+
+    const response = await apiService.get(`/courses?${params.toString()}`);
+    return response.data;
   },
 
   // Get course statistics
-  async getCourseStats() {
-    return apiService.get<CourseStats>('/courses/stats');
-  },
-
-  // Program-Course Management
-  
-  // Get courses for a program
-  async getProgramCourses(programId: number) {
-    return apiService.get<ProgramCourse[]>(`/courses/program/${programId}`);
-  },
-
-  // Add course to program
-  async addCourseToProgram(data: CreateProgramCourseRequest) {
-    return apiService.post<ProgramCourse>('/courses/program-course', data);
-  },
-
-  // Update program course relationship
-  async updateProgramCourse(id: number, data: UpdateProgramCourseRequest) {
-    return apiService.put<ProgramCourse>(`/courses/program-course/${id}`, data);
-  },
-
-  // Remove course from program
-  async removeCourseFromProgram(id: number) {
-    return apiService.delete(`/courses/program-course/${id}`);
+  async getCourseStats(id: number) {
+    const response = await apiService.get(`/courses/${id}/stats`);
+    return response.data;
   }
 };

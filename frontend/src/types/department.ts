@@ -1,70 +1,84 @@
+// ========================================
+// DEPARTMENT TYPES
+// ========================================
+
 export interface Department {
   id: number;
   name: string;
   code: string;
-  description: string | null;
+  type: string; // 'department', 'school', 'institute'
+  description?: string | null;
+  officeLocation?: string | null;
+  contactInfo?: string | null;
   facultyId: number;
-  headOfDepartment: string | null;
-  contactEmail: string | null;
-  contactPhone: string | null;
-  website: string | null;
-  establishedYear: number | null;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+  hodId?: number | null;
+  createdAt: Date;
+  updatedAt: Date;
+
+  // Relations
   faculty?: {
     id: number;
     name: string;
-    institution: {
+    code: string;
+    institution?: {
       id: number;
       name: string;
     };
   };
-  _count?: {
-    programs: number;
-    students: number;
+
+  hod?: {
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone?: string | null;
+  } | null;
+
+  // Stats (computed)
+  stats?: {
+    totalUsers: number;
+    totalCourses: number;
+    totalLecturers: number;
+    activePrograms: number;
   };
 }
 
-export interface CreateDepartmentRequest {
+export interface CreateDepartmentData {
   name: string;
   code: string;
+  type: string;
   description?: string;
+  officeLocation?: string;
+  contactInfo?: string;
   facultyId: number;
-  headOfDepartment?: string;
-  contactEmail?: string;
-  contactPhone?: string;
-  website?: string;
-  establishedYear?: number;
+  hodId?: number;
 }
 
-export interface UpdateDepartmentRequest {
+export interface UpdateDepartmentData {
   name?: string;
   code?: string;
+  type?: string;
   description?: string;
-  headOfDepartment?: string;
-  contactEmail?: string;
-  contactPhone?: string;
-  website?: string;
-  establishedYear?: number;
-  isActive?: boolean;
+  officeLocation?: string;
+  contactInfo?: string;
+  hodId?: number;
 }
 
 export interface DepartmentQuery {
   facultyId?: number;
   institutionId?: number;
   isActive?: boolean;
-  search?: string;
   page?: number;
   limit?: number;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
 }
 
 export interface DepartmentStats {
-  totalDepartments: number;
-  activeDepartments: number;
-  inactiveDepartments: number;
-  totalPrograms: number;
-  totalStudents: number;
-  averageProgramsPerDepartment: number;
-  recentDepartments: Department[];
+  departmentId: number;
+  totalUsers: number;
+  totalCourses: number;
+  totalLecturers: number;
+  activePrograms: number;
 }

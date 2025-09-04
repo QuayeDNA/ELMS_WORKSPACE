@@ -22,7 +22,7 @@ class ApiService {
     // Request interceptor to add auth token
     this.api.interceptors.request.use(
       (config) => {
-        // Get token synchronously for now
+        // Get token synchronously
         const token = storageService.getToken();
         if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`;
@@ -44,14 +44,14 @@ class ApiService {
           axiosError.config._retry = true;
 
           // Try to refresh token
-          const refreshToken = await storageService.getRefreshToken();
+          const refreshToken = storageService.getRefreshToken();
           if (refreshToken) {
             const response = await this.api.post('/auth/refresh', {
               refreshToken,
             });
             const responseData = response.data as { data: { token: string } };
             const { token } = responseData.data;
-            await storageService.setToken(token);
+            storageService.setToken(token);
 
             // Retry original request
             axiosError.config.headers = axiosError.config.headers || {};
@@ -89,6 +89,14 @@ class ApiService {
   private async handleRequest<T>(requestPromise: Promise<AxiosResponse>): Promise<ApiResponse<T>> {
     try {
       const response: AxiosResponse = await requestPromise;
+      
+      // Check if the backend already returns a structured response
+      if (response.data && typeof response.data === 'object' && 'success' in response.data) {
+        // Backend already returns {success, data, message} structure
+        return response.data as ApiResponse<T>;
+      }
+      
+      // Backend returns raw data, wrap it
       return {
         success: true,
         data: response.data,
