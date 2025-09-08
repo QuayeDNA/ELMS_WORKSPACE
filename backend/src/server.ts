@@ -12,6 +12,9 @@ import { userRoutes } from './routes/userRoutes';
 import { departmentRoutes } from './routes/departmentRoutes';
 import { programRoutes } from './routes/programRoutes';
 import courseRoutes from './routes/courseRoutes';
+import studentRoutes from './routes/studentRoutes';
+import instructorRoutes from './routes/instructorRoutes';
+import academicPeriodRoutes from './routes/academicPeriodRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -96,6 +99,15 @@ app.use('/api/programs', programRoutes);
 
 // Course routes
 app.use('/api/courses', courseRoutes);
+
+// Student routes
+app.use('/api/students', studentRoutes);
+
+// Instructor routes
+app.use('/api/instructors', instructorRoutes);
+
+// Academic Period routes
+app.use('/api/academic-periods', academicPeriodRoutes);
 
 // User routes
 app.use('/api/users', userRoutes);
