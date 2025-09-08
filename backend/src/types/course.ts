@@ -92,6 +92,14 @@ export interface CourseQuery {
   sortOrder?: 'asc' | 'desc';
 }
 
+export interface CourseByProgramQuery {
+  page?: number;
+  limit?: number;
+  search?: string;
+  level?: number;
+  isActive?: boolean;
+}
+
 export interface CourseStats {
   courseId: number;
   enrollmentCount: number;

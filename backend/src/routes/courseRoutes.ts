@@ -26,4 +26,7 @@ router.delete('/:id', requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN), courseC
 // Get courses by department
 router.get('/department/:departmentId', requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.FACULTY_ADMIN, UserRole.LECTURER), courseController.getCoursesByDepartment);
 
+// Get courses by program
+router.get('/program/:programId', requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.FACULTY_ADMIN, UserRole.LECTURER, UserRole.STUDENT), courseController.getCoursesByProgram);
+
 export default router;

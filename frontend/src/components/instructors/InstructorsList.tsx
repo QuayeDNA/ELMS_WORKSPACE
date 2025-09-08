@@ -106,7 +106,7 @@ export const InstructorsList: React.FC<InstructorsListProps> = ({ initialFilters
         <div>
           <h1 className="text-2xl font-bold">Instructors</h1>
           <p className="text-gray-600">
-            {pagination.total} instructors found
+            {pagination?.total || 0} instructors found
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -295,7 +295,7 @@ export const InstructorsList: React.FC<InstructorsListProps> = ({ initialFilters
       )}
 
       {/* Pagination */}
-      {pagination.totalPages > 1 && (
+      {pagination?.totalPages > 1 && (
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-600">Items per page:</span>
@@ -319,19 +319,19 @@ export const InstructorsList: React.FC<InstructorsListProps> = ({ initialFilters
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handlePageChange(pagination.page - 1)}
-              disabled={!pagination.hasPrev}
+              onClick={() => handlePageChange(pagination?.page - 1)}
+              disabled={!pagination?.hasPrev}
             >
               Previous
             </Button>
             <span className="text-sm text-gray-600">
-              Page {pagination.page} of {pagination.totalPages}
+              Page {pagination?.page || 1} of {pagination?.totalPages || 1}
             </span>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handlePageChange(pagination.page + 1)}
-              disabled={!pagination.hasNext}
+              onClick={() => handlePageChange(pagination?.page + 1)}
+              disabled={!pagination?.hasNext}
             >
               Next
             </Button>

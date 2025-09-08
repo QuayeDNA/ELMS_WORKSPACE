@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { useStudents } from '@/hooks/useStudents';
-import { StudentFilters } from '@/types/student';
+import { StudentFilters, Student } from '@/types/student';
 import { usePermissions } from '@/hooks/usePermissions';
-import { Search, Filter, Plus, Download, Upload, BarChart3 } from 'lucide-react';
+import { StudentDetails } from './StudentDetails';
+import { DeleteStudentDialog } from './DeleteStudentDialog';
+import { Search, Filter, Plus, Download, Upload, BarChart3, Eye, Edit, Trash2, User } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -12,14 +17,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface StudentsListProps {
   initialFilters?: StudentFilters;
 }
 
 export const StudentsList: React.FC<StudentsListProps> = ({ initialFilters = {} }) => {
+  const navigate = useNavigate();
   const [filters, setFilters] = useState<StudentFilters>(initialFilters);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [, setIsDeleteDialogOpen] = useState(false);
+  const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
 
   const {
     students,
@@ -33,30 +49,39 @@ export const StudentsList: React.FC<StudentsListProps> = ({ initialFilters = {} 
 
   const { canViewStudentStats } = usePermissions();
 
+  // Simple search handler without complex dependencies
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      if (searchQuery !== filters.search) {
-        setFilters(prev => ({ ...prev, search: searchQuery, page: 1 }));
+      if (searchQuery !== (filters.search || '')) {
+        const newFilters = { ...filters, search: searchQuery, page: 1 };
+        setFilters(newFilters);
+        fetchStudents(newFilters);
       }
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [searchQuery, filters.search]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery]); // Only depend on searchQuery to avoid infinite loops
 
-  useEffect(() => {
-    fetchStudents(filters);
-  }, [filters, fetchStudents]);
+  // Handle filter changes manually through user actions (page, search, etc.)
+  // The useStudents hook handles the initial fetch
 
   const handlePageChange = (page: number) => {
-    setFilters(prev => ({ ...prev, page }));
+    const newFilters = { ...filters, page };
+    setFilters(newFilters);
+    fetchStudents(newFilters);
   };
 
   const handleLimitChange = (limit: number) => {
-    setFilters(prev => ({ ...prev, limit, page: 1 }));
+    const newFilters = { ...filters, limit, page: 1 };
+    setFilters(newFilters);
+    fetchStudents(newFilters);
   };
 
   const handleSortChange = (sortBy: string, sortOrder: 'asc' | 'desc') => {
-    setFilters(prev => ({ ...prev, sortBy, sortOrder, page: 1 }));
+    const newFilters = { ...filters, sortBy, sortOrder, page: 1 };
+    setFilters(newFilters);
+    fetchStudents(newFilters);
   };
 
   const handleExport = async (format: 'csv' | 'excel' = 'csv') => {
@@ -80,6 +105,38 @@ export const StudentsList: React.FC<StudentsListProps> = ({ initialFilters = {} 
     setSearchQuery('');
   };
 
+  // New handlers for component integration
+  const handleViewStudent = (student: Student) => {
+    setSelectedStudent(student);
+    setIsDetailsDialogOpen(true);
+  };
+
+  const handleEditStudent = (student: Student) => {
+    navigate(`/students/${student.id}/edit`);
+  };
+
+  const handleDeleteStudent = (student: Student) => {
+    setStudentToDelete(student);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (studentToDelete) {
+      try {
+        // Delete functionality will be handled by the mutation in the parent component
+        setIsDeleteDialogOpen(false);
+        setStudentToDelete(null);
+        fetchStudents(filters); // Refresh the list
+      } catch (error) {
+        console.error('Delete failed:', error);
+      }
+    }
+  };
+
+  const handleCreateStudent = () => {
+    navigate('/students/new');
+  };
+
   if (error) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -98,7 +155,7 @@ export const StudentsList: React.FC<StudentsListProps> = ({ initialFilters = {} 
         <div>
           <h1 className="text-2xl font-bold">Students</h1>
           <p className="text-gray-600">
-            {pagination.total} students found
+            {pagination?.total || 0} students found
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -127,7 +184,7 @@ export const StudentsList: React.FC<StudentsListProps> = ({ initialFilters = {} 
             </Button>
           )}
           {permissions.canCreate && (
-            <Button>
+            <Button onClick={handleCreateStudent}>
               <Plus className="h-4 w-4 mr-2" />
               Add Student
             </Button>
@@ -209,7 +266,7 @@ export const StudentsList: React.FC<StudentsListProps> = ({ initialFilters = {} 
         <div className="text-center py-12">
           <p className="text-gray-500 mb-4">No students found</p>
           {permissions.canCreate && (
-            <Button>
+            <Button onClick={handleCreateStudent}>
               <Plus className="h-4 w-4 mr-2" />
               Add First Student
             </Button>
@@ -218,59 +275,89 @@ export const StudentsList: React.FC<StudentsListProps> = ({ initialFilters = {} 
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {students.map((student) => (
-            <div key={student.id} className="bg-white p-6 rounded-lg shadow border hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="font-semibold text-lg">
-                    {student.user.firstName} {student.user.lastName}
-                  </h3>
-                  <p className="text-sm text-gray-600">{student.studentId}</p>
+            <Card key={student.id} className="hover:shadow-md transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                      <User className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">
+                        {student.user.firstName} {student.user.lastName}
+                      </CardTitle>
+                      <p className="text-sm text-gray-600">{student.studentId}</p>
+                    </div>
+                  </div>
+                  <Badge variant={student.enrollmentStatus === 'ENROLLED' ? 'default' : 'secondary'}>
+                    {student.enrollmentStatus}
+                  </Badge>
                 </div>
-                <span className={`px-2 py-1 text-xs rounded-full ${
-                  student.enrollmentStatus === 'ENROLLED' 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-red-100 text-red-800'
-                }`}>
-                  {student.enrollmentStatus}
-                </span>
-              </div>
+              </CardHeader>
               
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Program:</span>
-                  <span>{student.program.name}</span>
+              <CardContent className="space-y-2">
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-gray-600">Program:</span>
+                    <p className="font-medium truncate">{student.program.name}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Level:</span>
+                    <p className="font-medium">Level {student.level}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">CGPA:</span>
+                    <p className="font-medium">{student.cgpa?.toFixed(2) || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Status:</span>
+                    <p className="font-medium">{student.academicStatus.replace('_', ' ')}</p>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Level:</span>
-                  <span>Level {student.level}</span>
+                
+                <div className="pt-3 border-t">
+                  <p className="text-xs text-gray-600 truncate">{student.user.email}</p>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">CGPA:</span>
-                  <span>{student.cgpa || 'N/A'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Email:</span>
-                  <span className="truncate ml-2">{student.user.email}</span>
-                </div>
-              </div>
 
-              <div className="mt-4 flex gap-2">
-                <Button variant="outline" size="sm" className="flex-1">
-                  View
-                </Button>
-                {permissions.canUpdate && (
-                  <Button variant="outline" size="sm" className="flex-1">
-                    Edit
+                <div className="flex gap-2 pt-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1"
+                    onClick={() => handleViewStudent(student)}
+                  >
+                    <Eye className="h-4 w-4 mr-1" />
+                    View
                   </Button>
-                )}
-              </div>
-            </div>
+                  {permissions.canUpdate && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => handleEditStudent(student)}
+                    >
+                      <Edit className="h-4 w-4 mr-1" />
+                      Edit
+                    </Button>
+                  )}
+                  {permissions.canDelete && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleDeleteStudent(student)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}
 
       {/* Pagination */}
-      {pagination.totalPages > 1 && (
+      {pagination?.totalPages > 1 && (
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-600">Items per page:</span>
@@ -294,24 +381,57 @@ export const StudentsList: React.FC<StudentsListProps> = ({ initialFilters = {} 
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handlePageChange(pagination.page - 1)}
-              disabled={!pagination.hasPrev}
+              onClick={() => handlePageChange(pagination?.page - 1)}
+              disabled={!pagination?.hasPrev}
             >
               Previous
             </Button>
             <span className="text-sm text-gray-600">
-              Page {pagination.page} of {pagination.totalPages}
+              Page {pagination?.page || 1} of {pagination?.totalPages || 1}
             </span>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handlePageChange(pagination.page + 1)}
-              disabled={!pagination.hasNext}
+              onClick={() => handlePageChange(pagination?.page + 1)}
+              disabled={!pagination?.hasNext}
             >
               Next
             </Button>
           </div>
         </div>
+      )}
+
+      {/* Student Details Dialog */}
+      <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Student Details</DialogTitle>
+          </DialogHeader>
+          {selectedStudent && (
+            <StudentDetails
+              student={selectedStudent}
+              onEdit={() => {
+                setIsDetailsDialogOpen(false);
+                handleEditStudent(selectedStudent);
+              }}
+              onDelete={() => {
+                setIsDetailsDialogOpen(false);
+                handleDeleteStudent(selectedStudent);
+              }}
+              canEdit={permissions.canUpdate}
+              canDelete={permissions.canDelete}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      {studentToDelete && (
+        <DeleteStudentDialog
+          student={studentToDelete}
+          onConfirm={handleConfirmDelete}
+          isDeleting={loading}
+        />
       )}
     </div>
   );

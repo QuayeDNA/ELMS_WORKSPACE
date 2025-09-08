@@ -19,7 +19,7 @@ export const studentController = {
         page: parseInt(req.query.page as string) || 1,
         limit: parseInt(req.query.limit as string) || 10,
         search: req.query.search as string || '',
-        sortBy: req.query.sortBy as string || 'createdAt',
+        sortBy: req.query.sortBy as string,
         sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'desc'
       };
 
@@ -250,6 +250,64 @@ export const studentController = {
       res.status(500).json({
         success: false,
         message: 'Failed to fetch student statistics',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  },
+
+  // Export students data
+  async exportStudents(req: Request, res: Response) {
+    try {
+      const format = (req.query.format as string) || 'csv';
+      const filters = {
+        programId: req.query.programId ? parseInt(req.query.programId as string) : undefined,
+        departmentId: req.query.departmentId ? parseInt(req.query.departmentId as string) : undefined,
+        facultyId: req.query.facultyId ? parseInt(req.query.facultyId as string) : undefined,
+        institutionId: req.query.institutionId ? parseInt(req.query.institutionId as string) : undefined,
+        level: req.query.level ? parseInt(req.query.level as string) : undefined,
+        semester: req.query.semester ? parseInt(req.query.semester as string) : undefined,
+        academicYear: req.query.academicYear as string,
+        enrollmentStatus: req.query.enrollmentStatus as any,
+        academicStatus: req.query.academicStatus as any,
+        search: req.query.search as string || ''
+      };
+
+      const result = await studentService.exportStudents(filters, format as 'csv' | 'excel');
+      
+      // Set appropriate headers based on format
+      const filename = `students-export.${format}`;
+      const contentType = format === 'csv' ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send(result);
+    } catch (error) {
+      console.error('Error exporting students:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to export students',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  },
+
+  // Download import template
+  async downloadImportTemplate(req: Request, res: Response) {
+    try {
+      const format = (req.query.format as string) || 'csv';
+      const result = await studentService.getImportTemplate(format as 'csv' | 'excel');
+      
+      const filename = `student-import-template.${format}`;
+      const contentType = format === 'csv' ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send(result);
+    } catch (error) {
+      console.error('Error downloading import template:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to download import template',
         error: error instanceof Error ? error.message : 'Unknown error'
       });
     }

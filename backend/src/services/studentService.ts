@@ -20,7 +20,7 @@ export const studentService = {
       page = 1,
       limit = 10,
       search = '',
-      sortBy = 'createdAt',
+      sortBy = 'admissionDate',
       sortOrder = 'desc'
     } = params;
 
@@ -60,12 +60,21 @@ export const studentService = {
       ]
     };
 
+    // Handle sorting - use admissionDate as default since createdAt doesn't exist on studentProfile
+    let orderBy: any;
+    if (sortBy === 'createdAt') {
+      // Sort by user's createdAt if requested
+      orderBy = { user: { createdAt: sortOrder } };
+    } else {
+      orderBy = { [sortBy]: sortOrder };
+    }
+
     const [students, total] = await Promise.all([
       prisma.studentProfile.findMany({
         where,
         skip,
         take: limit,
-        orderBy: { [sortBy]: sortOrder },
+        orderBy,
         include: {
           user: {
             select: {
@@ -106,7 +115,9 @@ export const studentService = {
         page,
         limit,
         total,
-        pages: Math.ceil(total / limit)
+        totalPages: Math.ceil(total / limit),
+        hasNext: page < Math.ceil(total / limit),
+        hasPrev: page > 1
       }
     };
   },
@@ -476,5 +487,88 @@ export const studentService = {
       byLevel: studentsByLevel,
       byProgram: studentsByProgram
     };
+  },
+
+  // Export students data
+  async exportStudents(filters: any, format: 'csv' | 'excel' = 'csv') {
+    // Get all students without pagination for export
+    const { data: students } = await this.getStudents({ ...filters, limit: 10000, page: 1 });
+    
+    if (format === 'csv') {
+      return this.generateCSV(students);
+    } else {
+      return this.generateExcel(students);
+    }
+  },
+
+  // Generate CSV format
+  generateCSV(students: any[]): string {
+    const headers = [
+      'Student ID',
+      'First Name',
+      'Last Name', 
+      'Email',
+      'Phone',
+      'Program',
+      'Level',
+      'Semester',
+      'CGPA',
+      'Enrollment Status',
+      'Academic Status',
+      'Enrollment Date'
+    ];
+
+    const csvRows = [
+      headers.join(','),
+      ...students.map(student => [
+        student.studentId || '',
+        student.user.firstName || '',
+        student.user.lastName || '',
+        student.user.email || '',
+        student.user.phone || '',
+        student.program?.name || '',
+        student.level || '',
+        student.semester || '',
+        student.cgpa || '',
+        student.enrollmentStatus || '',
+        student.academicStatus || '',
+        student.enrollmentDate ? new Date(student.enrollmentDate).toLocaleDateString() : ''
+      ].map(field => `"${String(field).replace(/"/g, '""')}"`).join(','))
+    ];
+
+    return csvRows.join('\n');
+  },
+
+  // Generate Excel format (simplified - returns CSV for now)
+  generateExcel(students: any[]): string {
+    // For a full Excel implementation, you would use a library like 'exceljs'
+    // For now, return CSV format
+    return this.generateCSV(students);
+  },
+
+  // Get import template
+  async getImportTemplate(format: 'csv' | 'excel' = 'csv') {
+    const headers = [
+      'Student ID',
+      'First Name',
+      'Last Name',
+      'Email',
+      'Phone',
+      'Date of Birth (YYYY-MM-DD)',
+      'Gender',
+      'Address',
+      'Program ID',
+      'Level',
+      'Semester',
+      'Academic Year',
+      'Enrollment Date (YYYY-MM-DD)',
+      'Emergency Contact',
+      'Parent/Guardian Name',
+      'Parent/Guardian Phone',
+      'Parent/Guardian Email'
+    ];
+
+    // Return CSV format template with headers
+    return headers.join(',') + '\n';
   }
 };

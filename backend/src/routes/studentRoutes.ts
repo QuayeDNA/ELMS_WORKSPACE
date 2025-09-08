@@ -13,6 +13,8 @@ router.get('/stats', studentController.getStudentStats);
 
 // Admin routes - require SUPER_ADMIN, ADMIN, or FACULTY_ADMIN roles
 router.get('/', requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.FACULTY_ADMIN), studentController.getStudents);
+router.get('/export', requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.FACULTY_ADMIN), studentController.exportStudents);
+router.get('/import-template', requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.FACULTY_ADMIN), studentController.downloadImportTemplate);
 router.get('/:id', requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.FACULTY_ADMIN), studentController.getStudentById);
 router.get('/by-student-id/:studentId', requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.FACULTY_ADMIN), studentController.getStudentByStudentId);
 router.post('/', requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.FACULTY_ADMIN), studentController.createStudent);

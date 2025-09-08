@@ -1,5 +1,5 @@
 import { PrismaClient, CourseType } from '@prisma/client';
-import { Course, CreateCourseData, UpdateCourseData, CourseQuery } from '../types/course';
+import { Course, CreateCourseData, UpdateCourseData, CourseQuery, CourseByProgramQuery } from '../types/course';
 
 const prisma = new PrismaClient();
 
@@ -393,6 +393,106 @@ export const courseService = {
       prerequisiteCount: course.prerequisites ? JSON.parse(course.prerequisites).length : 0,
       corequisiteCount: course.corequisites ? JSON.parse(course.corequisites).length : 0,
       totalStudents: totalEnrollments
+    };
+  },
+
+  // Get courses by program
+  async getCoursesByProgram(programId: number, query: CourseByProgramQuery) {
+    const {
+      page = 1,
+      limit = 10,
+      search = '',
+      level,
+      isActive
+    } = query;
+    const skip = (page - 1) * limit;
+
+    // Build where clause for courses
+    const courseWhere: any = {};
+
+    if (level !== undefined) {
+      courseWhere.level = level;
+    }
+
+    if (isActive !== undefined) {
+      courseWhere.isActive = isActive;
+    }
+
+    if (search) {
+      courseWhere.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { code: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } }
+      ];
+    }
+
+    // Single optimized query: verify program exists and get courses with relations
+    const programWithCourses = await prisma.program.findUnique({
+      where: { id: programId },
+      select: {
+        id: true, // Verify program exists
+        programCourses: {
+          where: {
+            course: courseWhere // Apply filters to the course relation
+          },
+          select: {
+            course: {
+              include: {
+                department: {
+                  include: {
+                    faculty: {
+                      include: {
+                        institution: true
+                      }
+                    }
+                  }
+                },
+                _count: {
+                  select: {
+                    courseOfferings: true,
+                    programCourses: true
+                  }
+                }
+              }
+            }
+          },
+          skip,
+          take: limit,
+          orderBy: {
+            course: {
+              name: 'asc'
+            }
+          }
+        },
+        _count: {
+          select: {
+            programCourses: {
+              where: {
+                course: courseWhere // Apply same filters for count
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!programWithCourses) {
+      throw new Error('Program not found');
+    }
+
+    // Extract courses from the result
+    const courses = programWithCourses.programCourses.map(pc => pc.course);
+    const total = programWithCourses._count.programCourses;
+
+    return {
+      success: true,
+      data: courses,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
     };
   }
 };

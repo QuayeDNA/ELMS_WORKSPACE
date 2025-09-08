@@ -10,9 +10,10 @@ import {
   BulkStudentImportResponse,
   StudentStats
 } from '@/types/student';
+import { API_ENDPOINTS } from '@/utils/constants';
 
 class StudentService {
-  private readonly basePath = '/students';
+  private readonly basePath = API_ENDPOINTS.STUDENTS.BASE;
 
   // Get all students with pagination and filtering
   async getStudents(filters: StudentFilters = {}): Promise<StudentsResponse> {
@@ -24,15 +25,39 @@ class StudentService {
       }
     });
 
-    const response = await apiService.get<StudentsResponse>(
+    const response = await apiService.get<{
+      success: boolean;
+      data: Student[];
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+        hasNext: boolean;
+        hasPrev: boolean;
+      };
+    }>(
       `${this.basePath}?${params.toString()}`
     );
     
-    if (!response.data) {
+    if (!response.success || !response.data) {
       throw new Error('Failed to fetch students');
     }
     
-    return response.data;
+    // Ensure the response structure matches what the frontend expects
+    return {
+      success: response.success,
+      data: response.data.data || [],
+      pagination: response.data.pagination || {
+        page: 1,
+        limit: 10,
+        total: 0,
+        totalPages: 0,
+        hasNext: false,
+        hasPrev: false
+      },
+      filters: filters
+    };
   }
 
   // Get single student by ID
@@ -88,7 +113,7 @@ class StudentService {
       importData
     );
     
-    if (!response.data) {
+    if (!response.success || !response.data) {
       throw new Error('Failed to import students');
     }
     

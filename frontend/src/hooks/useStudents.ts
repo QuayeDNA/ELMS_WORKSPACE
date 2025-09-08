@@ -31,14 +31,14 @@ export const useStudents = (initialFilters: StudentFilters = {}) => {
     throw new Error('Access denied: You do not have permission to view students');
   }
 
-  const fetchStudents = useCallback(async (filters: StudentFilters = {}) => {
+  const fetchStudents = useCallback(async (customFilters: StudentFilters = {}) => {
     try {
       setLoading(true);
       setError(null);
 
-      // Apply scope-based filters
+      // Apply scope-based filters fresh each time to avoid stale closures
       const scopeFilters = getDataFilters();
-      const combinedFilters = { ...initialFilters, ...filters, ...scopeFilters };
+      const combinedFilters = { ...initialFilters, ...customFilters, ...scopeFilters };
 
       const response = await studentService.getStudents(combinedFilters);
       setStudents(response.data);
@@ -50,9 +50,43 @@ export const useStudents = (initialFilters: StudentFilters = {}) => {
     }
   }, [initialFilters, getDataFilters]);
 
+  // Only fetch once on mount - remove the problematic dependencies
   useEffect(() => {
-    fetchStudents();
-  }, [fetchStudents]);
+    let isMounted = true;
+    
+    const initialFetch = async () => {
+      if (!isMounted) return;
+      
+      try {
+        setLoading(true);
+        setError(null);
+
+        const scopeFilters = getDataFilters();
+        const combinedFilters = { ...initialFilters, ...scopeFilters };
+        const response = await studentService.getStudents(combinedFilters);
+        
+        if (isMounted) {
+          setStudents(response.data);
+          setPagination(response.pagination);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err instanceof Error ? err.message : 'Failed to fetch students');
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    initialFetch();
+
+    return () => {
+      isMounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array - only run once on mount (avoid infinite loops)
 
   const createStudent = useCallback(async (studentData: CreateStudentRequest): Promise<Student> => {
     if (!permissions.canCreateStudents) {

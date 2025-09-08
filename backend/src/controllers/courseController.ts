@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { courseService } from '../services/courseService';
 import { UserRole } from '../types/auth';
+import { CourseByProgramQuery } from '../types/course';
 
 export const courseController = {
   // Get all courses with pagination and filtering
@@ -232,6 +233,36 @@ export const courseController = {
       res.json(result);
     } catch (error) {
       console.error('Error fetching courses by department:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch courses',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  },
+
+  // Get courses by program
+   async getCoursesByProgram(req: Request, res: Response) {
+    try {
+      const programId = parseInt(req.params.programId);
+      if (isNaN(programId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid program ID'
+        });
+      } 
+      const query: CourseByProgramQuery = {
+        page: parseInt(req.query.page as string) || 1,
+        limit: parseInt(req.query.limit as string) || 10,
+        search: req.query.search as string || '',
+        level: req.query.level ? parseInt(req.query.level as string) : undefined,
+        isActive: req.query.isActive ? req.query.isActive === 'true' : undefined
+      };
+
+      const result = await courseService.getCoursesByProgram(programId, query);
+      res.json(result);
+    } catch (error) {
+      console.error('Error fetching courses by program:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to fetch courses',

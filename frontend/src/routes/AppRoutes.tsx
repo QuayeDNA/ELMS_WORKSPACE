@@ -144,7 +144,7 @@ export function AppRoutes() {
       } />
       <Route path="/admin/students" element={
         <MultiRoleAdminLayout allowedRoles={[UserRole.ADMIN, UserRole.FACULTY_ADMIN, UserRole.DEAN, UserRole.HOD]}>
-          <StudentsPage />
+          <StudentsPage mode={'view'} />
         </MultiRoleAdminLayout>
       } />
       <Route path="/admin/instructors" element={

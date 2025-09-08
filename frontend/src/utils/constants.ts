@@ -24,7 +24,44 @@ export const API_ENDPOINTS = {
     BY_ID: (id: number) => `/api/faculties/${id}`,
     BY_INSTITUTION: (institutionId: number) => `/api/institutions/${institutionId}/faculties`,
   },
-  DEPARTMENTS: '/api/departments',
+  DEPARTMENTS: {
+    BASE: '/api/departments',
+    BY_ID: (id: number) => `/api/departments/${id}`,
+    BY_FACULTY: (facultyId: number) => `/api/faculties/${facultyId}/departments`,
+  },
+  PROGRAMS: {
+    BASE: '/api/programs',
+    BY_ID: (id: number) => `/api/programs/${id}`,
+    BY_DEPARTMENT: (departmentId: number) => `/api/departments/${departmentId}/programs`,
+  },
+  COURSES: {
+    BASE: '/api/courses',
+    BY_ID: (id: number) => `/api/courses/${id}`,
+    BY_PROGRAM: (programId: number) => `/api/programs/${programId}/courses`,
+    BY_DEPARTMENT: (departmentId: number) => `/api/departments/${departmentId}/courses`,
+  },
+  STUDENTS: {
+    BASE: '/api/students',
+    BY_ID: (id: number) => `/api/students/${id}`,
+    BY_PROGRAM: (programId: number) => `/api/programs/${programId}/students`,
+    BY_COURSE: (courseId: number) => `/api/courses/${courseId}/students`,
+    BULK_IMPORT: '/api/students/bulk-import',
+    UPDATE_STATUS: (id: number) => `/api/students/${id}/status`,
+    STATS: '/api/students/stats',
+    COURSE_ENROLLMENT_STATS: (courseId: number) => `/api/courses/${courseId}/students/stats`,
+  },
+  INSTRUCTORS: {
+    BASE: '/api/instructors',
+    BY_ID: (id: number) => `/api/instructors/${id}`,
+    BY_DEPARTMENT: (departmentId: number) => `/api/departments/${departmentId}/instructors`,
+    BULK_IMPORT: '/api/instructors/bulk-import',
+    STATS: '/api/instructors/stats',
+  },
+  ACADEMIC_PERIODS: {
+    BASE: '/api/academic-periods',
+    BY_ID: (id: number) => `/api/academic-periods/${id}`,
+    CURRENT: '/api/academic-periods/current',
+  },
 } as const;
 
 export const STORAGE_KEYS = {
