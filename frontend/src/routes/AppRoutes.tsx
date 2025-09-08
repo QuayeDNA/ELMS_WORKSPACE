@@ -26,7 +26,7 @@ const UsersPage = lazy(() => import('@/pages/UsersPage').then(module => ({ defau
 
 // Admin Pages
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'));
-const StudentsPage = lazy(() => import('@/pages/admin/StudentsPage'));
+const StudentsPage = lazy(() => import('@/pages/admin/StudentsPage').then(module => ({ default: module.default })));
 const InstructorsPage = lazy(() => import('@/pages/admin/InstructorsPage'));
 const AdminUsersPage = lazy(() => import('@/pages/admin/UsersPage').then(module => ({ default: module.UsersPage })));
 const FacultyPage = lazy(() => import('@/pages/admin/FacultyPage').then(module => ({ default: module.FacultyPage })));
@@ -143,6 +143,16 @@ export function AppRoutes() {
         </AdminLayout>
       } />
       <Route path="/admin/students" element={
+        <MultiRoleAdminLayout allowedRoles={[UserRole.ADMIN, UserRole.FACULTY_ADMIN, UserRole.DEAN, UserRole.HOD]}>
+          <StudentsPage mode={'list'} />
+        </MultiRoleAdminLayout>
+      } />
+      <Route path="/admin/students/new" element={
+        <MultiRoleAdminLayout allowedRoles={[UserRole.ADMIN, UserRole.FACULTY_ADMIN, UserRole.DEAN, UserRole.HOD]}>
+          <StudentsPage mode={'create'} />
+        </MultiRoleAdminLayout>
+      } />
+      <Route path="/admin/students/:id" element={
         <MultiRoleAdminLayout allowedRoles={[UserRole.ADMIN, UserRole.FACULTY_ADMIN, UserRole.DEAN, UserRole.HOD]}>
           <StudentsPage mode={'view'} />
         </MultiRoleAdminLayout>

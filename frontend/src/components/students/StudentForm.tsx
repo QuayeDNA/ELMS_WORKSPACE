@@ -13,13 +13,13 @@ import {
 } from '@/components/ui/select';
 import { 
   Student, 
-  EnrollmentStatus, 
-  AcademicStatus 
+  CreateStudentRequest,
+  UpdateStudentRequest
 } from '@/types/student';
 
 interface StudentFormProps {
   student?: Student;
-  onSubmit: (data: Record<string, unknown>) => Promise<void>;
+  onSubmit: (data: CreateStudentRequest | UpdateStudentRequest) => Promise<void>;
   onCancel: () => void;
   loading?: boolean;
 }
@@ -33,30 +33,30 @@ export const StudentForm: React.FC<StudentFormProps> = ({
   const [formData, setFormData] = useState({
     // User fields
     email: '',
+    password: '', // Only for create mode
     firstName: '',
     lastName: '',
     middleName: '',
+    title: '',
     phone: '',
     dateOfBirth: '',
     gender: '',
     nationality: '',
     address: '',
     
-    // Student specific fields
+    // Profile fields
     studentId: '',
+    indexNumber: '',
     programId: '',
     level: '',
     semester: '',
     academicYear: '',
-    enrollmentStatus: EnrollmentStatus.ENROLLED,
-    academicStatus: AcademicStatus.GOOD_STANDING,
-    enrollmentDate: '',
-    graduationDate: '',
-    emergencyContact: '',
-    parentGuardianName: '',
-    parentGuardianPhone: '',
-    parentGuardianEmail: '',
-    section: ''
+    admissionDate: '',
+    expectedGraduation: '',
+    guardianName: '',
+    guardianPhone: '',
+    guardianEmail: '',
+    emergencyContact: ''
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -65,28 +65,28 @@ export const StudentForm: React.FC<StudentFormProps> = ({
     if (student) {
       setFormData({
         email: student.user.email || '',
+        password: '', // Not shown for edit mode
         firstName: student.user.firstName || '',
         lastName: student.user.lastName || '',
         middleName: student.user.middleName || '',
+        title: student.user.title || '',
         phone: student.user.phone || '',
         dateOfBirth: student.user.dateOfBirth || '',
         gender: student.user.gender || '',
         nationality: student.user.nationality || '',
         address: student.user.address || '',
         studentId: student.studentId || '',
+        indexNumber: student.indexNumber || '',
         programId: String(student.programId || ''),
         level: String(student.level || ''),
         semester: String(student.semester || ''),
         academicYear: student.academicYear || '',
-        enrollmentStatus: student.enrollmentStatus,
-        academicStatus: student.academicStatus,
-        enrollmentDate: student.enrollmentDate || '',
-        graduationDate: student.graduationDate || '',
-        emergencyContact: student.emergencyContact || '',
-        parentGuardianName: student.parentGuardianName || '',
-        parentGuardianPhone: student.parentGuardianPhone || '',
-        parentGuardianEmail: student.parentGuardianEmail || '',
-        section: student.section || ''
+        admissionDate: student.admissionDate || '',
+        expectedGraduation: student.expectedGraduation || '',
+        guardianName: student.guardianName || '',
+        guardianPhone: student.guardianPhone || '',
+        guardianEmail: student.guardianEmail || '',
+        emergencyContact: student.emergencyContact || ''
       });
     }
   }, [student]);
@@ -108,7 +108,9 @@ export const StudentForm: React.FC<StudentFormProps> = ({
     if (!formData.studentId) newErrors.studentId = 'Student ID is required';
     if (!formData.programId) newErrors.programId = 'Program is required';
     if (!formData.level) newErrors.level = 'Level is required';
-    if (!formData.enrollmentDate) newErrors.enrollmentDate = 'Enrollment date is required';
+    if (!formData.semester) newErrors.semester = 'Semester is required';
+    if (!formData.academicYear) newErrors.academicYear = 'Academic year is required';
+    if (!student && !formData.password) newErrors.password = 'Password is required';
 
     // Email validation
     if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
@@ -118,6 +120,11 @@ export const StudentForm: React.FC<StudentFormProps> = ({
     // Phone validation
     if (formData.phone && !/^[+]?[0-9\s\-()]{10,}$/.test(formData.phone)) {
       newErrors.phone = 'Invalid phone number';
+    }
+
+    // Password validation (only for create mode)
+    if (!student && formData.password && formData.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters long';
     }
 
     setErrors(newErrors);
@@ -131,14 +138,68 @@ export const StudentForm: React.FC<StudentFormProps> = ({
       return;
     }
 
-    const submitData = {
-      ...formData,
-      programId: parseInt(formData.programId),
-      level: parseInt(formData.level),
-      semester: formData.semester ? parseInt(formData.semester) : undefined
-    };
-
-    await onSubmit(submitData);
+    if (student) {
+      // Update mode - return UpdateStudentRequest structure
+      const updateData: UpdateStudentRequest = {
+        user: {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          middleName: formData.middleName,
+          title: formData.title,
+          phone: formData.phone,
+          dateOfBirth: formData.dateOfBirth,
+          gender: formData.gender,
+          nationality: formData.nationality,
+          address: formData.address,
+        },
+        profile: {
+          indexNumber: formData.indexNumber,
+          level: parseInt(formData.level),
+          semester: parseInt(formData.semester),
+          academicYear: formData.academicYear,
+          programId: parseInt(formData.programId),
+          admissionDate: formData.admissionDate,
+          expectedGraduation: formData.expectedGraduation,
+          guardianName: formData.guardianName,
+          guardianPhone: formData.guardianPhone,
+          guardianEmail: formData.guardianEmail,
+          emergencyContact: formData.emergencyContact,
+        }
+      };
+      await onSubmit(updateData);
+    } else {
+      // Create mode - return CreateStudentRequest structure
+      const createData: CreateStudentRequest = {
+        user: {
+          email: formData.email,
+          password: formData.password,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          middleName: formData.middleName,
+          title: formData.title,
+          phone: formData.phone,
+          dateOfBirth: formData.dateOfBirth,
+          gender: formData.gender,
+          nationality: formData.nationality,
+          address: formData.address,
+        },
+        profile: {
+          studentId: formData.studentId,
+          indexNumber: formData.indexNumber,
+          level: parseInt(formData.level),
+          semester: parseInt(formData.semester),
+          academicYear: formData.academicYear,
+          programId: parseInt(formData.programId),
+          admissionDate: formData.admissionDate,
+          expectedGraduation: formData.expectedGraduation,
+          guardianName: formData.guardianName,
+          guardianPhone: formData.guardianPhone,
+          guardianEmail: formData.guardianEmail,
+          emergencyContact: formData.emergencyContact,
+        }
+      };
+      await onSubmit(createData);
+    }
   };
 
   return (
@@ -196,6 +257,20 @@ export const StudentForm: React.FC<StudentFormProps> = ({
                 />
                 {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
               </div>
+
+              {!student && (
+                <div>
+                  <Label htmlFor="password">Password *</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => handleChange('password', e.target.value)}
+                    className={errors.password ? 'border-red-500' : ''}
+                  />
+                  {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
+                </div>
+              )}
 
               <div>
                 <Label htmlFor="phone">Phone</Label>
@@ -269,13 +344,14 @@ export const StudentForm: React.FC<StudentFormProps> = ({
               </div>
 
               <div>
-                <Label htmlFor="programId">Program ID *</Label>
+                <Label htmlFor="programId">Program *</Label>
                 <Input
                   id="programId"
                   type="number"
                   value={formData.programId}
                   onChange={(e) => handleChange('programId', e.target.value)}
                   className={errors.programId ? 'border-red-500' : ''}
+                  placeholder="Enter program ID"
                 />
                 {errors.programId && <p className="text-red-500 text-sm mt-1">{errors.programId}</p>}
               </div>
@@ -322,75 +398,23 @@ export const StudentForm: React.FC<StudentFormProps> = ({
               </div>
 
               <div>
-                <Label htmlFor="section">Section</Label>
+                <Label htmlFor="admissionDate">Admission Date</Label>
                 <Input
-                  id="section"
-                  value={formData.section}
-                  onChange={(e) => handleChange('section', e.target.value)}
-                  placeholder="e.g., A, B, C"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="enrollmentDate">Enrollment Date *</Label>
-                <Input
-                  id="enrollmentDate"
+                  id="admissionDate"
                   type="date"
-                  value={formData.enrollmentDate}
-                  onChange={(e) => handleChange('enrollmentDate', e.target.value)}
-                  className={errors.enrollmentDate ? 'border-red-500' : ''}
+                  value={formData.admissionDate}
+                  onChange={(e) => handleChange('admissionDate', e.target.value)}
                 />
-                {errors.enrollmentDate && <p className="text-red-500 text-sm mt-1">{errors.enrollmentDate}</p>}
               </div>
 
               <div>
-                <Label htmlFor="graduationDate">Expected Graduation Date</Label>
+                <Label htmlFor="expectedGraduation">Expected Graduation Date</Label>
                 <Input
-                  id="graduationDate"
+                  id="expectedGraduation"
                   type="date"
-                  value={formData.graduationDate}
-                  onChange={(e) => handleChange('graduationDate', e.target.value)}
+                  value={formData.expectedGraduation}
+                  onChange={(e) => handleChange('expectedGraduation', e.target.value)}
                 />
-              </div>
-
-              <div>
-                <Label htmlFor="enrollmentStatus">Enrollment Status</Label>
-                <Select 
-                  value={formData.enrollmentStatus} 
-                  onValueChange={(value) => handleChange('enrollmentStatus', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={EnrollmentStatus.ENROLLED}>Enrolled</SelectItem>
-                    <SelectItem value={EnrollmentStatus.DEFERRED}>Deferred</SelectItem>
-                    <SelectItem value={EnrollmentStatus.WITHDRAWN}>Withdrawn</SelectItem>
-                    <SelectItem value={EnrollmentStatus.GRADUATED}>Graduated</SelectItem>
-                    <SelectItem value={EnrollmentStatus.SUSPENDED}>Suspended</SelectItem>
-                    <SelectItem value={EnrollmentStatus.TRANSFERRED}>Transferred</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="academicStatus">Academic Status</Label>
-                <Select 
-                  value={formData.academicStatus} 
-                  onValueChange={(value) => handleChange('academicStatus', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={AcademicStatus.GOOD_STANDING}>Good Standing</SelectItem>
-                    <SelectItem value={AcademicStatus.PROBATION}>Probation</SelectItem>
-                    <SelectItem value={AcademicStatus.WARNING}>Warning</SelectItem>
-                    <SelectItem value={AcademicStatus.DISMISSED}>Dismissed</SelectItem>
-                    <SelectItem value={AcademicStatus.HONORS}>Honors</SelectItem>
-                    <SelectItem value={AcademicStatus.DEAN_LIST}>Dean's List</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
             </div>
           </div>
@@ -412,30 +436,30 @@ export const StudentForm: React.FC<StudentFormProps> = ({
 
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="parentGuardianName">Parent/Guardian Name</Label>
+                  <Label htmlFor="guardianName">Guardian Name</Label>
                   <Input
-                    id="parentGuardianName"
-                    value={formData.parentGuardianName}
-                    onChange={(e) => handleChange('parentGuardianName', e.target.value)}
+                    id="guardianName"
+                    value={formData.guardianName}
+                    onChange={(e) => handleChange('guardianName', e.target.value)}
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="parentGuardianPhone">Parent/Guardian Phone</Label>
+                  <Label htmlFor="guardianPhone">Guardian Phone</Label>
                   <Input
-                    id="parentGuardianPhone"
-                    value={formData.parentGuardianPhone}
-                    onChange={(e) => handleChange('parentGuardianPhone', e.target.value)}
+                    id="guardianPhone"
+                    value={formData.guardianPhone}
+                    onChange={(e) => handleChange('guardianPhone', e.target.value)}
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="parentGuardianEmail">Parent/Guardian Email</Label>
+                  <Label htmlFor="guardianEmail">Guardian Email</Label>
                   <Input
-                    id="parentGuardianEmail"
+                    id="guardianEmail"
                     type="email"
-                    value={formData.parentGuardianEmail}
-                    onChange={(e) => handleChange('parentGuardianEmail', e.target.value)}
+                    value={formData.guardianEmail}
+                    onChange={(e) => handleChange('guardianEmail', e.target.value)}
                   />
                 </div>
               </div>

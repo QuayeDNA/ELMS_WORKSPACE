@@ -7,7 +7,7 @@ import { Edit, Trash2, Mail, Phone, Calendar, GraduationCap, User } from 'lucide
 
 interface StudentDetailsProps {
   student: Student;
-  onEdit: () => void;
+  onEdit: (student: Student) => void;
   onDelete: () => void;
   canEdit?: boolean;
   canDelete?: boolean;
@@ -20,7 +20,8 @@ export const StudentDetails: React.FC<StudentDetailsProps> = ({
   canEdit = false,
   canDelete = false
 }) => {
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
@@ -89,7 +90,7 @@ export const StudentDetails: React.FC<StudentDetailsProps> = ({
             </div>
             <div className="flex gap-2">
               {canEdit && (
-                <Button variant="outline" onClick={onEdit}>
+                <Button variant="outline" onClick={() => onEdit(student)}>
                   <Edit className="w-4 h-4 mr-2" />
                   Edit
                 </Button>
@@ -191,17 +192,17 @@ export const StudentDetails: React.FC<StudentDetailsProps> = ({
               </div>
             )}
 
-            {(student.parentGuardianName || student.parentGuardianPhone || student.parentGuardianEmail) && (
+            {(student.guardianName || student.guardianPhone || student.guardianEmail) && (
               <div className="pt-4 border-t">
                 <h4 className="text-sm font-medium text-gray-900 mb-2">Parent/Guardian</h4>
-                {student.parentGuardianName && (
-                  <p className="text-sm"><span className="font-medium">Name:</span> {student.parentGuardianName}</p>
+                {student.guardianName && (
+                  <p className="text-sm"><span className="font-medium">Name:</span> {student.guardianName}</p>
                 )}
-                {student.parentGuardianPhone && (
-                  <p className="text-sm"><span className="font-medium">Phone:</span> {student.parentGuardianPhone}</p>
+                {student.guardianPhone && (
+                  <p className="text-sm"><span className="font-medium">Phone:</span> {student.guardianPhone}</p>
                 )}
-                {student.parentGuardianEmail && (
-                  <p className="text-sm"><span className="font-medium">Email:</span> {student.parentGuardianEmail}</p>
+                {student.guardianEmail && (
+                  <p className="text-sm"><span className="font-medium">Email:</span> {student.guardianEmail}</p>
                 )}
               </div>
             )}
@@ -262,26 +263,26 @@ export const StudentDetails: React.FC<StudentDetailsProps> = ({
           <CardContent className="space-y-4">
             <div>
               <span className="text-sm font-medium text-gray-600">Program</span>
-              <p className="text-sm font-semibold">{student.program.name}</p>
-              <p className="text-xs text-gray-500">{student.program.code} • {student.program.degree}</p>
+              <p className="text-sm font-semibold">{student.program?.name}</p>
+              <p className="text-xs text-gray-500">{student.program?.code} • {student.program?.degree}</p>
             </div>
             
             <div>
               <span className="text-sm font-medium text-gray-600">Department</span>
-              <p className="text-sm">{student.program.department.name}</p>
-              <p className="text-xs text-gray-500">{student.program.department.code}</p>
+              <p className="text-sm">{student.program?.department.name}</p>
+              <p className="text-xs text-gray-500">{student.program?.department.code}</p>
             </div>
             
             <div>
               <span className="text-sm font-medium text-gray-600">Faculty</span>
-              <p className="text-sm">{student.program.department.faculty.name}</p>
-              <p className="text-xs text-gray-500">{student.program.department.faculty.code}</p>
+              <p className="text-sm">{student.program?.department.faculty.name}</p>
+              <p className="text-xs text-gray-500">{student.program?.department.faculty.code}</p>
             </div>
             
             <div>
               <span className="text-sm font-medium text-gray-600">Institution</span>
-              <p className="text-sm">{student.program.department.faculty.institution.name}</p>
-              <p className="text-xs text-gray-500">{student.program.department.faculty.institution.code}</p>
+              <p className="text-sm">{student.program?.department.faculty.institution.name}</p>
+              <p className="text-xs text-gray-500">{student.program?.department.faculty.institution.code}</p>
             </div>
           </CardContent>
         </Card>

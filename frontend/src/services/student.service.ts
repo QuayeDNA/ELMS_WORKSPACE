@@ -10,225 +10,406 @@ import {
   BulkStudentImportResponse,
   StudentStats
 } from '@/types/student';
-import { API_ENDPOINTS } from '@/utils/constants';
+import { 
+  API_ENDPOINTS, 
+  API_CONFIG, 
+  STUDENT_CONSTANTS,
+  ERROR_MESSAGES,
+  STORAGE_KEYS
+} from '@/constants';
 
+/**
+ * Student Service Class
+ * Handles all student-related API operations using centralized constants
+ */
 class StudentService {
   private readonly basePath = API_ENDPOINTS.STUDENTS.BASE;
 
-  // Get all students with pagination and filtering
+  /**
+   * Get all students with pagination and filtering
+   */
   async getStudents(filters: StudentFilters = {}): Promise<StudentsResponse> {
-    const params = new URLSearchParams();
-    
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== '') {
-        params.append(key, String(value));
+    try {
+      // Build query parameters using API_CONFIG defaults
+      const params = new URLSearchParams();
+      
+      // Apply pagination defaults from constants
+      const page = filters.page || API_CONFIG.PAGINATION.DEFAULT_PAGE;
+      const limit = Math.min(
+        filters.limit || API_CONFIG.PAGINATION.DEFAULT_LIMIT, 
+        API_CONFIG.PAGINATION.MAX_LIMIT
+      );
+      
+      params.append('page', page.toString());
+      params.append('limit', limit.toString());
+      
+      // Apply filters
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '' && key !== 'page' && key !== 'limit') {
+          params.append(key, String(value));
+        }
+      });
+
+      const response = await apiService.get<ApiResponse<StudentsResponse>>(
+        `${this.basePath}?${params.toString()}`
+      );
+      
+      if (!response.data?.data) {
+        throw new Error(ERROR_MESSAGES.NOT_FOUND);
       }
-    });
-
-    const response = await apiService.get<{
-      success: boolean;
-      data: Student[];
-      pagination: {
-        page: number;
-        limit: number;
-        total: number;
-        totalPages: number;
-        hasNext: boolean;
-        hasPrev: boolean;
-      };
-    }>(
-      `${this.basePath}?${params.toString()}`
-    );
-    
-    if (!response.success || !response.data) {
-      throw new Error('Failed to fetch students');
+      
+      return response.data.data;
+    } catch (error) {
+      console.error('Error fetching students:', error);
+      throw error;
     }
-    
-    // Ensure the response structure matches what the frontend expects
-    return {
-      success: response.success,
-      data: response.data.data || [],
-      pagination: response.data.pagination || {
-        page: 1,
-        limit: 10,
-        total: 0,
-        totalPages: 0,
-        hasNext: false,
-        hasPrev: false
-      },
-      filters: filters
-    };
   }
 
-  // Get single student by ID
+  /**
+   * Get single student by ID
+   */
   async getStudentById(id: number): Promise<Student> {
-    const response = await apiService.get<ApiResponse<Student>>(
-      `${this.basePath}/${id}`
-    );
-    
-    if (!response.data?.data) {
-      throw new Error('Student not found');
+    try {
+      const response = await apiService.get<ApiResponse<Student>>(
+        API_ENDPOINTS.STUDENTS.BY_ID(id)
+      );
+      
+      if (!response.data?.data) {
+        throw new Error(ERROR_MESSAGES.NOT_FOUND);
+      }
+      
+      return response.data.data;
+    } catch (error) {
+      console.error(`Error fetching student ${id}:`, error);
+      throw error;
     }
-    
-    return response.data.data;
   }
 
-  // Create new student
+  /**
+   * Create new student
+   */
   async createStudent(studentData: CreateStudentRequest): Promise<Student> {
-    const response = await apiService.post<ApiResponse<Student>>(
-      this.basePath,
-      studentData
-    );
-    
-    if (!response.data?.data) {
-      throw new Error('Failed to create student');
+    try {
+      // Validate required fields using constants
+      this.validateStudentData(studentData);
+      
+      const response = await apiService.post<ApiResponse<Student>>(
+        this.basePath,
+        studentData
+      );
+      
+      if (!response.data?.data) {
+        throw new Error(ERROR_MESSAGES.SERVER);
+      }
+      
+      return response.data.data;
+    } catch (error) {
+      console.error('Error creating student:', error);
+      throw error;
     }
-    
-    return response.data.data;
   }
 
-  // Update student
+  /**
+   * Update student
+   */
   async updateStudent(id: number, updates: UpdateStudentRequest): Promise<Student> {
-    const response = await apiService.put<ApiResponse<Student>>(
-      `${this.basePath}/${id}`,
-      updates
-    );
-    
-    if (!response.data?.data) {
-      throw new Error('Failed to update student');
+    try {
+      const response = await apiService.put<ApiResponse<Student>>(
+        API_ENDPOINTS.STUDENTS.BY_ID(id),
+        updates
+      );
+      
+      if (!response.data?.data) {
+        throw new Error(ERROR_MESSAGES.SERVER);
+      }
+      
+      return response.data.data;
+    } catch (error) {
+      console.error(`Error updating student ${id}:`, error);
+      throw error;
     }
-    
-    return response.data.data;
   }
 
-  // Delete student
+  /**
+   * Delete student
+   */
   async deleteStudent(id: number): Promise<void> {
-    await apiService.delete(`${this.basePath}/${id}`);
-  }
-
-  // Bulk import students
-  async bulkImportStudents(importData: BulkStudentImport): Promise<BulkStudentImportResponse> {
-    const response = await apiService.post<BulkStudentImportResponse>(
-      `${this.basePath}/bulk-import`,
-      importData
-    );
-    
-    if (!response.success || !response.data) {
-      throw new Error('Failed to import students');
+    try {
+      await apiService.delete(API_ENDPOINTS.STUDENTS.BY_ID(id));
+    } catch (error) {
+      console.error(`Error deleting student ${id}:`, error);
+      throw error;
     }
-    
-    return response.data;
   }
 
-  // Update student status
+  /**
+   * Update student status
+   */
   async updateStudentStatus(
     id: number, 
-    status: { enrollmentStatus?: string; academicStatus?: string }
+    status: { 
+      enrollmentStatus?: keyof typeof STUDENT_CONSTANTS.ENROLLMENT_STATUS; 
+      academicStatus?: keyof typeof STUDENT_CONSTANTS.ACADEMIC_STATUS;
+    }
   ): Promise<Student> {
-    const response = await apiService.patch<ApiResponse<Student>>(
-      `${this.basePath}/${id}/status`,
-      status
-    );
-    
-    if (!response.data?.data) {
-      throw new Error('Failed to update student status');
+    try {
+      // Validate status values against constants
+      if (status.enrollmentStatus && !Object.keys(STUDENT_CONSTANTS.ENROLLMENT_STATUS).includes(status.enrollmentStatus)) {
+        throw new Error('Invalid enrollment status');
+      }
+      
+      if (status.academicStatus && !Object.keys(STUDENT_CONSTANTS.ACADEMIC_STATUS).includes(status.academicStatus)) {
+        throw new Error('Invalid academic status');
+      }
+
+      const response = await apiService.patch<ApiResponse<Student>>(
+        API_ENDPOINTS.STUDENTS.UPDATE_STATUS(id),
+        status
+      );
+      
+      if (!response.data?.data) {
+        throw new Error(ERROR_MESSAGES.SERVER);
+      }
+      
+      return response.data.data;
+    } catch (error) {
+      console.error(`Error updating student status ${id}:`, error);
+      throw error;
     }
-    
-    return response.data.data;
   }
 
-  // Get student statistics
+  /**
+   * Get student statistics
+   */
   async getStudentStats(filters: Partial<StudentFilters> = {}): Promise<StudentStats> {
-    const params = new URLSearchParams();
-    
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== '') {
-        params.append(key, String(value));
-      }
-    });
+    try {
+      const params = new URLSearchParams();
+      
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          params.append(key, String(value));
+        }
+      });
 
-    const response = await apiService.get<ApiResponse<StudentStats>>(
-      `${this.basePath}/stats?${params.toString()}`
-    );
-    
-    if (!response.data?.data) {
-      throw new Error('Failed to fetch student statistics');
+      const response = await apiService.get<ApiResponse<StudentStats>>(
+        `${API_ENDPOINTS.STUDENTS.STATS}?${params.toString()}`
+      );
+      
+      if (!response.data?.data) {
+        throw new Error(ERROR_MESSAGES.NOT_FOUND);
+      }
+      
+      return response.data.data;
+    } catch (error) {
+      console.error('Error fetching student statistics:', error);
+      throw error;
     }
-    
-    return response.data.data;
   }
 
-  // Search students
-  async searchStudents(query: string, filters: Partial<StudentFilters> = {}): Promise<Student[]> {
-    const searchFilters = {
-      ...filters,
-      search: query,
-      limit: 50 // Reasonable limit for search results
-    };
-
-    const response = await this.getStudents(searchFilters);
-    return response.data;
-  }
-
-  // Get students by program
-  async getStudentsByProgram(programId: number, filters: Partial<StudentFilters> = {}): Promise<StudentsResponse> {
-    return this.getStudents({
-      ...filters,
-      programId
-    });
-  }
-
-  // Get students by department
-  async getStudentsByDepartment(departmentId: number, filters: Partial<StudentFilters> = {}): Promise<StudentsResponse> {
-    return this.getStudents({
-      ...filters,
-      departmentId
-    });
-  }
-
-  // Get students by faculty
-  async getStudentsByFaculty(facultyId: number, filters: Partial<StudentFilters> = {}): Promise<StudentsResponse> {
-    return this.getStudents({
-      ...filters,
-      facultyId
-    });
-  }
-
-  // Get students by institution
-  async getStudentsByInstitution(institutionId: number, filters: Partial<StudentFilters> = {}): Promise<StudentsResponse> {
-    return this.getStudents({
-      ...filters,
-      institutionId
-    });
-  }
-
-  // Export students data
-  async exportStudents(filters: StudentFilters = {}, format: 'csv' | 'excel' = 'csv'): Promise<Blob> {
-    const params = new URLSearchParams();
-    
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== '') {
-        params.append(key, String(value));
+  /**
+   * Bulk import students
+   */
+  async bulkImportStudents(importData: BulkStudentImport): Promise<BulkStudentImportResponse> {
+    try {
+      const response = await apiService.post<BulkStudentImportResponse>(
+        API_ENDPOINTS.STUDENTS.BULK_IMPORT,
+        importData
+      );
+      
+      if (!response.success || !response.data) {
+        throw new Error(ERROR_MESSAGES.SERVER);
       }
-    });
-    
-    params.append('format', format);
-
-    const response = await apiService.get(
-      `${this.basePath}/export?${params.toString()}`,
-      { responseType: 'blob' }
-    );
-    return response.data as Blob;
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error importing students:', error);
+      throw error;
+    }
   }
 
-  // Download student import template
-  async downloadImportTemplate(format: 'csv' | 'excel' = 'csv'): Promise<Blob> {
-    const response = await apiService.get(
-      `${this.basePath}/import-template?format=${format}`,
-      { responseType: 'blob' }
-    );
-    return response.data as Blob;
+  /**
+   * Export students data
+   */
+  async exportStudents(filters: Partial<StudentFilters> = {}, format: 'csv' | 'excel' = 'csv'): Promise<Blob> {
+    try {
+      const params = new URLSearchParams();
+      params.append('format', format);
+
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          params.append(key, String(value));
+        }
+      });
+
+      const response = await apiService.get<Blob>(
+        `${API_ENDPOINTS.STUDENTS.EXPORT}?${params.toString()}`,
+        { responseType: 'blob' }
+      );
+
+      return response.data as Blob;
+    } catch (error) {
+      console.error('Error exporting students:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get students by program
+   */
+  async getStudentsByProgram(programId: number, filters: Partial<StudentFilters> = {}): Promise<StudentsResponse> {
+    try {
+      const params = new URLSearchParams();
+      
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          params.append(key, String(value));
+        }
+      });
+
+      const response = await apiService.get<ApiResponse<StudentsResponse>>(
+        `${API_ENDPOINTS.STUDENTS.BY_PROGRAM(programId)}?${params.toString()}`
+      );
+      
+      if (!response.data?.data) {
+        throw new Error(ERROR_MESSAGES.NOT_FOUND);
+      }
+      
+      return response.data.data;
+    } catch (error) {
+      console.error(`Error fetching students by program ${programId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get students by department
+   */
+  async getStudentsByDepartment(departmentId: number, filters: Partial<StudentFilters> = {}): Promise<StudentsResponse> {
+    try {
+      const params = new URLSearchParams();
+      
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          params.append(key, String(value));
+        }
+      });
+
+      const response = await apiService.get<ApiResponse<StudentsResponse>>(
+        `${API_ENDPOINTS.STUDENTS.BY_DEPARTMENT(departmentId)}?${params.toString()}`
+      );
+      
+      if (!response.data?.data) {
+        throw new Error(ERROR_MESSAGES.NOT_FOUND);
+      }
+      
+      return response.data.data;
+    } catch (error) {
+      console.error(`Error fetching students by department ${departmentId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Search students with caching
+   */
+  async searchStudents(query: string, filters: Partial<StudentFilters> = {}): Promise<Student[]> {
+    try {
+      const searchFilters = {
+        ...filters,
+        search: query,
+        limit: 50 // Reasonable limit for search results
+      };
+
+      const response = await this.getStudents(searchFilters);
+      return response.data;
+    } catch (error) {
+      console.error('Error searching students:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Validate student data against constants
+   */
+  private validateStudentData(data: CreateStudentRequest): void {
+    const errors: string[] = [];
+
+    // Validate user data
+    if (!data.user.email) errors.push('Email is required');
+    if (!data.user.firstName) errors.push('First name is required');
+    if (!data.user.lastName) errors.push('Last name is required');
+    if (!data.user.password) errors.push('Password is required');
+
+    // Validate profile data
+    if (!data.profile.studentId) errors.push('Student ID is required');
+    if (!data.profile.programId) errors.push('Program is required');
+    if (!data.profile.level || data.profile.level <= 0) errors.push('Valid level is required');
+    if (!data.profile.semester || data.profile.semester <= 0) errors.push('Valid semester is required');
+    if (!data.profile.academicYear) errors.push('Academic year is required');
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (data.user.email && !emailRegex.test(data.user.email)) {
+      errors.push('Invalid email format');
+    }
+
+    // Validate gender
+    if (data.user.gender && !Object.values(STUDENT_CONSTANTS.GENDER).includes(data.user.gender as keyof typeof STUDENT_CONSTANTS.GENDER)) {
+      errors.push('Invalid gender');
+    }
+
+    // Validate level
+    if (data.profile.level && !STUDENT_CONSTANTS.LEVELS.some(level => level.value === data.profile.level.toString())) {
+      errors.push('Invalid level');
+    }
+
+    // Validate semester
+    if (data.profile.semester && !STUDENT_CONSTANTS.SEMESTERS.some(semester => semester.value === data.profile.semester.toString())) {
+      errors.push('Invalid semester');
+    }
+
+    // Validate password strength
+    if (data.user.password && data.user.password.length < 8) {
+      errors.push('Password must be at least 8 characters long');
+    }
+
+    if (errors.length > 0) {
+      throw new Error(errors.join(', '));
+    }
+  }
+
+  /**
+   * Save filters to local storage
+   */
+  saveFilters(filters: StudentFilters): void {
+    try {
+      localStorage.setItem(STORAGE_KEYS.STUDENTS_FILTERS, JSON.stringify(filters));
+    } catch (error) {
+      console.warn('Failed to save student filters to localStorage:', error);
+    }
+  }
+
+  /**
+   * Load filters from local storage
+   */
+  loadFilters(): StudentFilters | null {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.STUDENTS_FILTERS);
+      return saved ? JSON.parse(saved) : null;
+    } catch (error) {
+      console.warn('Failed to load student filters from localStorage:', error);
+      return null;
+    }
+  }
+
+  clearFilters(): void {
+    try {
+      localStorage.removeItem(STORAGE_KEYS.STUDENTS_FILTERS);
+    } catch (error) {
+      console.warn('Failed to clear student filters from localStorage:', error);
+    }
   }
 }
 
+// Export singleton instance
 export const studentService = new StudentService();

@@ -6,24 +6,27 @@ export interface Student {
   id: number;
   userId: number;
   studentId: string;
-  programId: number;
-  academicYear: string;
-  semester: number;
+  indexNumber?: string;
   level: number;
+  semester: number;
   section?: string;
+  credits?: number;
   cgpa?: number;
-  credits: number;
-  enrollmentDate: string;
+  academicYear?: string;
+  programId?: number;
+  admissionDate?: string;
+  enrollmentDate?: string;
+  expectedGraduation?: string;
   graduationDate?: string;
   enrollmentStatus: EnrollmentStatus;
   academicStatus: AcademicStatus;
+  guardianName?: string;
+  guardianPhone?: string;
+  guardianEmail?: string;
   emergencyContact?: string;
-  parentGuardianName?: string;
-  parentGuardianPhone?: string;
-  parentGuardianEmail?: string;
   createdAt: string;
   updatedAt: string;
-  
+
   // Relations
   user: {
     id: number;
@@ -31,14 +34,18 @@ export interface Student {
     firstName: string;
     lastName: string;
     middleName?: string;
+    title?: string;
     phone?: string;
     dateOfBirth?: string;
     gender?: string;
     nationality?: string;
     address?: string;
+    status: string;
+    createdAt: string;
+    updatedAt: string;
   };
-  
-  program: {
+
+  program?: {
     id: number;
     name: string;
     code: string;
@@ -81,50 +88,62 @@ export enum AcademicStatus {
 }
 
 export interface CreateStudentRequest {
-  email: string;
-  firstName: string;
-  lastName: string;
-  middleName?: string;
-  phone?: string;
-  dateOfBirth?: string;
-  gender?: string;
-  nationality?: string;
-  address?: string;
-  studentId: string;
-  programId: number;
-  academicYear: string;
-  semester: number;
-  level: number;
-  section?: string;
-  enrollmentDate: string;
-  emergencyContact?: string;
-  parentGuardianName?: string;
-  parentGuardianPhone?: string;
-  parentGuardianEmail?: string;
+  user: {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+    middleName?: string;
+    title?: string;
+    phone?: string;
+    dateOfBirth?: string;
+    gender?: string;
+    nationality?: string;
+    address?: string;
+  };
+  profile: {
+    studentId: string;
+    indexNumber?: string;
+    level: number;
+    semester: number;
+    academicYear: string;
+    programId: number;
+    admissionDate?: string;
+    expectedGraduation?: string;
+    guardianName?: string;
+    guardianPhone?: string;
+    guardianEmail?: string;
+    emergencyContact?: string;
+  };
 }
 
 export interface UpdateStudentRequest {
-  firstName?: string;
-  lastName?: string;
-  middleName?: string;
-  phone?: string;
-  dateOfBirth?: string;
-  gender?: string;
-  nationality?: string;
-  address?: string;
-  academicYear?: string;
-  semester?: number;
-  level?: number;
-  section?: string;
-  cgpa?: number;
-  credits?: number;
-  graduationDate?: string;
-  enrollmentStatus?: EnrollmentStatus;
-  academicStatus?: AcademicStatus;
-  emergencyContact?: string;
-  parentGuardianName?: string;
-  parentGuardianPhone?: string;
-  parentGuardianEmail?: string;
+  user?: {
+    firstName?: string;
+    lastName?: string;
+    middleName?: string;
+    title?: string;
+    phone?: string;
+    dateOfBirth?: string;
+    gender?: string;
+    nationality?: string;
+    address?: string;
+  };
+  profile?: {
+    indexNumber?: string;
+    level?: number;
+    semester?: number;
+    academicYear?: string;
+    programId?: number;
+    admissionDate?: string;
+    expectedGraduation?: string;
+    enrollmentStatus?: EnrollmentStatus;
+    academicStatus?: AcademicStatus;
+    guardianName?: string;
+    guardianPhone?: string;
+    guardianEmail?: string;
+    emergencyContact?: string;
+  };
 }
 
 export interface StudentFilters {
@@ -176,9 +195,12 @@ export interface BulkStudentImportResponse {
 }
 
 export interface StudentStats {
+  total: number;
   totalStudents: number;
   activeStudents: number;
+  newThisYear: number;
   graduatedStudents: number;
+  graduates: number;
   suspendedStudents: number;
   averageCgpa: number;
   enrollmentByProgram: Array<{
