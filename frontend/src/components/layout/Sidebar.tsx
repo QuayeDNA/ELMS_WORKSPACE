@@ -63,10 +63,24 @@ const getSidebarItemsForRole = (role: UserRole): SidebarItem[] => {
       return [
         {
           title: 'Dashboard',
-          href: '/admin/institution',
+          href: '/admin',
           icon: LayoutDashboard,
           roles: [UserRole.ADMIN],
           description: 'Institution overview'
+        },
+        {
+          title: 'Students',
+          href: '/admin/students',
+          icon: GraduationCap,
+          roles: [UserRole.ADMIN],
+          description: 'Manage students'
+        },
+        {
+          title: 'Instructors',
+          href: '/admin/instructors',
+          icon: Users,
+          roles: [UserRole.ADMIN],
+          description: 'Manage instructors'
         },
         {
           title: 'Users',
@@ -78,9 +92,9 @@ const getSidebarItemsForRole = (role: UserRole): SidebarItem[] => {
         {
           title: 'Faculty',
           href: '/admin/faculty',
-          icon: GraduationCap,
+          icon: Building2,
           roles: [UserRole.ADMIN],
-          description: 'Manage faculty members'
+          description: 'Manage faculty'
         },
         {
           title: 'Departments',

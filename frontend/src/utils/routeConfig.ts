@@ -6,10 +6,10 @@ import { UserRole } from '@/types/auth';
 export function getRedirectPath(role: UserRole): string {
   switch (role) {
     case UserRole.SUPER_ADMIN:
-      return '/institutions'; // Super admin manages institutions
+      return '/dashboard'; // Super admin manages institutions
       
     case UserRole.ADMIN:
-      return '/admin/institution'; // Institution admin manages their institution
+      return '/admin'; // Institution admin dashboard
       
     default:
       return '/dashboard'; // Fallback to dashboard

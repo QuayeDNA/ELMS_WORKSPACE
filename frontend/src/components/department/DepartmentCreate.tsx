@@ -28,18 +28,18 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { departmentService } from '@/services/department.service';
 import { facultyService } from '@/services/faculty.service';
 import { useAuth } from '@/hooks/useAuth';
-import { CreateDepartmentRequest } from '@/types/department';
+import { CreateDepartmentData } from '@/types/department';
+import { Faculty } from '@/types/faculty';
 
 const departmentSchema = z.object({
   name: z.string().min(1, 'Department name is required'),
   code: z.string().min(1, 'Department code is required'),
+  type: z.string().min(1, 'Department type is required'),
   description: z.string().optional(),
+  officeLocation: z.string().optional(),
+  contactInfo: z.string().optional(),
   facultyId: z.number().min(1, 'Faculty is required'),
-  headOfDepartment: z.string().optional(),
-  contactEmail: z.string().email('Invalid email').optional().or(z.literal('')),
-  contactPhone: z.string().optional(),
-  website: z.string().url('Invalid URL').optional().or(z.literal('')),
-  establishedYear: z.number().min(1800).max(new Date().getFullYear()).optional().or(z.nan()),
+  hodId: z.number().optional(),
 });
 
 type DepartmentFormData = z.infer<typeof departmentSchema>;
@@ -58,55 +58,55 @@ const DepartmentCreate: React.FC<DepartmentCreateProps> = ({ onSuccess, onCancel
     defaultValues: {
       name: '',
       code: '',
+      type: 'department',
       description: '',
+      officeLocation: '',
+      contactInfo: '',
       facultyId: 0,
-      headOfDepartment: '',
-      contactEmail: '',
-      contactPhone: '',
-      website: '',
+      hodId: undefined,
     }
   });
 
   // Fetch available faculties based on user role
   const { data: facultiesData, isLoading: isFacultiesLoading } = useQuery({
     queryKey: ['faculties-for-department-create'],
-    queryFn: () => {
+    queryFn: async () => {
       if (user?.role === 'SUPER_ADMIN') {
-        return facultyService.getFaculties({});
+        const response = await facultyService.getFaculties({});
+        return response.data || [];
       } else if (user?.role === 'ADMIN' && user.institutionId) {
-        return facultyService.getFacultiesByInstitution(user.institutionId);
+        const response = await facultyService.getFacultiesByInstitution(user.institutionId);
+        return response.data || [];
       } else if (user?.role === 'FACULTY_ADMIN' && user.facultyId) {
-        return facultyService.getFacultyById(user.facultyId).then(faculty => ({
-          faculties: [faculty]
-        }));
+        const response = await facultyService.getFaculty(user.facultyId);
+        return [response.data];
       }
-      return Promise.resolve({ faculties: [] });
+      return [];
     }
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: CreateDepartmentRequest) => departmentService.createDepartment(data),
+    mutationFn: (data: CreateDepartmentData) => departmentService.createDepartment(data),
     onSuccess: () => {
       onSuccess();
     },
-    onError: (error: any) => {
-      setError(error.response?.data?.message || 'Failed to create department');
+    onError: (error: Error) => {
+      setError(error.message || 'Failed to create department');
     }
   });
 
   const onSubmit = (data: DepartmentFormData) => {
     setError(null);
     
-    const requestData: CreateDepartmentRequest = {
+    const requestData: CreateDepartmentData = {
       name: data.name,
       code: data.code,
+      type: data.type,
       description: data.description || undefined,
+      officeLocation: data.officeLocation || undefined,
+      contactInfo: data.contactInfo || undefined,
       facultyId: data.facultyId,
-      headOfDepartment: data.headOfDepartment || undefined,
-      contactEmail: data.contactEmail || undefined,
-      contactPhone: data.contactPhone || undefined,
-      website: data.website || undefined,
-      establishedYear: isNaN(data.establishedYear || 0) ? undefined : data.establishedYear,
+      hodId: data.hodId || undefined,
     };
 
     createMutation.mutate(requestData);
@@ -116,7 +116,7 @@ const DepartmentCreate: React.FC<DepartmentCreateProps> = ({ onSuccess, onCancel
     return <div className="p-4">Loading faculties...</div>;
   }
 
-  const faculties = facultiesData?.faculties || [];
+  const faculties = Array.isArray(facultiesData) ? facultiesData.filter(Boolean) : (facultiesData?.faculties || []);
 
   if (faculties.length === 0) {
     return (
@@ -182,33 +182,58 @@ const DepartmentCreate: React.FC<DepartmentCreateProps> = ({ onSuccess, onCancel
             />
           </div>
 
-          <FormField
-            control={form.control}
-            name="facultyId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Faculty</FormLabel>
-                <Select
-                  onValueChange={(value) => field.onChange(parseInt(value))}
-                  value={field.value?.toString()}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select faculty" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {faculties.map((faculty) => (
-                      <SelectItem key={faculty.id} value={faculty.id.toString()}>
-                        {faculty.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Department Type</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="department">Department</SelectItem>
+                      <SelectItem value="school">School</SelectItem>
+                      <SelectItem value="institute">Institute</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="facultyId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Faculty</FormLabel>
+                  <Select
+                    onValueChange={(value) => field.onChange(parseInt(value))}
+                    value={field.value?.toString()}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select faculty" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {faculties.filter((faculty): faculty is Faculty => faculty !== undefined).map((faculty: Faculty) => (
+                        <SelectItem key={faculty.id} value={faculty.id.toString()}>
+                          {faculty.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
 
           <FormField
             control={form.control}
@@ -230,12 +255,12 @@ const DepartmentCreate: React.FC<DepartmentCreateProps> = ({ onSuccess, onCancel
           <div className="grid grid-cols-2 gap-4">
             <FormField
               control={form.control}
-              name="headOfDepartment"
+              name="officeLocation"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Head of Department</FormLabel>
+                  <FormLabel>Office Location</FormLabel>
                   <FormControl>
-                    <Input placeholder="Dr. John Doe" {...field} />
+                    <Input placeholder="Building A, Room 101" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -244,51 +269,12 @@ const DepartmentCreate: React.FC<DepartmentCreateProps> = ({ onSuccess, onCancel
 
             <FormField
               control={form.control}
-              name="establishedYear"
+              name="contactInfo"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Established Year</FormLabel>
+                  <FormLabel>Contact Information</FormLabel>
                   <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="2000"
-                      {...field}
-                      onChange={(e) => field.onChange(parseInt(e.target.value) || undefined)}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="contactEmail"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Contact Email</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="email"
-                      placeholder="cs@university.edu"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="contactPhone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Contact Phone</FormLabel>
-                  <FormControl>
-                    <Input placeholder="+1 (555) 123-4567" {...field} />
+                    <Input placeholder="Phone: +1 (555) 123-4567" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -298,15 +284,16 @@ const DepartmentCreate: React.FC<DepartmentCreateProps> = ({ onSuccess, onCancel
 
           <FormField
             control={form.control}
-            name="website"
+            name="hodId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Website</FormLabel>
+                <FormLabel>Head of Department (Optional)</FormLabel>
                 <FormControl>
                   <Input
-                    type="url"
-                    placeholder="https://cs.university.edu"
+                    type="number"
+                    placeholder="User ID of HOD"
                     {...field}
+                    onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
                   />
                 </FormControl>
                 <FormMessage />
