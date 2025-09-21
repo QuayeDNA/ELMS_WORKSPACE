@@ -403,6 +403,19 @@ model Program {
   @@map("programs")
 }
 
+model ProgramPrefix {
+  id          Int         @id @default(autoincrement())
+  programType ProgramType @unique
+  prefix      String      // e.g., "BSc", "MSc", "PhD", "HND"
+  description String?
+  isActive    Boolean     @default(true)
+  
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@map("program_prefixes")
+}
+
 model Course {
   id           Int        @id @default(autoincrement())
   name         String

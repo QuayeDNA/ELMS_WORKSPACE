@@ -14,6 +14,10 @@ import courseRoutes from "./routes/courseRoutes";
 import studentRoutes from "./routes/studentRoutes";
 import instructorRoutes from "./routes/instructorRoutes";
 import academicPeriodRoutes from "./routes/academicPeriodRoutes";
+import incidentRoutes from "./routes/incidentRoutes";
+import venueRoutes from "./routes/venueRoutes";
+import examRoutes from "./routes/examRoutes";
+import programPrefixRoutes from "./routes/programPrefixRoutes";
 
 // Load environment variables
 dotenv.config();
@@ -89,6 +93,9 @@ app.get("/api", (req, res) => {
     documentation: "/api/docs",
     health: "/health",
     auth: "/api/auth",
+    exams: "/api/exams",
+    scripts: "/api/scripts",
+    incidents: "/api/incidents",
     timestamp: new Date().toISOString(),
   });
 });
@@ -108,6 +115,9 @@ app.use("/api/departments", departmentRoutes);
 // Program routes
 app.use("/api/programs", programRoutes);
 
+// Program prefix routes
+app.use("/api/program-prefixes", programPrefixRoutes);
+
 // Course routes
 app.use("/api/courses", courseRoutes);
 
@@ -119,6 +129,15 @@ app.use("/api/instructors", instructorRoutes);
 
 // Academic Period routes
 app.use("/api/academic-periods", academicPeriodRoutes);
+
+// Exam routes
+app.use("/api/exams", examRoutes);
+
+// Incident routes
+app.use("/api/incidents", incidentRoutes);
+
+// Venue routes
+app.use("/api/venues", venueRoutes);
 
 // User routes
 app.use("/api/users", userRoutes);
