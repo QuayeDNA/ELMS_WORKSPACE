@@ -9,8 +9,8 @@
     "mobile-app"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\" \"npm run dev:mobile\" --names \"BACKEND,FRONTEND,MOBILE\" --prefix name --prefix-colors \"bgBlue.bold,bgGreen.bold,bgMagenta.bold\"",
-    "dev:web": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\" --names \"BACKEND,FRONTEND\" --prefix name --prefix-colors \"bgBlue.bold,bgGreen.bold\"",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\" \"npm run dev:mobile\" --names \"BACKEND,FRONTEND,MOBILE\" --prefix name --prefix-colors \"bgBlue.bold,bgGreen.bold,bgMagenta.bold\" --no-spinner",
+    "dev:web": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\" --names \"BACKEND,FRONTEND\" --prefix name --prefix-colors \"bgBlue.bold,bgGreen.bold\" --no-spinner",
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",
     "dev:mobile": "cd mobile-app && npm start",
