@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   Plus,
@@ -20,21 +20,21 @@ import {
   Eye,
   Edit,
   Trash2,
-  MoreHorizontal
-} from 'lucide-react';
+  MoreHorizontal,
+} from "lucide-react";
 
 // UI Components
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -42,7 +42,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,8 +50,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Badge } from '@/components/ui/badge';
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -59,25 +59,25 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+} from "@/components/ui/table";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 // Student Components
 import {
   StudentDetails,
   StudentForm,
   DeleteStudentDialog,
-} from '@/components/students';
+} from "@/components/students";
 
 // Services & Types
-import { studentService } from '@/services/student.service';
+import { studentService } from "@/services/student.service";
 import {
   Student,
   StudentFilters,
   CreateStudentRequest,
   UpdateStudentRequest,
   StudentsResponse,
-} from '@/types/student';
+} from "@/types/student";
 
 // Constants
 import {
@@ -87,21 +87,21 @@ import {
   ERROR_MESSAGES,
   ROUTES,
   STORAGE_KEYS,
-} from '@/constants';
+} from "@/constants";
 
 interface StudentPageProps {
-  mode: 'view' | 'create' | 'list';
+  mode: "view" | "create" | "list";
 }
 
 interface ViewMode {
-  type: 'grid' | 'table';
+  type: "grid" | "table";
   label: string;
   icon: React.ReactNode;
 }
 
 const VIEW_MODES: ViewMode[] = [
-  { type: 'table', label: 'Table View', icon: <List className="w-4 h-4" /> },
-  { type: 'grid', label: 'Grid View', icon: <Grid className="w-4 h-4" /> },
+  { type: "table", label: "Table View", icon: <List className="w-4 h-4" /> },
+  { type: "grid", label: "Grid View", icon: <Grid className="w-4 h-4" /> },
 ];
 
 /**
@@ -114,28 +114,29 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
   const queryClient = useQueryClient();
 
   // Local State
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
+  const [viewMode, setViewMode] = useState<"grid" | "table">("table");
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 
   // Filters State with Constants
   const [filters, setFilters] = useState<StudentFilters>(() => {
     const savedFilters = studentService.loadFilters();
-    return savedFilters || {
-      page: API_CONFIG.PAGINATION.DEFAULT_PAGE,
-      limit: API_CONFIG.PAGINATION.DEFAULT_LIMIT,
-      search: '',
-      enrollmentStatus: undefined,
-      academicStatus: undefined,
-      programId: undefined,
-      level: undefined,
-      semester: undefined,
-      academicYear: '',
-      sortBy: 'firstName',
-      sortOrder: 'asc',
-    };
+    return (
+      savedFilters || {
+        page: API_CONFIG.PAGINATION.DEFAULT_PAGE,
+        limit: API_CONFIG.PAGINATION.DEFAULT_LIMIT,
+        search: "",
+        enrollmentStatus: undefined,
+        academicStatus: undefined,
+        programId: undefined,
+        level: undefined,
+        semester: undefined,
+        academicYear: "",
+        sortBy: "firstName",
+        sortOrder: "asc",
+      }
+    );
   });
 
   // Save filters when they change
@@ -146,12 +147,17 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
   // Load view mode from localStorage
   useEffect(() => {
     try {
-      const savedViewMode = localStorage.getItem(STORAGE_KEYS.STUDENTS_VIEW_MODE);
-      if (savedViewMode && (savedViewMode === 'grid' || savedViewMode === 'table')) {
+      const savedViewMode = localStorage.getItem(
+        STORAGE_KEYS.STUDENTS_VIEW_MODE
+      );
+      if (
+        savedViewMode &&
+        (savedViewMode === "grid" || savedViewMode === "table")
+      ) {
         setViewMode(savedViewMode);
       }
     } catch (error) {
-      console.warn('Failed to load view mode from localStorage:', error);
+      console.warn("Failed to load view mode from localStorage:", error);
     }
   }, []);
 
@@ -160,7 +166,7 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
     try {
       localStorage.setItem(STORAGE_KEYS.STUDENTS_VIEW_MODE, viewMode);
     } catch (error) {
-      console.warn('Failed to save view mode to localStorage:', error);
+      console.warn("Failed to save view mode to localStorage:", error);
     }
   }, [viewMode]);
 
@@ -170,9 +176,9 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
     isLoading: isLoadingStudent,
     error: studentError,
   } = useQuery({
-    queryKey: ['student', id],
+    queryKey: ["student", id],
     queryFn: () => studentService.getStudentById(Number(id!)),
-    enabled: mode === 'view' && !!id,
+    enabled: mode === "view" && !!id,
     retry: 2,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -184,27 +190,29 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
     error: studentsError,
     refetch: refetchStudents,
   } = useQuery<StudentsResponse>({
-    queryKey: ['students', filters],
+    queryKey: ["students", filters],
     queryFn: () => studentService.getStudents(filters),
-    enabled: mode === 'list',
-    placeholderData: (previousData: StudentsResponse | undefined) => previousData,
+    enabled: mode === "list",
+    placeholderData: (previousData: StudentsResponse | undefined) =>
+      previousData,
     retry: 2,
     staleTime: 2 * 60 * 1000, // 2 minutes
   });
 
   // Query: Student Statistics
   const { data: stats } = useQuery({
-    queryKey: ['students', 'stats', filters],
+    queryKey: ["students", "stats", filters],
     queryFn: () => studentService.getStudentStats(filters),
-    enabled: mode === 'list',
+    enabled: mode === "list",
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Mutation: Create Student
   const createMutation = useMutation({
-    mutationFn: (data: CreateStudentRequest) => studentService.createStudent(data),
+    mutationFn: (data: CreateStudentRequest) =>
+      studentService.createStudent(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({ queryKey: ["students"] });
       toast.success(SUCCESS_MESSAGES.STUDENT.CREATED);
       navigate(ROUTES.STUDENTS.BASE);
     },
@@ -218,8 +226,8 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
     mutationFn: ({ id, data }: { id: number; data: UpdateStudentRequest }) =>
       studentService.updateStudent(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['student', id] });
-      queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({ queryKey: ["student", id] });
+      queryClient.invalidateQueries({ queryKey: ["students"] });
       setIsEditDialogOpen(false);
       toast.success(SUCCESS_MESSAGES.STUDENT.UPDATED);
     },
@@ -232,11 +240,10 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => studentService.deleteStudent(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['students'] });
-      setIsDeleteDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["students"] });
       setSelectedStudent(null);
       toast.success(SUCCESS_MESSAGES.STUDENT.DELETED);
-      if (mode === 'view') {
+      if (mode === "view") {
         navigate(ROUTES.STUDENTS.BASE);
       }
     },
@@ -247,9 +254,16 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
 
   // Handlers
   const handleCreate = useCallback(
-    async (data: CreateStudentRequest | UpdateStudentRequest): Promise<void> => {
+    async (
+      data: CreateStudentRequest | UpdateStudentRequest
+    ): Promise<void> => {
       // Type guard to ensure we have CreateStudentRequest for creation
-      if ('user' in data && 'profile' in data && data.user && 'password' in data.user) {
+      if (
+        "user" in data &&
+        "profile" in data &&
+        data.user &&
+        "password" in data.user
+      ) {
         await createMutation.mutateAsync(data as CreateStudentRequest);
       }
     },
@@ -257,21 +271,22 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
   );
 
   const handleUpdate = useCallback(
-    async (data: CreateStudentRequest | UpdateStudentRequest): Promise<void> => {
+    async (
+      data: CreateStudentRequest | UpdateStudentRequest
+    ): Promise<void> => {
       if (student) {
-        await updateMutation.mutateAsync({ id: student.id, data: data as UpdateStudentRequest });
+        await updateMutation.mutateAsync({
+          id: student.id,
+          data: data as UpdateStudentRequest,
+        });
       }
     },
     [updateMutation, student]
   );
 
-  const handleDelete = useCallback(
-    (studentToDelete: Student) => {
-      setSelectedStudent(studentToDelete);
-      setIsDeleteDialogOpen(true);
-    },
-    []
-  );
+  const handleDelete = useCallback((studentToDelete: Student) => {
+    setSelectedStudent(studentToDelete);
+  }, []);
 
   const confirmDelete = useCallback(() => {
     if (selectedStudent) {
@@ -297,51 +312,57 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
 
   const handleSearch = useCallback(
     (searchTerm: string) => {
-      handleFilterChange('search', searchTerm);
+      handleFilterChange("search", searchTerm);
     },
     [handleFilterChange]
   );
 
-  const handlePageChange = useCallback(
-    (page: number) => {
-      setFilters((prev) => ({ ...prev, page }));
-    },
-    []
-  );
+  const handlePageChange = useCallback((page: number) => {
+    setFilters((prev) => ({ ...prev, page }));
+  }, []);
 
   const clearFilters = useCallback(() => {
     setFilters({
       page: API_CONFIG.PAGINATION.DEFAULT_PAGE,
       limit: API_CONFIG.PAGINATION.DEFAULT_LIMIT,
-      search: '',
+      search: "",
       enrollmentStatus: undefined,
       academicStatus: undefined,
       programId: undefined,
       level: undefined,
       semester: undefined,
-      academicYear: '',
-      sortBy: 'firstName',
-      sortOrder: 'asc',
+      academicYear: "",
+      sortBy: "firstName",
+      sortOrder: "asc",
     });
     studentService.clearFilters();
   }, []);
 
   // Memoized computed values
-  const totalStudents = useMemo(() => studentsData?.pagination?.total ?? 0, [studentsData]);
-  const totalPages = useMemo(() => studentsData?.pagination?.totalPages ?? 1, [studentsData]);
-  const currentPage = useMemo(() => studentsData?.pagination?.page ?? 1, [studentsData]);
+  const totalStudents = useMemo(
+    () => studentsData?.pagination?.total ?? 0,
+    [studentsData]
+  );
+  const totalPages = useMemo(
+    () => studentsData?.pagination?.totalPages ?? 1,
+    [studentsData]
+  );
+  const currentPage = useMemo(
+    () => studentsData?.pagination?.page ?? 1,
+    [studentsData]
+  );
 
   // Helper function to get enrollment status badge variant
   const getEnrollmentStatusVariant = (status: string) => {
     switch (status) {
       case STUDENT_CONSTANTS.ENROLLMENT_STATUS.ACTIVE:
-        return 'default';
+        return "default";
       case STUDENT_CONSTANTS.ENROLLMENT_STATUS.SUSPENDED:
-        return 'destructive';
+        return "destructive";
       case STUDENT_CONSTANTS.ENROLLMENT_STATUS.GRADUATED:
-        return 'secondary';
+        return "secondary";
       default:
-        return 'outline';
+        return "outline";
     }
   };
 
@@ -349,93 +370,61 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
   const getAcademicStatusVariant = (status: string) => {
     switch (status) {
       case STUDENT_CONSTANTS.ACADEMIC_STATUS.GOOD_STANDING:
-        return 'default';
+        return "default";
       case STUDENT_CONSTANTS.ACADEMIC_STATUS.HONORS:
       case STUDENT_CONSTANTS.ACADEMIC_STATUS.DEAN_LIST:
-        return 'secondary';
+        return "secondary";
       case STUDENT_CONSTANTS.ACADEMIC_STATUS.PROBATION:
-        return 'destructive';
+        return "destructive";
       default:
-        return 'outline';
+        return "outline";
     }
   };
 
   // Helper function to get student initials
   const getStudentInitials = (student: Student) => {
-    return `${student.user.firstName.charAt(0)}${student.user.lastName.charAt(0)}`.toUpperCase();
+    return `${student.user.firstName.charAt(0)}${student.user.lastName.charAt(
+      0
+    )}`.toUpperCase();
   };
 
-  // Loading State
-  if (isLoadingStudent || isLoadingStudents) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="w-8 h-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground">Loading students...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Error State
-  if (studentError || studentsError) {
-    const error = studentError || studentsError;
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center max-w-md">
-          <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-foreground mb-2">Error Loading Data</h3>
-          <p className="text-muted-foreground mb-4">
-            {error instanceof Error ? error.message : ERROR_MESSAGES.NETWORK}
+  // Render functions for different modes
+  const renderCreateMode = () => (
+    <div className="container mx-auto px-4 py-6 max-w-4xl">
+      <div className="mb-6">
+        <Button
+          variant="ghost"
+          onClick={() => navigate(ROUTES.STUDENTS.BASE)}
+          className="mb-4"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Students
+        </Button>
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight">
+            Create New Student
+          </h1>
+          <p className="text-muted-foreground">
+            Add a new student to the system with all required information.
           </p>
-          <div className="space-x-2">
-            <Button onClick={() => window.location.reload()} variant="outline">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Retry
-            </Button>
-            <Button onClick={() => navigate(ROUTES.ADMIN.BASE)}>Go Back</Button>
-          </div>
         </div>
       </div>
-    );
-  }
 
-  // CREATE MODE
-  if (mode === 'create') {
-    return (
-      <div className="container mx-auto px-4 py-6 max-w-4xl">
-        <div className="mb-6">
-          <Button
-            variant="ghost"
-            onClick={() => navigate(ROUTES.STUDENTS.BASE)}
-            className="mb-4"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Students
-          </Button>
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight">Create New Student</h1>
-            <p className="text-muted-foreground">
-              Add a new student to the system with all required information.
-            </p>
-          </div>
-        </div>
+      <Card className="shadow-sm">
+        <CardContent className="p-6">
+          <StudentForm
+            onSubmit={handleCreate}
+            onCancel={() => navigate(ROUTES.STUDENTS.BASE)}
+            loading={createMutation.isPending}
+          />
+        </CardContent>
+      </Card>
+    </div>
+  );
 
-        <Card className="shadow-sm">
-          <CardContent className="p-6">
-            <StudentForm
-              onSubmit={handleCreate}
-              onCancel={() => navigate(ROUTES.STUDENTS.BASE)}
-              loading={createMutation.isPending}
-            />
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const renderViewMode = () => {
+    if (!student) return null;
 
-  // VIEW MODE
-  if (mode === 'view' && student) {
     return (
       <div className="container mx-auto px-4 py-6 max-w-6xl">
         <div className="mb-6">
@@ -483,10 +472,57 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
         />
       </div>
     );
+  };
+
+  // Loading State
+  if (isLoadingStudent || isLoadingStudents) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="w-8 h-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <p className="text-sm text-muted-foreground">Loading students...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error State
+  if (studentError || studentsError) {
+    const error = studentError || studentsError;
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center max-w-md">
+          <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-foreground mb-2">
+            Error Loading Data
+          </h3>
+          <p className="text-muted-foreground mb-4">
+            {error instanceof Error ? error.message : ERROR_MESSAGES.NETWORK}
+          </p>
+          <div className="space-x-2">
+            <Button onClick={() => window.location.reload()} variant="outline">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Retry
+            </Button>
+            <Button onClick={() => navigate(ROUTES.ADMIN.BASE)}>Go Back</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // CREATE MODE
+  if (mode === "create") {
+    return renderCreateMode();
+  }
+
+  // VIEW MODE
+  if (mode === "view" && student) {
+    return renderViewMode();
   }
 
   // LIST MODE
-  if (mode === 'list') {
+  if (mode === "list") {
     return (
       <div className="container mx-auto px-4 py-6">
         {/* Header */}
@@ -505,7 +541,11 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
                 onClick={() => refetchStudents()}
                 disabled={isLoadingStudents}
               >
-                <RefreshCw className={`w-4 h-4 mr-2 ${isLoadingStudents ? 'animate-spin' : ''}`} />
+                <RefreshCw
+                  className={`w-4 h-4 mr-2 ${
+                    isLoadingStudents ? "animate-spin" : ""
+                  }`}
+                />
                 Refresh
               </Button>
               <Button onClick={() => navigate(ROUTES.STUDENTS.CREATE)}>
@@ -520,45 +560,67 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
               <Card className="border-l-4 border-l-blue-500">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Students</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Total Students
+                  </CardTitle>
                   <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{stats.total || 0}</div>
-                  <p className="text-xs text-muted-foreground">All registered students</p>
+                  <p className="text-xs text-muted-foreground">
+                    All registered students
+                  </p>
                 </CardContent>
               </Card>
 
               <Card className="border-l-4 border-l-green-500">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Active Students</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Active Students
+                  </CardTitle>
                   <GraduationCap className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.activeStudents || 0}</div>
-                  <p className="text-xs text-muted-foreground">Currently enrolled</p>
+                  <div className="text-2xl font-bold">
+                    {stats.activeStudents || 0}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Currently enrolled
+                  </p>
                 </CardContent>
               </Card>
 
               <Card className="border-l-4 border-l-yellow-500">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">New This Year</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    New This Year
+                  </CardTitle>
                   <TrendingUp className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.newThisYear || 0}</div>
-                  <p className="text-xs text-muted-foreground">Fresh enrollments</p>
+                  <div className="text-2xl font-bold">
+                    {stats.newThisYear || 0}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Fresh enrollments
+                  </p>
                 </CardContent>
               </Card>
 
               <Card className="border-l-4 border-l-purple-500">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Graduates</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Graduates
+                  </CardTitle>
                   <GraduationCap className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.graduates || 0}</div>
-                  <p className="text-xs text-muted-foreground">Completed programs</p>
+                  <div className="text-2xl font-bold">
+                    {stats.graduates || 0}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Completed programs
+                  </p>
                 </CardContent>
               </Card>
             </div>
@@ -575,7 +637,7 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
                   <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search students by name, email, or student ID..."
-                    value={filters.search || ''}
+                    value={filters.search || ""}
                     onChange={(e) => handleSearch(e.target.value)}
                     className="pl-10"
                   />
@@ -586,9 +648,12 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
               <div className="flex items-center space-x-2">
                 {/* Quick Filters */}
                 <Select
-                  value={filters.enrollmentStatus || 'all'}
+                  value={filters.enrollmentStatus || "all"}
                   onValueChange={(value) =>
-                    handleFilterChange('enrollmentStatus', value === 'all' ? undefined : value)
+                    handleFilterChange(
+                      "enrollmentStatus",
+                      value === "all" ? undefined : value
+                    )
                   }
                 >
                   <SelectTrigger className="w-[140px]">
@@ -596,18 +661,23 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Status</SelectItem>
-                    {Object.entries(STUDENT_CONSTANTS.ENROLLMENT_STATUS).map(([key, value]) => (
-                      <SelectItem key={key} value={value}>
-                        {key.replace('_', ' ')}
-                      </SelectItem>
-                    ))}
+                    {Object.entries(STUDENT_CONSTANTS.ENROLLMENT_STATUS).map(
+                      ([key, value]) => (
+                        <SelectItem key={key} value={value}>
+                          {key.replace("_", " ")}
+                        </SelectItem>
+                      )
+                    )}
                   </SelectContent>
                 </Select>
 
                 <Select
-                  value={filters.level?.toString() || 'all'}
+                  value={filters.level?.toString() || "all"}
                   onValueChange={(value) =>
-                    handleFilterChange('level', value === 'all' ? undefined : parseInt(value))
+                    handleFilterChange(
+                      "level",
+                      value === "all" ? undefined : parseInt(value)
+                    )
                   }
                 >
                   <SelectTrigger className="w-[120px]">
@@ -624,7 +694,10 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
                 </Select>
 
                 {/* Advanced Filters Dialog */}
-                <Dialog open={isFilterDialogOpen} onOpenChange={setIsFilterDialogOpen}>
+                <Dialog
+                  open={isFilterDialogOpen}
+                  onOpenChange={setIsFilterDialogOpen}
+                >
                   <DialogTrigger asChild>
                     <Button variant="outline" size="sm">
                       <Filter className="w-4 h-4 mr-2" />
@@ -643,9 +716,12 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
                       <div>
                         <Label>Academic Status</Label>
                         <Select
-                          value={filters.academicStatus || 'all'}
+                          value={filters.academicStatus || "all"}
                           onValueChange={(value) =>
-                            handleFilterChange('academicStatus', value === 'all' ? undefined : value)
+                            handleFilterChange(
+                              "academicStatus",
+                              value === "all" ? undefined : value
+                            )
                           }
                         >
                           <SelectTrigger>
@@ -653,9 +729,11 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="all">All Status</SelectItem>
-                            {Object.entries(STUDENT_CONSTANTS.ACADEMIC_STATUS).map(([key, value]) => (
+                            {Object.entries(
+                              STUDENT_CONSTANTS.ACADEMIC_STATUS
+                            ).map(([key, value]) => (
                               <SelectItem key={key} value={value}>
-                                {key.replace('_', ' ')}
+                                {key.replace("_", " ")}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -666,9 +744,12 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
                       <div>
                         <Label>Semester</Label>
                         <Select
-                          value={filters.semester?.toString() || 'all'}
+                          value={filters.semester?.toString() || "all"}
                           onValueChange={(value) =>
-                            handleFilterChange('semester', value === 'all' ? undefined : parseInt(value))
+                            handleFilterChange(
+                              "semester",
+                              value === "all" ? undefined : parseInt(value)
+                            )
                           }
                         >
                           <SelectTrigger>
@@ -677,7 +758,10 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
                           <SelectContent>
                             <SelectItem value="all">All Semesters</SelectItem>
                             {STUDENT_CONSTANTS.SEMESTERS.map((semester) => (
-                              <SelectItem key={semester.value} value={semester.value}>
+                              <SelectItem
+                                key={semester.value}
+                                value={semester.value}
+                              >
                                 {semester.label}
                               </SelectItem>
                             ))}
@@ -690,8 +774,10 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
                         <Label>Academic Year</Label>
                         <Input
                           placeholder="e.g., 2023/2024"
-                          value={filters.academicYear || ''}
-                          onChange={(e) => handleFilterChange('academicYear', e.target.value)}
+                          value={filters.academicYear || ""}
+                          onChange={(e) =>
+                            handleFilterChange("academicYear", e.target.value)
+                          }
                         />
                       </div>
 
@@ -722,7 +808,7 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
                       <DropdownMenuItem
                         key={mode.type}
                         onClick={() => setViewMode(mode.type)}
-                        className={viewMode === mode.type ? 'bg-muted' : ''}
+                        className={viewMode === mode.type ? "bg-muted" : ""}
                       >
                         {mode.icon}
                         <span className="ml-2">{mode.label}</span>
@@ -763,12 +849,14 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
               <div className="flex items-center justify-between">
                 <CardTitle>Student Records</CardTitle>
                 <div className="text-sm text-muted-foreground">
-                  Showing {((currentPage - 1) * filters.limit!) + 1} to {Math.min(currentPage * filters.limit!, totalStudents)} of {totalStudents} students
+                  Showing {(currentPage - 1) * filters.limit! + 1} to{" "}
+                  {Math.min(currentPage * filters.limit!, totalStudents)} of{" "}
+                  {totalStudents} students
                 </div>
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              {viewMode === 'table' ? (
+              {viewMode === "table" ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -787,7 +875,10 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
                         <TableCell>
                           <div className="flex items-center space-x-3">
                             <Avatar className="h-8 w-8">
-                              <AvatarImage src={``} alt={getStudentInitials(student)} />
+                              <AvatarImage
+                                src={``}
+                                alt={getStudentInitials(student)}
+                              />
                               <AvatarFallback className="text-xs">
                                 {getStudentInitials(student)}
                               </AvatarFallback>
@@ -802,12 +893,16 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell className="font-mono text-sm">{student.studentId}</TableCell>
+                        <TableCell className="font-mono text-sm">
+                          {student.studentId}
+                        </TableCell>
                         <TableCell>
                           <div>
-                            <div className="font-medium">{student.program?.name || 'N/A'}</div>
+                            <div className="font-medium">
+                              {student.program?.name || "N/A"}
+                            </div>
                             <div className="text-sm text-muted-foreground">
-                              {student.program?.department.name || 'N/A'}
+                              {student.program?.department.name || "N/A"}
                             </div>
                           </div>
                         </TableCell>
@@ -815,13 +910,21 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
                           <Badge variant="outline">Level {student.level}</Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={getEnrollmentStatusVariant(student.enrollmentStatus)}>
-                            {student.enrollmentStatus.replace('_', ' ')}
+                          <Badge
+                            variant={getEnrollmentStatusVariant(
+                              student.enrollmentStatus
+                            )}
+                          >
+                            {student.enrollmentStatus.replace("_", " ")}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={getAcademicStatusVariant(student.academicStatus)}>
-                            {student.academicStatus.replace('_', ' ')}
+                          <Badge
+                            variant={getAcademicStatusVariant(
+                              student.academicStatus
+                            )}
+                          >
+                            {student.academicStatus.replace("_", " ")}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
@@ -833,12 +936,18 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem
-                                onClick={() => navigate(ROUTES.STUDENTS.VIEW(student.id.toString()))}
+                                onClick={() =>
+                                  navigate(
+                                    ROUTES.STUDENTS.VIEW(student.id.toString())
+                                  )
+                                }
                               >
                                 <Eye className="w-4 h-4 mr-2" />
                                 View Details
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleEdit(student)}>
+                              <DropdownMenuItem
+                                onClick={() => handleEdit(student)}
+                              >
                                 <Edit className="w-4 h-4 mr-2" />
                                 Edit
                               </DropdownMenuItem>
@@ -861,17 +970,26 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
                 <div className="p-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {studentsData.data.map((student: Student) => (
-                      <Card key={student.id} className="hover:shadow-md transition-shadow">
+                      <Card
+                        key={student.id}
+                        className="hover:shadow-md transition-shadow"
+                      >
                         <CardContent className="p-4">
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex items-center space-x-3">
                               <Avatar className="h-10 w-10">
-                                <AvatarImage src={``} alt={getStudentInitials(student)} />
-                                <AvatarFallback>{getStudentInitials(student)}</AvatarFallback>
+                                <AvatarImage
+                                  src={``}
+                                  alt={getStudentInitials(student)}
+                                />
+                                <AvatarFallback>
+                                  {getStudentInitials(student)}
+                                </AvatarFallback>
                               </Avatar>
                               <div>
                                 <h3 className="font-medium">
-                                  {student.user.firstName} {student.user.lastName}
+                                  {student.user.firstName}{" "}
+                                  {student.user.lastName}
                                 </h3>
                                 <p className="text-sm text-muted-foreground font-mono">
                                   {student.studentId}
@@ -886,12 +1004,20 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuItem
-                                  onClick={() => navigate(ROUTES.STUDENTS.VIEW(student.id.toString()))}
+                                  onClick={() =>
+                                    navigate(
+                                      ROUTES.STUDENTS.VIEW(
+                                        student.id.toString()
+                                      )
+                                    )
+                                  }
                                 >
                                   <Eye className="w-4 h-4 mr-2" />
                                   View Details
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleEdit(student)}>
+                                <DropdownMenuItem
+                                  onClick={() => handleEdit(student)}
+                                >
                                   <Edit className="w-4 h-4 mr-2" />
                                   Edit
                                 </DropdownMenuItem>
@@ -909,14 +1035,18 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
 
                           <div className="space-y-2">
                             <div>
-                              <p className="text-sm font-medium">{student.program?.name || 'N/A'}</p>
+                              <p className="text-sm font-medium">
+                                {student.program?.name || "N/A"}
+                              </p>
                               <p className="text-xs text-muted-foreground">
-                                {student.program?.department.name || 'N/A'}
+                                {student.program?.department.name || "N/A"}
                               </p>
                             </div>
 
                             <div className="flex items-center justify-between">
-                              <Badge variant="outline">Level {student.level}</Badge>
+                              <Badge variant="outline">
+                                Level {student.level}
+                              </Badge>
                               <div className="text-xs text-muted-foreground">
                                 Semester {student.semester}
                               </div>
@@ -924,16 +1054,20 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
 
                             <div className="flex flex-wrap gap-1">
                               <Badge
-                                variant={getEnrollmentStatusVariant(student.enrollmentStatus)}
+                                variant={getEnrollmentStatusVariant(
+                                  student.enrollmentStatus
+                                )}
                                 className="text-xs"
                               >
-                                {student.enrollmentStatus.replace('_', ' ')}
+                                {student.enrollmentStatus.replace("_", " ")}
                               </Badge>
                               <Badge
-                                variant={getAcademicStatusVariant(student.academicStatus)}
+                                variant={getAcademicStatusVariant(
+                                  student.academicStatus
+                                )}
                                 className="text-xs"
                               >
-                                {student.academicStatus.replace('_', ' ')}
+                                {student.academicStatus.replace("_", " ")}
                               </Badge>
                             </div>
                           </div>
@@ -982,11 +1116,13 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
               <h3 className="text-lg font-semibold mb-2">No students found</h3>
               <p className="text-muted-foreground mb-4">
                 {filters.search || filters.enrollmentStatus || filters.level
-                  ? 'Try adjusting your filters or search terms.'
-                  : 'Get started by adding your first student.'}
+                  ? "Try adjusting your filters or search terms."
+                  : "Get started by adding your first student."}
               </p>
               <div className="space-x-2">
-                {(filters.search || filters.enrollmentStatus || filters.level) && (
+                {(filters.search ||
+                  filters.enrollmentStatus ||
+                  filters.level) && (
                   <Button variant="outline" onClick={clearFilters}>
                     Clear Filters
                   </Button>

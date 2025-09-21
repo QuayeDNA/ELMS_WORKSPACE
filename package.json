@@ -1,0 +1,72 @@
+{
+  "name": "elms-workspace",
+  "version": "1.0.0",
+  "description": "Educational Learning Management System - Complete Workspace Runner",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend",
+    "mobile-app"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\" \"npm run dev:mobile\" --names \"BACKEND,FRONTEND,MOBILE\" --prefix name --prefix-colors \"bgBlue.bold,bgGreen.bold,bgMagenta.bold\"",
+    "dev:web": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\" --names \"BACKEND,FRONTEND\" --prefix name --prefix-colors \"bgBlue.bold,bgGreen.bold\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:mobile": "cd mobile-app && npm start",
+    "build": "concurrently \"npm run build:backend\" \"npm run build:frontend\" \"npm run build:mobile\" --names \"BACKEND,FRONTEND,MOBILE\" --prefix name --prefix-colors \"bgBlue.bold,bgGreen.bold,bgMagenta.bold\"",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "build:mobile": "cd mobile-app && echo 'Mobile app uses Expo - no build needed for development'",
+    "test": "concurrently \"npm run test:backend\" \"npm run test:frontend\" \"npm run test:mobile\" --names \"BACKEND,FRONTEND,MOBILE\" --prefix name --prefix-colors \"bgBlue.bold,bgGreen.bold,bgMagenta.bold\"",
+    "test:backend": "cd backend && npm test",
+    "test:frontend": "cd frontend && npm run lint",
+    "test:mobile": "cd mobile-app && npm run lint",
+    "lint": "concurrently \"npm run lint:backend\" \"npm run lint:frontend\" \"npm run lint:mobile\" --names \"BACKEND,FRONTEND,MOBILE\" --prefix name --prefix-colors \"bgBlue.bold,bgGreen.bold,bgMagenta.bold\"",
+    "lint:backend": "cd backend && echo 'Backend linting not configured'",
+    "lint:frontend": "cd frontend && npm run lint",
+    "lint:mobile": "cd mobile-app && npm run lint",
+    "db:setup": "cd backend && npm run db:push && npm run db:generate",
+    "db:migrate": "cd backend && npm run db:migrate",
+    "db:studio": "cd backend && npm run db:studio",
+    "install:all": "npm install && concurrently \"cd backend && npm install\" \"cd frontend && npm install\" \"cd mobile-app && npm install\" --names \"ROOT,BACKEND,FRONTEND,MOBILE\" --prefix name --prefix-colors \"bgYellow.bold,bgBlue.bold,bgGreen.bold,bgMagenta.bold\"",
+    "clean": "concurrently \"npm run clean:backend\" \"npm run clean:frontend\" \"npm run clean:mobile\" --names \"BACKEND,FRONTEND,MOBILE\" --prefix name --prefix-colors \"bgBlue.bold,bgGreen.bold,bgMagenta.bold\"",
+    "clean:backend": "cd backend && npx rimraf dist node_modules/.vite",
+    "clean:frontend": "cd frontend && npx rimraf dist dist-electron node_modules/.vite",
+    "clean:mobile": "cd mobile-app && npx rimraf node_modules/.expo",
+    "runner": "node scripts/runner.js",
+    "start": "npm run runner",
+    "help": "node scripts/runner.js --help"
+  },
+  "devDependencies": {
+    "chalk": "^4.1.2",
+    "concurrently": "^9.2.1",
+    "cross-env": "^7.0.3",
+    "figlet": "^1.7.0",
+    "inquirer": "^12.9.6",
+    "ora": "^8.1.0",
+    "rimraf": "^6.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/QuayeDNA/ELMS_WORKSPACE.git"
+  },
+  "keywords": [
+    "education",
+    "lms",
+    "react",
+    "nodejs",
+    "typescript",
+    "expo",
+    "electron"
+  ],
+  "author": "ELMS Team",
+  "license": "MIT",
+  "dependencies": {
+    "electron": "38.1.2"
+  }
+}
