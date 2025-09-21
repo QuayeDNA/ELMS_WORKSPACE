@@ -66,7 +66,7 @@ export const DeleteStudentDialog: React.FC<DeleteStudentDialogProps> = ({
                 {student.user.firstName} {student.user.lastName}
               </p>
               <p className="text-sm text-gray-600">
-                {student.studentId} • {student.program.name}
+                {student.studentId} • {student.program?.name}
               </p>
             </div>
           </div>

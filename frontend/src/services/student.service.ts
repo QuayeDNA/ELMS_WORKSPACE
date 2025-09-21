@@ -50,15 +50,15 @@ class StudentService {
         }
       });
 
-      const response = await apiService.get<ApiResponse<StudentsResponse>>(
+      const response = await apiService.get<StudentsResponse>(
         `${this.basePath}?${params.toString()}`
       );
       
-      if (!response.data?.data) {
+      if (!response.data) {
         throw new Error(ERROR_MESSAGES.NOT_FOUND);
       }
       
-      return response.data.data;
+      return response.data;
     } catch (error) {
       console.error('Error fetching students:', error);
       throw error;

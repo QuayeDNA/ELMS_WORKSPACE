@@ -60,12 +60,15 @@ export const studentService = {
       ]
     };
 
-    // Handle sorting - use admissionDate as default since createdAt doesn't exist on studentProfile
+    // Handle sorting - properly handle user-related fields
     let orderBy: any;
-    if (sortBy === 'createdAt') {
-      // Sort by user's createdAt if requested
-      orderBy = { user: { createdAt: sortOrder } };
+    const userFields = ['firstName', 'lastName', 'middleName', 'email', 'phone', 'gender', 'status', 'createdAt'];
+
+    if (userFields.includes(sortBy)) {
+      // Sort by user relation fields
+      orderBy = { user: { [sortBy]: sortOrder } };
     } else {
+      // Sort by studentProfile fields
       orderBy = { [sortBy]: sortOrder };
     }
 

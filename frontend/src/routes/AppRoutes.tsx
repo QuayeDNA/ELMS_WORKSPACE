@@ -5,13 +5,7 @@ import { RoleGuard } from '@/components/auth/RoleGuard';
 import { RootRedirect } from '@/components/auth/RedirectMiddleware';
 import { Layout } from '@/components/layout/Layout';
 import { UserRole } from '@/types/auth';
-
-// Loading component for lazy routes
-const LoadingSpinner = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-  </div>
-);
+import { LoadingSpinner } from '@/components/ui/Loading';
 
 // Lazy load pages for better performance
 const LoginPage = lazy(() => import('@/pages/auth/LoginPage').then(module => ({ default: module.LoginPage })));

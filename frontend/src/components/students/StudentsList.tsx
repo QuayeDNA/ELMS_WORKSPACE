@@ -299,7 +299,7 @@ export const StudentsList: React.FC<StudentsListProps> = ({ initialFilters = {} 
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
                     <span className="text-gray-600">Program:</span>
-                    <p className="font-medium truncate">{student.program.name}</p>
+                    <p className="font-medium truncate">{student.program?.name}</p>
                   </div>
                   <div>
                     <span className="text-gray-600">Level:</span>
