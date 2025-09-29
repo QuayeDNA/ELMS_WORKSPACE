@@ -13,8 +13,6 @@ import {
   Card,
   useTheme,
   Snackbar,
-  Appbar,
-  Menu,
 } from "react-native-paper";
 import { useDispatch, useSelector } from "react-redux";
 import { useForm, Controller } from "react-hook-form";
@@ -35,22 +33,6 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
-interface DevCredential {
-  id: string;
-  name: string;
-  email: string;
-  password: string;
-}
-
-const DEV_CREDENTIALS: DevCredential[] = [
-  {
-    id: "super-admin",
-    name: "Super Admin",
-    email: "admin@elms.com",
-    password: "admin123",
-  },
-];
-
 const LoginScreen: React.FC = () => {
   const theme = useTheme();
   const dispatch = useDispatch<AppDispatch>();
@@ -58,13 +40,10 @@ const LoginScreen: React.FC = () => {
 
   const [showPassword, setShowPassword] = useState(false);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
-  const [menuVisible, setMenuVisible] = useState(false);
-
   const {
     control,
     handleSubmit,
     formState: { errors },
-    setValue,
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -72,12 +51,6 @@ const LoginScreen: React.FC = () => {
       password: "",
     },
   });
-
-  const handleCredentialSelect = (credential: DevCredential) => {
-    setValue("email", credential.email);
-    setValue("password", credential.password);
-    setMenuVisible(false);
-  };
 
   const onSubmit = async (data: LoginFormData) => {
     try {
@@ -100,28 +73,6 @@ const LoginScreen: React.FC = () => {
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
-      <Appbar.Header style={{ backgroundColor: theme.colors.background }}>
-        <Appbar.Content title="" />
-        <Menu
-          visible={menuVisible}
-          onDismiss={() => setMenuVisible(false)}
-          anchor={
-            <Appbar.Action
-              icon="account-plus"
-              onPress={() => setMenuVisible(true)}
-              color={theme.colors.primary}
-            />
-          }
-        >
-          {DEV_CREDENTIALS.map((credential) => (
-            <Menu.Item
-              key={credential.id}
-              onPress={() => handleCredentialSelect(credential)}
-              title={`${credential.name} (${credential.email})`}
-            />
-          ))}
-        </Menu>
-      </Appbar.Header>
       <KeyboardAvoidingView
         style={styles.keyboardAvoid}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
