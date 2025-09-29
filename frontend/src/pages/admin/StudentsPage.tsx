@@ -26,7 +26,7 @@ import {
 // UI Components
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -843,7 +843,16 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
         </Card>
 
         {/* Students List */}
-        {studentsData && (
+        {isLoadingStudents ? (
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-center py-8">
+                <RefreshCw className="w-6 h-6 animate-spin mr-2" />
+                <span>Loading students...</span>
+              </div>
+            </CardContent>
+          </Card>
+        ) : studentsData ? (
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -870,7 +879,7 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {studentsData.data.map((student: Student) => (
+                    {studentsData.data?.map((student: Student) => (
                       <TableRow key={student.id}>
                         <TableCell>
                           <div className="flex items-center space-x-3">
@@ -969,7 +978,7 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
               ) : (
                 <div className="p-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {studentsData.data.map((student: Student) => (
+                    {studentsData.data?.map((student: Student) => (
                       <Card
                         key={student.id}
                         className="hover:shadow-md transition-shadow"
@@ -1106,35 +1115,39 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
               )}
             </CardContent>
           </Card>
-        )}
+        ) : null}
 
         {/* No Data State */}
-        {studentsData && studentsData.data.length === 0 && (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No students found</h3>
-              <p className="text-muted-foreground mb-4">
-                {filters.search || filters.enrollmentStatus || filters.level
-                  ? "Try adjusting your filters or search terms."
-                  : "Get started by adding your first student."}
-              </p>
-              <div className="space-x-2">
-                {(filters.search ||
-                  filters.enrollmentStatus ||
-                  filters.level) && (
-                  <Button variant="outline" onClick={clearFilters}>
-                    Clear Filters
+        {studentsData &&
+          !isLoadingStudents &&
+          studentsData.data?.length === 0 && (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">
+                  No students found
+                </h3>
+                <p className="text-muted-foreground mb-4">
+                  {filters.search || filters.enrollmentStatus || filters.level
+                    ? "Try adjusting your filters or search terms."
+                    : "Get started by adding your first student."}
+                </p>
+                <div className="space-x-2">
+                  {(filters.search ||
+                    filters.enrollmentStatus ||
+                    filters.level) && (
+                    <Button variant="outline" onClick={clearFilters}>
+                      Clear Filters
+                    </Button>
+                  )}
+                  <Button onClick={() => navigate(ROUTES.STUDENTS.CREATE)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Student
                   </Button>
-                )}
-                <Button onClick={() => navigate(ROUTES.STUDENTS.CREATE)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Student
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
         {/* Edit Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
