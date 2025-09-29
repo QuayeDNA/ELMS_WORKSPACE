@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  postgres-dev:
+    image: postgres:15
+    container_name: elms-postgres-dev
+    environment:
+      POSTGRES_DB: elms_dev
+      POSTGRES_USER: elms_user
+      POSTGRES_PASSWORD: elms_password@123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./scripts/init-dev.sql:/docker-entrypoint-initdb.d/init-dev.sql
+    networks:
+      - elms-network
+
+  postgres-prod:
+    image: postgres:15
+    container_name: elms-postgres-prod
+    environment:
+      POSTGRES_DB: elms_prod
+      POSTGRES_USER: elms_user
+      POSTGRES_PASSWORD: elms_password
+    ports:
+      - "5433:5432"  # Different port to avoid conflict
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+      - ./scripts/init-prod.sql:/docker-entrypoint-initdb.d/init-prod.sql
+    networks:
+      - elms-network
+    profiles:
+      - prod  # Only start in production profile
+
+volumes:
+  postgres_dev_data:
+  postgres_prod_data:
+
+networks:
+  elms-network:
+    driver: bridge

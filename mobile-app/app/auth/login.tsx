@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   StyleSheet,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-} from 'react-native';
+} from "react-native";
 import {
   Text,
   TextInput,
@@ -13,86 +13,150 @@ import {
   Card,
   useTheme,
   Snackbar,
-} from 'react-native-paper';
-import { useDispatch, useSelector } from 'react-redux';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+  Appbar,
+  Menu,
+} from "react-native-paper";
+import { useDispatch, useSelector } from "react-redux";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { router } from "expo-router";
 
-import { loginUser } from '../../src/store/slices/authSlice';
-import { RootState, AppDispatch } from '../../src/store';
-import { spacing } from '../../src/theme';
+import { loginUser } from "../../src/store/slices/authSlice";
+import { RootState, AppDispatch } from "../../src/store";
+import { spacing } from "../../src/theme";
 
 // Validation schema
 const loginSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
+
+interface DevCredential {
+  id: string;
+  name: string;
+  email: string;
+  password: string;
+}
+
+const DEV_CREDENTIALS: DevCredential[] = [
+  {
+    id: "super-admin",
+    name: "Super Admin",
+    email: "admin@elms.com",
+    password: "admin123",
+  },
+];
 
 const LoginScreen: React.FC = () => {
   const theme = useTheme();
   const dispatch = useDispatch<AppDispatch>();
   const { isLoading, error } = useSelector((state: RootState) => state.auth);
-  
+
   const [showPassword, setShowPassword] = useState(false);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
 
   const {
     control,
     handleSubmit,
     formState: { errors },
+    setValue,
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: '',
-      password: '',
+      email: "",
+      password: "",
     },
   });
+
+  const handleCredentialSelect = (credential: DevCredential) => {
+    setValue("email", credential.email);
+    setValue("password", credential.password);
+    setMenuVisible(false);
+  };
 
   const onSubmit = async (data: LoginFormData) => {
     try {
       await dispatch(loginUser(data)).unwrap();
-      router.replace('/(tabs)');
+      router.replace("/(tabs)");
     } catch {
       setSnackbarVisible(true);
     }
   };
 
   const handleRegister = () => {
-    router.push('/auth/register');
+    router.push("/auth/register");
   };
 
   const handleForgotPassword = () => {
-    router.push('/auth/forgot-password');
+    router.push("/auth/forgot-password");
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
+      <Appbar.Header style={{ backgroundColor: theme.colors.background }}>
+        <Appbar.Content title="" />
+        <Menu
+          visible={menuVisible}
+          onDismiss={() => setMenuVisible(false)}
+          anchor={
+            <Appbar.Action
+              icon="account-plus"
+              onPress={() => setMenuVisible(true)}
+              color={theme.colors.primary}
+            />
+          }
+        >
+          {DEV_CREDENTIALS.map((credential) => (
+            <Menu.Item
+              key={credential.id}
+              onPress={() => handleCredentialSelect(credential)}
+              title={`${credential.name} (${credential.email})`}
+            />
+          ))}
+        </Menu>
+      </Appbar.Header>
       <KeyboardAvoidingView
         style={styles.keyboardAvoid}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            <Text variant="displaySmall" style={[styles.title, { color: theme.colors.primary }]}>
+            <Text
+              variant="displaySmall"
+              style={[styles.title, { color: theme.colors.primary }]}
+            >
               ELMS
             </Text>
-            <Text variant="headlineSmall" style={[styles.subtitle, { color: theme.colors.onBackground }]}>
+            <Text
+              variant="headlineSmall"
+              style={[styles.subtitle, { color: theme.colors.onBackground }]}
+            >
               Exam Logistics Management
             </Text>
-            <Text variant="bodyMedium" style={[styles.description, { color: theme.colors.onSurfaceVariant }]}>
+            <Text
+              variant="bodyMedium"
+              style={[
+                styles.description,
+                { color: theme.colors.onSurfaceVariant },
+              ]}
+            >
               Sign in to access your account
             </Text>
           </View>
 
-          <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
+          <Card
+            style={[styles.card, { backgroundColor: theme.colors.surface }]}
+          >
             <Card.Content style={styles.cardContent}>
               <Controller
                 name="email"
@@ -113,7 +177,10 @@ const LoginScreen: React.FC = () => {
                 )}
               />
               {errors.email && (
-                <Text variant="bodySmall" style={[styles.errorText, { color: theme.colors.error }]}>
+                <Text
+                  variant="bodySmall"
+                  style={[styles.errorText, { color: theme.colors.error }]}
+                >
                   {errors.email.message}
                 </Text>
               )}
@@ -134,7 +201,7 @@ const LoginScreen: React.FC = () => {
                     style={styles.input}
                     right={
                       <TextInput.Icon
-                        icon={showPassword ? 'eye-off' : 'eye'}
+                        icon={showPassword ? "eye-off" : "eye"}
                         onPress={() => setShowPassword(!showPassword)}
                       />
                     }
@@ -142,7 +209,10 @@ const LoginScreen: React.FC = () => {
                 )}
               />
               {errors.password && (
-                <Text variant="bodySmall" style={[styles.errorText, { color: theme.colors.error }]}>
+                <Text
+                  variant="bodySmall"
+                  style={[styles.errorText, { color: theme.colors.error }]}
+                >
                   {errors.password.message}
                 </Text>
               )}
@@ -167,8 +237,11 @@ const LoginScreen: React.FC = () => {
               </Button>
 
               <View style={styles.footer}>
-                <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-                  Don&apos;t have an account?{' '}
+                <Text
+                  variant="bodyMedium"
+                  style={{ color: theme.colors.onSurfaceVariant }}
+                >
+                  Don&apos;t have an account?{" "}
                 </Text>
                 <Button
                   mode="text"
@@ -191,7 +264,7 @@ const LoginScreen: React.FC = () => {
         style={{ backgroundColor: theme.colors.errorContainer }}
       >
         <Text style={{ color: theme.colors.onErrorContainer }}>
-          {error || 'Login failed. Please try again.'}
+          {error || "Login failed. Please try again."}
         </Text>
       </Snackbar>
     </SafeAreaView>
@@ -207,23 +280,23 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
     padding: spacing.lg,
   },
   header: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: spacing.xl,
   },
   title: {
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: spacing.xs,
   },
   subtitle: {
     marginBottom: spacing.sm,
-    textAlign: 'center',
+    textAlign: "center",
   },
   description: {
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: spacing.lg,
   },
   card: {
@@ -251,9 +324,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   linkButton: {
     marginLeft: -spacing.xs,
