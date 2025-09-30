@@ -8,7 +8,16 @@ import {
   UpdateDepartmentRequest,
   DepartmentQuery,
   DepartmentAnalytics,
+  DepartmentProgramsResponse,
+  DepartmentInstructorsResponse,
+  DepartmentStudentsResponse,
 } from "@/types/shared";
+import { programService } from "./program.service";
+import { courseService } from "./course.service";
+import { instructorService } from "./instructor.service";
+import { studentService } from "./student.service";
+import { InstructorFilters } from "@/types/instructor";
+import { StudentFilters } from "@/types/student";
 
 export const departmentService = {
   // Get all departments with pagination and filtering
@@ -129,6 +138,83 @@ export const departmentService = {
       );
     } catch (error) {
       console.error("Error fetching department analytics:", error);
+      throw error;
+    }
+  },
+
+  // Get programs offered by department
+  async getDepartmentPrograms(
+    departmentId: number,
+    query?: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      isActive?: boolean;
+    }
+  ): Promise<ApiResponse<DepartmentProgramsResponse>> {
+    try {
+      return await programService.getProgramsByDepartment(departmentId, query);
+    } catch (error) {
+      console.error("Error fetching department programs:", error);
+      throw error;
+    }
+  },
+
+  // Get courses offered by department
+  async getDepartmentCourses(
+    departmentId: number,
+    query?: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      level?: number;
+      isActive?: boolean;
+    }
+  ): Promise<unknown> {
+    try {
+      return await courseService.getCoursesByDepartment(departmentId, query);
+    } catch (error) {
+      console.error("Error fetching department courses:", error);
+      throw error;
+    }
+  },
+
+  // Get instructors in department
+  async getDepartmentInstructors(
+    departmentId: number,
+    filters: Partial<InstructorFilters> = {}
+  ): Promise<DepartmentInstructorsResponse> {
+    try {
+      const response = await instructorService.getInstructorsByDepartment(
+        departmentId,
+        filters
+      );
+      return {
+        instructors: response.data,
+        total: response.pagination.total,
+      };
+    } catch (error) {
+      console.error("Error fetching department instructors:", error);
+      throw error;
+    }
+  },
+
+  // Get students in department (via programs)
+  async getDepartmentStudents(
+    departmentId: number,
+    filters: Partial<StudentFilters> = {}
+  ): Promise<DepartmentStudentsResponse> {
+    try {
+      const response = await studentService.getStudentsByDepartment(
+        departmentId,
+        filters
+      );
+      return {
+        students: response.data,
+        total: response.pagination.total,
+      };
+    } catch (error) {
+      console.error("Error fetching department students:", error);
       throw error;
     }
   },

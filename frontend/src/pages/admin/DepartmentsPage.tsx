@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -37,6 +38,7 @@ import {
 import { Plus, Search, Edit, Trash2, Eye, Building2 } from "lucide-react";
 
 const DepartmentsPage: React.FC = () => {
+  const navigate = useNavigate();
   const [departments, setDepartments] = useState<Department[]>([]);
   const [faculties, setFaculties] = useState<Faculty[]>([]);
   const [loading, setLoading] = useState(true);
@@ -304,7 +306,13 @@ const DepartmentsPage: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        <Button variant="ghost" size="sm">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            navigate(`/admin/departments/${department.id}`)
+                          }
+                        >
                           <Eye className="h-4 w-4" />
                         </Button>
                         <Button

@@ -4,6 +4,8 @@
 
 import { User } from "./user";
 import { Faculty } from "./faculty";
+import { Program } from "./program";
+import { Student } from "../student";
 
 export interface Department {
   id: number;
@@ -146,4 +148,90 @@ export interface DepartmentFormProps {
 export interface DepartmentViewProps {
   department: Department;
   onClose: () => void;
+}
+
+// ========================================
+// DEPARTMENT DETAILS TYPES
+// ========================================
+
+export interface DepartmentDetails extends Department {
+  // Programs offered by this department
+  programs: Program[];
+
+  // Courses offered by this department
+  courses: {
+    id: number;
+    name: string;
+    code: string;
+    level: number;
+    courseType: string;
+    creditHours: number;
+    isActive: boolean;
+    programCourses?: {
+      program: {
+        id: number;
+        name: string;
+        code: string;
+      };
+      level: number;
+      semester: number;
+      isRequired: boolean;
+    }[];
+  }[];
+
+  // Instructors in this department
+  instructors: {
+    id: number;
+    employeeId: string;
+    academicRank: string;
+    specialization?: string;
+    user: {
+      id: number;
+      firstName: string;
+      lastName: string;
+      email: string;
+    };
+    coursesCount?: number;
+  }[];
+
+  // Students in programs offered by this department (aggregated)
+  students: {
+    id: number;
+    studentId: string;
+    indexNumber?: string;
+    level: number;
+    user: {
+      id: number;
+      firstName: string;
+      lastName: string;
+      email: string;
+    };
+    program: {
+      id: number;
+      name: string;
+      code: string;
+    };
+    enrollmentStatus: string;
+  }[];
+}
+
+// Response types for department details API calls
+export interface DepartmentProgramsResponse {
+  programs: Program[];
+  total: number;
+}
+
+export interface DepartmentCoursesResponse {
+  courses: DepartmentDetails["courses"];
+  total: number;
+}
+
+export interface DepartmentInstructorsResponse {
+  instructors: DepartmentDetails["instructors"];
+  total: number;
+}
+
+export interface DepartmentStudentsResponse {
+  students: Student[];
+  total: number;
 }
