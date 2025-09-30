@@ -24,7 +24,15 @@ export interface Instructor {
   permissions?: Record<string, any>;
   createdAt: string;
   updatedAt: string;
-  
+
+  // LecturerProfile fields from schema
+  staffId: string;
+  hireDate?: string;
+  highestQualification?: string;
+  officeHours?: string;
+  biography?: string;
+  profileImageUrl?: string;
+
   // Relations
   user: {
     id: number;
@@ -54,7 +62,7 @@ export interface Instructor {
       };
     };
   };
-  
+
   assignments?: Array<{
     id: number;
     departmentId: number;
@@ -69,34 +77,31 @@ export interface Instructor {
 }
 
 export enum AcademicRank {
-  PROFESSOR = 'PROFESSOR',
-  ASSOCIATE_PROFESSOR = 'ASSOCIATE_PROFESSOR',
-  ASSISTANT_PROFESSOR = 'ASSISTANT_PROFESSOR',
-  SENIOR_LECTURER = 'SENIOR_LECTURER',
-  LECTURER = 'LECTURER',
-  ASSISTANT_LECTURER = 'ASSISTANT_LECTURER',
-  TEACHING_ASSISTANT = 'TEACHING_ASSISTANT',
-  ADJUNCT_FACULTY = 'ADJUNCT_FACULTY',
-  VISITING_FACULTY = 'VISITING_FACULTY',
-  EMERITUS = 'EMERITUS'
+  GRADUATE_ASSISTANT = "GRADUATE_ASSISTANT",
+  ASSISTANT_LECTURER = "ASSISTANT_LECTURER",
+  LECTURER = "LECTURER",
+  SENIOR_LECTURER = "SENIOR_LECTURER",
+  PRINCIPAL_LECTURER = "PRINCIPAL_LECTURER",
+  ASSOCIATE_PROFESSOR = "ASSOCIATE_PROFESSOR",
+  PROFESSOR = "PROFESSOR",
 }
 
 export enum EmploymentType {
-  FULL_TIME = 'FULL_TIME',
-  PART_TIME = 'PART_TIME',
-  CONTRACT = 'CONTRACT',
-  VISITING = 'VISITING',
-  ADJUNCT = 'ADJUNCT',
-  EMERITUS = 'EMERITUS'
+  FULL_TIME = "FULL_TIME",
+  PART_TIME = "PART_TIME",
+  CONTRACT = "CONTRACT",
+  VISITING = "VISITING",
+  ADJUNCT = "ADJUNCT",
+  EMERITUS = "EMERITUS",
 }
 
 export enum EmploymentStatus {
-  ACTIVE = 'ACTIVE',
-  ON_LEAVE = 'ON_LEAVE',
-  SABBATICAL = 'SABBATICAL',
-  RETIRED = 'RETIRED',
-  TERMINATED = 'TERMINATED',
-  PROBATION = 'PROBATION'
+  ACTIVE = "ACTIVE",
+  ON_LEAVE = "ON_LEAVE",
+  SABBATICAL = "SABBATICAL",
+  RETIRED = "RETIRED",
+  TERMINATED = "TERMINATED",
+  PROBATION = "PROBATION",
 }
 
 export interface CreateInstructorRequest {
@@ -127,6 +132,14 @@ export interface CreateInstructorRequest {
   researchInterests?: string;
   publications?: string;
   permissions?: Record<string, any>;
+
+  // LecturerProfile fields
+  staffId: string;
+  hireDate?: string;
+  highestQualification?: string;
+  officeHours?: string;
+  biography?: string;
+  profileImageUrl?: string;
 }
 
 export interface UpdateInstructorRequest {
@@ -153,6 +166,13 @@ export interface UpdateInstructorRequest {
   researchInterests?: string;
   publications?: string;
   permissions?: Record<string, any>;
+
+  // LecturerProfile fields
+  hireDate?: string;
+  highestQualification?: string;
+  officeHours?: string;
+  biography?: string;
+  profileImageUrl?: string;
 }
 
 export interface InstructorFilters {
@@ -167,7 +187,7 @@ export interface InstructorFilters {
   page?: number;
   limit?: number;
   sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
 }
 
 export interface InstructorsResponse {
@@ -217,4 +237,21 @@ export interface InstructorWorkload {
   contactHours: number;
   researchProjects: number;
   administrativeRoles: number;
+}
+
+export interface BulkInstructorImportRequest {
+  instructors: CreateInstructorRequest[];
+}
+
+export interface BulkInstructorImportResponse {
+  success: boolean;
+  data: {
+    imported: number;
+    failed: number;
+    errors: Array<{
+      index: number;
+      instructor: CreateInstructorRequest;
+      error: string;
+    }>;
+  };
 }

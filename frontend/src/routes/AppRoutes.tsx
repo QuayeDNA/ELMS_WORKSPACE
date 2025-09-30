@@ -67,6 +67,7 @@ const DepartmentDetailsPage = lazy(
   () => import("@/pages/admin/DepartmentDetailsPage")
 );
 const CoursesPage = lazy(() => import("@/pages/admin/CoursesPage"));
+const CourseDetailsPage = lazy(() => import("@/pages/admin/CourseDetailsPage"));
 
 // Placeholder Pages
 const ExamsPage = lazy(() =>
@@ -301,6 +302,14 @@ export function AppRoutes() {
         element={
           <AdminLayout>
             <CoursesPage />
+          </AdminLayout>
+        }
+      />
+      <Route
+        path="/admin/courses/:id"
+        element={
+          <AdminLayout>
+            <CourseDetailsPage />
           </AdminLayout>
         }
       />

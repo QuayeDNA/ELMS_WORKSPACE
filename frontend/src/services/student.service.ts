@@ -96,6 +96,29 @@ class StudentService {
   }
 
   /**
+   * Get student by student ID
+   */
+  async getStudentByStudentId(studentId: string): Promise<Student> {
+    try {
+      const response = await apiService.get<Student>(
+        `${this.basePath}/by-student-id/${studentId}`
+      );
+
+      if (!response.data) {
+        throw new Error(ERROR_MESSAGES.NOT_FOUND);
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error(
+        `Error fetching student by student ID ${studentId}:`,
+        error
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Create new student
    */
   async createStudent(studentData: CreateStudentRequest): Promise<Student> {

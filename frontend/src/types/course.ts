@@ -15,8 +15,8 @@ export interface Course {
   learningOutcomes?: string | null;
   syllabus?: string | null;
   assessmentMethods?: string | null;
-  prerequisites?: string | null;
-  corequisites?: string | null;
+  prerequisites?: string | null; // JSON array of course codes
+  corequisites?: string | null; // JSON array of course codes
   recommendedBooks?: string | null;
   isActive: boolean;
   createdAt: Date;
@@ -89,7 +89,7 @@ export interface CourseQuery {
   limit?: number;
   search?: string;
   sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
 }
 
 export interface CourseStats {
@@ -98,4 +98,109 @@ export interface CourseStats {
   prerequisiteCount: number;
   corequisiteCount: number;
   totalStudents: number;
+}
+
+// ========================================
+// COURSE OFFERING TYPES
+// ========================================
+
+export interface CourseOffering {
+  id: number;
+  courseId: number;
+  semesterId: number;
+  primaryLecturerId?: number;
+  maxEnrollment?: number;
+  currentEnrollment: number;
+  classroom?: string;
+  schedule?: string; // JSON string for class times and days
+  status: string; // 'active', 'cancelled', 'completed'
+  createdAt: Date;
+  updatedAt: Date;
+
+  // Relations
+  course: {
+    id: number;
+    name: string;
+    code: string;
+    creditHours: number;
+    level: number;
+    courseType: string;
+  };
+
+  semester: {
+    id: number;
+    academicYearId: number;
+    semesterNumber: number;
+    name: string;
+    startDate: Date;
+    endDate: Date;
+    isCurrent: boolean;
+    academicYear: {
+      id: number;
+      yearCode: string;
+      startDate: Date;
+      endDate: Date;
+      isCurrent: boolean;
+    };
+  };
+
+  primaryLecturer?: {
+    id: number;
+    user: {
+      id: number;
+      firstName: string;
+      lastName: string;
+      title?: string;
+    };
+    academicRank?: string;
+  };
+
+  courseLecturers: CourseLecturer[];
+  enrollments: Enrollment[];
+}
+
+export interface CourseLecturer {
+  id: number;
+  courseOfferingId: number;
+  lecturerId: number;
+  role: string; // 'instructor', 'coordinator', 'assistant'
+  createdAt: Date;
+
+  // Relations
+  lecturer: {
+    id: number;
+    user: {
+      id: number;
+      firstName: string;
+      lastName: string;
+      title?: string;
+    };
+    academicRank?: string;
+    specialization?: string;
+  };
+}
+
+export interface Enrollment {
+  id: number;
+  studentId: number;
+  courseOfferingId: number;
+  enrollmentDate: Date;
+  status: string; // 'enrolled', 'dropped', 'completed', 'deferred'
+  grade?: string;
+  gradePoints?: number;
+  attendancePercentage?: number;
+  createdAt: Date;
+  updatedAt: Date;
+
+  // Relations
+  student: {
+    id: number;
+    user: {
+      id: number;
+      firstName: string;
+      lastName: string;
+    };
+    studentId: string;
+    indexNumber?: string;
+  };
 }

@@ -9,15 +9,10 @@ export interface Student {
   indexNumber?: string;
   level: number;
   semester: number;
-  section?: string;
-  credits?: number;
-  cgpa?: number;
   academicYear?: string;
   programId?: number;
   admissionDate?: string;
-  enrollmentDate?: string;
   expectedGraduation?: string;
-  graduationDate?: string;
   enrollmentStatus: EnrollmentStatus;
   academicStatus: AcademicStatus;
   guardianName?: string;
@@ -49,8 +44,13 @@ export interface Student {
     id: number;
     name: string;
     code: string;
-    degree: string;
-    duration: number;
+    type: string;
+    level: string;
+    durationYears: number;
+    creditHours?: number;
+    description?: string;
+    admissionRequirements?: string;
+    isActive: boolean;
     department: {
       id: number;
       name: string;
@@ -106,11 +106,13 @@ export interface CreateStudentRequest {
     studentId: string;
     indexNumber?: string;
     level: number;
-    semester: number;
-    academicYear: string;
+    semester?: number;
+    academicYear?: string;
     programId: number;
     admissionDate?: string;
     expectedGraduation?: string;
+    enrollmentStatus?: EnrollmentStatus;
+    academicStatus?: AcademicStatus;
     guardianName?: string;
     guardianPhone?: string;
     guardianEmail?: string;
