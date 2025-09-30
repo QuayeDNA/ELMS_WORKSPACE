@@ -51,6 +51,19 @@ class InstructorService {
     return response.data.data;
   }
 
+  // Get instructor by ID
+  async getInstructorById(id: number): Promise<Instructor> {
+    const response = await apiService.get<ApiResponse<Instructor>>(
+      `${this.basePath}/${id}`
+    );
+
+    if (!response.data?.data) {
+      throw new Error("Instructor not found");
+    }
+
+    return response.data.data;
+  }
+
   // Create new instructor
   async createInstructor(
     instructorData: CreateInstructorRequest

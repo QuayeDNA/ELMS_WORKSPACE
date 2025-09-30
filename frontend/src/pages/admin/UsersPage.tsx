@@ -1,27 +1,71 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Users, UserCheck, UserX, Shield, Eye, Edit, Trash2, MoreHorizontal } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { userService } from '@/services/user.service';
-import { useAuthStore } from '@/stores/auth.store';
-import { User, UserQuery, UserRole, UserStatus } from '@/types/user';
-import { UserCreate } from '@/components/user/UserCreate';
-import { UserEdit } from '@/components/user/UserEdit';
-import { UserView } from '@/components/user/UserView';
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  Plus,
+  Search,
+  Users,
+  UserCheck,
+  UserX,
+  Shield,
+  Eye,
+  Edit,
+  Trash2,
+  MoreHorizontal,
+} from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { userService } from "@/services/user.service";
+import { useAuthStore } from "@/stores/auth.store";
+import { User, UserQuery, UserRole, UserStatus } from "@/types/user";
+import { UserCreate } from "@/components/user/UserCreate";
+import { UserEdit } from "@/components/user/UserEdit";
+import { UserView } from "@/components/user/UserView";
 
 export function UsersPage() {
   const { user } = useAuthStore();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -41,16 +85,26 @@ export function UsersPage() {
     page: currentPage,
     limit: pageSize,
     search: searchTerm || undefined,
-    role: (roleFilter && roleFilter !== 'ALL_ROLES') ? (roleFilter as UserRole) : undefined,
-    status: (statusFilter && statusFilter !== 'ALL_STATUS') ? (statusFilter as UserStatus) : undefined,
+    role:
+      roleFilter && roleFilter !== "ALL_ROLES"
+        ? (roleFilter as UserRole)
+        : undefined,
+    status:
+      statusFilter && statusFilter !== "ALL_STATUS"
+        ? (statusFilter as UserStatus)
+        : undefined,
     // Institution scoping: Super Admin sees all, Admin sees their institution, Faculty Admin sees their faculty
     institutionId: isSuperAdmin ? undefined : user?.institutionId,
     facultyId: isFacultyAdmin ? user?.facultyId : undefined,
   };
 
   // Fetch users
-  const { data: userResponse, isLoading, error } = useQuery({
-    queryKey: ['users', query],
+  const {
+    data: userResponse,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["users", query],
     queryFn: () => userService.getUsers(query),
     retry: 3,
   });
@@ -59,7 +113,7 @@ export function UsersPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => userService.deleteUser(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
     },
   });
 
@@ -70,9 +124,15 @@ export function UsersPage() {
   // Calculate stats for the current user scope
   const stats = {
     totalUsers: total,
-    activeUsers: users.filter(u => u.status === UserStatus.ACTIVE).length,
-    pendingUsers: users.filter(u => u.status === UserStatus.PENDING_VERIFICATION).length,
-    adminUsers: users.filter(u => [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.FACULTY_ADMIN].includes(u.role)).length,
+    activeUsers: users.filter((u) => u.status === UserStatus.ACTIVE).length,
+    pendingUsers: users.filter(
+      (u) => u.status === UserStatus.PENDING_VERIFICATION
+    ).length,
+    adminUsers: users.filter((u) =>
+      [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.FACULTY_ADMIN].includes(
+        u.role
+      )
+    ).length,
   };
 
   // Role-based permissions
@@ -99,41 +159,41 @@ export function UsersPage() {
     try {
       await deleteMutation.mutateAsync(user.id);
     } catch (error) {
-      console.error('Error deleting user:', error);
+      console.error("Error deleting user:", error);
     }
   };
 
   const getRoleBadgeColor = (role: UserRole) => {
     switch (role) {
       case UserRole.SUPER_ADMIN:
-        return 'bg-purple-100 text-purple-800';
+        return "bg-purple-100 text-purple-800";
       case UserRole.ADMIN:
-        return 'bg-red-100 text-red-800';
+        return "bg-red-100 text-red-800";
       case UserRole.FACULTY_ADMIN:
-        return 'bg-orange-100 text-orange-800';
+        return "bg-orange-100 text-orange-800";
       case UserRole.EXAMS_OFFICER:
-        return 'bg-yellow-100 text-yellow-800';
+        return "bg-yellow-100 text-yellow-800";
       case UserRole.LECTURER:
-        return 'bg-green-100 text-green-800';
+        return "bg-green-100 text-green-800";
       case UserRole.STUDENT:
-        return 'bg-blue-100 text-blue-800';
+        return "bg-blue-100 text-blue-800";
       default:
-        return 'bg-gray-100 text-gray-800';
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const getStatusBadgeColor = (status: UserStatus) => {
     switch (status) {
       case UserStatus.ACTIVE:
-        return 'bg-green-100 text-green-800';
+        return "bg-green-100 text-green-800";
       case UserStatus.INACTIVE:
-        return 'bg-gray-100 text-gray-800';
+        return "bg-gray-100 text-gray-800";
       case UserStatus.SUSPENDED:
-        return 'bg-red-100 text-red-800';
+        return "bg-red-100 text-red-800";
       case UserStatus.PENDING_VERIFICATION:
-        return 'bg-yellow-100 text-yellow-800';
+        return "bg-yellow-100 text-yellow-800";
       default:
-        return 'bg-gray-100 text-gray-800';
+        return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -150,7 +210,10 @@ export function UsersPage() {
           </p>
         </div>
         {canCreateUsers && (
-          <Button onClick={handleCreateUser} className="flex items-center gap-2">
+          <Button
+            onClick={handleCreateUser}
+            className="flex items-center gap-2"
+          >
             <Plus className="w-4 h-4" />
             Add User
           </Button>
@@ -174,16 +237,22 @@ export function UsersPage() {
             <UserCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.activeUsers}</div>
+            <div className="text-2xl font-bold text-green-600">
+              {stats.activeUsers}
+            </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Verification</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Pending Verification
+            </CardTitle>
             <UserX className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{stats.pendingUsers}</div>
+            <div className="text-2xl font-bold text-yellow-600">
+              {stats.pendingUsers}
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -192,7 +261,9 @@ export function UsersPage() {
             <Shield className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">{stats.adminUsers}</div>
+            <div className="text-2xl font-bold text-purple-600">
+              {stats.adminUsers}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -220,7 +291,7 @@ export function UsersPage() {
                 <SelectItem value="ALL_ROLES">All Roles</SelectItem>
                 {Object.values(UserRole).map((role) => (
                   <SelectItem key={role} value={role}>
-                    {role.replace('_', ' ')}
+                    {role.replace("_", " ")}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -233,7 +304,7 @@ export function UsersPage() {
                 <SelectItem value="ALL_STATUS">All Status</SelectItem>
                 {Object.values(UserStatus).map((status) => (
                   <SelectItem key={status} value={status}>
-                    {status.replace('_', ' ')}
+                    {status.replace("_", " ")}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -251,7 +322,9 @@ export function UsersPage() {
             </div>
           ) : error ? (
             <div className="flex items-center justify-center h-32">
-              <div className="text-center text-red-600">Error loading users</div>
+              <div className="text-center text-red-600">
+                Error loading users
+              </div>
             </div>
           ) : (
             <Table>
@@ -275,38 +348,42 @@ export function UsersPage() {
                           {user.firstName.charAt(0)}
                         </div>
                         <div>
-                          <div className="font-medium">{userService.getDisplayName(user)}</div>
-                          <div className="text-sm text-gray-500">{user.email}</div>
+                          <div className="font-medium">
+                            {userService.getDisplayName(user)}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {user.email}
+                          </div>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
                       <Badge className={getRoleBadgeColor(user.role)}>
-                        {user.role.replace('_', ' ')}
+                        {user.role.replace("_", " ")}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <Badge className={getStatusBadgeColor(user.status)}>
-                        {user.status.replace('_', ' ')}
+                        {user.status.replace("_", " ")}
                       </Badge>
                     </TableCell>
                     {isSuperAdmin && (
                       <TableCell>
                         <div className="text-sm">
-                          {user.institution?.name || 'N/A'}
+                          {user.institutionId || "N/A"}
                         </div>
                       </TableCell>
                     )}
                     {(isSuperAdmin || isAdmin) && (
                       <TableCell>
-                        <div className="text-sm">
-                          {user.faculty?.name || 'N/A'}
-                        </div>
+                        <div className="text-sm">{user.facultyId || "N/A"}</div>
                       </TableCell>
                     )}
                     <TableCell>
                       <div className="text-sm text-gray-500">
-                        {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
+                        {user.lastLogin
+                          ? new Date(user.lastLogin).toLocaleDateString()
+                          : "Never"}
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
@@ -317,12 +394,16 @@ export function UsersPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleViewUser(user)}>
+                          <DropdownMenuItem
+                            onClick={() => handleViewUser(user)}
+                          >
                             <Eye className="mr-2 h-4 w-4" />
                             View Details
                           </DropdownMenuItem>
                           {canEditUsers && (
-                            <DropdownMenuItem onClick={() => handleEditUser(user)}>
+                            <DropdownMenuItem
+                              onClick={() => handleEditUser(user)}
+                            >
                               <Edit className="mr-2 h-4 w-4" />
                               Edit User
                             </DropdownMenuItem>
@@ -330,7 +411,7 @@ export function UsersPage() {
                           {canDeleteUsers && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <DropdownMenuItem 
+                                <DropdownMenuItem
                                   className="text-red-600"
                                   onSelect={(e) => e.preventDefault()}
                                 >
@@ -340,15 +421,18 @@ export function UsersPage() {
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete User</AlertDialogTitle>
+                                  <AlertDialogTitle>
+                                    Delete User
+                                  </AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Are you sure you want to delete {userService.getDisplayName(user)}? 
-                                    This action cannot be undone.
+                                    Are you sure you want to delete{" "}
+                                    {userService.getDisplayName(user)}? This
+                                    action cannot be undone.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction 
+                                  <AlertDialogAction
                                     onClick={() => handleDeleteUser(user)}
                                     className="bg-red-600 hover:bg-red-700"
                                   >
@@ -373,7 +457,8 @@ export function UsersPage() {
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-500">
-            Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, total)} of {total} users
+            Showing {(currentPage - 1) * pageSize + 1} to{" "}
+            {Math.min(currentPage * pageSize, total)} of {total} users
           </div>
           <div className="flex items-center space-x-2">
             <Button
@@ -408,7 +493,7 @@ export function UsersPage() {
           <UserCreate
             onSuccess={() => {
               setIsCreateDialogOpen(false);
-              queryClient.invalidateQueries({ queryKey: ['users'] });
+              queryClient.invalidateQueries({ queryKey: ["users"] });
             }}
             onCancel={() => setIsCreateDialogOpen(false)}
             institutionId={user?.institutionId}
@@ -427,7 +512,7 @@ export function UsersPage() {
               onSuccess={() => {
                 setIsEditDialogOpen(false);
                 setSelectedUser(null);
-                queryClient.invalidateQueries({ queryKey: ['users'] });
+                queryClient.invalidateQueries({ queryKey: ["users"] });
               }}
               onCancel={() => {
                 setIsEditDialogOpen(false);
@@ -461,6 +546,3 @@ export function UsersPage() {
     </div>
   );
 }
-
-
-

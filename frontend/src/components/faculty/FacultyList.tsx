@@ -1,25 +1,48 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Edit, Trash2, Eye } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { facultyService } from '@/services/faculty.service';
-import { Faculty, FacultyQuery } from '@/types/faculty';
-import { FacultyCreate } from './FacultyCreate';
-import { FacultyEdit } from './FacultyEdit';
-import { FacultyView } from './FacultyView';
+import React, { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Plus, Search, Edit, Trash2, Eye } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { facultyService } from "@/services/faculty.service";
+import { Faculty, FacultyQuery } from "@/types/shared/faculty";
+import { FacultyCreate } from "./FacultyCreate";
+import { FacultyEdit } from "./FacultyEdit";
+import { FacultyView } from "./FacultyView";
 
 interface FacultyListProps {
   institutionId?: number;
 }
 
 export const FacultyList: React.FC<FacultyListProps> = ({ institutionId }) => {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [selectedFaculty, setSelectedFaculty] = useState<Faculty | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -36,8 +59,12 @@ export const FacultyList: React.FC<FacultyListProps> = ({ institutionId }) => {
   };
 
   // Fetch faculties
-  const { data: facultyResponse, isLoading, error } = useQuery({
-    queryKey: ['faculties', query],
+  const {
+    data: facultyResponse,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["faculties", query],
     queryFn: () => facultyService.getFaculties(query),
   });
 
@@ -45,7 +72,7 @@ export const FacultyList: React.FC<FacultyListProps> = ({ institutionId }) => {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => facultyService.deleteFaculty(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['faculties'] });
+      queryClient.invalidateQueries({ queryKey: ["faculties"] });
     },
   });
 
@@ -53,7 +80,7 @@ export const FacultyList: React.FC<FacultyListProps> = ({ institutionId }) => {
     try {
       await deleteMutation.mutateAsync(id);
     } catch (error) {
-      console.error('Error deleting faculty:', error);
+      console.error("Error deleting faculty:", error);
     }
   };
 
@@ -69,13 +96,13 @@ export const FacultyList: React.FC<FacultyListProps> = ({ institutionId }) => {
 
   const handleCreateSuccess = () => {
     setIsCreateDialogOpen(false);
-    queryClient.invalidateQueries({ queryKey: ['faculties'] });
+    queryClient.invalidateQueries({ queryKey: ["faculties"] });
   };
 
   const handleEditSuccess = () => {
     setIsEditDialogOpen(false);
     setSelectedFaculty(null);
-    queryClient.invalidateQueries({ queryKey: ['faculties'] });
+    queryClient.invalidateQueries({ queryKey: ["faculties"] });
   };
 
   if (error) {
@@ -96,7 +123,9 @@ export const FacultyList: React.FC<FacultyListProps> = ({ institutionId }) => {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold">Faculty Management</h2>
-          <p className="text-gray-600">Manage academic faculties and their departments</p>
+          <p className="text-gray-600">
+            Manage academic faculties and their departments
+          </p>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
@@ -159,7 +188,9 @@ export const FacultyList: React.FC<FacultyListProps> = ({ institutionId }) => {
               <TableBody>
                 {facultyResponse?.data?.faculties?.map((faculty: Faculty) => (
                   <TableRow key={faculty.id}>
-                    <TableCell className="font-medium">{faculty.name}</TableCell>
+                    <TableCell className="font-medium">
+                      {faculty.name}
+                    </TableCell>
                     <TableCell>
                       <Badge variant="outline">{faculty.code}</Badge>
                     </TableCell>
@@ -192,9 +223,12 @@ export const FacultyList: React.FC<FacultyListProps> = ({ institutionId }) => {
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
-                              <AlertDialogTitle>Delete Faculty</AlertDialogTitle>
+                              <AlertDialogTitle>
+                                Delete Faculty
+                              </AlertDialogTitle>
                               <AlertDialogDescription>
-                                Are you sure you want to delete "{faculty.name}"? This action cannot be undone.
+                                Are you sure you want to delete "{faculty.name}
+                                "? This action cannot be undone.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -214,7 +248,10 @@ export const FacultyList: React.FC<FacultyListProps> = ({ institutionId }) => {
                 ))}
                 {facultyResponse?.data?.faculties?.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                    <TableCell
+                      colSpan={6}
+                      className="text-center py-8 text-gray-500"
+                    >
                       No faculties found
                     </TableCell>
                   </TableRow>
@@ -264,6 +301,3 @@ export const FacultyList: React.FC<FacultyListProps> = ({ institutionId }) => {
     </div>
   );
 };
-
-
-

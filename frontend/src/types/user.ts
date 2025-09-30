@@ -125,7 +125,7 @@ export interface UserQuery {
   page?: number;
   limit?: number;
   search?: string;
-  sortBy?: string;
+  sortBy?: "firstName" | "lastName" | "email" | "createdAt";
   sortOrder?: "asc" | "desc";
 }
 

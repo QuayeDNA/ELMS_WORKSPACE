@@ -58,6 +58,7 @@ export interface Student {
     description?: string;
     admissionRequirements?: string;
     isActive: boolean;
+    degree?: string;
     department: {
       id: number;
       name: string;
