@@ -25,9 +25,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { departmentService } from "@/services/department.service";
-import { facultyService } from "@/services/faculty.service";
-import { Department } from "@/types/department";
+import { Department } from "@/types/shared/department";
 import { Faculty } from "@/types/faculty";
+import DepartmentForm from "@/components/department/DepartmentForm";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Plus, Search, Edit, Trash2, Eye, Building2 } from "lucide-react";
 
 const DepartmentsPage: React.FC = () => {
@@ -38,6 +44,10 @@ const DepartmentsPage: React.FC = () => {
   const [selectedFaculty, setSelectedFaculty] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingDepartment, setEditingDepartment] = useState<Department | null>(
+    null
+  );
   const [stats, setStats] = useState({
     total: 0,
     active: 0,
@@ -59,17 +69,26 @@ const DepartmentsPage: React.FC = () => {
       };
 
       const response = await departmentService.getDepartments(query);
-      const departmentsData = response?.departments || [];
+      const departmentsData = response?.data?.departments || [];
       setDepartments(departmentsData);
-      setTotalPages(response?.totalPages || 1);
+      setTotalPages(response?.data?.totalPages || 1);
+
+      // Extract unique faculties from department data
+      const uniqueFaculties = Array.from(
+        new Map(
+          departmentsData
+            .filter((dept) => dept.faculty)
+            .map((dept) => [dept.faculty!.id, dept.faculty!])
+        ).values()
+      );
+      setFaculties(uniqueFaculties);
 
       // Calculate stats directly from the loaded data
-      const total = departmentsData.length;
+      const total = response?.data?.total || departmentsData.length;
       const active = departmentsData.filter(
         (d) => d.type === "department"
       ).length;
-      const totalFaculty = new Set(departmentsData.map((d) => d.facultyId))
-        .size;
+      const totalFaculty = uniqueFaculties.length;
       const totalStudents = departmentsData.reduce(
         (sum, dept) => sum + (dept.stats?.totalUsers || 0),
         0
@@ -88,24 +107,9 @@ const DepartmentsPage: React.FC = () => {
     }
   }, [currentPage, searchTerm, selectedFaculty]);
 
-  const loadFaculties = useCallback(async () => {
-    try {
-      const response = await facultyService.getFaculties();
-      if (response?.success && Array.isArray(response.data)) {
-        setFaculties(response.data);
-      }
-    } catch (error) {
-      console.error("Error loading faculties:", error);
-    }
-  }, []);
-
   useEffect(() => {
     loadDepartments();
   }, [loadDepartments]);
-
-  useEffect(() => {
-    loadFaculties();
-  }, [loadFaculties]);
 
   const handleDelete = async (id: number) => {
     if (window.confirm("Are you sure you want to delete this department?")) {
@@ -118,6 +122,27 @@ const DepartmentsPage: React.FC = () => {
     }
   };
 
+  const handleCreateDepartment = () => {
+    setEditingDepartment(null);
+    setIsFormOpen(true);
+  };
+
+  const handleEditDepartment = (department: Department) => {
+    setEditingDepartment(department);
+    setIsFormOpen(true);
+  };
+
+  const handleFormSuccess = () => {
+    setIsFormOpen(false);
+    setEditingDepartment(null);
+    loadDepartments();
+  };
+
+  const handleFormCancel = () => {
+    setIsFormOpen(false);
+    setEditingDepartment(null);
+  };
+
   return (
     <div className="container mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
@@ -125,7 +150,7 @@ const DepartmentsPage: React.FC = () => {
           <h1 className="text-3xl font-bold">Departments</h1>
           <p className="text-gray-600">Manage academic departments</p>
         </div>
-        <Button>
+        <Button onClick={handleCreateDepartment}>
           <Plus className="mr-2 h-4 w-4" />
           Add Department
         </Button>
@@ -282,7 +307,11 @@ const DepartmentsPage: React.FC = () => {
                         <Button variant="ghost" size="sm">
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditDepartment(department)}
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button
@@ -328,6 +357,23 @@ const DepartmentsPage: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Department Form Dialog */}
+      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {editingDepartment ? "Edit Department" : "Create Department"}
+            </DialogTitle>
+          </DialogHeader>
+          <DepartmentForm
+            mode={editingDepartment ? "edit" : "create"}
+            department={editingDepartment || undefined}
+            onSuccess={handleFormSuccess}
+            onCancel={handleFormCancel}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

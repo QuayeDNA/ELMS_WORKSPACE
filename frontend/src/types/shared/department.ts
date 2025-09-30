@@ -1,72 +1,26 @@
 // ========================================
-// DEPARTMENT TYPES
+// CENTRALIZED DEPARTMENT TYPES
 // ========================================
 
-export enum DepartmentType {
-  DEPARTMENT = "department",
-  SCHOOL = "school",
-  INSTITUTE = "institute",
-}
+import { User } from "./user";
+import { Faculty } from "./faculty";
 
 export interface Department {
   id: number;
   name: string;
   code: string;
-  type: string; // 'department', 'school', 'institute'
-  description?: string | null;
-  officeLocation?: string | null;
-  contactInfo?: string | null; // JSON string
+  type: DepartmentType;
+  description?: string;
+  officeLocation?: string;
+  contactInfo?: string; // JSON string
   facultyId: number;
-  hodId?: number | null;
-  createdAt: Date;
-  updatedAt: Date;
+  hodId?: number;
+  createdAt: string;
+  updatedAt: string;
 
   // Relations
-  faculty?: {
-    id: number;
-    name: string;
-    code: string;
-    institution?: {
-      id: number;
-      name: string;
-      code: string;
-    };
-  };
-
-  hod?: {
-    id: number;
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone?: string | null;
-  } | null;
-
-  courses?: {
-    id: number;
-    name: string;
-    code: string;
-    creditHours: number;
-    courseType: string;
-    isActive: boolean;
-  }[];
-
-  users?: {
-    id: number;
-    firstName: string;
-    lastName: string;
-    role: string;
-    email: string;
-  }[];
-
-  lecturerDepartments?: {
-    lecturer: {
-      id: number;
-      firstName: string;
-      lastName: string;
-      email: string;
-      staffId?: string;
-    };
-  }[];
+  faculty?: Faculty;
+  hod?: User;
 
   // Count fields (from Prisma _count)
   _count?: {
@@ -83,6 +37,20 @@ export interface Department {
     activePrograms: number;
   };
 }
+
+// ========================================
+// DEPARTMENT ENUMS
+// ========================================
+
+export enum DepartmentType {
+  DEPARTMENT = "department",
+  SCHOOL = "school",
+  INSTITUTE = "institute",
+}
+
+// ========================================
+// DEPARTMENT QUERY AND RESPONSE TYPES
+// ========================================
 
 export interface DepartmentQuery {
   facultyId?: number;
@@ -129,18 +97,15 @@ export interface UpdateDepartmentRequest {
   hodId?: number;
 }
 
-export interface DepartmentResponse {
-  success: boolean;
-  data?: {
-    departments: Department[];
-    total: number;
-    totalPages: number;
-    currentPage: number;
-    hasNext: boolean;
-    hasPrev: boolean;
-  };
-  message?: string;
-  error?: string;
+export interface DepartmentFormData {
+  name: string;
+  code: string;
+  type: DepartmentType;
+  description?: string;
+  officeLocation?: string;
+  contactInfo?: string;
+  facultyId: number;
+  hodId?: number;
 }
 
 // ========================================
@@ -165,4 +130,20 @@ export interface DepartmentAnalytics {
     maxMembers: number;
     averageMembers: number;
   };
+}
+
+// ========================================
+// COMPONENT PROPS INTERFACES
+// ========================================
+
+export interface DepartmentFormProps {
+  mode: "create" | "edit";
+  department?: Department; // Only required for edit mode
+  onSuccess: () => void;
+  onCancel: () => void;
+}
+
+export interface DepartmentViewProps {
+  department: Department;
+  onClose: () => void;
 }

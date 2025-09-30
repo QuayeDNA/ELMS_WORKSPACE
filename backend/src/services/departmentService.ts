@@ -1,12 +1,29 @@
-import { PrismaClient } from '@prisma/client';
-import { Department, DepartmentQuery } from '../types/department';
+import { PrismaClient } from "@prisma/client";
+import {
+  Department,
+  DepartmentQuery,
+  DepartmentListResponse,
+  CreateDepartmentRequest,
+  UpdateDepartmentRequest,
+  DepartmentAnalytics,
+} from "../types/department";
 
 const prisma = new PrismaClient();
 
 export const departmentService = {
   // Get all departments with pagination and filtering
-  async getDepartments(query: DepartmentQuery) {
-    const { page = 1, limit = 10, search, facultyId, institutionId, sortBy = 'name', sortOrder = 'asc' } = query;
+  async getDepartments(
+    query: DepartmentQuery
+  ): Promise<DepartmentListResponse> {
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      facultyId,
+      institutionId,
+      sortBy = "name",
+      sortOrder = "asc",
+    } = query;
     const skip = (page - 1) * limit;
 
     // Build where clause
@@ -18,15 +35,15 @@ export const departmentService = {
 
     if (institutionId) {
       where.faculty = {
-        institutionId: institutionId
+        institutionId: institutionId,
       };
     }
 
     if (search) {
       where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { code: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } }
+        { name: { contains: search, mode: "insensitive" } },
+        { code: { contains: search, mode: "insensitive" } },
+        { description: { contains: search, mode: "insensitive" } },
       ];
     }
 
@@ -39,31 +56,35 @@ export const departmentService = {
       include: {
         faculty: {
           include: {
-            institution: true
-          }
+            institution: true,
+          },
         },
         hod: {
           select: {
             id: true,
             firstName: true,
             lastName: true,
-            email: true
-          }
+            email: true,
+          },
         },
         courses: {
           select: {
             id: true,
             name: true,
-            code: true
-          }
+            code: true,
+            creditHours: true,
+            courseType: true,
+            isActive: true,
+          },
         },
         users: {
           select: {
             id: true,
             firstName: true,
             lastName: true,
-            role: true
-          }
+            role: true,
+            email: true,
+          },
         },
         lecturerDepartments: {
           include: {
@@ -72,40 +93,37 @@ export const departmentService = {
                 id: true,
                 firstName: true,
                 lastName: true,
-                role: true
-              }
-            }
-          }
-        }
+                email: true,
+              },
+            },
+          },
+        },
       },
       orderBy: {
-        [sortBy]: sortOrder
+        [sortBy]: sortOrder,
       },
       skip,
-      take: limit
+      take: limit,
     });
 
     // Calculate stats for each department
-    const departmentsWithStats = departments.map(dept => ({
+    const departmentsWithStats = (departments as any).map((dept: any) => ({
       ...dept,
       stats: {
         totalUsers: dept.users.length,
         totalCourses: dept.courses.length,
         totalLecturers: dept.lecturerDepartments.length,
-        activePrograms: 0 // TODO: Calculate from programs table
-      }
+        activePrograms: 0, // TODO: Calculate from programs table
+      },
     }));
 
     return {
-      success: true,
-      data: {
-        departments: departmentsWithStats,
-        total,
-        totalPages: Math.ceil(total / limit),
-        currentPage: page,
-        hasNext: page * limit < total,
-        hasPrev: page > 1
-      }
+      departments: departmentsWithStats,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+      hasNext: page * limit < total,
+      hasPrev: page > 1,
     };
   },
 
@@ -116,8 +134,8 @@ export const departmentService = {
       include: {
         faculty: {
           include: {
-            institution: true
-          }
+            institution: true,
+          },
         },
         hod: {
           select: {
@@ -125,8 +143,8 @@ export const departmentService = {
             firstName: true,
             lastName: true,
             email: true,
-            phone: true
-          }
+            phone: true,
+          },
         },
         courses: {
           select: {
@@ -135,8 +153,8 @@ export const departmentService = {
             code: true,
             creditHours: true,
             courseType: true,
-            isActive: true
-          }
+            isActive: true,
+          },
         },
         users: {
           select: {
@@ -144,8 +162,8 @@ export const departmentService = {
             firstName: true,
             lastName: true,
             role: true,
-            email: true
-          }
+            email: true,
+          },
         },
         lecturerDepartments: {
           include: {
@@ -154,12 +172,12 @@ export const departmentService = {
                 id: true,
                 firstName: true,
                 lastName: true,
-                email: true
-              }
-            }
-          }
-        }
-      }
+                email: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!department) return null;
@@ -172,40 +190,34 @@ export const departmentService = {
         totalUsers: department.users.length,
         totalCourses: department.courses.length,
         totalLecturers: department.lecturerDepartments.length,
-        activePrograms: 0 // TODO: Calculate from programs table
-      }
+        activePrograms: 0, // TODO: Calculate from programs table
+      },
     };
   },
 
   // Create new department
-  async createDepartment(data: {
-    name: string;
-    code: string;
-    facultyId: number;
-    type?: string;
-    description?: string;
-    officeLocation?: string;
-    contactInfo?: string;
-  }) {
+  async createDepartment(data: CreateDepartmentRequest) {
     // Check if faculty exists
     const faculty = await prisma.faculty.findUnique({
-      where: { id: data.facultyId }
+      where: { id: data.facultyId },
     });
 
     if (!faculty) {
-      throw new Error('Faculty not found');
+      throw new Error("Faculty not found");
     }
 
     // Check if department code is unique within faculty
     const existingDepartment = await prisma.department.findFirst({
       where: {
         code: data.code,
-        facultyId: data.facultyId
-      }
+        facultyId: data.facultyId,
+      },
     });
 
     if (existingDepartment) {
-      throw new Error(`Department with code '${data.code}' already exists in this faculty`);
+      throw new Error(
+        `Department with code '${data.code}' already exists in this faculty`
+      );
     }
 
     const department = await prisma.department.create({
@@ -213,35 +225,29 @@ export const departmentService = {
         name: data.name,
         code: data.code,
         facultyId: data.facultyId,
-        type: data.type || 'department',
+        type: data.type,
         description: data.description,
         officeLocation: data.officeLocation,
-        contactInfo: data.contactInfo
+        contactInfo: data.contactInfo,
+        hodId: data.hodId,
       },
       include: {
         faculty: {
           include: {
-            institution: true
-          }
-        }
-      }
+            institution: true,
+          },
+        },
+      },
     });
 
     return department;
   },
 
   // Update department
-  async updateDepartment(id: number, data: {
-    name?: string;
-    code?: string;
-    type?: string;
-    description?: string;
-    officeLocation?: string;
-    contactInfo?: string;
-  }) {
+  async updateDepartment(id: number, data: UpdateDepartmentRequest) {
     // Check if department exists
     const existingDepartment = await prisma.department.findUnique({
-      where: { id }
+      where: { id },
     });
 
     if (!existingDepartment) {
@@ -254,12 +260,14 @@ export const departmentService = {
         where: {
           code: data.code,
           facultyId: existingDepartment.facultyId,
-          id: { not: id }
-        }
+          id: { not: id },
+        },
       });
 
       if (codeConflict) {
-        throw new Error(`Department with code '${data.code}' already exists in this faculty`);
+        throw new Error(
+          `Department with code '${data.code}' already exists in this faculty`
+        );
       }
     }
 
@@ -269,10 +277,10 @@ export const departmentService = {
       include: {
         faculty: {
           include: {
-            institution: true
-          }
-        }
-      }
+            institution: true,
+          },
+        },
+      },
     });
 
     return department;
@@ -283,24 +291,26 @@ export const departmentService = {
     try {
       // Check if department has dependencies
       const coursesCount = await prisma.course.count({
-        where: { departmentId: id }
+        where: { departmentId: id },
       });
 
       const usersCount = await prisma.user.count({
-        where: { departmentId: id }
+        where: { departmentId: id },
       });
 
       if (coursesCount > 0 || usersCount > 0) {
-        throw new Error('Cannot delete department with existing courses or users');
+        throw new Error(
+          "Cannot delete department with existing courses or users"
+        );
       }
 
       await prisma.department.delete({
-        where: { id }
+        where: { id },
       });
 
       return true;
     } catch (error) {
-      if (error instanceof Error && error.message.includes('Cannot delete')) {
+      if (error instanceof Error && error.message.includes("Cannot delete")) {
         throw error;
       }
       return false;
@@ -308,7 +318,10 @@ export const departmentService = {
   },
 
   // Get departments by faculty
-  async getDepartmentsByFaculty(facultyId: number, query: { page: number; limit: number; search?: string }) {
+  async getDepartmentsByFaculty(
+    facultyId: number,
+    query: { page: number; limit: number; search?: string }
+  ): Promise<DepartmentListResponse> {
     const { page, limit, search } = query;
     const skip = (page - 1) * limit;
 
@@ -316,8 +329,8 @@ export const departmentService = {
 
     if (search) {
       where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { code: { contains: search, mode: 'insensitive' } }
+        { name: { contains: search, mode: "insensitive" } },
+        { code: { contains: search, mode: "insensitive" } },
       ];
     }
 
@@ -330,38 +343,134 @@ export const departmentService = {
           select: {
             id: true,
             firstName: true,
-            lastName: true
-          }
+            lastName: true,
+            email: true,
+            phone: true,
+          },
         },
         courses: {
           select: {
             id: true,
             name: true,
-            code: true
-          }
+            code: true,
+            creditHours: true,
+            courseType: true,
+            isActive: true,
+          },
         },
         users: {
           select: {
             id: true,
-            role: true
-          }
-        }
+            firstName: true,
+            lastName: true,
+            role: true,
+            email: true,
+          },
+        },
       },
-      orderBy: { name: 'asc' },
+      orderBy: { name: "asc" },
       skip,
-      take: limit
+      take: limit,
     });
 
     return {
-      success: true,
-      data: {
-        departments,
-        total,
-        totalPages: Math.ceil(total / limit),
-        currentPage: page,
-        hasNext: page * limit < total,
-        hasPrev: page > 1
-      }
+      departments,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+      hasNext: page * limit < total,
+      hasPrev: page > 1,
     };
-  }
+  },
+
+  // Get department analytics
+  async getDepartmentAnalytics(
+    facultyId?: number
+  ): Promise<DepartmentAnalytics> {
+    try {
+      // Build where clause for filtering
+      const where: any = {};
+      if (facultyId) {
+        where.facultyId = facultyId;
+      }
+
+      // Get all departments with counts
+      const departments = await prisma.department.findMany({
+        where,
+        include: {
+          _count: {
+            select: {
+              users: true,
+              courses: true,
+              programs: true,
+            },
+          },
+          faculty: true,
+        },
+      });
+
+      const totalDepartments = departments.length;
+
+      // Count departments by type
+      const departmentsByType = {
+        department: departments.filter((d) => d.type === "department").length,
+        school: departments.filter((d) => d.type === "school").length,
+        institute: departments.filter((d) => d.type === "institute").length,
+      };
+
+      // Count departments with/without HODs
+      const departmentsWithHODs = departments.filter((d) => d.hodId).length;
+      const departmentsWithoutHODs = totalDepartments - departmentsWithHODs;
+
+      // Calculate totals
+      const totalDepartmentMembers = departments.reduce(
+        (sum, dept) => sum + (dept._count?.users || 0),
+        0
+      );
+      const totalCourses = departments.reduce(
+        (sum, dept) => sum + (dept._count?.courses || 0),
+        0
+      );
+      const totalPrograms = departments.reduce(
+        (sum, dept) => sum + (dept._count?.programs || 0),
+        0
+      );
+
+      // Calculate averages
+      const averageMembersPerDepartment =
+        totalDepartments > 0
+          ? Math.round((totalDepartmentMembers / totalDepartments) * 100) / 100
+          : 0;
+
+      // Department distribution
+      const memberCounts = departments.map((d) => d._count?.users || 0);
+      const minMembers =
+        memberCounts.length > 0 ? Math.min(...memberCounts) : 0;
+      const maxMembers =
+        memberCounts.length > 0 ? Math.max(...memberCounts) : 0;
+      const averageMembers =
+        totalDepartments > 0
+          ? Math.round((totalDepartmentMembers / totalDepartments) * 100) / 100
+          : 0;
+
+      return {
+        totalDepartments,
+        departmentsByType,
+        departmentsWithHODs,
+        departmentsWithoutHODs,
+        totalDepartmentMembers,
+        averageMembersPerDepartment,
+        totalCourses,
+        totalPrograms,
+        departmentDistribution: {
+          minMembers,
+          maxMembers,
+          averageMembers,
+        },
+      };
+    } catch (error) {
+      console.error("Error fetching department analytics:", error);
+      throw error;
+    }
+  },
 };

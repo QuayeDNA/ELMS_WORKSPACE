@@ -1,99 +1,135 @@
-import apiService from "./api";
+import { apiService } from "./api";
+import { API_ENDPOINTS } from "@/utils/constants";
 import {
-  CreateDepartmentData,
-  UpdateDepartmentData,
+  ApiResponse,
+  Department,
+  DepartmentListResponse,
+  CreateDepartmentRequest,
+  UpdateDepartmentRequest,
   DepartmentQuery,
-  DepartmentsResponse,
-} from "../types/department";
-import { API_ENDPOINTS } from "@/constants";
+  DepartmentAnalytics,
+} from "@/types/shared";
 
 export const departmentService = {
   // Get all departments with pagination and filtering
   async getDepartments(
     query?: DepartmentQuery
-  ): Promise<DepartmentsResponse["data"]> {
-    const params = new URLSearchParams();
+  ): Promise<ApiResponse<DepartmentListResponse>> {
+    try {
+      const params = new URLSearchParams();
 
-    if (query?.facultyId)
-      params.append("facultyId", query.facultyId.toString());
-    if (query?.institutionId)
-      params.append("institutionId", query.institutionId.toString());
-    if (query?.isActive !== undefined)
-      params.append("isActive", query.isActive.toString());
-    if (query?.page) params.append("page", query.page.toString());
-    if (query?.limit) params.append("limit", query.limit.toString());
-    if (query?.search) params.append("search", query.search);
-    if (query?.sortBy) params.append("sortBy", query.sortBy);
-    if (query?.sortOrder) params.append("sortOrder", query.sortOrder);
+      if (query?.facultyId)
+        params.append("facultyId", query.facultyId.toString());
+      if (query?.institutionId)
+        params.append("institutionId", query.institutionId.toString());
+      if (query?.isActive !== undefined)
+        params.append("isActive", query.isActive.toString());
+      if (query?.page) params.append("page", query.page.toString());
+      if (query?.limit) params.append("limit", query.limit.toString());
+      if (query?.search) params.append("search", query.search);
+      if (query?.sortBy) params.append("sortBy", query.sortBy);
+      if (query?.sortOrder) params.append("sortOrder", query.sortOrder);
 
-    const response = await apiService.get(
-      `${API_ENDPOINTS.DEPARTMENTS.BASE}?${params.toString()}`
-    );
-    return response.data as DepartmentsResponse["data"];
+      const queryString = params.toString();
+      const url = queryString
+        ? `${API_ENDPOINTS.DEPARTMENTS.BASE}?${queryString}`
+        : API_ENDPOINTS.DEPARTMENTS.BASE;
+
+      return await apiService.get<DepartmentListResponse>(url);
+    } catch (error) {
+      console.error("Error fetching departments:", error);
+      throw error;
+    }
   },
 
   // Get single department by ID
-  async getDepartmentById(id: number) {
-    const response = await apiService.get(API_ENDPOINTS.DEPARTMENTS.BY_ID(id));
-    return response.data;
+  async getDepartmentById(id: number): Promise<ApiResponse<Department>> {
+    try {
+      return await apiService.get<Department>(
+        API_ENDPOINTS.DEPARTMENTS.BY_ID(id)
+      );
+    } catch (error) {
+      console.error("Error fetching department:", error);
+      throw error;
+    }
   },
 
   // Create new department
-  async createDepartment(data: CreateDepartmentData) {
-    const response = await apiService.post(
-      API_ENDPOINTS.DEPARTMENTS.BASE,
-      data
-    );
-    return response.data;
+  async createDepartment(
+    data: CreateDepartmentRequest
+  ): Promise<ApiResponse<Department>> {
+    try {
+      return await apiService.post<Department>(
+        API_ENDPOINTS.DEPARTMENTS.BASE,
+        data
+      );
+    } catch (error) {
+      console.error("Error creating department:", error);
+      throw error;
+    }
   },
 
   // Update department
-  async updateDepartment(id: number, data: UpdateDepartmentData) {
-    const response = await apiService.put(
-      API_ENDPOINTS.DEPARTMENTS.BY_ID(id),
-      data
-    );
-    return response.data;
+  async updateDepartment(
+    id: number,
+    data: UpdateDepartmentRequest
+  ): Promise<ApiResponse<Department>> {
+    try {
+      return await apiService.put<Department>(
+        API_ENDPOINTS.DEPARTMENTS.BY_ID(id),
+        data
+      );
+    } catch (error) {
+      console.error("Error updating department:", error);
+      throw error;
+    }
   },
 
   // Delete department
-  async deleteDepartment(id: number) {
-    const response = await apiService.delete(
-      API_ENDPOINTS.DEPARTMENTS.BY_ID(id)
-    );
-    return response.data;
+  async deleteDepartment(id: number): Promise<ApiResponse<void>> {
+    try {
+      return await apiService.delete<void>(API_ENDPOINTS.DEPARTMENTS.BY_ID(id));
+    } catch (error) {
+      console.error("Error deleting department:", error);
+      throw error;
+    }
   },
 
   // Get departments by faculty
   async getDepartmentsByFaculty(
     facultyId: number,
-    query?: {
-      page?: number;
-      limit?: number;
-      search?: string;
-      isActive?: boolean;
+    query?: DepartmentQuery
+  ): Promise<ApiResponse<DepartmentListResponse>> {
+    try {
+      const params = new URLSearchParams();
+      params.append("facultyId", facultyId.toString());
+
+      if (query?.page) params.append("page", query.page.toString());
+      if (query?.limit) params.append("limit", query.limit.toString());
+      if (query?.search) params.append("search", query.search);
+      if (query?.isActive !== undefined)
+        params.append("isActive", query.isActive.toString());
+
+      const url = `${API_ENDPOINTS.DEPARTMENTS.BASE}?${params.toString()}`;
+      return await apiService.get<DepartmentListResponse>(url);
+    } catch (error) {
+      console.error("Error fetching departments by faculty:", error);
+      throw error;
     }
-  ) {
-    const params = new URLSearchParams();
-    params.append("facultyId", facultyId.toString());
-
-    if (query?.page) params.append("page", query.page.toString());
-    if (query?.limit) params.append("limit", query.limit.toString());
-    if (query?.search) params.append("search", query.search);
-    if (query?.isActive !== undefined)
-      params.append("isActive", query.isActive.toString());
-
-    const response = await apiService.get(
-      `${API_ENDPOINTS.DEPARTMENTS.BASE}?${params.toString()}`
-    );
-    return response.data;
   },
 
-  // Get department statistics
-  async getDepartmentStats(id: number) {
-    const response = await apiService.get(
-      `${API_ENDPOINTS.DEPARTMENTS.BY_ID(id)}/stats`
-    );
-    return response.data;
+  // Get department analytics
+  async getDepartmentAnalytics(
+    facultyId?: number
+  ): Promise<ApiResponse<DepartmentAnalytics>> {
+    try {
+      const params = facultyId ? `?facultyId=${facultyId}` : "";
+      return await apiService.get<DepartmentAnalytics>(
+        `${API_ENDPOINTS.DEPARTMENTS.BASE}/analytics${params}`
+      );
+    } catch (error) {
+      console.error("Error fetching department analytics:", error);
+      throw error;
+    }
   },
 };
