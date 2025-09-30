@@ -1,16 +1,19 @@
-import React from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Faculty } from '@/types/faculty';
-import { Calendar, Building, Users } from 'lucide-react';
+import React from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Faculty } from "@/types/faculty";
+import { Calendar, Building, Users } from "lucide-react";
 
 interface FacultyViewProps {
   faculty: Faculty;
   onClose: () => void;
 }
 
-export const FacultyView: React.FC<FacultyViewProps> = ({ faculty, onClose }) => {
+export const FacultyView: React.FC<FacultyViewProps> = ({
+  faculty,
+  onClose,
+}) => {
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -47,10 +50,35 @@ export const FacultyView: React.FC<FacultyViewProps> = ({ faculty, onClose }) =>
             <div>
               <p className="text-sm font-medium text-gray-700">Institution</p>
               <p className="text-lg">{faculty.institution?.name}</p>
+              {faculty.institution?.type && (
+                <p className="text-sm text-gray-600">
+                  {faculty.institution.type}
+                </p>
+              )}
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-700">Established Year</p>
-              <p className="text-lg">{faculty.establishedYear || 'N/A'}</p>
+              <p className="text-sm font-medium text-gray-700">Dean</p>
+              {faculty.dean ? (
+                <div>
+                  <p className="text-lg">
+                    {faculty.dean.firstName} {faculty.dean.lastName}
+                  </p>
+                  <p className="text-sm text-gray-600">{faculty.dean.email}</p>
+                  {faculty.dean.title && (
+                    <p className="text-sm text-gray-600">
+                      {faculty.dean.title}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-lg text-gray-500">Not assigned</p>
+              )}
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-700">
+                Established Year
+              </p>
+              <p className="text-lg">{faculty.establishedYear || "N/A"}</p>
             </div>
           </div>
 
@@ -72,7 +100,7 @@ export const FacultyView: React.FC<FacultyViewProps> = ({ faculty, onClose }) =>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-blue-600">
                 {faculty._count?.departments || 0}
@@ -83,11 +111,56 @@ export const FacultyView: React.FC<FacultyViewProps> = ({ faculty, onClose }) =>
               <div className="text-2xl font-bold text-green-600">
                 {faculty._count?.users || 0}
               </div>
-              <div className="text-sm text-gray-600">Users</div>
+              <div className="text-sm text-gray-600">Total Users</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-purple-600">
+                {faculty._count?.exams || 0}
+              </div>
+              <div className="text-sm text-gray-600">Exams</div>
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Departments */}
+      {faculty.departments && faculty.departments.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Building className="w-5 h-5" />
+              Departments ({faculty.departments.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {faculty.departments.map((department) => (
+                <div
+                  key={department.id}
+                  className="flex items-center justify-between p-3 border rounded-lg"
+                >
+                  <div>
+                    <p className="font-medium">{department.name}</p>
+                    <p className="text-sm text-gray-600">
+                      Code: {department.code}
+                    </p>
+                    {department.hod && (
+                      <p className="text-sm text-gray-600">
+                        HOD: {department.hod.firstName}{" "}
+                        {department.hod.lastName}
+                      </p>
+                    )}
+                  </div>
+                  <div className="text-right text-sm text-gray-600">
+                    <p>{department._count?.users || 0} users</p>
+                    <p>{department._count?.courses || 0} courses</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Timestamps */}
       <Card>
@@ -102,13 +175,17 @@ export const FacultyView: React.FC<FacultyViewProps> = ({ faculty, onClose }) =>
             <div>
               <p className="text-sm font-medium text-gray-700">Created</p>
               <p className="text-lg">
-                {faculty.createdAt ? new Date(faculty.createdAt).toLocaleDateString() : 'N/A'}
+                {faculty.createdAt
+                  ? new Date(faculty.createdAt).toLocaleDateString()
+                  : "N/A"}
               </p>
             </div>
             <div>
               <p className="text-sm font-medium text-gray-700">Last Updated</p>
               <p className="text-lg">
-                {faculty.updatedAt ? new Date(faculty.updatedAt).toLocaleDateString() : 'N/A'}
+                {faculty.updatedAt
+                  ? new Date(faculty.updatedAt).toLocaleDateString()
+                  : "N/A"}
               </p>
             </div>
           </div>
@@ -124,7 +201,9 @@ export const FacultyView: React.FC<FacultyViewProps> = ({ faculty, onClose }) =>
           <CardContent>
             <div className="flex items-center gap-4">
               <div>
-                <p className="font-medium">{faculty.dean.firstName} {faculty.dean.lastName}</p>
+                <p className="font-medium">
+                  {faculty.dean.firstName} {faculty.dean.lastName}
+                </p>
               </div>
             </div>
           </CardContent>

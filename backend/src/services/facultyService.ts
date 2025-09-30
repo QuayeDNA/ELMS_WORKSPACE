@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -18,12 +18,14 @@ export class FacultyService {
       const existingFaculty = await prisma.faculty.findFirst({
         where: {
           code: data.code,
-          institutionId: data.institutionId
-        }
+          institutionId: data.institutionId,
+        },
       });
 
       if (existingFaculty) {
-        throw new Error(`Faculty with code '${data.code}' already exists in this institution`);
+        throw new Error(
+          `Faculty with code '${data.code}' already exists in this institution`
+        );
       }
 
       const faculty = await prisma.faculty.create({
@@ -31,28 +33,28 @@ export class FacultyService {
           name: data.name,
           code: data.code,
           institutionId: data.institutionId,
-          description: data.description
+          description: data.description,
         },
         include: {
           institution: {
             select: {
               id: true,
               name: true,
-              code: true
-            }
+              code: true,
+            },
           },
           _count: {
             select: {
               users: true,
-              departments: true
-            }
-          }
-        }
+              departments: true,
+            },
+          },
+        },
       });
 
       return faculty;
     } catch (error) {
-      console.error('Error creating faculty:', error);
+      console.error("Error creating faculty:", error);
       throw error;
     }
   }
@@ -62,17 +64,17 @@ export class FacultyService {
     page?: number;
     limit?: number;
     search?: string;
-    sortBy?: 'name' | 'code' | 'createdAt';
-    sortOrder?: 'asc' | 'desc';
+    sortBy?: "name" | "code" | "createdAt";
+    sortOrder?: "asc" | "desc";
   }) {
     try {
       const {
         institutionId,
         page = 1,
         limit = 10,
-        search = '',
-        sortBy = 'name',
-        sortOrder = 'asc'
+        search = "",
+        sortBy = "name",
+        sortOrder = "asc",
       } = query;
 
       const skip = (page - 1) * limit;
@@ -83,8 +85,8 @@ export class FacultyService {
       }
       if (search) {
         where.OR = [
-          { name: { contains: search, mode: 'insensitive' } },
-          { code: { contains: search, mode: 'insensitive' } }
+          { name: { contains: search, mode: "insensitive" } },
+          { code: { contains: search, mode: "insensitive" } },
         ];
       }
 
@@ -96,23 +98,34 @@ export class FacultyService {
               select: {
                 id: true,
                 name: true,
-                code: true
-              }
+                code: true,
+                type: true,
+                status: true,
+              },
+            },
+            dean: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                role: true,
+              },
             },
             _count: {
               select: {
                 users: true,
-                departments: true
-              }
-            }
+                departments: true,
+              },
+            },
           },
           orderBy: {
-            [sortBy]: sortOrder
+            [sortBy]: sortOrder,
           },
           skip,
-          take: limit
+          take: limit,
         }),
-        prisma.faculty.count({ where })
+        prisma.faculty.count({ where }),
       ]);
 
       const totalPages = Math.ceil(total / limit);
@@ -123,10 +136,10 @@ export class FacultyService {
         page,
         totalPages,
         hasNext: page < totalPages,
-        hasPrev: page > 1
+        hasPrev: page > 1,
       };
     } catch (error) {
-      console.error('Error fetching faculties:', error);
+      console.error("Error fetching faculties:", error);
       throw error;
     }
   }
@@ -142,8 +155,39 @@ export class FacultyService {
               name: true,
               code: true,
               type: true,
-              status: true
-            }
+              status: true,
+            },
+          },
+          dean: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              role: true,
+              title: true,
+            },
+          },
+          departments: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+              hod: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                },
+              },
+              _count: {
+                select: {
+                  users: true,
+                  courses: true,
+                },
+              },
+            },
           },
           users: {
             select: {
@@ -153,46 +197,127 @@ export class FacultyService {
               email: true,
               role: true,
               status: true,
-              lastLogin: true
             },
-            orderBy: { createdAt: 'desc' }
-          },
-          departments: {
-            select: {
-              id: true,
-              name: true,
-              code: true
-            }
+            where: {
+              role: {
+                in: ["DEAN", "HOD", "LECTURER", "EXAMS_OFFICER"],
+              },
+            },
           },
           _count: {
             select: {
               users: true,
-              departments: true
-            }
-          }
-        }
+              departments: true,
+              exams: true,
+            },
+          },
+        },
       });
 
       return faculty;
     } catch (error) {
-      console.error('Error fetching faculty:', error);
+      console.error("Error fetching faculty:", error);
       throw error;
     }
   }
 
-  async updateFaculty(id: number, data: {
-    name?: string;
-    code?: string;
-    description?: string;
-  }) {
+  async assignDean(facultyId: number, deanId: number) {
+    try {
+      // Verify the user exists and has appropriate role
+      const user = await prisma.user.findUnique({
+        where: { id: deanId },
+        select: { id: true, role: true, institutionId: true },
+      });
+
+      if (!user) {
+        throw new Error("User not found");
+      }
+
+      // Get faculty to verify institution match
+      const faculty = await prisma.faculty.findUnique({
+        where: { id: facultyId },
+        select: { id: true, institutionId: true, deanId: true },
+      });
+
+      if (!faculty) {
+        throw new Error("Faculty not found");
+      }
+
+      // Verify user belongs to same institution
+      if (user.institutionId !== faculty.institutionId) {
+        throw new Error(
+          "Dean must belong to the same institution as the faculty"
+        );
+      }
+
+      // Update faculty with new dean
+      const updatedFaculty = await prisma.faculty.update({
+        where: { id: facultyId },
+        data: { deanId: deanId },
+        include: {
+          dean: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              role: true,
+            },
+          },
+        },
+      });
+
+      return updatedFaculty;
+    } catch (error) {
+      console.error("Error assigning dean:", error);
+      throw error;
+    }
+  }
+
+  async removeDean(facultyId: number) {
+    try {
+      // Verify faculty exists
+      const faculty = await prisma.faculty.findUnique({
+        where: { id: facultyId },
+        select: { id: true, deanId: true },
+      });
+
+      if (!faculty) {
+        throw new Error("Faculty not found");
+      }
+
+      // Remove dean assignment
+      const updatedFaculty = await prisma.faculty.update({
+        where: { id: facultyId },
+        data: { deanId: null },
+        include: {
+          dean: true,
+        },
+      });
+
+      return updatedFaculty;
+    } catch (error) {
+      console.error("Error removing dean:", error);
+      throw error;
+    }
+  }
+
+  async updateFaculty(
+    id: number,
+    data: {
+      name?: string;
+      code?: string;
+      description?: string;
+    }
+  ) {
     try {
       // Check if updating code and it already exists
       if (data.code) {
         const existingFaculty = await prisma.faculty.findFirst({
           where: {
             code: data.code,
-            id: { not: id }
-          }
+            id: { not: id },
+          },
         });
 
         if (existingFaculty) {
@@ -208,21 +333,21 @@ export class FacultyService {
             select: {
               id: true,
               name: true,
-              code: true
-            }
+              code: true,
+            },
           },
           _count: {
             select: {
               users: true,
-              departments: true
-            }
-          }
-        }
+              departments: true,
+            },
+          },
+        },
       });
 
       return faculty;
     } catch (error) {
-      console.error('Error updating faculty:', error);
+      console.error("Error updating faculty:", error);
       throw error;
     }
   }
@@ -236,10 +361,10 @@ export class FacultyService {
           _count: {
             select: {
               users: true,
-              departments: true
-            }
-          }
-        }
+              departments: true,
+            },
+          },
+        },
       });
 
       if (!faculty) {
@@ -247,16 +372,18 @@ export class FacultyService {
       }
 
       if (faculty._count.users > 0 || faculty._count.departments > 0) {
-        throw new Error('Cannot delete faculty with existing users or departments');
+        throw new Error(
+          "Cannot delete faculty with existing users or departments"
+        );
       }
 
       await prisma.faculty.delete({
-        where: { id }
+        where: { id },
       });
 
       return true;
     } catch (error) {
-      console.error('Error deleting faculty:', error);
+      console.error("Error deleting faculty:", error);
       throw error;
     }
   }
@@ -269,16 +396,16 @@ export class FacultyService {
           _count: {
             select: {
               users: true,
-              departments: true
-            }
-          }
+              departments: true,
+            },
+          },
         },
-        orderBy: { name: 'asc' }
+        orderBy: { name: "asc" },
       });
 
       return faculties;
     } catch (error) {
-      console.error('Error fetching faculties by institution:', error);
+      console.error("Error fetching faculties by institution:", error);
       throw error;
     }
   }

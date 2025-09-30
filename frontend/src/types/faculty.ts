@@ -16,15 +16,44 @@ export interface Faculty {
     id: number;
     name: string;
     code: string;
+    type?: string;
+    status?: string;
   };
   dean?: {
     id: number;
     firstName: string;
     lastName: string;
+    email: string;
+    role: string;
+    title?: string;
   };
+  departments?: Array<{
+    id: number;
+    name: string;
+    code: string;
+    hod?: {
+      id: number;
+      firstName: string;
+      lastName: string;
+      email: string;
+    };
+    _count?: {
+      users: number;
+      courses: number;
+    };
+  }>;
+  users?: Array<{
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    role: string;
+    status: string;
+  }>;
   _count?: {
     users: number;
     departments: number;
+    exams?: number;
   };
 }
 
@@ -50,8 +79,8 @@ export interface FacultyQuery {
   page?: number;
   limit?: number;
   search?: string;
-  sortBy?: 'name' | 'code' | 'createdAt';
-  sortOrder?: 'asc' | 'desc';
+  sortBy?: "name" | "code" | "createdAt";
+  sortOrder?: "asc" | "desc";
 }
 
 export interface FacultyListResponse {
@@ -79,14 +108,14 @@ export interface FacultyFormData {
 // ========================================
 
 export interface FacultyFilters {
-  institutionId: number | 'ALL';
+  institutionId: number | "ALL";
   search: string;
-  sortBy: 'name' | 'code' | 'createdAt';
-  sortOrder: 'asc' | 'desc';
+  sortBy: "name" | "code" | "createdAt";
+  sortOrder: "asc" | "desc";
 }
 
 export interface FacultyTableColumn {
-  key: keyof Faculty | 'actions';
+  key: keyof Faculty | "actions";
   label: string;
   sortable?: boolean;
   width?: string;
@@ -97,17 +126,17 @@ export interface FacultyTableColumn {
 // ========================================
 
 export const DEFAULT_FACULTY_FILTERS: FacultyFilters = {
-  institutionId: 'ALL',
-  search: '',
-  sortBy: 'name',
-  sortOrder: 'asc'
+  institutionId: "ALL",
+  search: "",
+  sortBy: "name",
+  sortOrder: "asc",
 };
 
 export const FACULTY_TABLE_COLUMNS: FacultyTableColumn[] = [
-  { key: 'name', label: 'Faculty Name', sortable: true, width: '30%' },
-  { key: 'code', label: 'Code', sortable: true, width: '15%' },
-  { key: 'institution', label: 'Institution', sortable: false, width: '25%' },
-  { key: '_count', label: 'Users/Depts', sortable: false, width: '15%' },
-  { key: 'createdAt', label: 'Created', sortable: true, width: '15%' },
-  { key: 'actions', label: 'Actions', sortable: false, width: '10%' }
+  { key: "name", label: "Faculty Name", sortable: true, width: "30%" },
+  { key: "code", label: "Code", sortable: true, width: "15%" },
+  { key: "institution", label: "Institution", sortable: false, width: "25%" },
+  { key: "_count", label: "Users/Depts", sortable: false, width: "15%" },
+  { key: "createdAt", label: "Created", sortable: true, width: "15%" },
+  { key: "actions", label: "Actions", sortable: false, width: "10%" },
 ];

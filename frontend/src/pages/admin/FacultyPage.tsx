@@ -1,28 +1,71 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Filter, Users, Building, GraduationCap, Edit, Trash2, Eye } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { facultyService } from '@/services/faculty.service';
-import { useAuthStore } from '@/stores/auth.store';
-import { Faculty, FacultyQuery } from '@/types/faculty';
-import { FacultyCreate } from '@/components/faculty/FacultyCreate';
-import { FacultyEdit } from '@/components/faculty/FacultyEdit';
-import { FacultyView } from '@/components/faculty/FacultyView';
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  Plus,
+  Search,
+  Filter,
+  Users,
+  Building,
+  GraduationCap,
+  Edit,
+  Trash2,
+  Eye,
+  UserPlus,
+  UserMinus,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/Input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { facultyService } from "@/services/faculty.service";
+import { userService } from "@/services/user.service";
+import { useAuthStore } from "@/stores/auth.store";
+import { Faculty, FacultyQuery } from "@/types/faculty";
+import { FacultyCreate } from "@/components/faculty/FacultyCreate";
+import { FacultyEdit } from "@/components/faculty/FacultyEdit";
+import { FacultyView } from "@/components/faculty/FacultyView";
 
 export function FacultyPage() {
   const { user } = useAuthStore();
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [selectedFaculty, setSelectedFaculty] = useState<Faculty | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isAssignDeanDialogOpen, setIsAssignDeanDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -37,17 +80,52 @@ export function FacultyPage() {
   };
 
   // Fetch faculties
-  const { data: facultyResponse, isLoading, error } = useQuery({
-    queryKey: ['faculties', query],
+  const {
+    data: facultyResponse,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["faculties", query],
     queryFn: () => facultyService.getFaculties(query),
     retry: 3,
+  });
+
+  // Fetch users for dean selection
+  const { data: users } = useQuery({
+    queryKey: ["users", "dean-candidates", user?.institutionId],
+    queryFn: () => userService.getUsers({ institutionId: user?.institutionId }),
+    enabled: !!user?.institutionId,
   });
 
   // Delete faculty mutation
   const deleteMutation = useMutation({
     mutationFn: (id: number) => facultyService.deleteFaculty(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['faculties'] });
+      queryClient.invalidateQueries({ queryKey: ["faculties"] });
+    },
+  });
+
+  // Assign dean mutation
+  const assignDeanMutation = useMutation({
+    mutationFn: ({
+      facultyId,
+      deanId,
+    }: {
+      facultyId: number;
+      deanId: number;
+    }) => facultyService.assignDean(facultyId, deanId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["faculties"] });
+      setIsAssignDeanDialogOpen(false);
+      setSelectedFaculty(null);
+    },
+  });
+
+  // Remove dean mutation
+  const removeDeanMutation = useMutation({
+    mutationFn: (facultyId: number) => facultyService.removeDean(facultyId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["faculties"] });
     },
   });
 
@@ -55,7 +133,7 @@ export function FacultyPage() {
     try {
       await deleteMutation.mutateAsync(id);
     } catch (error) {
-      console.error('Error deleting faculty:', error);
+      console.error("Error deleting faculty:", error);
     }
   };
 
@@ -71,13 +149,34 @@ export function FacultyPage() {
 
   const handleCreateSuccess = () => {
     setIsCreateDialogOpen(false);
-    queryClient.invalidateQueries({ queryKey: ['faculties'] });
+    queryClient.invalidateQueries({ queryKey: ["faculties"] });
   };
 
   const handleEditSuccess = () => {
     setIsEditDialogOpen(false);
     setSelectedFaculty(null);
-    queryClient.invalidateQueries({ queryKey: ['faculties'] });
+    queryClient.invalidateQueries({ queryKey: ["faculties"] });
+  };
+
+  const handleAssignDean = (faculty: Faculty) => {
+    setSelectedFaculty(faculty);
+    setIsAssignDeanDialogOpen(true);
+  };
+
+  const handleRemoveDean = async (facultyId: number) => {
+    if (
+      window.confirm(
+        "Are you sure you want to remove the dean from this faculty?"
+      )
+    ) {
+      removeDeanMutation.mutate(facultyId);
+    }
+  };
+
+  const handleConfirmAssignDean = (deanId: number) => {
+    if (selectedFaculty) {
+      assignDeanMutation.mutate({ facultyId: selectedFaculty.id, deanId });
+    }
   };
 
   const faculties = facultyResponse?.data?.faculties || [];
@@ -88,8 +187,12 @@ export function FacultyPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Faculty Management</h1>
-          <p className="text-gray-600">Manage academic faculties and their departments</p>
+          <h1 className="text-3xl font-bold text-gray-900">
+            Faculty Management
+          </h1>
+          <p className="text-gray-600">
+            Manage academic faculties and their departments
+          </p>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
@@ -102,7 +205,7 @@ export function FacultyPage() {
             <DialogHeader>
               <DialogTitle>Create New Faculty</DialogTitle>
             </DialogHeader>
-            <FacultyCreate 
+            <FacultyCreate
               onSuccess={handleCreateSuccess}
               onCancel={() => setIsCreateDialogOpen(false)}
             />
@@ -114,17 +217,19 @@ export function FacultyPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Faculties</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Faculties
+            </CardTitle>
             <Building className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalCount}</div>
             <p className="text-xs text-muted-foreground">
-              {isLoading ? 'Loading...' : 'Active faculties'}
+              {isLoading ? "Loading..." : "Active faculties"}
             </p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Departments</CardTitle>
@@ -132,22 +237,28 @@ export function FacultyPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {faculties.reduce((acc, faculty) => acc + (faculty._count?.departments || 0), 0)}
+              {faculties.reduce(
+                (acc, faculty) => acc + (faculty._count?.departments || 0),
+                0
+              )}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Total departments
-            </p>
+            <p className="text-xs text-muted-foreground">Total departments</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Faculty Members</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Faculty Members
+            </CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {faculties.reduce((acc, faculty) => acc + (faculty._count?.users || 0), 0)}
+              {faculties.reduce(
+                (acc, faculty) => acc + (faculty._count?.users || 0),
+                0
+              )}
             </div>
             <p className="text-xs text-muted-foreground">
               Total faculty members
@@ -162,14 +273,16 @@ export function FacultyPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {faculties.length > 0 
-                ? Math.round(faculties.reduce((acc, faculty) => acc + (faculty._count?.users || 0), 0) / faculties.length)
-                : 0
-              }
+              {faculties.length > 0
+                ? Math.round(
+                    faculties.reduce(
+                      (acc, faculty) => acc + (faculty._count?.users || 0),
+                      0
+                    ) / faculties.length
+                  )
+                : 0}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Members per faculty
-            </p>
+            <p className="text-xs text-muted-foreground">Members per faculty</p>
           </CardContent>
         </Card>
       </div>
@@ -188,7 +301,10 @@ export function FacultyPage() {
                 className="pl-10"
               />
             </div>
-            <Select value={pageSize.toString()} onValueChange={(value) => setPageSize(Number(value))}>
+            <Select
+              value={pageSize.toString()}
+              onValueChange={(value) => setPageSize(Number(value))}
+            >
               <SelectTrigger className="w-32">
                 <SelectValue />
               </SelectTrigger>
@@ -221,7 +337,8 @@ export function FacultyPage() {
             </div>
           ) : faculties.length === 0 ? (
             <div className="p-8 text-center text-gray-500">
-              No faculties found. {searchTerm && 'Try adjusting your search criteria.'}
+              No faculties found.{" "}
+              {searchTerm && "Try adjusting your search criteria."}
             </div>
           ) : (
             <Table>
@@ -246,8 +363,12 @@ export function FacultyPage() {
                           {faculty.name.charAt(0).toUpperCase()}
                         </div>
                         <div className="ml-3">
-                          <div className="font-medium text-gray-900">{faculty.name}</div>
-                          <div className="text-sm text-gray-500">Est. {faculty.establishedYear || 'N/A'}</div>
+                          <div className="font-medium text-gray-900">
+                            {faculty.name}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            Est. {faculty.establishedYear || "N/A"}
+                          </div>
                         </div>
                       </div>
                     </TableCell>
@@ -256,7 +377,7 @@ export function FacultyPage() {
                     </TableCell>
                     <TableCell className="max-w-xs">
                       <div className="truncate" title={faculty.description}>
-                        {faculty.description || 'No description'}
+                        {faculty.description || "No description"}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -272,14 +393,19 @@ export function FacultyPage() {
                     <TableCell>
                       {faculty.dean ? (
                         <div className="text-sm">
-                          <div className="font-medium">{faculty.dean.firstName} {faculty.dean.lastName}</div>
+                          <div className="font-medium">
+                            {faculty.dean.firstName} {faculty.dean.lastName}
+                          </div>
                         </div>
                       ) : (
                         <span className="text-gray-400">No dean assigned</span>
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="default" className="bg-green-100 text-green-800">
+                      <Badge
+                        variant="default"
+                        className="bg-green-100 text-green-800"
+                      >
                         Active
                       </Badge>
                     </TableCell>
@@ -301,6 +427,26 @@ export function FacultyPage() {
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleAssignDean(faculty)}
+                          className="h-8 w-8 p-0"
+                          title="Assign Dean"
+                        >
+                          <UserPlus className="h-4 w-4" />
+                        </Button>
+                        {faculty.dean && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveDean(faculty.id)}
+                            className="h-8 w-8 p-0 text-orange-600 hover:text-orange-700"
+                            title="Remove Dean"
+                          >
+                            <UserMinus className="h-4 w-4" />
+                          </Button>
+                        )}
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button
@@ -315,7 +461,9 @@ export function FacultyPage() {
                             <AlertDialogHeader>
                               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                               <AlertDialogDescription>
-                                This action cannot be undone. This will permanently delete the faculty "{faculty.name}" and all its associated data.
+                                This action cannot be undone. This will
+                                permanently delete the faculty "{faculty.name}"
+                                and all its associated data.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -343,13 +491,15 @@ export function FacultyPage() {
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-700">
-            Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount} faculties
+            Showing {(currentPage - 1) * pageSize + 1} to{" "}
+            {Math.min(currentPage * pageSize, totalCount)} of {totalCount}{" "}
+            faculties
           </div>
           <div className="flex gap-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
             >
               Previous
@@ -372,7 +522,9 @@ export function FacultyPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+              }
               disabled={currentPage === totalPages}
             >
               Next
@@ -404,11 +556,44 @@ export function FacultyPage() {
             <DialogTitle>Faculty Details</DialogTitle>
           </DialogHeader>
           {selectedFaculty && (
-            <FacultyView 
-              faculty={selectedFaculty} 
+            <FacultyView
+              faculty={selectedFaculty}
               onClose={() => setIsViewDialogOpen(false)}
             />
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign Dean Dialog */}
+      <Dialog
+        open={isAssignDeanDialogOpen}
+        onOpenChange={setIsAssignDeanDialogOpen}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assign Dean to {selectedFaculty?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Select Dean</label>
+              <Select
+                onValueChange={(value) =>
+                  handleConfirmAssignDean(parseInt(value))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a dean..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {users?.data?.users?.map((user) => (
+                    <SelectItem key={user.id} value={user.id.toString()}>
+                      {user.firstName} {user.lastName} ({user.email})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

@@ -1,20 +1,31 @@
-import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { facultyService } from '@/services/faculty.service';
-import { useAuthStore } from '@/stores/auth.store';
-import { FacultyFormData } from '@/types/faculty';
+import React, { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/Input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { facultyService } from "@/services/faculty.service";
+import { useAuthStore } from "@/stores/auth.store";
+import { FacultyFormData } from "@/types/faculty";
+import { userService } from "@/services/user.service";
+import { User } from "@/types/user";
+import { UserRole, UserStatus } from "@/types/auth";
 
 const facultySchema = z.object({
-  name: z.string().min(1, 'Faculty name is required'),
-  code: z.string().min(1, 'Faculty code is required'),
-  institutionId: z.string().min(1, 'Institution is required'),
+  name: z.string().min(1, "Faculty name is required"),
+  code: z.string().min(1, "Faculty code is required"),
+  institutionId: z.string().min(1, "Institution is required"),
   description: z.string().optional(),
+  deanId: z.string().optional(),
 });
 
 type FacultyFormValues = z.infer<typeof facultySchema>;
@@ -24,24 +35,62 @@ interface FacultyCreateProps {
   onCancel: () => void;
 }
 
-export const FacultyCreate: React.FC<FacultyCreateProps> = ({ onSuccess, onCancel }) => {
+export const FacultyCreate: React.FC<FacultyCreateProps> = ({
+  onSuccess,
+  onCancel,
+}) => {
   const { user } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [availableDeans, setAvailableDeans] = useState<User[]>([]);
 
   const {
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<FacultyFormValues>({
     resolver: zodResolver(facultySchema),
   });
 
+  const selectedInstitutionId = watch("institutionId");
+
+  // Fetch available deans when institution is selected
+  useEffect(() => {
+    const fetchAvailableDeans = async () => {
+      if (selectedInstitutionId) {
+        try {
+          const institutionId = parseInt(selectedInstitutionId);
+          // Fetch users who can be deans (typically lecturers)
+          const lecturerResponse = await userService.getUsers({
+            institutionId,
+            role: UserRole.LECTURER,
+            status: UserStatus.ACTIVE,
+          });
+          const allUsers = [
+            ...(lecturerResponse.success && lecturerResponse.data ? lecturerResponse.data.users || [] : []),
+          ];
+          // Remove duplicates based on user ID
+          const uniqueUsers = allUsers.filter((user, index, self) =>
+            index === self.findIndex(u => u.id === user.id)
+          );
+          setAvailableDeans(uniqueUsers);
+        } catch (error) {
+          console.error("Error fetching available deans:", error);
+        }
+      } else {
+        setAvailableDeans([]);
+      }
+    };
+
+    fetchAvailableDeans();
+  }, [selectedInstitutionId]);
+
   // Set the user's institution automatically for ADMIN users
   useEffect(() => {
     if (user?.institutionId) {
-      setValue('institutionId', user.institutionId.toString());
+      setValue("institutionId", user.institutionId.toString());
     }
   }, [user, setValue]);
 
@@ -54,14 +103,25 @@ export const FacultyCreate: React.FC<FacultyCreateProps> = ({ onSuccess, onCance
         name: data.name,
         code: data.code,
         institutionId: data.institutionId,
-        description: data.description || '',
+        description: data.description || "",
       };
 
       const requestData = facultyService.transformFormData(formData);
-      await facultyService.createFaculty(requestData);
+
+      // Create faculty first
+      const facultyResponse = await facultyService.createFaculty(requestData);
+
+      // If dean was selected, assign the dean
+      if (data.deanId && facultyResponse.success && facultyResponse.data) {
+        await facultyService.assignDean(
+          facultyResponse.data.id,
+          parseInt(data.deanId)
+        );
+      }
+
       onSuccess();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create faculty');
+      setError(err instanceof Error ? err.message : "Failed to create faculty");
     } finally {
       setIsLoading(false);
     }
@@ -80,9 +140,9 @@ export const FacultyCreate: React.FC<FacultyCreateProps> = ({ onSuccess, onCance
           <Label htmlFor="name">Faculty Name *</Label>
           <Input
             id="name"
-            {...register('name')}
+            {...register("name")}
             placeholder="Enter faculty name"
-            className={errors.name ? 'border-red-500' : ''}
+            className={errors.name ? "border-red-500" : ""}
           />
           {errors.name && (
             <p className="text-red-500 text-sm">{errors.name.message}</p>
@@ -93,9 +153,9 @@ export const FacultyCreate: React.FC<FacultyCreateProps> = ({ onSuccess, onCance
           <Label htmlFor="code">Faculty Code *</Label>
           <Input
             id="code"
-            {...register('code')}
+            {...register("code")}
             placeholder="Enter faculty code (e.g., ENG, SCI)"
-            className={errors.code ? 'border-red-500' : ''}
+            className={errors.code ? "border-red-500" : ""}
           />
           {errors.code && (
             <p className="text-red-500 text-sm">{errors.code.message}</p>
@@ -106,7 +166,7 @@ export const FacultyCreate: React.FC<FacultyCreateProps> = ({ onSuccess, onCance
       <div className="space-y-2">
         <Label htmlFor="institutionId">Institution *</Label>
         <Input
-          value={`Institution ID: ${user?.institutionId || 'Not Available'}`}
+          value={`Institution ID: ${user?.institutionId || "Not Available"}`}
           disabled
           className="bg-gray-50"
         />
@@ -116,10 +176,33 @@ export const FacultyCreate: React.FC<FacultyCreateProps> = ({ onSuccess, onCance
       </div>
 
       <div className="space-y-2">
+        <Label htmlFor="deanId">Dean (Optional)</Label>
+        <Select
+          value={watch("deanId")}
+          onValueChange={(value) => setValue("deanId", value)}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select a dean for this faculty" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">No dean assigned</SelectItem>
+            {availableDeans.map((deanUser) => (
+              <SelectItem key={deanUser.id} value={deanUser.id.toString()}>
+                {deanUser.firstName} {deanUser.lastName} ({deanUser.email})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-sm text-gray-500">
+          Select a lecturer or faculty admin to serve as dean
+        </p>
+      </div>
+
+      <div className="space-y-2">
         <Label htmlFor="description">Description</Label>
         <Textarea
           id="description"
-          {...register('description')}
+          {...register("description")}
           placeholder="Enter faculty description (optional)"
           rows={3}
         />
@@ -130,7 +213,7 @@ export const FacultyCreate: React.FC<FacultyCreateProps> = ({ onSuccess, onCance
           Cancel
         </Button>
         <Button type="submit" disabled={isLoading}>
-          {isLoading ? 'Creating...' : 'Create Faculty'}
+          {isLoading ? "Creating..." : "Create Faculty"}
         </Button>
       </div>
     </form>

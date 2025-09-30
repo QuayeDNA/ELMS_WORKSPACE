@@ -1,27 +1,29 @@
-import { Request, Response } from 'express';
-import { facultyService } from '../services/facultyService';
+import { Request, Response } from "express";
+import { facultyService } from "../services/facultyService";
 
 export const facultyController = {
   // Get all faculties with pagination and filtering
   async getFaculties(req: Request, res: Response) {
     try {
       const query = {
-        institutionId: req.query.institutionId ? parseInt(req.query.institutionId as string) : undefined,
+        institutionId: req.query.institutionId
+          ? parseInt(req.query.institutionId as string)
+          : undefined,
         page: parseInt(req.query.page as string) || 1,
         limit: parseInt(req.query.limit as string) || 10,
-        search: req.query.search as string || '',
-        sortBy: (req.query.sortBy as 'name' | 'code' | 'createdAt') || 'name',
-        sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'asc'
+        search: (req.query.search as string) || "",
+        sortBy: (req.query.sortBy as "name" | "code" | "createdAt") || "name",
+        sortOrder: (req.query.sortOrder as "asc" | "desc") || "asc",
       };
 
       const result = await facultyService.getFaculties(query);
       res.json(result);
     } catch (error) {
-      console.error('Error fetching faculties:', error);
+      console.error("Error fetching faculties:", error);
       res.status(500).json({
         success: false,
-        message: 'Failed to fetch faculties',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        message: "Failed to fetch faculties",
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   },
@@ -33,7 +35,7 @@ export const facultyController = {
       if (isNaN(id)) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid faculty ID'
+          message: "Invalid faculty ID",
         });
       }
 
@@ -41,17 +43,17 @@ export const facultyController = {
       if (!faculty) {
         return res.status(404).json({
           success: false,
-          message: 'Faculty not found'
+          message: "Faculty not found",
         });
       }
 
       res.json({ success: true, data: faculty });
     } catch (error) {
-      console.error('Error fetching faculty:', error);
+      console.error("Error fetching faculty:", error);
       res.status(500).json({
         success: false,
-        message: 'Failed to fetch faculty',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        message: "Failed to fetch faculty",
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   },
@@ -63,38 +65,42 @@ export const facultyController = {
         name: req.body.name,
         code: req.body.code,
         institutionId: parseInt(req.body.institutionId),
-        description: req.body.description
+        description: req.body.description,
       };
 
       // Basic validation
-      if (!facultyData.name || !facultyData.code || !facultyData.institutionId) {
+      if (
+        !facultyData.name ||
+        !facultyData.code ||
+        !facultyData.institutionId
+      ) {
         return res.status(400).json({
           success: false,
-          message: 'Faculty name, code, and institution ID are required'
+          message: "Faculty name, code, and institution ID are required",
         });
       }
 
       const faculty = await facultyService.createFaculty(facultyData);
       res.status(201).json({
         success: true,
-        message: 'Faculty created successfully',
-        data: faculty
+        message: "Faculty created successfully",
+        data: faculty,
       });
     } catch (error) {
-      console.error('Error creating faculty:', error);
+      console.error("Error creating faculty:", error);
 
       // Handle unique constraint violations
-      if (error instanceof Error && error.message.includes('already exists')) {
+      if (error instanceof Error && error.message.includes("already exists")) {
         return res.status(409).json({
           success: false,
-          message: error.message
+          message: error.message,
         });
       }
 
       res.status(500).json({
         success: false,
-        message: 'Failed to create faculty',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        message: "Failed to create faculty",
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   },
@@ -106,14 +112,14 @@ export const facultyController = {
       if (isNaN(id)) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid faculty ID'
+          message: "Invalid faculty ID",
         });
       }
 
       const updateData = {
         name: req.body.name,
         code: req.body.code,
-        description: req.body.description
+        description: req.body.description,
       };
 
       const faculty = await facultyService.updateFaculty(id, updateData);
@@ -121,30 +127,30 @@ export const facultyController = {
       if (!faculty) {
         return res.status(404).json({
           success: false,
-          message: 'Faculty not found'
+          message: "Faculty not found",
         });
       }
 
       res.json({
         success: true,
-        message: 'Faculty updated successfully',
-        data: faculty
+        message: "Faculty updated successfully",
+        data: faculty,
       });
     } catch (error) {
-      console.error('Error updating faculty:', error);
+      console.error("Error updating faculty:", error);
 
       // Handle unique constraint violations
-      if (error instanceof Error && error.message.includes('already exists')) {
+      if (error instanceof Error && error.message.includes("already exists")) {
         return res.status(409).json({
           success: false,
-          message: error.message
+          message: error.message,
         });
       }
 
       res.status(500).json({
         success: false,
-        message: 'Failed to update faculty',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        message: "Failed to update faculty",
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   },
@@ -156,7 +162,7 @@ export const facultyController = {
       if (isNaN(id)) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid faculty ID'
+          message: "Invalid faculty ID",
         });
       }
 
@@ -164,29 +170,32 @@ export const facultyController = {
       if (!success) {
         return res.status(404).json({
           success: false,
-          message: 'Faculty not found'
+          message: "Faculty not found",
         });
       }
 
       res.json({
         success: true,
-        message: 'Faculty deleted successfully'
+        message: "Faculty deleted successfully",
       });
     } catch (error) {
-      console.error('Error deleting faculty:', error);
+      console.error("Error deleting faculty:", error);
 
       // Handle foreign key constraints
-      if (error instanceof Error && error.message.includes('existing users or departments')) {
+      if (
+        error instanceof Error &&
+        error.message.includes("existing users or departments")
+      ) {
         return res.status(409).json({
           success: false,
-          message: error.message
+          message: error.message,
         });
       }
 
       res.status(500).json({
         success: false,
-        message: 'Failed to delete faculty',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        message: "Failed to delete faculty",
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   },
@@ -198,22 +207,113 @@ export const facultyController = {
       if (isNaN(institutionId)) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid institution ID'
+          message: "Invalid institution ID",
         });
       }
 
-      const faculties = await facultyService.getFacultiesByInstitution(institutionId);
+      const faculties =
+        await facultyService.getFacultiesByInstitution(institutionId);
       res.json({
         success: true,
-        data: faculties
+        data: faculties,
       });
     } catch (error) {
-      console.error('Error fetching faculties by institution:', error);
+      console.error("Error fetching faculties by institution:", error);
       res.status(500).json({
         success: false,
-        message: 'Failed to fetch faculties',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        message: "Failed to fetch faculties by institution",
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
-  }
+  },
+
+  // Assign dean to faculty
+  async assignDean(req: Request, res: Response) {
+    try {
+      const facultyId = parseInt(req.params.id);
+      const { deanId } = req.body;
+
+      if (isNaN(facultyId)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid faculty ID",
+        });
+      }
+
+      if (!deanId || isNaN(deanId)) {
+        return res.status(400).json({
+          success: false,
+          message: "Valid dean ID is required",
+        });
+      }
+
+      const faculty = await facultyService.assignDean(facultyId, deanId);
+
+      res.json({
+        success: true,
+        message: "Dean assigned successfully",
+        data: faculty,
+      });
+    } catch (error) {
+      console.error("Error assigning dean:", error);
+
+      if (error instanceof Error) {
+        if (error.message.includes("not found")) {
+          return res.status(404).json({
+            success: false,
+            message: error.message,
+          });
+        }
+        if (error.message.includes("must belong to the same institution")) {
+          return res.status(400).json({
+            success: false,
+            message: error.message,
+          });
+        }
+      }
+
+      res.status(500).json({
+        success: false,
+        message: "Failed to assign dean",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  },
+
+  // Remove dean from faculty
+  async removeDean(req: Request, res: Response) {
+    try {
+      const facultyId = parseInt(req.params.id);
+
+      if (isNaN(facultyId)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid faculty ID",
+        });
+      }
+
+      const faculty = await facultyService.removeDean(facultyId);
+
+      res.json({
+        success: true,
+        message: "Dean removed successfully",
+        data: faculty,
+      });
+    } catch (error) {
+      console.error("Error removing dean:", error);
+
+      if (error instanceof Error && error.message.includes("not found")) {
+        return res.status(404).json({
+          success: false,
+          message: error.message,
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: "Failed to remove dean",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  },
 };

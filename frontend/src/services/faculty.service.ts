@@ -1,14 +1,14 @@
-import { apiService } from './api';
-import { ApiResponse } from '@/types/api';
-import { API_ENDPOINTS } from '@/utils/constants';
+import { apiService } from "./api";
+import { ApiResponse } from "@/types/api";
+import { API_ENDPOINTS } from "@/utils/constants";
 import {
   Faculty,
   FacultyListResponse,
   CreateFacultyRequest,
   UpdateFacultyRequest,
   FacultyQuery,
-  FacultyFormData
-} from '@/types/faculty';
+  FacultyFormData,
+} from "@/types/faculty";
 
 // ========================================
 // FACULTY SERVICE CLASS
@@ -24,24 +24,28 @@ class FacultyService {
   /**
    * Get all faculties with pagination and filtering
    */
-  async getFaculties(query?: FacultyQuery): Promise<ApiResponse<FacultyListResponse>> {
+  async getFaculties(
+    query?: FacultyQuery
+  ): Promise<ApiResponse<FacultyListResponse>> {
     try {
       const params = new URLSearchParams();
 
       if (query) {
         Object.entries(query).forEach(([key, value]) => {
-          if (value !== undefined && value !== null && value !== '') {
+          if (value !== undefined && value !== null && value !== "") {
             params.append(key, value.toString());
           }
         });
       }
 
       const queryString = params.toString();
-      const url = queryString ? `${this.endpoint}?${queryString}` : this.endpoint;
+      const url = queryString
+        ? `${this.endpoint}?${queryString}`
+        : this.endpoint;
 
       return await apiService.get<FacultyListResponse>(url);
     } catch (error) {
-      console.error('Error fetching faculties:', error);
+      console.error("Error fetching faculties:", error);
       throw error;
     }
   }
@@ -61,11 +65,13 @@ class FacultyService {
   /**
    * Create new faculty
    */
-  async createFaculty(data: CreateFacultyRequest): Promise<ApiResponse<Faculty>> {
+  async createFaculty(
+    data: CreateFacultyRequest
+  ): Promise<ApiResponse<Faculty>> {
     try {
       return await apiService.post<Faculty>(this.endpoint, data);
     } catch (error) {
-      console.error('Error creating faculty:', error);
+      console.error("Error creating faculty:", error);
       throw error;
     }
   }
@@ -73,7 +79,10 @@ class FacultyService {
   /**
    * Update faculty
    */
-  async updateFaculty(id: number, data: UpdateFacultyRequest): Promise<ApiResponse<Faculty>> {
+  async updateFaculty(
+    id: number,
+    data: UpdateFacultyRequest
+  ): Promise<ApiResponse<Faculty>> {
     try {
       return await apiService.put<Faculty>(`${this.endpoint}/${id}`, data);
     } catch (error) {
@@ -95,13 +104,33 @@ class FacultyService {
   }
 
   /**
-   * Get faculties by institution
+   * Assign dean to faculty
    */
-  async getFacultiesByInstitution(institutionId: number): Promise<ApiResponse<Faculty[]>> {
+  async assignDean(
+    facultyId: number,
+    deanId: number
+  ): Promise<ApiResponse<Faculty>> {
     try {
-      return await apiService.get<Faculty[]>(`${API_ENDPOINTS.INSTITUTIONS.BASE}/${institutionId}/faculties`);
+      return await apiService.put<Faculty>(
+        `${this.endpoint}/${facultyId}/dean`,
+        { deanId }
+      );
     } catch (error) {
-      console.error(`Error fetching faculties for institution ${institutionId}:`, error);
+      console.error(`Error assigning dean to faculty ${facultyId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Remove dean from faculty
+   */
+  async removeDean(facultyId: number): Promise<ApiResponse<Faculty>> {
+    try {
+      return await apiService.delete<Faculty>(
+        `${this.endpoint}/${facultyId}/dean`
+      );
+    } catch (error) {
+      console.error(`Error removing dean from faculty ${facultyId}:`, error);
       throw error;
     }
   }
@@ -118,7 +147,7 @@ class FacultyService {
       name: formData.name,
       code: formData.code,
       institutionId: parseInt(formData.institutionId),
-      description: formData.description || undefined
+      description: formData.description || undefined,
     };
   }
 
@@ -130,7 +159,7 @@ class FacultyService {
       name: faculty.name,
       code: faculty.code,
       institutionId: faculty.institutionId.toString(),
-      description: faculty.description || ''
+      description: faculty.description || "",
     };
   }
 }
