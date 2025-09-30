@@ -1,42 +1,63 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { programService } from '@/services/program.service';
-import { departmentService } from '@/services/department.service';
-import { Program } from '@/types/program';
-import { Department } from '@/types/department';
-import { Plus, Search, Edit, Trash2, Eye, BookOpen } from 'lucide-react';
-
-interface ProgramResponse {
-  success: boolean;
-  data: {
-    programs: Program[];
-    total: number;
-    totalPages: number;
-    currentPage: number;
-    hasNext: boolean;
-    hasPrev: boolean;
-  };
-}
+import React, { useState, useEffect, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { programService } from "@/services/program.service";
+import { Program } from "@/types/shared/program";
+import { Plus, Search, Edit, Trash2, Eye, BookOpen } from "lucide-react";
+import ProgramCreate from "@/components/program/ProgramCreate";
+import ProgramEdit from "@/components/program/ProgramEdit";
 
 const ProgramsPage: React.FC = () => {
   const [programs, setPrograms] = useState<Program[]>([]);
-  const [departments, setDepartments] = useState<Department[]>([]);
+  const [departments, setDepartments] = useState<
+    Array<{
+      id: number;
+      name: string;
+      code: string;
+      faculty?: { id: number; name: string; code: string };
+    }>
+  >([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedDepartment, setSelectedDepartment] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedDepartment, setSelectedDepartment] = useState<string>("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [stats, setStats] = useState({
     total: 0,
     active: 0,
     totalStudents: 0,
-    totalCourses: 0
+    totalCourses: 0,
   });
+
+  // Dialog states
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedProgram, setSelectedProgram] = useState<Program | undefined>(
+    undefined
+  );
 
   const loadPrograms = useCallback(async () => {
     try {
@@ -45,74 +66,77 @@ const ProgramsPage: React.FC = () => {
         page: currentPage,
         limit: 10,
         search: searchTerm || undefined,
-        departmentId: selectedDepartment ? parseInt(selectedDepartment) : undefined
+        departmentId: selectedDepartment
+          ? parseInt(selectedDepartment)
+          : undefined,
       };
 
-      const response = await programService.getPrograms(query) as ProgramResponse;
-      if (response?.success) {
-        setPrograms(response.data?.programs || []);
-        setTotalPages(response.data?.totalPages || 1);
-      }
+      const response = await programService.getPrograms(query);
+      const programsData = response?.data?.programs || [];
+      setPrograms(programsData);
+      setTotalPages(response?.data?.totalPages || 1);
+
+      // Extract unique departments from program data
+      const uniqueDepartments = Array.from(
+        new Map(
+          programsData
+            .filter((program) => program.department)
+            .map((program) => [program.department!.id, program.department!])
+        ).values()
+      );
+      setDepartments(uniqueDepartments);
+
+      // Calculate stats directly from the loaded data
+      const total = response?.data?.total || programsData.length;
+      const active = programsData.filter((p) => p.isActive).length;
+      const totalStudents = programsData.reduce(
+        (sum, p) => sum + (p.stats?.totalStudents || 0),
+        0
+      );
+      const totalCourses = programsData.reduce(
+        (sum, p) => sum + (p.stats?.totalCourses || 0),
+        0
+      );
+
+      setStats({
+        total,
+        active,
+        totalStudents,
+        totalCourses,
+      });
     } catch (error) {
-      console.error('Error loading programs:', error);
+      console.error("Error loading programs:", error);
     } finally {
       setLoading(false);
     }
   }, [currentPage, searchTerm, selectedDepartment]);
 
-  const loadDepartments = useCallback(async () => {
-    try {
-      const response = await departmentService.getDepartments({}) as DepartmentResponse;
-      if (response?.success) {
-        setDepartments(response.data?.departments || []);
-      }
-    } catch (error) {
-      console.error('Error loading departments:', error);
-    }
-  }, []);
-
-  interface DepartmentResponse {
-    success: boolean;
-    data: {
-      departments: Department[];
-      total: number;
-      totalPages: number;
-      currentPage: number;
-      hasNext: boolean;
-      hasPrev: boolean;
-    };
-  }
-
-  const loadStats = useCallback(async () => {
-    try {
-      // Calculate stats from loaded programs
-      setStats({
-        total: programs.length,
-        active: programs.filter(p => p.isActive).length,
-        totalStudents: programs.reduce((sum, p) => sum + (p.stats?.totalStudents || 0), 0),
-        totalCourses: programs.reduce((sum, p) => sum + (p.stats?.totalCourses || 0), 0)
-      });
-    } catch (error) {
-      console.error('Error loading stats:', error);
-    }
-  }, [programs]);
-
   useEffect(() => {
     loadPrograms();
-    loadDepartments();
-    loadStats();
-  }, [loadPrograms, loadDepartments, loadStats]);
+  }, [loadPrograms]);
 
   const handleDelete = async (id: number) => {
-    if (window.confirm('Are you sure you want to delete this program?')) {
+    if (window.confirm("Are you sure you want to delete this program?")) {
       try {
         await programService.deleteProgram(id);
         loadPrograms();
-        loadStats();
       } catch (error) {
-        console.error('Error deleting program:', error);
+        console.error("Error deleting program:", error);
       }
     }
+  };
+
+  const handleCreateSuccess = () => {
+    loadPrograms();
+  };
+
+  const handleEditSuccess = () => {
+    loadPrograms();
+  };
+
+  const handleEdit = (program: Program) => {
+    setSelectedProgram(program);
+    setEditDialogOpen(true);
   };
 
   return (
@@ -122,7 +146,7 @@ const ProgramsPage: React.FC = () => {
           <h1 className="text-3xl font-bold">Programs</h1>
           <p className="text-gray-600">Manage academic programs</p>
         </div>
-        <Button>
+        <Button onClick={() => setCreateDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Add Program
         </Button>
@@ -137,8 +161,12 @@ const ProgramsPage: React.FC = () => {
                 <BookOpen className="w-6 h-6 text-blue-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Programs</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Total Programs
+                </p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats.total}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -151,8 +179,12 @@ const ProgramsPage: React.FC = () => {
                 <BookOpen className="w-6 h-6 text-green-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Active Programs</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.active}</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Active Programs
+                </p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats.active}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -165,8 +197,12 @@ const ProgramsPage: React.FC = () => {
                 <BookOpen className="w-6 h-6 text-purple-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Students</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalStudents}</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Total Students
+                </p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats.totalStudents}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -179,8 +215,12 @@ const ProgramsPage: React.FC = () => {
                 <BookOpen className="w-6 h-6 text-orange-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Courses</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalCourses}</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Total Courses
+                </p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats.totalCourses}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -202,14 +242,20 @@ const ProgramsPage: React.FC = () => {
                 />
               </div>
             </div>
-            <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+            <Select
+              value={selectedDepartment}
+              onValueChange={setSelectedDepartment}
+            >
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="All Departments" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">All Departments</SelectItem>
                 {departments.map((department) => (
-                  <SelectItem key={department.id} value={department.id.toString()}>
+                  <SelectItem
+                    key={department.id}
+                    value={department.id.toString()}
+                  >
                     {department.name}
                   </SelectItem>
                 ))}
@@ -246,16 +292,20 @@ const ProgramsPage: React.FC = () => {
               <TableBody>
                 {programs.map((program) => (
                   <TableRow key={program.id}>
-                    <TableCell className="font-medium">{program.name}</TableCell>
+                    <TableCell className="font-medium">
+                      {program.name}
+                    </TableCell>
                     <TableCell>{program.code}</TableCell>
                     <TableCell>
                       <Badge variant="outline">{program.level}</Badge>
                     </TableCell>
                     <TableCell>{program.durationYears} years</TableCell>
-                    <TableCell>{program.department?.name || 'N/A'}</TableCell>
+                    <TableCell>{program.department?.name || "N/A"}</TableCell>
                     <TableCell>
-                      <Badge variant={program.isActive ? "default" : "secondary"}>
-                        {program.isActive ? 'Active' : 'Inactive'}
+                      <Badge
+                        variant={program.isActive ? "default" : "secondary"}
+                      >
+                        {program.isActive ? "Active" : "Inactive"}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -263,7 +313,11 @@ const ProgramsPage: React.FC = () => {
                         <Button variant="ghost" size="sm">
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEdit(program)}
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button
@@ -297,7 +351,9 @@ const ProgramsPage: React.FC = () => {
                 </span>
                 <Button
                   variant="outline"
-                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                  onClick={() =>
+                    setCurrentPage(Math.min(totalPages, currentPage + 1))
+                  }
                   disabled={currentPage === totalPages}
                 >
                   Next
@@ -307,6 +363,20 @@ const ProgramsPage: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Dialogs */}
+      <ProgramCreate
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onSuccess={handleCreateSuccess}
+      />
+
+      <ProgramEdit
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        program={selectedProgram}
+        onSuccess={handleEditSuccess}
+      />
     </div>
   );
 };
