@@ -22,6 +22,13 @@ export interface Student {
   createdAt: string;
   updatedAt: string;
 
+  // Additional computed/display properties
+  section?: string;
+  credits?: number;
+  cgpa?: number;
+  enrollmentDate?: string;
+  graduationDate?: string;
+
   // Relations
   user: {
     id: number;

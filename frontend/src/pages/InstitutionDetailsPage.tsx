@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Building2, Users, BookOpen, Mail, Phone, MapPin, Globe, Calendar, Edit, CheckCircle, XCircle, BarChart3 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -512,3 +512,6 @@ export const InstitutionDetailsPage = () => {
 };
 
 export default InstitutionDetailsPage;
+
+
+

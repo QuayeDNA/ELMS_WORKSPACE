@@ -1,7 +1,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import { BookOpen, Eye } from "lucide-react";
 
 interface DepartmentCourse {
@@ -111,3 +111,6 @@ export const DepartmentCoursesList: React.FC<DepartmentCoursesListProps> = ({
     </Card>
   );
 };
+
+
+

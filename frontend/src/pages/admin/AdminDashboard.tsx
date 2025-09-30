@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, GraduationCap, BookOpen, BarChart3 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -190,3 +190,6 @@ const AdminDashboard: React.FC = () => {
 };
 
 export default AdminDashboard;
+
+
+

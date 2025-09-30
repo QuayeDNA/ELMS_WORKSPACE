@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Pagination,
@@ -561,3 +561,6 @@ export function InstitutionsPage() {
 }
 
 export default InstitutionsPage;
+
+
+

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Search, Edit, Trash2, Eye } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -341,3 +341,6 @@ export const UserList: React.FC<UserListProps> = ({ institutionId, facultyId, de
     </div>
   );
 };
+
+
+

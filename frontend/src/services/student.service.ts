@@ -444,7 +444,7 @@ class StudentService {
     if (
       data.profile.semester &&
       !STUDENT_CONSTANTS.SEMESTERS.some(
-        (semester) => semester.value === data.profile.semester.toString()
+        (semester) => semester.value === data.profile.semester!.toString()
       )
     ) {
       errors.push("Invalid semester");

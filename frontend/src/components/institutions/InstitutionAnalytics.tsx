@@ -277,3 +277,6 @@ export const InstitutionAnalytics = ({ data, loading = false }: InstitutionAnaly
 };
 
 export default InstitutionAnalytics;
+
+
+

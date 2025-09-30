@@ -1,4 +1,4 @@
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/stores/auth.store';
 import { LogOut, User } from 'lucide-react';
 
@@ -43,3 +43,6 @@ export function Header() {
     </header>
   );
 }
+
+
+

@@ -18,3 +18,6 @@ const DepartmentEdit: React.FC<DepartmentFormProps> = ({
 };
 
 export default DepartmentEdit;
+
+
+

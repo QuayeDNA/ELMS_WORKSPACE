@@ -20,6 +20,8 @@ export interface User {
   facultyId?: number;
   departmentId?: number;
   lastLogin?: string;
+  emailVerified: boolean;
+  twoFactorEnabled: boolean;
   createdAt: string;
   updatedAt: string;
   institution?: {
@@ -48,21 +50,23 @@ export interface User {
 // ========================================
 
 export enum UserRole {
-  SUPER_ADMIN = 'SUPER_ADMIN',
-  ADMIN = 'ADMIN',
-  FACULTY_ADMIN = 'FACULTY_ADMIN',
-  EXAMS_OFFICER = 'EXAMS_OFFICER',
-  SCRIPT_HANDLER = 'SCRIPT_HANDLER',
-  INVIGILATOR = 'INVIGILATOR',
-  LECTURER = 'LECTURER',
-  STUDENT = 'STUDENT'
+  SUPER_ADMIN = "SUPER_ADMIN",
+  ADMIN = "ADMIN",
+  FACULTY_ADMIN = "FACULTY_ADMIN",
+  DEAN = "DEAN",
+  HOD = "HOD",
+  EXAMS_OFFICER = "EXAMS_OFFICER",
+  SCRIPT_HANDLER = "SCRIPT_HANDLER",
+  INVIGILATOR = "INVIGILATOR",
+  LECTURER = "LECTURER",
+  STUDENT = "STUDENT",
 }
 
 export enum UserStatus {
-  ACTIVE = 'ACTIVE',
-  INACTIVE = 'INACTIVE',
-  SUSPENDED = 'SUSPENDED',
-  PENDING_VERIFICATION = 'PENDING_VERIFICATION'
+  ACTIVE = "ACTIVE",
+  INACTIVE = "INACTIVE",
+  SUSPENDED = "SUSPENDED",
+  PENDING_VERIFICATION = "PENDING_VERIFICATION",
 }
 
 // ========================================
@@ -122,7 +126,7 @@ export interface UserQuery {
   limit?: number;
   search?: string;
   sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
 }
 
 // ========================================
@@ -161,26 +165,26 @@ export interface UserTableColumn {
 }
 
 export const USER_ROLES = [
-  { value: UserRole.SUPER_ADMIN, label: 'Super Admin' },
-  { value: UserRole.ADMIN, label: 'Institution Admin' },
-  { value: UserRole.FACULTY_ADMIN, label: 'Faculty Admin' },
-  { value: UserRole.EXAMS_OFFICER, label: 'Exams Officer' },
-  { value: UserRole.SCRIPT_HANDLER, label: 'Script Handler' },
-  { value: UserRole.INVIGILATOR, label: 'Invigilator' },
-  { value: UserRole.LECTURER, label: 'Lecturer' },
-  { value: UserRole.STUDENT, label: 'Student' },
+  { value: UserRole.SUPER_ADMIN, label: "Super Admin" },
+  { value: UserRole.ADMIN, label: "Institution Admin" },
+  { value: UserRole.FACULTY_ADMIN, label: "Faculty Admin" },
+  { value: UserRole.EXAMS_OFFICER, label: "Exams Officer" },
+  { value: UserRole.SCRIPT_HANDLER, label: "Script Handler" },
+  { value: UserRole.INVIGILATOR, label: "Invigilator" },
+  { value: UserRole.LECTURER, label: "Lecturer" },
+  { value: UserRole.STUDENT, label: "Student" },
 ];
 
 export const USER_STATUSES = [
-  { value: UserStatus.ACTIVE, label: 'Active' },
-  { value: UserStatus.INACTIVE, label: 'Inactive' },
-  { value: UserStatus.SUSPENDED, label: 'Suspended' },
-  { value: UserStatus.PENDING_VERIFICATION, label: 'Pending Verification' },
+  { value: UserStatus.ACTIVE, label: "Active" },
+  { value: UserStatus.INACTIVE, label: "Inactive" },
+  { value: UserStatus.SUSPENDED, label: "Suspended" },
+  { value: UserStatus.PENDING_VERIFICATION, label: "Pending Verification" },
 ];
 
 export const GENDERS = [
-  { value: 'MALE', label: 'Male' },
-  { value: 'FEMALE', label: 'Female' },
-  { value: 'OTHER', label: 'Other' },
-  { value: 'PREFER_NOT_TO_SAY', label: 'Prefer not to say' },
+  { value: "MALE", label: "Male" },
+  { value: "FEMALE", label: "Female" },
+  { value: "OTHER", label: "Other" },
+  { value: "PREFER_NOT_TO_SAY", label: "Prefer not to say" },
 ];

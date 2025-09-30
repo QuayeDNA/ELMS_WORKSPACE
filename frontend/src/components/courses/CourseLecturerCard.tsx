@@ -82,3 +82,6 @@ export const CourseLecturerCard: React.FC<CourseLecturerCardProps> = ({
     </Card>
   );
 };
+
+
+

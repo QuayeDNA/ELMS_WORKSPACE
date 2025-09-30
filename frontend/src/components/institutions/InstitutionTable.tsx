@@ -1,5 +1,5 @@
 import { MoreHorizontal, Edit, Trash2, Users, MapPin, Mail, Phone, Eye, CheckCircle, XCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import {
@@ -329,3 +329,6 @@ export const InstitutionTable = ({
 };
 
 export default InstitutionTable;
+
+
+

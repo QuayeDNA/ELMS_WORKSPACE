@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { Student } from '@/types/student';
 import { Edit, Trash2, Mail, Phone, Calendar, GraduationCap, User } from 'lucide-react';
 
@@ -320,3 +320,6 @@ export const StudentDetails: React.FC<StudentDetailsProps> = ({
     </div>
   );
 };
+
+
+

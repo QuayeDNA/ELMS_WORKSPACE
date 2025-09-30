@@ -172,7 +172,10 @@ export const departmentService = {
     }
   ): Promise<unknown> {
     try {
-      return await courseService.getCoursesByDepartment(departmentId, query);
+      return await courseService.getCourses({
+        departmentId,
+        ...query,
+      });
     } catch (error) {
       console.error("Error fetching department courses:", error);
       throw error;

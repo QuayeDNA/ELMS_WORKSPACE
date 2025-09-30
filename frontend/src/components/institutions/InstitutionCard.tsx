@@ -1,6 +1,6 @@
 import { Building2, MapPin, Phone, Mail, Globe, Calendar, Settings, Eye, Edit, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   DropdownMenu,
@@ -334,3 +334,6 @@ export const InstitutionCard = ({
 };
 
 export default InstitutionCard;
+
+
+

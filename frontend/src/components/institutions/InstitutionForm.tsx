@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { X, Save, Building2, User, Phone, MapPin, FileText } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -475,3 +475,6 @@ export const InstitutionForm = ({
 };
 
 export default InstitutionForm;
+
+
+

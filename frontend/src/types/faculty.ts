@@ -2,6 +2,8 @@
 // FACULTY TYPES FOR FRONTEND
 // ========================================
 
+import { Institution } from "./shared/institution";
+
 export interface Faculty {
   id: number;
   name: string;
@@ -12,13 +14,7 @@ export interface Faculty {
   deanId?: number;
   createdAt: string;
   updatedAt: string;
-  institution?: {
-    id: number;
-    name: string;
-    code: string;
-    type?: string;
-    status?: string;
-  };
+  institution?: Institution;
   dean?: {
     id: number;
     firstName: string;

@@ -21,3 +21,6 @@ export function RootRedirect() {
 
   return null; // This component doesn't render anything
 }
+
+
+

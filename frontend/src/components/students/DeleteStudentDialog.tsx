@@ -10,7 +10,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger
 } from '@/components/ui/alert-dialog';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { Trash2, AlertTriangle } from 'lucide-react';
 import { Student } from '@/types/student';
 
@@ -108,3 +108,6 @@ export const DeleteStudentDialog: React.FC<DeleteStudentDialogProps> = ({
     </AlertDialog>
   );
 };
+
+
+

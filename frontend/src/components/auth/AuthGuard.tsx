@@ -41,3 +41,6 @@ export function AuthGuard({ children, redirectTo = '/login' }: Readonly<AuthGuar
   // Render children if authenticated
   return <>{children}</>;
 }
+
+
+

@@ -12,3 +12,6 @@ const DepartmentCreate: React.FC<DepartmentFormProps> = ({
 };
 
 export default DepartmentCreate;
+
+
+

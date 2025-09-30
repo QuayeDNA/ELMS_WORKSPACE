@@ -141,3 +141,6 @@ export const CourseOfferingCard: React.FC<CourseOfferingCardProps> = ({
     </Card>
   );
 };
+
+
+

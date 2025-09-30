@@ -3,7 +3,7 @@ import { Department } from '@/types/department';
 import { DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 
 interface DepartmentViewProps {
   department: Department;
@@ -139,3 +139,6 @@ const DepartmentView: React.FC<DepartmentViewProps> = ({ department, onClose }) 
 };
 
 export default DepartmentView;
+
+
+

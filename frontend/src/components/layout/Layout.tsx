@@ -2,7 +2,7 @@ import { Outlet } from 'react-router-dom';
 import { useState } from 'react';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -107,3 +107,6 @@ export function Layout({ children }: Readonly<LayoutProps>) {
     </div>
   );
 }
+
+
+

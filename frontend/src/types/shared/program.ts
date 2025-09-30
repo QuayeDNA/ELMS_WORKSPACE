@@ -17,6 +17,9 @@ export interface Program {
   createdAt: string;
   updatedAt: string;
 
+  // Additional computed/display properties
+  degree?: string;
+
   // Relations
   department?: {
     id: number;

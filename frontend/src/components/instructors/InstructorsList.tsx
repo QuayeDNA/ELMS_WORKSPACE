@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
 import { useInstructors } from '@/hooks/useInstructors';
 import { InstructorFilters } from '@/types/instructor';
@@ -341,3 +341,6 @@ export const InstructorsList: React.FC<InstructorsListProps> = ({ initialFilters
     </div>
   );
 };
+
+
+
