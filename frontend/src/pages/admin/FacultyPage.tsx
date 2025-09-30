@@ -53,7 +53,7 @@ import {
 import { facultyService } from "@/services/faculty.service";
 import { userService } from "@/services/user.service";
 import { useAuthStore } from "@/stores/auth.store";
-import { Faculty, FacultyQuery } from "@/types/faculty";
+import { Faculty, FacultyQuery } from "@/types/shared";
 import { FacultyCreate } from "@/components/faculty/FacultyCreate";
 import { FacultyEdit } from "@/components/faculty/FacultyEdit";
 import { FacultyView } from "@/components/faculty/FacultyView";
@@ -91,11 +91,13 @@ export function FacultyPage() {
   });
 
   // Fetch users for dean selection
-  const { data: users } = useQuery({
+  const { data: usersResponse } = useQuery({
     queryKey: ["users", "dean-candidates", user?.institutionId],
     queryFn: () => userService.getUsers({ institutionId: user?.institutionId }),
     enabled: !!user?.institutionId,
   });
+
+  const users = usersResponse?.data?.users || [];
 
   // Delete faculty mutation
   const deleteMutation = useMutation({
@@ -585,7 +587,7 @@ export function FacultyPage() {
                   <SelectValue placeholder="Choose a dean..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {users?.data?.users?.map((user) => (
+                  {users?.map((user) => (
                     <SelectItem key={user.id} value={user.id.toString()}>
                       {user.firstName} {user.lastName} ({user.email})
                     </SelectItem>

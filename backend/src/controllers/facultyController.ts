@@ -17,7 +17,11 @@ export const facultyController = {
       };
 
       const result = await facultyService.getFaculties(query);
-      res.json(result);
+      res.json({
+        success: true,
+        data: result,
+        message: "Faculties retrieved successfully",
+      });
     } catch (error) {
       console.error("Error fetching faculties:", error);
       res.status(500).json({
@@ -47,7 +51,11 @@ export const facultyController = {
         });
       }
 
-      res.json({ success: true, data: faculty });
+      res.json({
+        success: true,
+        data: faculty,
+        message: "Faculty retrieved successfully",
+      });
     } catch (error) {
       console.error("Error fetching faculty:", error);
       res.status(500).json({

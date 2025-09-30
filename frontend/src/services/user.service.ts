@@ -1,6 +1,6 @@
-import { apiService } from './api';
-import { ApiResponse } from '@/types/api';
-import { API_ENDPOINTS } from '@/utils/constants';
+import { apiService } from "./api";
+import { ApiResponse } from "@/types/shared";
+import { API_ENDPOINTS } from "@/utils/constants";
 import {
   User,
   UserListResponse,
@@ -10,8 +10,8 @@ import {
   UserFormData,
   USER_ROLES,
   USER_STATUSES,
-  UserRole
-} from '@/types/user';
+  UserRole,
+} from "@/types/shared";
 
 // ========================================
 // USER SERVICE CLASS
@@ -33,18 +33,20 @@ class UserService {
 
       if (query) {
         Object.entries(query).forEach(([key, value]) => {
-          if (value !== undefined && value !== null && value !== '') {
+          if (value !== undefined && value !== null && value !== "") {
             params.append(key, value.toString());
           }
         });
       }
 
       const queryString = params.toString();
-      const url = queryString ? `${this.endpoint}?${queryString}` : this.endpoint;
+      const url = queryString
+        ? `${this.endpoint}?${queryString}`
+        : this.endpoint;
 
       return await apiService.get<UserListResponse>(url);
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error("Error fetching users:", error);
       throw error;
     }
   }
@@ -68,7 +70,7 @@ class UserService {
     try {
       return await apiService.post<User>(this.endpoint, data);
     } catch (error) {
-      console.error('Error creating user:', error);
+      console.error("Error creating user:", error);
       throw error;
     }
   }
@@ -76,7 +78,10 @@ class UserService {
   /**
    * Update user
    */
-  async updateUser(id: number, data: UpdateUserRequest): Promise<ApiResponse<User>> {
+  async updateUser(
+    id: number,
+    data: UpdateUserRequest
+  ): Promise<ApiResponse<User>> {
     try {
       return await apiService.put<User>(`${this.endpoint}/${id}`, data);
     } catch (error) {
@@ -100,11 +105,18 @@ class UserService {
   /**
    * Get users by institution
    */
-  async getUsersByInstitution(institutionId: number): Promise<ApiResponse<User[]>> {
+  async getUsersByInstitution(
+    institutionId: number
+  ): Promise<ApiResponse<User[]>> {
     try {
-      return await apiService.get<User[]>(`${API_ENDPOINTS.INSTITUTIONS.BASE}/${institutionId}/users`);
+      return await apiService.get<User[]>(
+        `${API_ENDPOINTS.INSTITUTIONS.BASE}/${institutionId}/users`
+      );
     } catch (error) {
-      console.error(`Error fetching users for institution ${institutionId}:`, error);
+      console.error(
+        `Error fetching users for institution ${institutionId}:`,
+        error
+      );
       throw error;
     }
   }
@@ -114,7 +126,9 @@ class UserService {
    */
   async getUsersByFaculty(facultyId: number): Promise<ApiResponse<User[]>> {
     try {
-      return await apiService.get<User[]>(`${API_ENDPOINTS.FACULTIES.BASE}/${facultyId}/users`);
+      return await apiService.get<User[]>(
+        `${API_ENDPOINTS.FACULTIES.BASE}/${facultyId}/users`
+      );
     } catch (error) {
       console.error(`Error fetching users for faculty ${facultyId}:`, error);
       throw error;
@@ -135,9 +149,17 @@ class UserService {
       firstName: formData.firstName,
       lastName: formData.lastName,
       role: formData.role as UserRole, // Will be validated by backend
-      institutionId: formData.institutionId ? parseInt(formData.institutionId) : undefined,
-      facultyId: formData.facultyId && formData.facultyId !== 'NONE_OPTIONAL' ? parseInt(formData.facultyId) : undefined,
-      departmentId: formData.departmentId && formData.departmentId !== 'NONE_OPTIONAL' ? parseInt(formData.departmentId) : undefined,
+      institutionId: formData.institutionId
+        ? parseInt(formData.institutionId)
+        : undefined,
+      facultyId:
+        formData.facultyId && formData.facultyId !== "NONE_OPTIONAL"
+          ? parseInt(formData.facultyId)
+          : undefined,
+      departmentId:
+        formData.departmentId && formData.departmentId !== "NONE_OPTIONAL"
+          ? parseInt(formData.departmentId)
+          : undefined,
       phone: formData.phone || undefined,
       middleName: formData.middleName || undefined,
       title: formData.title || undefined,
@@ -154,21 +176,21 @@ class UserService {
   transformToFormData(user: User): UserFormData {
     return {
       email: user.email,
-      password: '', // Don't populate password for security
+      password: "", // Don't populate password for security
       firstName: user.firstName,
       lastName: user.lastName,
-      middleName: user.middleName || '',
-      title: user.title || '',
+      middleName: user.middleName || "",
+      title: user.title || "",
       role: user.role,
       status: user.status,
-      phone: user.phone || '',
-      dateOfBirth: user.dateOfBirth || '',
-      gender: user.gender || '',
-      nationality: user.nationality || '',
-      address: user.address || '',
-      institutionId: user.institutionId?.toString() || '',
-      facultyId: user.facultyId?.toString() || '',
-      departmentId: user.departmentId?.toString() || '',
+      phone: user.phone || "",
+      dateOfBirth: user.dateOfBirth || "",
+      gender: user.gender || "",
+      nationality: user.nationality || "",
+      address: user.address || "",
+      institutionId: user.institutionId?.toString() || "",
+      facultyId: user.facultyId?.toString() || "",
+      departmentId: user.departmentId?.toString() || "",
     };
   }
 
@@ -179,7 +201,7 @@ class UserService {
     const parts = [user.firstName];
     if (user.middleName) parts.push(user.middleName);
     parts.push(user.lastName);
-    return parts.join(' ');
+    return parts.join(" ");
   }
 
   /**
@@ -201,14 +223,18 @@ class UserService {
    * Check if user has admin privileges
    */
   isAdmin(user: User): boolean {
-    return [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.FACULTY_ADMIN].includes(user.role);
+    return [
+      UserRole.SUPER_ADMIN,
+      UserRole.ADMIN,
+      UserRole.FACULTY_ADMIN,
+    ].includes(user.role);
   }
 
   /**
    * Get role display label
    */
   getRoleLabel(role: string): string {
-    const roleOption = USER_ROLES.find(r => r.value === role);
+    const roleOption = USER_ROLES.find((r) => r.value === role);
     return roleOption?.label || role;
   }
 
@@ -216,7 +242,7 @@ class UserService {
    * Get status display label
    */
   getStatusLabel(status: string): string {
-    const statusOption = USER_STATUSES.find(s => s.value === status);
+    const statusOption = USER_STATUSES.find((s) => s.value === status);
     return statusOption?.label || status;
   }
 }

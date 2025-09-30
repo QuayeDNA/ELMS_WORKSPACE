@@ -15,9 +15,9 @@ import {
 } from "@/components/ui/select";
 import { facultyService } from "@/services/faculty.service";
 import { useAuthStore } from "@/stores/auth.store";
-import { FacultyFormData } from "@/types/faculty";
+import { FacultyFormData, FacultyCreateProps } from "@/types/shared";
 import { userService } from "@/services/user.service";
-import { User } from "@/types/user";
+import { User } from "@/types/shared";
 import { UserRole, UserStatus } from "@/types/auth";
 
 const facultySchema = z.object({
@@ -29,11 +29,6 @@ const facultySchema = z.object({
 });
 
 type FacultyFormValues = z.infer<typeof facultySchema>;
-
-interface FacultyCreateProps {
-  onSuccess: () => void;
-  onCancel: () => void;
-}
 
 export const FacultyCreate: React.FC<FacultyCreateProps> = ({
   onSuccess,
@@ -69,11 +64,14 @@ export const FacultyCreate: React.FC<FacultyCreateProps> = ({
             status: UserStatus.ACTIVE,
           });
           const allUsers = [
-            ...(lecturerResponse.success && lecturerResponse.data ? lecturerResponse.data.users || [] : []),
+            ...(lecturerResponse.success && lecturerResponse.data
+              ? lecturerResponse.data.users || []
+              : []),
           ];
           // Remove duplicates based on user ID
-          const uniqueUsers = allUsers.filter((user, index, self) =>
-            index === self.findIndex(u => u.id === user.id)
+          const uniqueUsers = allUsers.filter(
+            (user, index, self) =>
+              index === self.findIndex((u) => u.id === user.id)
           );
           setAvailableDeans(uniqueUsers);
         } catch (error) {
@@ -102,7 +100,7 @@ export const FacultyCreate: React.FC<FacultyCreateProps> = ({
       const formData: FacultyFormData = {
         name: data.name,
         code: data.code,
-        institutionId: data.institutionId,
+        institutionId: parseInt(data.institutionId),
         description: data.description || "",
       };
 

@@ -1,14 +1,14 @@
 import { apiService } from "./api";
-import { ApiResponse } from "@/types/api";
 import { API_ENDPOINTS } from "@/utils/constants";
 import {
+  ApiResponse,
   Faculty,
   FacultyListResponse,
   CreateFacultyRequest,
   UpdateFacultyRequest,
   FacultyQuery,
   FacultyFormData,
-} from "@/types/faculty";
+} from "@/types/shared";
 
 // ========================================
 // FACULTY SERVICE CLASS
@@ -146,7 +146,7 @@ class FacultyService {
     return {
       name: formData.name,
       code: formData.code,
-      institutionId: parseInt(formData.institutionId),
+      institutionId: formData.institutionId,
       description: formData.description || undefined,
     };
   }
@@ -158,7 +158,7 @@ class FacultyService {
     return {
       name: faculty.name,
       code: faculty.code,
-      institutionId: faculty.institutionId.toString(),
+      institutionId: faculty.institutionId,
       description: faculty.description || "",
     };
   }
