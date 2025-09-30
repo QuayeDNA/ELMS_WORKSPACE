@@ -128,8 +128,6 @@ export const FacultyEdit: React.FC<FacultyEditProps> = ({
             <SelectItem value={faculty.institutionId.toString()}>
               {faculty.institution?.name || "Current Institution"}
             </SelectItem>
-            <SelectItem value="1">Sample University</SelectItem>
-            <SelectItem value="2">Tech Institute</SelectItem>
           </SelectContent>
         </Select>
         {errors.institutionId && (

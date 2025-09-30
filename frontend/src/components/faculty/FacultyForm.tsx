@@ -15,9 +15,8 @@ import {
 } from "@/components/ui/select";
 import { facultyService } from "@/services/faculty.service";
 import { useAuthStore } from "@/stores/auth.store";
-import { FacultyFormData, FacultyCreateProps } from "@/types/shared";
+import { FacultyFormData, FacultyFormProps, User } from "@/types/shared";
 import { userService } from "@/services/user.service";
-import { User } from "@/types/shared";
 import { UserRole, UserStatus } from "@/types/auth";
 
 const facultySchema = z.object({
@@ -30,7 +29,9 @@ const facultySchema = z.object({
 
 type FacultyFormValues = z.infer<typeof facultySchema>;
 
-export const FacultyCreate: React.FC<FacultyCreateProps> = ({
+export const FacultyForm: React.FC<FacultyFormProps> = ({
+  mode,
+  faculty,
   onSuccess,
   onCancel,
 }) => {
@@ -47,6 +48,18 @@ export const FacultyCreate: React.FC<FacultyCreateProps> = ({
     formState: { errors },
   } = useForm<FacultyFormValues>({
     resolver: zodResolver(facultySchema),
+    defaultValues:
+      mode === "edit" && faculty
+        ? {
+            name: faculty.name,
+            code: faculty.code,
+            institutionId: faculty.institutionId.toString(),
+            description: faculty.description || "",
+            deanId: faculty.deanId?.toString() || "none",
+          }
+        : {
+            deanId: "none",
+          },
   });
 
   const selectedInstitutionId = watch("institutionId");
@@ -85,12 +98,22 @@ export const FacultyCreate: React.FC<FacultyCreateProps> = ({
     fetchAvailableDeans();
   }, [selectedInstitutionId]);
 
-  // Set the user's institution automatically for ADMIN users
+  // Set default values based on mode
   useEffect(() => {
-    if (user?.institutionId) {
-      setValue("institutionId", user.institutionId.toString());
+    if (mode === "create") {
+      // Set the user's institution automatically for ADMIN users in create mode
+      if (user?.institutionId) {
+        setValue("institutionId", user.institutionId.toString());
+      }
+    } else if (mode === "edit" && faculty) {
+      // Set values for edit mode
+      setValue("name", faculty.name);
+      setValue("code", faculty.code);
+      setValue("institutionId", faculty.institutionId.toString());
+      setValue("description", faculty.description || "");
+      setValue("deanId", faculty.deanId?.toString() || "none");
     }
-  }, [user, setValue]);
+  }, [mode, faculty, user, setValue]);
 
   const onSubmit = async (data: FacultyFormValues) => {
     setIsLoading(true);
@@ -106,20 +129,44 @@ export const FacultyCreate: React.FC<FacultyCreateProps> = ({
 
       const requestData = facultyService.transformFormData(formData);
 
-      // Create faculty first
-      const facultyResponse = await facultyService.createFaculty(requestData);
+      if (mode === "create") {
+        // Create faculty first
+        const facultyResponse = await facultyService.createFaculty(requestData);
 
-      // If dean was selected, assign the dean
-      if (data.deanId && facultyResponse.success && facultyResponse.data) {
-        await facultyService.assignDean(
-          facultyResponse.data.id,
-          parseInt(data.deanId)
-        );
+        // If dean was selected, assign the dean
+        if (
+          data.deanId &&
+          data.deanId !== "none" &&
+          facultyResponse.success &&
+          facultyResponse.data
+        ) {
+          await facultyService.assignDean(
+            facultyResponse.data.id,
+            parseInt(data.deanId)
+          );
+        }
+      } else if (mode === "edit" && faculty) {
+        await facultyService.updateFaculty(faculty.id, requestData);
+
+        // Handle dean assignment/removal for edit mode
+        if (
+          data.deanId &&
+          data.deanId !== "none" &&
+          data.deanId !== faculty.deanId?.toString()
+        ) {
+          // Assign new dean
+          await facultyService.assignDean(faculty.id, parseInt(data.deanId));
+        } else if ((!data.deanId || data.deanId === "none") && faculty.deanId) {
+          // Remove current dean
+          await facultyService.removeDean(faculty.id);
+        }
       }
 
       onSuccess();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create faculty");
+      setError(
+        err instanceof Error ? err.message : `Failed to ${mode} faculty`
+      );
     } finally {
       setIsLoading(false);
     }
@@ -163,18 +210,43 @@ export const FacultyCreate: React.FC<FacultyCreateProps> = ({
 
       <div className="space-y-2">
         <Label htmlFor="institutionId">Institution *</Label>
-        <Input
-          value={`Institution ID: ${user?.institutionId || "Not Available"}`}
-          disabled
-          className="bg-gray-50"
-        />
-        <p className="text-sm text-gray-500">
-          Faculties will be created under your current institution
-        </p>
+        {mode === "create" ? (
+          <>
+            <Input
+              value={`Institution ID: ${user?.institutionId || "Not Available"}`}
+              disabled
+              className="bg-gray-50"
+            />
+            <p className="text-sm text-gray-500">
+              Faculties will be created under your current institution
+            </p>
+          </>
+        ) : (
+          <Select
+            value={watch("institutionId")}
+            onValueChange={(value) => setValue("institutionId", value)}
+          >
+            <SelectTrigger
+              className={errors.institutionId ? "border-red-500" : ""}
+            >
+              <SelectValue placeholder="Select an institution" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={faculty!.institutionId.toString()}>
+                {faculty!.institution?.name || "Current Institution"}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        )}
+        {errors.institutionId && (
+          <p className="text-red-500 text-sm">{errors.institutionId.message}</p>
+        )}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="deanId">Dean (Optional)</Label>
+        <Label htmlFor="deanId">
+          Dean {mode === "create" ? "(Optional)" : ""}
+        </Label>
         <Select
           value={watch("deanId")}
           onValueChange={(value) => setValue("deanId", value)}
@@ -183,7 +255,7 @@ export const FacultyCreate: React.FC<FacultyCreateProps> = ({
             <SelectValue placeholder="Select a dean for this faculty" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">No dean assigned</SelectItem>
+            <SelectItem value="none">No dean assigned</SelectItem>
             {availableDeans.map((deanUser) => (
               <SelectItem key={deanUser.id} value={deanUser.id.toString()}>
                 {deanUser.firstName} {deanUser.lastName} ({deanUser.email})
@@ -211,7 +283,9 @@ export const FacultyCreate: React.FC<FacultyCreateProps> = ({
           Cancel
         </Button>
         <Button type="submit" disabled={isLoading}>
-          {isLoading ? "Creating..." : "Create Faculty"}
+          {isLoading
+            ? `${mode === "create" ? "Creating" : "Updating"}...`
+            : `${mode === "create" ? "Create" : "Update"} Faculty`}
         </Button>
       </div>
     </form>

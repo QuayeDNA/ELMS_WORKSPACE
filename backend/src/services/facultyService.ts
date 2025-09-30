@@ -409,6 +409,112 @@ export class FacultyService {
       throw error;
     }
   }
+
+  // ========================================
+  // ANALYTICS METHODS
+  // ========================================
+
+  async getFacultyAnalytics(institutionId?: number) {
+    try {
+      // Base where clause
+      const whereClause = institutionId ? { institutionId } : {};
+
+      // Get all faculties with counts
+      const faculties = await prisma.faculty.findMany({
+        where: whereClause,
+        include: {
+          dean: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+          _count: {
+            select: {
+              users: true,
+              departments: true,
+            },
+          },
+        },
+      });
+
+      // Calculate basic metrics
+      const totalFaculties = faculties.length;
+      const totalDepartments = faculties.reduce(
+        (acc, faculty) => acc + (faculty._count?.departments || 0),
+        0
+      );
+      const totalFacultyMembers = faculties.reduce(
+        (acc, faculty) => acc + (faculty._count?.users || 0),
+        0
+      );
+
+      // Calculate averages
+      const averageMembersPerFaculty =
+        totalFaculties > 0
+          ? Math.round((totalFacultyMembers / totalFaculties) * 100) / 100
+          : 0;
+
+      // Count faculties with/without deans
+      const facultiesWithDeans = faculties.filter(
+        (faculty) => faculty.deanId
+      ).length;
+      const facultiesWithoutDeans = totalFaculties - facultiesWithDeans;
+
+      // Department distribution
+      const departmentCounts = faculties.map((f) => f._count?.departments || 0);
+      const minDepartments =
+        departmentCounts.length > 0 ? Math.min(...departmentCounts) : 0;
+      const maxDepartments =
+        departmentCounts.length > 0 ? Math.max(...departmentCounts) : 0;
+      const averageDepartments =
+        totalFaculties > 0
+          ? Math.round((totalDepartments / totalFaculties) * 100) / 100
+          : 0;
+
+      // Member distribution
+      const memberCounts = faculties.map((f) => f._count?.users || 0);
+      const minMembers =
+        memberCounts.length > 0 ? Math.min(...memberCounts) : 0;
+      const maxMembers =
+        memberCounts.length > 0 ? Math.max(...memberCounts) : 0;
+      const averageMembers =
+        totalFaculties > 0
+          ? Math.round((totalFacultyMembers / totalFaculties) * 100) / 100
+          : 0;
+
+      // For now, we'll assume all faculties are active since there's no status field
+      // This can be updated when faculty status is implemented
+      const facultyStatusBreakdown = {
+        active: totalFaculties,
+        inactive: 0,
+      };
+
+      return {
+        totalFaculties,
+        totalDepartments,
+        totalFacultyMembers,
+        averageMembersPerFaculty,
+        facultiesWithDeans,
+        facultiesWithoutDeans,
+        departmentDistribution: {
+          minDepartments,
+          maxDepartments,
+          averageDepartments,
+        },
+        memberDistribution: {
+          minMembers,
+          maxMembers,
+          averageMembers,
+        },
+        facultyStatusBreakdown,
+      };
+    } catch (error) {
+      console.error("Error fetching faculty analytics:", error);
+      throw error;
+    }
+  }
 }
 
 export const facultyService = new FacultyService();

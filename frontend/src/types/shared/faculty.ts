@@ -89,6 +89,33 @@ export interface FacultyFormData {
 }
 
 // ========================================
+// FACULTY ANALYTICS TYPES
+// ========================================
+
+export interface FacultyAnalytics {
+  totalFaculties: number;
+  totalDepartments: number;
+  totalFacultyMembers: number;
+  averageMembersPerFaculty: number;
+  facultiesWithDeans: number;
+  facultiesWithoutDeans: number;
+  departmentDistribution: {
+    minDepartments: number;
+    maxDepartments: number;
+    averageDepartments: number;
+  };
+  memberDistribution: {
+    minMembers: number;
+    maxMembers: number;
+    averageMembers: number;
+  };
+  facultyStatusBreakdown: {
+    active: number;
+    inactive: number;
+  };
+}
+
+// ========================================
 // COMPONENT PROPS INTERFACES
 // ========================================
 
@@ -99,6 +126,13 @@ export interface FacultyCreateProps {
 
 export interface FacultyEditProps {
   faculty: Faculty;
+  onSuccess: () => void;
+  onCancel: () => void;
+}
+
+export interface FacultyFormProps {
+  mode: "create" | "edit";
+  faculty?: Faculty; // Only required for edit mode
   onSuccess: () => void;
   onCancel: () => void;
 }

@@ -324,4 +324,28 @@ export const facultyController = {
       });
     }
   },
+
+  // Get faculty analytics
+  async getFacultyAnalytics(req: Request, res: Response) {
+    try {
+      const institutionId = req.query.institutionId
+        ? parseInt(req.query.institutionId as string)
+        : undefined;
+
+      const analytics = await facultyService.getFacultyAnalytics(institutionId);
+
+      res.json({
+        success: true,
+        data: analytics,
+        message: "Faculty analytics retrieved successfully",
+      });
+    } catch (error) {
+      console.error("Error fetching faculty analytics:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch faculty analytics",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  },
 };

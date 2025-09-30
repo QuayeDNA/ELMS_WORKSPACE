@@ -20,6 +20,14 @@ router.get(
   facultyController.getFaculties
 );
 
+// GET /api/faculties/analytics - Get faculty analytics
+// Accessible by: Super Admin, Institution Admin, Faculty Admin
+router.get(
+  "/analytics",
+  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.FACULTY_ADMIN),
+  facultyController.getFacultyAnalytics
+);
+
 // GET /api/faculties/:id - Get single faculty by ID
 // Accessible by: Super Admin, Institution Admin, Faculty Admin
 router.get(

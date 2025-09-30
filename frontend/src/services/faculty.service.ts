@@ -8,6 +8,7 @@ import {
   UpdateFacultyRequest,
   FacultyQuery,
   FacultyFormData,
+  FacultyAnalytics,
 } from "@/types/shared";
 
 // ========================================
@@ -161,6 +162,35 @@ class FacultyService {
       institutionId: faculty.institutionId,
       description: faculty.description || "",
     };
+  }
+
+  // ========================================
+  // ANALYTICS METHODS
+  // ========================================
+
+  /**
+   * Get faculty analytics data
+   */
+  async getFacultyAnalytics(
+    institutionId?: number
+  ): Promise<ApiResponse<FacultyAnalytics>> {
+    try {
+      const params = new URLSearchParams();
+
+      if (institutionId) {
+        params.append("institutionId", institutionId.toString());
+      }
+
+      const queryString = params.toString();
+      const url = queryString
+        ? `${this.endpoint}/analytics?${queryString}`
+        : `${this.endpoint}/analytics`;
+
+      return await apiService.get<FacultyAnalytics>(url);
+    } catch (error) {
+      console.error("Error fetching faculty analytics:", error);
+      throw error;
+    }
   }
 }
 

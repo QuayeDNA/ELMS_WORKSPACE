@@ -54,8 +54,7 @@ import { facultyService } from "@/services/faculty.service";
 import { userService } from "@/services/user.service";
 import { useAuthStore } from "@/stores/auth.store";
 import { Faculty, FacultyQuery } from "@/types/shared";
-import { FacultyCreate } from "@/components/faculty/FacultyCreate";
-import { FacultyEdit } from "@/components/faculty/FacultyEdit";
+import { FacultyForm } from "@/components/faculty/FacultyForm";
 import { FacultyView } from "@/components/faculty/FacultyView";
 
 export function FacultyPage() {
@@ -88,6 +87,13 @@ export function FacultyPage() {
     queryKey: ["faculties", query],
     queryFn: () => facultyService.getFaculties(query),
     retry: 3,
+  });
+
+  // Fetch faculty analytics
+  const { data: analyticsResponse } = useQuery({
+    queryKey: ["faculty-analytics", user?.institutionId],
+    queryFn: () => facultyService.getFacultyAnalytics(user?.institutionId),
+    enabled: !!user?.institutionId,
   });
 
   // Fetch users for dean selection
@@ -185,6 +191,8 @@ export function FacultyPage() {
   const totalCount = facultyResponse?.data?.total || 0;
   const totalPages = Math.ceil(totalCount / pageSize);
 
+  const analytics = analyticsResponse?.data;
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -207,7 +215,8 @@ export function FacultyPage() {
             <DialogHeader>
               <DialogTitle>Create New Faculty</DialogTitle>
             </DialogHeader>
-            <FacultyCreate
+            <FacultyForm
+              mode="create"
               onSuccess={handleCreateSuccess}
               onCancel={() => setIsCreateDialogOpen(false)}
             />
@@ -225,7 +234,9 @@ export function FacultyPage() {
             <Building className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalCount}</div>
+            <div className="text-2xl font-bold">
+              {analytics?.totalFaculties ?? totalCount}
+            </div>
             <p className="text-xs text-muted-foreground">
               {isLoading ? "Loading..." : "Active faculties"}
             </p>
@@ -239,10 +250,7 @@ export function FacultyPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {faculties.reduce(
-                (acc, faculty) => acc + (faculty._count?.departments || 0),
-                0
-              )}
+              {analytics?.totalDepartments ?? 0}
             </div>
             <p className="text-xs text-muted-foreground">Total departments</p>
           </CardContent>
@@ -257,10 +265,7 @@ export function FacultyPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {faculties.reduce(
-                (acc, faculty) => acc + (faculty._count?.users || 0),
-                0
-              )}
+              {analytics?.totalFacultyMembers ?? 0}
             </div>
             <p className="text-xs text-muted-foreground">
               Total faculty members
@@ -275,14 +280,7 @@ export function FacultyPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {faculties.length > 0
-                ? Math.round(
-                    faculties.reduce(
-                      (acc, faculty) => acc + (faculty._count?.users || 0),
-                      0
-                    ) / faculties.length
-                  )
-                : 0}
+              {analytics?.averageMembersPerFaculty ?? 0}
             </div>
             <p className="text-xs text-muted-foreground">Members per faculty</p>
           </CardContent>
@@ -542,7 +540,8 @@ export function FacultyPage() {
             <DialogTitle>Edit Faculty</DialogTitle>
           </DialogHeader>
           {selectedFaculty && (
-            <FacultyEdit
+            <FacultyForm
+              mode="edit"
               faculty={selectedFaculty}
               onSuccess={handleEditSuccess}
               onCancel={() => setIsEditDialogOpen(false)}
