@@ -60,6 +60,10 @@ class StudentService {
         `${this.basePath}?${params.toString()}`
       );
 
+      if (!response.success) {
+        throw new Error(response.message || ERROR_MESSAGES.SERVER);
+      }
+
       if (!response.data) {
         throw new Error(ERROR_MESSAGES.NOT_FOUND);
       }

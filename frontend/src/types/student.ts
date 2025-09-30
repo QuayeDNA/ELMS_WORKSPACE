@@ -70,21 +70,22 @@ export interface Student {
 }
 
 export enum EnrollmentStatus {
-  ENROLLED = 'ENROLLED',
-  WITHDRAWN = 'WITHDRAWN',
-  GRADUATED = 'GRADUATED',
-  SUSPENDED = 'SUSPENDED',
-  DEFERRED = 'DEFERRED',
-  TRANSFERRED = 'TRANSFERRED'
+  ACTIVE = "ACTIVE",
+  ENROLLED = "ENROLLED",
+  WITHDRAWN = "WITHDRAWN",
+  GRADUATED = "GRADUATED",
+  SUSPENDED = "SUSPENDED",
+  DEFERRED = "DEFERRED",
+  TRANSFERRED = "TRANSFERRED",
 }
 
 export enum AcademicStatus {
-  GOOD_STANDING = 'GOOD_STANDING',
-  PROBATION = 'PROBATION',
-  WARNING = 'WARNING',
-  DISMISSED = 'DISMISSED',
-  HONORS = 'HONORS',
-  DEAN_LIST = 'DEAN_LIST'
+  GOOD_STANDING = "GOOD_STANDING",
+  PROBATION = "PROBATION",
+  WARNING = "WARNING",
+  DISMISSED = "DISMISSED",
+  HONORS = "HONORS",
+  DEAN_LIST = "DEAN_LIST",
 }
 
 export interface CreateStudentRequest {
@@ -160,7 +161,7 @@ export interface StudentFilters {
   page?: number;
   limit?: number;
   sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
 }
 
 export interface StudentsResponse {
@@ -174,7 +175,7 @@ export interface StudentsResponse {
     hasNext: boolean;
     hasPrev: boolean;
   };
-  filters: StudentFilters;
+  filters?: StudentFilters; // Made optional since backend doesn't return it
 }
 
 export interface BulkStudentImport {

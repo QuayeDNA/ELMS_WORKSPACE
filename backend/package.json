@@ -13,6 +13,7 @@
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset",
     "db:seed": "ts-node scripts/create-default-user.ts",
+    "db:seed:institution": "ts-node scripts/seedInstitutionData.ts",
     "docker:dev": "docker-compose up postgres-dev",
     "docker:prod": "docker-compose --profile prod up postgres-prod",
     "docker:dev:build": "docker-compose up --build postgres-dev",

@@ -1,15 +1,34 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { departmentService } from '@/services/department.service';
-import { facultyService } from '@/services/faculty.service';
-import { Department } from '@/types/department';
-import { Faculty } from '@/types/faculty';
-import { Plus, Search, Edit, Trash2, Eye, Building2 } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/Input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { departmentService } from "@/services/department.service";
+import { facultyService } from "@/services/faculty.service";
+import { Department } from "@/types/department";
+import { Faculty } from "@/types/faculty";
+import { Plus, Search, Edit, Trash2, Eye, Building2 } from "lucide-react";
 
 interface DepartmentResponse {
   success: boolean;
@@ -27,15 +46,15 @@ const DepartmentsPage: React.FC = () => {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [faculties, setFaculties] = useState<Faculty[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedFaculty, setSelectedFaculty] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedFaculty, setSelectedFaculty] = useState<string>("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [stats, setStats] = useState({
     total: 0,
     active: 0,
     totalFaculty: 0,
-    totalStudents: 0
+    totalStudents: 0,
   });
 
   const loadDepartments = useCallback(async () => {
@@ -45,16 +64,21 @@ const DepartmentsPage: React.FC = () => {
         page: currentPage,
         limit: 10,
         search: searchTerm || undefined,
-        facultyId: selectedFaculty ? parseInt(selectedFaculty) : undefined
+        facultyId:
+          selectedFaculty && selectedFaculty !== "all"
+            ? parseInt(selectedFaculty)
+            : undefined,
       };
 
-      const response = await departmentService.getDepartments(query) as DepartmentResponse;
+      const response = (await departmentService.getDepartments(
+        query
+      )) as DepartmentResponse;
       if (response?.success) {
         setDepartments(response.data?.departments || []);
         setTotalPages(response.data?.totalPages || 1);
       }
     } catch (error) {
-      console.error('Error loading departments:', error);
+      console.error("Error loading departments:", error);
     } finally {
       setLoading(false);
     }
@@ -67,7 +91,7 @@ const DepartmentsPage: React.FC = () => {
         setFaculties(response.data);
       }
     } catch (error) {
-      console.error('Error loading faculties:', error);
+      console.error("Error loading faculties:", error);
     }
   }, []);
 
@@ -76,12 +100,12 @@ const DepartmentsPage: React.FC = () => {
       // For now, let's set some default stats since getDepartmentStats needs a specific department ID
       setStats({
         total: departments.length,
-        active: departments.filter(d => d.type === 'department').length,
+        active: departments.filter((d) => d.type === "department").length,
         totalFaculty: 0, // This would need to be calculated from actual data
-        totalStudents: 0 // This would need to be calculated from actual data
+        totalStudents: 0, // This would need to be calculated from actual data
       });
     } catch (error) {
-      console.error('Error loading stats:', error);
+      console.error("Error loading stats:", error);
     }
   }, [departments]);
 
@@ -92,13 +116,13 @@ const DepartmentsPage: React.FC = () => {
   }, [loadDepartments, loadFaculties, loadStats]);
 
   const handleDelete = async (id: number) => {
-    if (window.confirm('Are you sure you want to delete this department?')) {
+    if (window.confirm("Are you sure you want to delete this department?")) {
       try {
         await departmentService.deleteDepartment(id);
         loadDepartments();
         loadStats();
       } catch (error) {
-        console.error('Error deleting department:', error);
+        console.error("Error deleting department:", error);
       }
     }
   };
@@ -125,8 +149,12 @@ const DepartmentsPage: React.FC = () => {
                 <Building2 className="w-6 h-6 text-blue-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Departments</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Total Departments
+                </p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats.total}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -139,8 +167,12 @@ const DepartmentsPage: React.FC = () => {
                 <Building2 className="w-6 h-6 text-green-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Active Departments</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.active}</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Active Departments
+                </p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats.active}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -153,8 +185,12 @@ const DepartmentsPage: React.FC = () => {
                 <Building2 className="w-6 h-6 text-purple-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Faculty</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalFaculty}</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Total Faculty
+                </p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats.totalFaculty}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -167,8 +203,12 @@ const DepartmentsPage: React.FC = () => {
                 <Building2 className="w-6 h-6 text-orange-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Students</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalStudents}</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Total Students
+                </p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats.totalStudents}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -195,7 +235,7 @@ const DepartmentsPage: React.FC = () => {
                 <SelectValue placeholder="All Faculties" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Faculties</SelectItem>
+                <SelectItem value="all">All Faculties</SelectItem>
                 {faculties.map((faculty) => (
                   <SelectItem key={faculty.id} value={faculty.id.toString()}>
                     {faculty.name}
@@ -233,14 +273,18 @@ const DepartmentsPage: React.FC = () => {
               <TableBody>
                 {departments.map((department) => (
                   <TableRow key={department.id}>
-                    <TableCell className="font-medium">{department.name}</TableCell>
+                    <TableCell className="font-medium">
+                      {department.name}
+                    </TableCell>
                     <TableCell>{department.code}</TableCell>
                     <TableCell>
                       <Badge variant="outline">{department.type}</Badge>
                     </TableCell>
-                    <TableCell>{department.faculty?.name || 'N/A'}</TableCell>
+                    <TableCell>{department.faculty?.name || "N/A"}</TableCell>
                     <TableCell>
-                      {department.hod ? `${department.hod.firstName} ${department.hod.lastName}` : 'Not Assigned'}
+                      {department.hod
+                        ? `${department.hod.firstName} ${department.hod.lastName}`
+                        : "Not Assigned"}
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
@@ -281,7 +325,9 @@ const DepartmentsPage: React.FC = () => {
                 </span>
                 <Button
                   variant="outline"
-                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                  onClick={() =>
+                    setCurrentPage(Math.min(totalPages, currentPage + 1))
+                  }
                   disabled={currentPage === totalPages}
                 >
                   Next
