@@ -72,7 +72,7 @@ export interface DepartmentQuery {
   limit?: number;
   search?: string;
   sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
 }
 
 export interface DepartmentStats {
@@ -81,4 +81,16 @@ export interface DepartmentStats {
   totalCourses: number;
   totalLecturers: number;
   activePrograms: number;
+}
+
+export interface DepartmentsResponse {
+  success: boolean;
+  data: {
+    departments: Department[];
+    total: number;
+    totalPages: number;
+    currentPage: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
 }

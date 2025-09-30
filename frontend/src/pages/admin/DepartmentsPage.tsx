@@ -30,24 +30,12 @@ import { Department } from "@/types/department";
 import { Faculty } from "@/types/faculty";
 import { Plus, Search, Edit, Trash2, Eye, Building2 } from "lucide-react";
 
-interface DepartmentResponse {
-  success: boolean;
-  data: {
-    departments: Department[];
-    total: number;
-    totalPages: number;
-    currentPage: number;
-    hasNext: boolean;
-    hasPrev: boolean;
-  };
-}
-
 const DepartmentsPage: React.FC = () => {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [faculties, setFaculties] = useState<Faculty[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedFaculty, setSelectedFaculty] = useState<string>("");
+  const [selectedFaculty, setSelectedFaculty] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [stats, setStats] = useState({
@@ -70,13 +58,29 @@ const DepartmentsPage: React.FC = () => {
             : undefined,
       };
 
-      const response = (await departmentService.getDepartments(
-        query
-      )) as DepartmentResponse;
-      if (response?.success) {
-        setDepartments(response.data?.departments || []);
-        setTotalPages(response.data?.totalPages || 1);
-      }
+      const response = await departmentService.getDepartments(query);
+      const departmentsData = response?.departments || [];
+      setDepartments(departmentsData);
+      setTotalPages(response?.totalPages || 1);
+
+      // Calculate stats directly from the loaded data
+      const total = departmentsData.length;
+      const active = departmentsData.filter(
+        (d) => d.type === "department"
+      ).length;
+      const totalFaculty = new Set(departmentsData.map((d) => d.facultyId))
+        .size;
+      const totalStudents = departmentsData.reduce(
+        (sum, dept) => sum + (dept.stats?.totalUsers || 0),
+        0
+      );
+
+      setStats({
+        total,
+        active,
+        totalFaculty,
+        totalStudents,
+      });
     } catch (error) {
       console.error("Error loading departments:", error);
     } finally {
@@ -95,32 +99,19 @@ const DepartmentsPage: React.FC = () => {
     }
   }, []);
 
-  const loadStats = useCallback(async () => {
-    try {
-      // For now, let's set some default stats since getDepartmentStats needs a specific department ID
-      setStats({
-        total: departments.length,
-        active: departments.filter((d) => d.type === "department").length,
-        totalFaculty: 0, // This would need to be calculated from actual data
-        totalStudents: 0, // This would need to be calculated from actual data
-      });
-    } catch (error) {
-      console.error("Error loading stats:", error);
-    }
-  }, [departments]);
-
   useEffect(() => {
     loadDepartments();
+  }, [loadDepartments]);
+
+  useEffect(() => {
     loadFaculties();
-    loadStats();
-  }, [loadDepartments, loadFaculties, loadStats]);
+  }, [loadFaculties]);
 
   const handleDelete = async (id: number) => {
     if (window.confirm("Are you sure you want to delete this department?")) {
       try {
         await departmentService.deleteDepartment(id);
         loadDepartments();
-        loadStats();
       } catch (error) {
         console.error("Error deleting department:", error);
       }
