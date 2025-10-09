@@ -40,7 +40,7 @@ const DEV_CREDENTIALS: DevCredential[] = [
     id: "super-admin",
     name: "Super Admin",
     email: "admin@elms.com",
-    password: "admin123",
+    password: "Admin@123",
   },
   {
     id: "institution_admin",

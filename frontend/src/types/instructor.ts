@@ -6,32 +6,25 @@
 export interface Instructor {
   id: number;
   userId: number;
-  employeeId: string;
-  academicRank: AcademicRank;
-  specialization?: string;
-  qualifications?: string;
-  experience: number;
+  staffId: string;
+  academicRank: AcademicRank | null;
   employmentType: EmploymentType;
   employmentStatus: EmploymentStatus;
-  joiningDate: string;
-  contractEndDate?: string;
-  salary?: number;
-  officeLocation?: string;
-  phoneExtension?: string;
-  consultationHours?: string;
-  researchInterests?: string;
-  publications?: string;
-  permissions?: Record<string, any>;
-  createdAt: string;
-  updatedAt: string;
-
-  // LecturerProfile fields from schema
-  staffId: string;
   hireDate?: string;
-  highestQualification?: string;
+  specialization?: string;
+  researchInterests?: string;
+  officeLocation?: string;
   officeHours?: string;
   biography?: string;
   profileImageUrl?: string;
+  highestQualification?: string;
+  permissions: Record<string, any>;
+  canCreateExams: boolean;
+  canGradeScripts: boolean;
+  canViewResults: boolean;
+  canTeachCourses: boolean;
+  createdAt: string;
+  updatedAt: string;
 
   // Relations
   user: {
@@ -46,6 +39,10 @@ export interface Instructor {
     gender?: string;
     nationality?: string;
     address?: string;
+    status: string;
+    departmentId?: number;
+    facultyId?: number;
+    institutionId?: number;
     department?: {
       id: number;
       name: string;
@@ -62,18 +59,6 @@ export interface Instructor {
       };
     };
   };
-
-  assignments?: Array<{
-    id: number;
-    departmentId: number;
-    isPrimary: boolean;
-    assignedAt: string;
-    department: {
-      id: number;
-      name: string;
-      code: string;
-    };
-  }>;
 }
 
 export enum AcademicRank {
@@ -105,74 +90,72 @@ export enum EmploymentStatus {
 }
 
 export interface CreateInstructorRequest {
-  email: string;
-  firstName: string;
-  lastName: string;
-  middleName?: string;
-  title?: string;
-  phone?: string;
-  dateOfBirth?: string;
-  gender?: string;
-  nationality?: string;
-  address?: string;
-  departmentId?: number;
-  employeeId: string;
-  academicRank: AcademicRank;
-  specialization?: string;
-  qualifications?: string;
-  experience: number;
-  employmentType: EmploymentType;
-  employmentStatus: EmploymentStatus;
-  joiningDate: string;
-  contractEndDate?: string;
-  salary?: number;
-  officeLocation?: string;
-  phoneExtension?: string;
-  consultationHours?: string;
-  researchInterests?: string;
-  publications?: string;
-  permissions?: Record<string, any>;
-
-  // LecturerProfile fields
-  staffId: string;
-  hireDate?: string;
-  highestQualification?: string;
-  officeHours?: string;
-  biography?: string;
-  profileImageUrl?: string;
+  user: {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+    middleName?: string;
+    title?: string;
+    phone?: string;
+    dateOfBirth?: string;
+    gender?: string;
+    nationality?: string;
+    address?: string;
+  };
+  profile: {
+    staffId: string;
+    academicRank?: AcademicRank;
+    employmentType?: EmploymentType;
+    employmentStatus?: EmploymentStatus;
+    hireDate?: string;
+    highestQualification?: string;
+    specialization?: string;
+    researchInterests?: string;
+    officeLocation?: string;
+    officeHours?: string;
+    biography?: string;
+    profileImageUrl?: string;
+    canCreateExams?: boolean;
+    canGradeScripts?: boolean;
+    canViewResults?: boolean;
+    canTeachCourses?: boolean;
+  };
+  departments?: Array<{
+    departmentId: number;
+    isPrimary?: boolean;
+  }>;
 }
 
 export interface UpdateInstructorRequest {
-  firstName?: string;
-  lastName?: string;
-  middleName?: string;
-  title?: string;
-  phone?: string;
-  dateOfBirth?: string;
-  gender?: string;
-  nationality?: string;
-  address?: string;
-  academicRank?: AcademicRank;
-  specialization?: string;
-  qualifications?: string;
-  experience?: number;
-  employmentType?: EmploymentType;
-  employmentStatus?: EmploymentStatus;
-  contractEndDate?: string;
-  salary?: number;
-  officeLocation?: string;
-  phoneExtension?: string;
-  consultationHours?: string;
-  researchInterests?: string;
-  publications?: string;
-  permissions?: Record<string, any>;
-
-  // LecturerProfile fields
-  hireDate?: string;
-  highestQualification?: string;
-  officeHours?: string;
-  biography?: string;
-  profileImageUrl?: string;
+  user?: {
+    firstName?: string;
+    lastName?: string;
+    middleName?: string;
+    title?: string;
+    phone?: string;
+    dateOfBirth?: string;
+    gender?: string;
+    nationality?: string;
+    address?: string;
+  };
+  profile?: {
+    academicRank?: AcademicRank;
+    employmentType?: EmploymentType;
+    employmentStatus?: EmploymentStatus;
+    hireDate?: string;
+    highestQualification?: string;
+    specialization?: string;
+    researchInterests?: string;
+    officeLocation?: string;
+    officeHours?: string;
+    biography?: string;
+    profileImageUrl?: string;
+    canCreateExams?: boolean;
+    canGradeScripts?: boolean;
+    canViewResults?: boolean;
+    canTeachCourses?: boolean;
+  };
 }
 
 export interface InstructorFilters {
@@ -216,7 +199,7 @@ export interface InstructorStats {
   retiredInstructors: number;
   averageExperience: number;
   instructorsByRank: Array<{
-    rank: AcademicRank;
+    rank: AcademicRank | null;
     count: number;
   }>;
   instructorsByDepartment: Array<{

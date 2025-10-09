@@ -52,6 +52,15 @@ const StudentsPage = lazy(() =>
   }))
 );
 const InstructorsPage = lazy(() => import("@/pages/admin/InstructorsPage"));
+const InstructorDetailPage = lazy(
+  () => import("@/pages/admin/InstructorDetailPage")
+);
+const InstructorCreatePage = lazy(
+  () => import("@/pages/admin/InstructorCreatePage")
+);
+const InstructorEditPage = lazy(
+  () => import("@/pages/admin/InstructorEditPage")
+);
 const AdminUsersPage = lazy(() =>
   import("@/pages/admin/UsersPage").then((module) => ({
     default: module.UsersPage,
@@ -266,6 +275,48 @@ export function AppRoutes() {
         }
       />
       <Route
+        path="/admin/instructors/create"
+        element={
+          <MultiRoleAdminLayout
+            allowedRoles={[
+              UserRole.ADMIN,
+              UserRole.FACULTY_ADMIN,
+              UserRole.DEAN,
+            ]}
+          >
+            <InstructorCreatePage />
+          </MultiRoleAdminLayout>
+        }
+      />
+      <Route
+        path="/admin/instructors/:id"
+        element={
+          <MultiRoleAdminLayout
+            allowedRoles={[
+              UserRole.ADMIN,
+              UserRole.FACULTY_ADMIN,
+              UserRole.DEAN,
+            ]}
+          >
+            <InstructorDetailPage />
+          </MultiRoleAdminLayout>
+        }
+      />
+      <Route
+        path="/admin/instructors/:id/edit"
+        element={
+          <MultiRoleAdminLayout
+            allowedRoles={[
+              UserRole.ADMIN,
+              UserRole.FACULTY_ADMIN,
+              UserRole.DEAN,
+            ]}
+          >
+            <InstructorEditPage />
+          </MultiRoleAdminLayout>
+        }
+      />
+      <Route
         path="/admin/users"
         element={
           <AdminLayout>
@@ -376,6 +427,3 @@ export function AppRoutes() {
     </Routes>
   );
 }
-
-
-

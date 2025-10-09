@@ -3,12 +3,12 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
-    "start": "expo start",
-    "reset-project": "node ./scripts/reset-project.js",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web",
-    "lint": "expo lint"
+    "start": "node -e \"console.log('🚀 Starting Expo Development Server...')\" && expo start",
+    "reset-project": "node -e \"console.log('🔄 Resetting Project...')\" && node ./scripts/reset-project.js",
+    "android": "node -e \"console.log('🤖 Starting Android Development...')\" && expo start --android",
+    "ios": "node -e \"console.log('🍎 Starting iOS Development...')\" && expo start --ios",
+    "web": "node -e \"console.log('🌐 Starting Web Development...')\" && expo start --web",
+    "lint": "node -e \"console.log('🔍 Linting Mobile App Code...')\" && expo lint"
   },
   "dependencies": {
     "@expo/metro-runtime": "^5.0.4",

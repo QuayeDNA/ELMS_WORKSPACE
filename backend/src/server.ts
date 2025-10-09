@@ -2,6 +2,49 @@ import express from "express";
 import helmet from "helmet";
 import morgan from "morgan";
 import dotenv from "dotenv";
+import { PrismaClient } from "@prisma/client";
+
+// Initialize Prisma Client
+const prisma = new PrismaClient({
+  log: [
+    {
+      emit: 'event',
+      level: 'query',
+    },
+    {
+      emit: 'event',
+      level: 'error',
+    },
+    {
+      emit: 'event',
+      level: 'info',
+    },
+    {
+      emit: 'event',
+      level: 'warn',
+    },
+  ],
+});
+
+// Database connection logging
+prisma.$on('query', (e) => {
+  if (process.env.NODE_ENV === 'development') {
+    console.log('📊 Query: ' + e.query);
+    console.log('⏱️  Duration: ' + e.duration + 'ms');
+  }
+});
+
+prisma.$on('error', (e) => {
+  console.error('❌ Database Error:', e);
+});
+
+prisma.$on('info', (e) => {
+  console.log('ℹ️  Database Info:', e.message);
+});
+
+prisma.$on('warn', (e) => {
+  console.warn('⚠️  Database Warning:', e.message);
+});
 
 // Import routes
 import authRoutes from "./routes/authRoutes";
@@ -76,14 +119,40 @@ app.use(
 // ========================================
 
 // Health check endpoint
-app.get("/health", (req, res) => {
-  res.json({
+app.get("/health", async (req, res) => {
+  const healthCheck = {
     status: "OK",
     message: "ELMS Server is running",
     timestamp: new Date().toLocaleString(),
     environment: process.env.NODE_ENV || "development",
     version: "1.0.0",
-  });
+    database: {
+      status: "Unknown",
+      connection: false,
+      message: ""
+    }
+  };
+
+  // Test database connection
+  try {
+    await prisma.$connect();
+    await prisma.$queryRaw`SELECT 1`;
+
+    healthCheck.database.status = "Connected";
+    healthCheck.database.connection = true;
+    healthCheck.database.message = "Database connection successful";
+
+    res.json(healthCheck);
+  } catch (error) {
+    console.error("❌ Database health check failed:", error);
+
+    healthCheck.status = "Degraded";
+    healthCheck.database.status = "Disconnected";
+    healthCheck.database.connection = false;
+    healthCheck.database.message = "Database connection failed";
+
+    res.status(503).json(healthCheck);
+  }
 });
 
 // API routes
@@ -92,12 +161,61 @@ app.get("/api", (req, res) => {
     message: "ELMS API v1.0",
     documentation: "/api/docs",
     health: "/health",
+    database: "/api/database/status",
     auth: "/api/auth",
     exams: "/api/exams",
     scripts: "/api/scripts",
     incidents: "/api/incidents",
     timestamp: new Date().toISOString(),
   });
+});
+
+// Database status endpoint
+app.get("/api/database/status", async (req, res) => {
+  try {
+    // Test basic connection
+    await prisma.$connect();
+
+    // Get database metrics
+    const [
+      userCount,
+      institutionCount,
+      facultyCount,
+      departmentCount,
+      courseCount,
+      examCount
+    ] = await Promise.all([
+      prisma.user.count(),
+      prisma.institution.count(),
+      prisma.faculty.count(),
+      prisma.department.count(),
+      prisma.course.count(),
+      prisma.exam.count()
+    ]);
+
+    res.json({
+      status: "Connected",
+      connection: true,
+      database_url: process.env.DATABASE_URL?.replace(/:[^:]*@/, ':****@'),
+      statistics: {
+        users: userCount,
+        institutions: institutionCount,
+        faculties: facultyCount,
+        departments: departmentCount,
+        courses: courseCount,
+        exams: examCount
+      },
+      last_checked: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error("❌ Database status check failed:", error);
+    res.status(503).json({
+      status: "Disconnected",
+      connection: false,
+      error: "Database connection failed",
+      last_checked: new Date().toISOString()
+    });
+  }
 });
 
 // Authentication routes
@@ -216,27 +334,88 @@ app.use((req, res) => {
 });
 
 // ========================================
-// SERVER STARTUP
+// DATABASE CONNECTION & SERVER STARTUP
 // ========================================
 
-app.listen(PORT, () => {
-  console.log(`🚀 ELMS Server running on port ${PORT}`);
-  console.log(`� Health check: http://localhost:${PORT}/health`);
-  console.log(`� Auth API: http://localhost:${PORT}/api/auth`);
-  console.log(`📚 API Documentation: http://localhost:${PORT}/api`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
-  console.log(`⏰ Started at: ${new Date().toLocaleString()}`);
-});
+async function initializeDatabase() {
+  try {
+    console.log('🔗 Connecting to database...');
+    await prisma.$connect();
+
+    // Test the connection with a simple query
+    await prisma.$queryRaw`SELECT 1`;
+
+    // Get database info
+    const userCount = await prisma.user.count();
+    const institutionCount = await prisma.institution.count();
+
+    console.log('✅ Database connection established successfully!');
+    console.log(`📊 Database Stats: ${userCount} users, ${institutionCount} institutions`);
+    console.log(`🗄️  Database URL: ${process.env.DATABASE_URL?.replace(/:[^:]*@/, ':****@')}`);
+
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to connect to database:', error);
+    console.error('💡 Please ensure PostgreSQL is running and credentials are correct');
+    return false;
+  }
+}
+
+async function startServer() {
+  // Load environment variables
+  dotenv.config();
+
+  // Initialize database connection
+  const dbConnected = await initializeDatabase();
+
+  if (!dbConnected) {
+    console.error('🚫 Server startup aborted due to database connection failure');
+    process.exit(1);
+  }
+
+  // Start the server
+  const server = app.listen(PORT, () => {
+    console.log('\n🎉 ELMS Backend Server Started Successfully!');
+    console.log('================================================');
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`🏥 Health check: http://localhost:${PORT}/health`);
+    console.log(`🔐 Auth API: http://localhost:${PORT}/api/auth`);
+    console.log(`📚 API Documentation: http://localhost:${PORT}/api`);
+    console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
+    console.log(`⏰ Started at: ${new Date().toLocaleString()}`);
+    console.log('================================================\n');
+  });
+
+  return server;
+}
 
 // Graceful shutdown
-process.on("SIGTERM", () => {
-  console.log("SIGTERM received, shutting down gracefully");
-  process.exit(0);
+async function gracefulShutdown(signal: string) {
+  console.log(`\n${signal} received, shutting down gracefully...`);
+
+  try {
+    console.log('🔌 Disconnecting from database...');
+    await prisma.$disconnect();
+    console.log('✅ Database disconnected successfully');
+
+    console.log('🛑 Server shutdown complete');
+    process.exit(0);
+  } catch (error) {
+    console.error('❌ Error during shutdown:', error);
+    process.exit(1);
+  }
+}
+
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+
+// Start the server
+startServer().catch((error) => {
+  console.error('💥 Failed to start server:', error);
+  process.exit(1);
 });
 
-process.on("SIGINT", () => {
-  console.log("SIGINT received, shutting down gracefully");
-  process.exit(0);
-});
+// Export prisma client for use in other modules
+export { prisma };
 
 export default app;

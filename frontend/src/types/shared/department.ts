@@ -182,8 +182,8 @@ export interface DepartmentDetails extends Department {
   // Instructors in this department
   instructors: {
     id: number;
-    employeeId: string;
-    academicRank: string;
+    staffId: string;
+    academicRank: string | null;
     specialization?: string;
     user: {
       id: number;

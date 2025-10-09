@@ -13,7 +13,7 @@ import {
 } from "@/types/instructor";
 
 class InstructorService {
-  private readonly basePath = "/instructors";
+  private readonly basePath = "/api/instructors";
 
   // Get all instructors with pagination and filtering
   async getInstructors(
@@ -27,15 +27,15 @@ class InstructorService {
       }
     });
 
-    const response = await apiService.get<InstructorsResponse>(
+    const response = await apiService.get<ApiResponse<InstructorsResponse>>(
       `${this.basePath}?${params.toString()}`
     );
 
-    if (!response.data) {
+    if (!response.data?.success || !response.data?.data) {
       throw new Error("Failed to fetch instructors");
     }
 
-    return response.data;
+    return response.data.data;
   }
 
   // Get instructor by staff ID
@@ -108,7 +108,7 @@ class InstructorService {
     assignment: DepartmentAssignment
   ): Promise<Instructor> {
     const response = await apiService.post<ApiResponse<Instructor>>(
-      `${this.basePath}/${id}/assign-department`,
+      `${this.basePath}/${id}/departments`,
       assignment
     );
 
@@ -125,7 +125,7 @@ class InstructorService {
     departmentId: number
   ): Promise<Instructor> {
     const response = await apiService.delete<ApiResponse<Instructor>>(
-      `${this.basePath}/${id}/remove-department/${departmentId}`
+      `${this.basePath}/${id}/departments/${departmentId}`
     );
 
     if (!response.data?.data) {

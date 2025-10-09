@@ -6,8 +6,8 @@ import { Users, Eye, Mail } from "lucide-react";
 
 interface DepartmentInstructor {
   id: number;
-  employeeId: string;
-  academicRank: string;
+  staffId: string;
+  academicRank: string | null;
   specialization?: string;
   user: {
     id: number;
@@ -69,7 +69,8 @@ export const DepartmentInstructorsList: React.FC<
                       {instructor.user.firstName} {instructor.user.lastName}
                     </h4>
                     <p className="text-sm text-muted-foreground">
-                      {instructor.employeeId} • {instructor.academicRank}
+                      {instructor.staffId} •{" "}
+                      {instructor.academicRank || "Not specified"}
                     </p>
                   </div>
                   <div className="flex gap-2">
@@ -110,6 +111,3 @@ export const DepartmentInstructorsList: React.FC<
     </Card>
   );
 };
-
-
-

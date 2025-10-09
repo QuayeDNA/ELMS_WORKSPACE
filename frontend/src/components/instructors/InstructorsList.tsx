@@ -1,25 +1,37 @@
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/input';
-import { useInstructors } from '@/hooks/useInstructors';
-import { InstructorFilters } from '@/types/instructor';
-import { usePermissions } from '@/hooks/usePermissions';
-import { Search, Filter, Plus, Download, BarChart3, Users } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/input";
+import { useInstructors } from "@/hooks/useInstructors";
+import { InstructorFilters } from "@/types/instructor";
+import { usePermissions } from "@/hooks/usePermissions";
+import {
+  Search,
+  Filter,
+  Plus,
+  Download,
+  BarChart3,
+  Users,
+  Edit,
+} from "lucide-react";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 
 interface InstructorsListProps {
   initialFilters?: InstructorFilters;
 }
 
-export const InstructorsList: React.FC<InstructorsListProps> = ({ initialFilters = {} }) => {
+export const InstructorsList: React.FC<InstructorsListProps> = ({
+  initialFilters = {},
+}) => {
+  const navigate = useNavigate();
   const [filters, setFilters] = useState<InstructorFilters>(initialFilters);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
 
   const {
     instructors,
@@ -36,7 +48,7 @@ export const InstructorsList: React.FC<InstructorsListProps> = ({ initialFilters
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (searchQuery !== filters.search) {
-        setFilters(prev => ({ ...prev, search: searchQuery, page: 1 }));
+        setFilters((prev) => ({ ...prev, search: searchQuery, page: 1 }));
       }
     }, 500);
 
@@ -48,22 +60,22 @@ export const InstructorsList: React.FC<InstructorsListProps> = ({ initialFilters
   }, [filters, fetchInstructors]);
 
   const handlePageChange = (page: number) => {
-    setFilters(prev => ({ ...prev, page }));
+    setFilters((prev) => ({ ...prev, page }));
   };
 
   const handleLimitChange = (limit: number) => {
-    setFilters(prev => ({ ...prev, limit, page: 1 }));
+    setFilters((prev) => ({ ...prev, limit, page: 1 }));
   };
 
-  const handleSortChange = (sortBy: string, sortOrder: 'asc' | 'desc') => {
-    setFilters(prev => ({ ...prev, sortBy, sortOrder, page: 1 }));
+  const handleSortChange = (sortBy: string, sortOrder: "asc" | "desc") => {
+    setFilters((prev) => ({ ...prev, sortBy, sortOrder, page: 1 }));
   };
 
-  const handleExport = async (format: 'csv' | 'excel' = 'csv') => {
+  const handleExport = async (format: "csv" | "excel" = "csv") => {
     try {
       const blob = await exportInstructors(filters, format);
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       a.download = `instructors-export.${format}`;
       document.body.appendChild(a);
@@ -71,21 +83,28 @@ export const InstructorsList: React.FC<InstructorsListProps> = ({ initialFilters
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (err) {
-      console.error('Export failed:', err);
+      console.error("Export failed:", err);
     }
   };
 
   const clearFilters = () => {
     setFilters({ page: 1, limit: filters.limit });
-    setSearchQuery('');
+    setSearchQuery("");
   };
 
-  const formatAcademicRank = (rank: string) => {
-    return rank.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+  const formatAcademicRank = (rank: string | null) => {
+    if (!rank) return "Not specified";
+    return rank
+      .replace(/_/g, " ")
+      .toLowerCase()
+      .replace(/\b\w/g, (l) => l.toUpperCase());
   };
 
   const formatEmploymentStatus = (status: string) => {
-    return status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+    return status
+      .replace(/_/g, " ")
+      .toLowerCase()
+      .replace(/\b\w/g, (l) => l.toUpperCase());
   };
 
   if (error) {
@@ -117,7 +136,9 @@ export const InstructorsList: React.FC<InstructorsListProps> = ({ initialFilters
             </Button>
           )}
           {permissions.canExport && (
-            <Select onValueChange={(value) => handleExport(value as 'csv' | 'excel')}>
+            <Select
+              onValueChange={(value) => handleExport(value as "csv" | "excel")}
+            >
               <SelectTrigger className="w-32">
                 <Download className="h-4 w-4 mr-2" />
                 <span>Export</span>
@@ -129,7 +150,7 @@ export const InstructorsList: React.FC<InstructorsListProps> = ({ initialFilters
             </Select>
           )}
           {permissions.canCreate && (
-            <Button>
+            <Button onClick={() => navigate("/admin/instructors/create")}>
               <Plus className="h-4 w-4 mr-2" />
               Add Instructor
             </Button>
@@ -167,25 +188,29 @@ export const InstructorsList: React.FC<InstructorsListProps> = ({ initialFilters
       {/* Sort Controls */}
       <div className="flex items-center gap-4">
         <span className="text-sm text-gray-600">Sort by:</span>
-        <Select 
-          value={filters.sortBy || 'createdAt'}
-          onValueChange={(value) => handleSortChange(value, filters.sortOrder || 'desc')}
+        <Select
+          value={filters.sortBy || "createdAt"}
+          onValueChange={(value) =>
+            handleSortChange(value, filters.sortOrder || "desc")
+          }
         >
           <SelectTrigger className="w-48">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="createdAt">Created Date</SelectItem>
-            <SelectItem value="firstName">First Name</SelectItem>
-            <SelectItem value="lastName">Last Name</SelectItem>
-            <SelectItem value="employeeId">Employee ID</SelectItem>
+            <SelectItem value="staffId">Staff ID</SelectItem>
             <SelectItem value="academicRank">Academic Rank</SelectItem>
-            <SelectItem value="experience">Experience</SelectItem>
           </SelectContent>
         </Select>
-        <Select 
-          value={filters.sortOrder || 'desc'}
-          onValueChange={(value) => handleSortChange(filters.sortBy || 'createdAt', value as 'asc' | 'desc')}
+        <Select
+          value={filters.sortOrder || "desc"}
+          onValueChange={(value) =>
+            handleSortChange(
+              filters.sortBy || "createdAt",
+              value as "asc" | "desc"
+            )
+          }
         >
           <SelectTrigger className="w-32">
             <SelectValue />
@@ -200,18 +225,30 @@ export const InstructorsList: React.FC<InstructorsListProps> = ({ initialFilters
       {/* Instructors Grid */}
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="animate-pulse"><div className="bg-gray-200 h-56 rounded-lg"></div></div>
-          <div className="animate-pulse"><div className="bg-gray-200 h-56 rounded-lg"></div></div>
-          <div className="animate-pulse"><div className="bg-gray-200 h-56 rounded-lg"></div></div>
-          <div className="animate-pulse"><div className="bg-gray-200 h-56 rounded-lg"></div></div>
-          <div className="animate-pulse"><div className="bg-gray-200 h-56 rounded-lg"></div></div>
-          <div className="animate-pulse"><div className="bg-gray-200 h-56 rounded-lg"></div></div>
+          <div className="animate-pulse">
+            <div className="bg-gray-200 h-56 rounded-lg"></div>
+          </div>
+          <div className="animate-pulse">
+            <div className="bg-gray-200 h-56 rounded-lg"></div>
+          </div>
+          <div className="animate-pulse">
+            <div className="bg-gray-200 h-56 rounded-lg"></div>
+          </div>
+          <div className="animate-pulse">
+            <div className="bg-gray-200 h-56 rounded-lg"></div>
+          </div>
+          <div className="animate-pulse">
+            <div className="bg-gray-200 h-56 rounded-lg"></div>
+          </div>
+          <div className="animate-pulse">
+            <div className="bg-gray-200 h-56 rounded-lg"></div>
+          </div>
         </div>
       ) : instructors.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-500 mb-4">No instructors found</p>
           {permissions.canCreate && (
-            <Button>
+            <Button onClick={() => navigate("/admin/instructors/create")}>
               <Plus className="h-4 w-4 mr-2" />
               Add First Instructor
             </Button>
@@ -220,26 +257,31 @@ export const InstructorsList: React.FC<InstructorsListProps> = ({ initialFilters
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {instructors.map((instructor) => (
-            <div key={instructor.id} className="bg-white p-6 rounded-lg shadow border hover:shadow-md transition-shadow">
+            <div
+              key={instructor.id}
+              className="bg-white p-6 rounded-lg shadow border hover:shadow-md transition-shadow"
+            >
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="font-semibold text-lg">
                     {instructor.user.title && `${instructor.user.title} `}
                     {instructor.user.firstName} {instructor.user.lastName}
                   </h3>
-                  <p className="text-sm text-gray-600">{instructor.employeeId}</p>
+                  <p className="text-sm text-gray-600">{instructor.staffId}</p>
                 </div>
-                <span className={`px-2 py-1 text-xs rounded-full ${
-                  instructor.employmentStatus === 'ACTIVE' 
-                    ? 'bg-green-100 text-green-800' 
-                    : instructor.employmentStatus === 'ON_LEAVE'
-                    ? 'bg-yellow-100 text-yellow-800'
-                    : 'bg-red-100 text-red-800'
-                }`}>
+                <span
+                  className={`px-2 py-1 text-xs rounded-full ${
+                    instructor.employmentStatus === "ACTIVE"
+                      ? "bg-green-100 text-green-800"
+                      : instructor.employmentStatus === "ON_LEAVE"
+                        ? "bg-yellow-100 text-yellow-800"
+                        : "bg-red-100 text-red-800"
+                  }`}
+                >
                   {formatEmploymentStatus(instructor.employmentStatus)}
                 </span>
               </div>
-              
+
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Rank:</span>
@@ -248,17 +290,15 @@ export const InstructorsList: React.FC<InstructorsListProps> = ({ initialFilters
                 <div className="flex justify-between">
                   <span className="text-gray-600">Department:</span>
                   <span className="truncate ml-2">
-                    {instructor.user.department?.name || 'Unassigned'}
+                    {instructor.user.department?.name || "Unassigned"}
                   </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Experience:</span>
-                  <span>{instructor.experience} years</span>
                 </div>
                 {instructor.specialization && (
                   <div className="flex justify-between">
                     <span className="text-gray-600">Specialization:</span>
-                    <span className="truncate ml-2">{instructor.specialization}</span>
+                    <span className="truncate ml-2">
+                      {instructor.specialization}
+                    </span>
                   </div>
                 )}
                 <div className="flex justify-between">
@@ -274,18 +314,28 @@ export const InstructorsList: React.FC<InstructorsListProps> = ({ initialFilters
               </div>
 
               <div className="mt-4 flex gap-2">
-                <Button variant="outline" size="sm" className="flex-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() =>
+                    navigate(`/admin/instructors/${instructor.id}`)
+                  }
+                >
                   <Users className="h-4 w-4 mr-1" />
                   View
                 </Button>
                 {permissions.canUpdate && (
-                  <Button variant="outline" size="sm" className="flex-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() =>
+                      navigate(`/admin/instructors/${instructor.id}/edit`)
+                    }
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
                     Edit
-                  </Button>
-                )}
-                {permissions.canAssignDepartments && (
-                  <Button variant="outline" size="sm">
-                    Assign
                   </Button>
                 )}
               </div>
@@ -299,7 +349,7 @@ export const InstructorsList: React.FC<InstructorsListProps> = ({ initialFilters
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-600">Items per page:</span>
-            <Select 
+            <Select
               value={String(filters.limit || 10)}
               onValueChange={(value) => handleLimitChange(Number(value))}
             >
@@ -314,7 +364,7 @@ export const InstructorsList: React.FC<InstructorsListProps> = ({ initialFilters
               </SelectContent>
             </Select>
           </div>
-          
+
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -341,6 +391,3 @@ export const InstructorsList: React.FC<InstructorsListProps> = ({ initialFilters
     </div>
   );
 };
-
-
-

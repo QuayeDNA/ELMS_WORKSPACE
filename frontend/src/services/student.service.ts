@@ -1,5 +1,4 @@
 import { apiService } from "./api";
-import { ApiResponse } from "@/types/api";
 import {
   Student,
   StudentsResponse,
@@ -322,15 +321,26 @@ class StudentService {
         }
       });
 
-      const response = await apiService.get<ApiResponse<StudentsResponse>>(
+      const response = await apiService.get<StudentsResponse>(
         `${API_ENDPOINTS.STUDENTS.BY_PROGRAM(programId)}?${params.toString()}`
       );
 
-      if (!response.data?.data) {
+      if (!response.success || !response.data) {
         throw new Error(ERROR_MESSAGES.NOT_FOUND);
       }
 
-      return response.data.data;
+      // Check if the response data indicates an error
+      if (
+        typeof response.data === "object" &&
+        response.data !== null &&
+        "success" in response.data &&
+        !response.data.success
+      ) {
+        const errorData = response.data as { message?: string };
+        throw new Error(errorData.message || ERROR_MESSAGES.NOT_FOUND);
+      }
+
+      return response.data;
     } catch (error) {
       console.error(`Error fetching students by program ${programId}:`, error);
       throw error;
@@ -353,15 +363,26 @@ class StudentService {
         }
       });
 
-      const response = await apiService.get<ApiResponse<StudentsResponse>>(
-        `${API_ENDPOINTS.STUDENTS.BY_DEPARTMENT(departmentId)}?${params.toString()}`
+      const response = await apiService.get<StudentsResponse>(
+        `${this.basePath}?departmentId=${departmentId}&${params.toString()}`
       );
 
-      if (!response.data?.data) {
+      if (!response.success || !response.data) {
         throw new Error(ERROR_MESSAGES.NOT_FOUND);
       }
 
-      return response.data.data;
+      // Check if the response data indicates an error
+      if (
+        typeof response.data === "object" &&
+        response.data !== null &&
+        "success" in response.data &&
+        !response.data.success
+      ) {
+        const errorData = response.data as { message?: string };
+        throw new Error(errorData.message || ERROR_MESSAGES.NOT_FOUND);
+      }
+
+      return response.data;
     } catch (error) {
       console.error(
         `Error fetching students by department ${departmentId}:`,

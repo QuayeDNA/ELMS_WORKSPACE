@@ -261,3 +261,8 @@ bower_components/
 # Temporary folders
 tmp/
 temp/
+
+# Docker data directories (local volumes)
+backend/docker-data/
+**/docker-data/
+
