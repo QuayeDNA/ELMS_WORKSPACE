@@ -1,89 +1,132 @@
-import apiService from "./api";
+import { BaseService } from './base.service';
+import { ApiResponse } from '@/types/shared/api';
+import { API_ENDPOINTS } from '@/utils/constants';
 import {
   Course,
   CreateCourseData,
   UpdateCourseData,
   CourseQuery,
-} from "../types/course";
+  CourseListResponse,
+  CourseStats,
+} from '@/types/course';
 
-export const courseService = {
-  // Get all courses with pagination and filtering
-  async getCourses(query?: CourseQuery) {
-    const params = new URLSearchParams();
+/**
+ * Course Service
+ * Handles all course-related API operations
+ */
+class CourseService extends BaseService {
+  constructor() {
+    super(API_ENDPOINTS.COURSES.BASE);
+  }
 
-    if (query?.departmentId)
-      params.append("departmentId", query.departmentId.toString());
-    if (query?.facultyId)
-      params.append("facultyId", query.facultyId.toString());
-    if (query?.institutionId)
-      params.append("institutionId", query.institutionId.toString());
-    if (query?.level) params.append("level", query.level.toString());
-    if (query?.courseType) params.append("courseType", query.courseType);
-    if (query?.isActive !== undefined)
-      params.append("isActive", query.isActive.toString());
-    if (query?.page) params.append("page", query.page.toString());
-    if (query?.limit) params.append("limit", query.limit.toString());
-    if (query?.search) params.append("search", query.search);
-    if (query?.sortBy) params.append("sortBy", query.sortBy);
-    if (query?.sortOrder) params.append("sortOrder", query.sortOrder);
+  // ========================================
+  // CORE CRUD OPERATIONS
+  // ========================================
 
-    const response = await apiService.get(`/api/courses?${params.toString()}`);
+  /**
+   * Get all courses with pagination and filtering
+   */
+  async getCourses(query?: CourseQuery): Promise<ApiResponse<CourseListResponse>> {
+    try {
+      const response = await this.getPaginated<Course>(query);
 
-    if (!response.success || !response.data) {
-      throw new Error("Failed to fetch courses");
+      // Check if the response data indicates an error
+      if (
+        response.data &&
+        typeof response.data === 'object' &&
+        'success' in response.data &&
+        !response.data.success
+      ) {
+        const errorData = response.data as { message?: string };
+        throw new Error(errorData.message || 'Failed to fetch courses');
+      }
+
+      return response;
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+      throw error;
     }
+  }
 
-    // Check if the response data indicates an error
-    if (
-      typeof response.data === "object" &&
-      response.data !== null &&
-      "success" in response.data &&
-      !response.data.success
-    ) {
-      const errorData = response.data as { message?: string };
-      throw new Error(errorData.message || "Failed to fetch courses");
-    }
-
-    return response.data;
-  },
-
-  // Get single course by ID
+  /**
+   * Get single course by ID
+   */
   async getCourseById(id: number): Promise<Course> {
-    const response = await apiService.get<Course>(`/api/courses/${id}`);
-    if (!response.success || !response.data) {
-      throw new Error("Course not found");
-    }
-    return response.data;
-  },
+    try {
+      const response = await this.getById<Course>(id);
 
-  // Create new course
-  async createCourse(data: CreateCourseData) {
-    const response = await apiService.post("/api/courses", data);
-    if (!response.success || !response.data) {
-      throw new Error("Failed to create course");
-    }
-    return response.data;
-  },
+      if (!response.success || !response.data) {
+        throw new Error('Course not found');
+      }
 
-  // Update course
-  async updateCourse(id: number, data: UpdateCourseData) {
-    const response = await apiService.put(`/api/courses/${id}`, data);
-    if (!response.success || !response.data) {
-      throw new Error("Failed to update course");
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching course ${id}:`, error);
+      throw error;
     }
-    return response.data;
-  },
+  }
 
-  // Delete course
-  async deleteCourse(id: number) {
-    const response = await apiService.delete(`/api/courses/${id}`);
-    if (!response.success) {
-      throw new Error("Failed to delete course");
+  /**
+   * Create new course
+   */
+  async createCourse(data: CreateCourseData): Promise<Course> {
+    this.validateRequired(data, ['name', 'code', 'departmentId', 'credits']);
+
+    try {
+      const response = await this.create<Course, CreateCourseData>(data);
+
+      if (!response.success || !response.data) {
+        throw new Error('Failed to create course');
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error('Error creating course:', error);
+      throw error;
     }
-    return response.data;
-  },
+  }
 
-  // Get courses by program
+  /**
+   * Update course
+   */
+  async updateCourse(id: number, data: UpdateCourseData): Promise<Course> {
+    try {
+      const response = await this.update<Course, UpdateCourseData>(id, data);
+
+      if (!response.success || !response.data) {
+        throw new Error('Failed to update course');
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error(`Error updating course ${id}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete course
+   */
+  async deleteCourse(id: number): Promise<void> {
+    try {
+      const response = await this.delete(id);
+
+      if (!response.success) {
+        throw new Error('Failed to delete course');
+      }
+    } catch (error) {
+      console.error(`Error deleting course ${id}:`, error);
+      throw error;
+    }
+  }
+
+  // ========================================
+  // SPECIALIZED OPERATIONS
+  // ========================================
+
+  /**
+   * Get courses by program
+   */
   async getCoursesByProgram(
     programId: number,
     query?: {
@@ -93,46 +136,57 @@ export const courseService = {
       level?: number;
       isActive?: boolean;
     }
-  ) {
-    const params = new URLSearchParams();
-    params.append("programId", programId.toString());
-
-    if (query?.page) params.append("page", query.page.toString());
-    if (query?.limit) params.append("limit", query.limit.toString());
-    if (query?.search) params.append("search", query.search);
-    if (query?.level) params.append("level", query.level.toString());
-    if (query?.isActive !== undefined)
-      params.append("isActive", query.isActive.toString());
-
-    const response = await apiService.get(
-      `/api/courses/program/${programId}?${params.toString()}`
-    );
-    if (!response.success || !response.data) {
-      throw new Error("Failed to fetch courses by program");
+  ): Promise<ApiResponse<CourseListResponse>> {
+    try {
+      const url = this.buildUrl(`/programs/${programId}/courses`, query);
+      return await this.apiService.get<CourseListResponse>(url);
+    } catch (error) {
+      console.error(`Error fetching courses for program ${programId}:`, error);
+      throw error;
     }
+  }
 
-    // Check if the response data indicates an error
-    if (
-      typeof response.data === "object" &&
-      response.data !== null &&
-      "success" in response.data &&
-      !response.data.success
-    ) {
-      const errorData = response.data as { message?: string };
-      throw new Error(
-        errorData.message || "Failed to fetch courses by program"
-      );
-    }
+  /**
+   * Get courses by department
+   */
+  async getCoursesByDepartment(
+    departmentId: number,
+    query?: Omit<CourseQuery, 'departmentId'>
+  ): Promise<ApiResponse<CourseListResponse>> {
+    const fullQuery = { ...query, departmentId };
+    return this.getCourses(fullQuery);
+  }
 
-    return response.data;
-  },
+  /**
+   * Get course statistics
+   */
+  async getCourseStats(
+    filters: Partial<CourseQuery> = {}
+  ): Promise<ApiResponse<CourseStats>> {
+    return this.getStats<CourseStats>('/stats', filters);
+  }
 
-  // Get course statistics
-  async getCourseStats(id: number) {
-    const response = await apiService.get(`/api/courses/${id}/stats`);
-    if (!response.success || !response.data) {
-      throw new Error("Failed to fetch course statistics");
-    }
-    return response.data;
-  },
-};
+  /**
+   * Export courses data
+   */
+  async exportCourses(
+    filters: CourseQuery = {},
+    format: 'csv' | 'excel' = 'csv'
+  ): Promise<Blob> {
+    return this.export(filters, format);
+  }
+
+  /**
+   * Search courses
+   */
+  async searchCourses(
+    searchTerm: string,
+    departmentId?: number
+  ): Promise<ApiResponse<Course[]>> {
+    const additionalParams = departmentId ? { departmentId } : undefined;
+    return this.search<Course>(searchTerm, additionalParams);
+  }
+}
+
+export const courseService = new CourseService();
+export default courseService;

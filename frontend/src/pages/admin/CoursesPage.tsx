@@ -32,13 +32,12 @@ import { Plus, Search, Edit, Trash2, Eye, FileText } from "lucide-react";
 
 interface CourseResponse {
   success: boolean;
-  data: {
-    courses: Course[];
+  data: Course[];
+  pagination: {
+    page: number;
+    limit: number;
     total: number;
     totalPages: number;
-    currentPage: number;
-    hasNext: boolean;
-    hasPrev: boolean;
   };
 }
 
@@ -73,17 +72,27 @@ const CoursesPage: React.FC = () => {
         query
       )) as CourseResponse;
       if (response?.success) {
-        setCourses(response.data?.courses || []);
-        setTotalPages(response.data?.totalPages || 1);
+        const coursesData = response.data || [];
+        setCourses(coursesData);
+        setTotalPages(response.pagination?.totalPages || 1);
+
+        // Calculate stats immediately after setting courses
+        setStats({
+          total: response.pagination?.total || coursesData.length,
+          active: coursesData.filter((c) => c.isActive).length,
+          totalStudents: coursesData.reduce(
+            (sum, c) => sum + (c._count?.courseOfferings || 0),
+            0
+          ),
+          totalLecturers: 0, // This would need to be calculated from lecturer assignments
+        });
       }
     } catch (error) {
       console.error("Error loading courses:", error);
     } finally {
       setLoading(false);
     }
-  }, [currentPage, searchTerm, selectedDepartment]);
-
-  const loadDepartments = useCallback(async () => {
+  }, [currentPage, searchTerm, selectedDepartment]);  const loadDepartments = useCallback(async () => {
     try {
       const response = await departmentService.getDepartments({});
       if (response?.data) {
@@ -94,35 +103,19 @@ const CoursesPage: React.FC = () => {
     }
   }, []);
 
-  const loadStats = useCallback(async () => {
-    try {
-      // Calculate stats from loaded courses
-      setStats({
-        total: courses.length,
-        active: courses.filter((c) => c.isActive).length,
-        totalStudents: courses.reduce(
-          (sum, c) => sum + (c.enrollmentCount || 0),
-          0
-        ),
-        totalLecturers: 0, // This would need to be calculated from lecturer assignments
-      });
-    } catch (error) {
-      console.error("Error loading stats:", error);
-    }
-  }, [courses]);
-
   useEffect(() => {
     loadCourses();
+  }, [loadCourses]);
+
+  useEffect(() => {
     loadDepartments();
-    loadStats();
-  }, [loadCourses, loadDepartments, loadStats]);
+  }, [loadDepartments]);
 
   const handleDelete = async (id: number) => {
     if (window.confirm("Are you sure you want to delete this course?")) {
       try {
         await courseService.deleteCourse(id);
-        loadCourses();
-        loadStats();
+        loadCourses(); // This will also update stats
       } catch (error) {
         console.error("Error deleting course:", error);
       }
@@ -233,14 +226,14 @@ const CoursesPage: React.FC = () => {
               </div>
             </div>
             <Select
-              value={selectedDepartment}
-              onValueChange={setSelectedDepartment}
+              value={selectedDepartment || "all"}
+              onValueChange={(value) => setSelectedDepartment(value === "all" ? "" : value)}
             >
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="All Departments" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Departments</SelectItem>
+                <SelectItem value="all">All Departments</SelectItem>
                 {departments.map((department) => (
                   <SelectItem
                     key={department.id}

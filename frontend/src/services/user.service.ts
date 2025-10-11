@@ -1,5 +1,6 @@
-import { apiService } from "./api";
-import { API_ENDPOINTS } from "@/utils/constants";
+import { BaseService } from './base.service';
+import { ApiResponse } from '@/types/shared/api';
+import { API_ENDPOINTS } from '@/utils/constants';
 import {
   User,
   UserListResponse,
@@ -10,15 +11,16 @@ import {
   USER_ROLES,
   USER_STATUSES,
   UserRole,
-  ApiResponse,
-} from "@/types/shared";
+} from '@/types/shared';
 
-// ========================================
-// USER SERVICE CLASS
-// ========================================
-
-class UserService {
-  private readonly endpoint = API_ENDPOINTS.USERS;
+/**
+ * User Service
+ * Handles all user-related API operations
+ */
+class UserService extends BaseService {
+  constructor() {
+    super(API_ENDPOINTS.USERS);
+  }
 
   // ========================================
   // CORE CRUD OPERATIONS
@@ -28,51 +30,23 @@ class UserService {
    * Get all users with pagination and filtering
    */
   async getUsers(query?: UserQuery): Promise<ApiResponse<UserListResponse>> {
-    try {
-      const params = new URLSearchParams();
-
-      if (query) {
-        Object.entries(query).forEach(([key, value]) => {
-          if (value !== undefined && value !== null && value !== "") {
-            params.append(key, value.toString());
-          }
-        });
-      }
-
-      const queryString = params.toString();
-      const url = queryString
-        ? `${this.endpoint}?${queryString}`
-        : this.endpoint;
-
-      return await apiService.get<UserListResponse>(url);
-    } catch (error) {
-      console.error("Error fetching users:", error);
-      throw error;
-    }
+    return this.getPaginated<User>(query);
   }
 
   /**
    * Get single user by ID
    */
   async getUser(id: number): Promise<ApiResponse<User>> {
-    try {
-      return await apiService.get<User>(`${this.endpoint}/${id}`);
-    } catch (error) {
-      console.error(`Error fetching user ${id}:`, error);
-      throw error;
-    }
+    return this.getById<User>(id);
   }
 
   /**
    * Create new user
    */
   async createUser(data: CreateUserRequest): Promise<ApiResponse<User>> {
-    try {
-      return await apiService.post<User>(this.endpoint, data);
-    } catch (error) {
-      console.error("Error creating user:", error);
-      throw error;
-    }
+    this.validateRequired(data, ['firstName', 'lastName', 'email', 'password', 'role']);
+    this.validateUserData(data);
+    return this.create<User, CreateUserRequest>(data);
   }
 
   /**
@@ -82,25 +56,22 @@ class UserService {
     id: number,
     data: UpdateUserRequest
   ): Promise<ApiResponse<User>> {
-    try {
-      return await apiService.put<User>(`${this.endpoint}/${id}`, data);
-    } catch (error) {
-      console.error(`Error updating user ${id}:`, error);
-      throw error;
+    if (data.email && !this.isValidEmail(data.email)) {
+      throw new Error('Invalid email format');
     }
+    return this.update<User, UpdateUserRequest>(id, data);
   }
 
   /**
    * Delete user
    */
   async deleteUser(id: number): Promise<ApiResponse<void>> {
-    try {
-      return await apiService.delete<void>(`${this.endpoint}/${id}`);
-    } catch (error) {
-      console.error(`Error deleting user ${id}:`, error);
-      throw error;
-    }
+    return this.delete(id);
   }
+
+  // ========================================
+  // SPECIALIZED OPERATIONS
+  // ========================================
 
   /**
    * Get users by institution
@@ -109,14 +80,11 @@ class UserService {
     institutionId: number
   ): Promise<ApiResponse<User[]>> {
     try {
-      return await apiService.get<User[]>(
+      return await this.apiService.get<User[]>(
         `${API_ENDPOINTS.INSTITUTIONS.BASE}/${institutionId}/users`
       );
     } catch (error) {
-      console.error(
-        `Error fetching users for institution ${institutionId}:`,
-        error
-      );
+      console.error(`Error fetching users for institution ${institutionId}:`, error);
       throw error;
     }
   }
@@ -124,9 +92,11 @@ class UserService {
   /**
    * Get users by faculty
    */
-  async getUsersByFaculty(facultyId: number): Promise<ApiResponse<User[]>> {
+  async getUsersByFaculty(
+    facultyId: number
+  ): Promise<ApiResponse<User[]>> {
     try {
-      return await apiService.get<User[]>(
+      return await this.apiService.get<User[]>(
         `${API_ENDPOINTS.FACULTIES.BASE}/${facultyId}/users`
       );
     } catch (error) {
@@ -135,120 +105,151 @@ class UserService {
     }
   }
 
+  /**
+   * Get users by department
+   */
+  async getUsersByDepartment(
+    departmentId: number
+  ): Promise<ApiResponse<User[]>> {
+    try {
+      return await this.apiService.get<User[]>(
+        `${API_ENDPOINTS.DEPARTMENTS.BASE}/${departmentId}/users`
+      );
+    } catch (error) {
+      console.error(`Error fetching users for department ${departmentId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get users by role
+   */
+  async getUsersByRole(
+    role: UserRole,
+    institutionId?: number
+  ): Promise<ApiResponse<User[]>> {
+    const params = { role, ...(institutionId && { institutionId }) };
+    return this.search<User>('', params);
+  }
+
+  /**
+   * Update user status
+   */
+  async updateUserStatus(
+    id: number,
+    status: string
+  ): Promise<ApiResponse<User>> {
+    try {
+      return await this.apiService.put<User>(
+        `${this.endpoint}/${id}/status`,
+        { status }
+      );
+    } catch (error) {
+      console.error(`Error updating user status ${id}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Export users data
+   */
+  async exportUsers(
+    filters: UserQuery = {},
+    format: 'csv' | 'excel' = 'csv'
+  ): Promise<Blob> {
+    return this.export(filters, format);
+  }
+
   // ========================================
-  // UTILITY METHODS
+  // FORM UTILITIES
   // ========================================
 
   /**
-   * Transform form data to API request format
+   * Get empty user form data
    */
-  transformFormData(formData: UserFormData): CreateUserRequest {
+  getEmptyUserForm(): UserFormData {
     return {
-      email: formData.email,
-      password: formData.password,
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      role: formData.role as UserRole, // Will be validated by backend
-      institutionId: formData.institutionId
-        ? parseInt(formData.institutionId)
-        : undefined,
-      facultyId:
-        formData.facultyId && formData.facultyId !== "NONE_OPTIONAL"
-          ? parseInt(formData.facultyId)
-          : undefined,
-      departmentId:
-        formData.departmentId && formData.departmentId !== "NONE_OPTIONAL"
-          ? parseInt(formData.departmentId)
-          : undefined,
-      phone: formData.phone || undefined,
-      middleName: formData.middleName || undefined,
-      title: formData.title || undefined,
-      dateOfBirth: formData.dateOfBirth || undefined,
-      gender: formData.gender || undefined,
-      nationality: formData.nationality || undefined,
-      address: formData.address || undefined,
+      firstName: '',
+      lastName: '',
+      middleName: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      role: UserRole.STUDENT,
+      institutionId: undefined,
+      facultyId: undefined,
+      departmentId: undefined,
+      phone: '',
+      dateOfBirth: undefined,
+      title: '',
+      isActive: true,
     };
   }
 
   /**
-   * Transform user data for form display
+   * Transform user for form
    */
-  transformToFormData(user: User): UserFormData {
+  transformUserForForm(user: User): UserFormData {
     return {
-      email: user.email,
-      password: "", // Don't populate password for security
       firstName: user.firstName,
       lastName: user.lastName,
-      middleName: user.middleName || "",
-      title: user.title || "",
+      middleName: user.middleName || '',
+      email: user.email,
+      password: '',
+      confirmPassword: '',
       role: user.role,
-      status: user.status,
-      phone: user.phone || "",
-      dateOfBirth: user.dateOfBirth || "",
-      gender: user.gender || "",
-      nationality: user.nationality || "",
-      address: user.address || "",
-      institutionId: user.institutionId?.toString() || "",
-      facultyId: user.facultyId?.toString() || "",
-      departmentId: user.departmentId?.toString() || "",
+      institutionId: user.institutionId,
+      facultyId: user.facultyId,
+      departmentId: user.departmentId,
+      phone: user.phone || '',
+      dateOfBirth: user.dateOfBirth,
+      title: user.title || '',
+      isActive: user.status === 'ACTIVE',
     };
   }
 
   /**
-   * Get user display name
+   * Get user role options
    */
-  getDisplayName(user: User): string {
-    const parts = [user.firstName];
-    if (user.middleName) parts.push(user.middleName);
-    parts.push(user.lastName);
-    return parts.join(" ");
+  getUserRoleOptions() {
+    return USER_ROLES;
   }
 
   /**
-   * Get user full name with title
+   * Get user status options
    */
-  getFullName(user: User): string {
-    const name = this.getDisplayName(user);
-    return user.title ? `${user.title} ${name}` : name;
+  getUserStatusOptions() {
+    return USER_STATUSES;
   }
 
-  /**
-   * Check if user has specific role
-   */
-  hasRole(user: User, role: string): boolean {
-    return user.role === role;
+  // ========================================
+  // VALIDATION HELPERS
+  // ========================================
+
+  private validateUserData(data: CreateUserRequest): void {
+    if (!this.isValidEmail(data.email)) {
+      throw new Error('Invalid email format');
+    }
+
+    if (data.password && data.password.length < 8) {
+      throw new Error('Password must be at least 8 characters long');
+    }
+
+    if (data.phone && !this.isValidPhone(data.phone)) {
+      throw new Error('Invalid phone number format');
+    }
   }
 
-  /**
-   * Check if user has admin privileges
-   */
-  isAdmin(user: User): boolean {
-    return [
-      UserRole.SUPER_ADMIN,
-      UserRole.ADMIN,
-      UserRole.FACULTY_ADMIN,
-    ].includes(user.role);
+  private isValidEmail(email: string): boolean {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
   }
 
-  /**
-   * Get role display label
-   */
-  getRoleLabel(role: string): string {
-    const roleOption = USER_ROLES.find((r) => r.value === role);
-    return roleOption?.label || role;
-  }
-
-  /**
-   * Get status display label
-   */
-  getStatusLabel(status: string): string {
-    const statusOption = USER_STATUSES.find((s) => s.value === status);
-    return statusOption?.label || status;
+  private isValidPhone(phone: string): boolean {
+    const phoneRegex = /^[+]?[\d\s\\()-]{10,}$/;
+    return phoneRegex.test(phone);
   }
 }
 
-// ========================================
-// EXPORT SINGLETON INSTANCE
-// ========================================
-
 export const userService = new UserService();
+export default userService;

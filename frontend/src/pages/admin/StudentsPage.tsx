@@ -12,7 +12,6 @@ import {
   RefreshCw,
   Users,
   GraduationCap,
-  TrendingUp,
   AlertCircle,
   Grid,
   List,
@@ -77,6 +76,7 @@ import {
   CreateStudentRequest,
   UpdateStudentRequest,
   StudentsResponse,
+  BackendStudentStats,
 } from "@/types/student";
 
 // Constants
@@ -200,7 +200,7 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
   });
 
   // Query: Student Statistics
-  const { data: stats } = useQuery({
+  const { data: stats } = useQuery<BackendStudentStats>({
     queryKey: ["students", "stats", filters],
     queryFn: () => studentService.getStudentStats(filters),
     enabled: mode === "list",
@@ -566,7 +566,7 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
                   <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.total || 0}</div>
+                  <div className="text-2xl font-bold">{stats.overview.total || 0}</div>
                   <p className="text-xs text-muted-foreground">
                     All registered students
                   </p>
@@ -582,7 +582,7 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {stats.activeStudents || 0}
+                    {stats.overview.active || 0}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Currently enrolled
@@ -590,19 +590,19 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
                 </CardContent>
               </Card>
 
-              <Card className="border-l-4 border-l-yellow-500">
+              <Card className="border-l-4 border-l-red-500">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
-                    New This Year
+                    Suspended Students
                   </CardTitle>
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                  <AlertCircle className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {stats.newThisYear || 0}
+                    {stats.overview.suspended || 0}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Fresh enrollments
+                    Suspended enrollments
                   </p>
                 </CardContent>
               </Card>
@@ -616,11 +616,85 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {stats.graduates || 0}
+                    {stats.overview.graduated || 0}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Completed programs
                   </p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {stats && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+              {/* Level Distribution */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg font-semibold">
+                    Distribution by Level
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {stats.byLevel?.map((levelData) => (
+                      <div
+                        key={levelData.level}
+                        className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                          <span className="font-medium">Level {levelData.level}</span>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-lg font-bold">{levelData._count}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {((levelData._count / (stats.overview.total || 1)) * 100).toFixed(1)}%
+                          </div>
+                        </div>
+                      </div>
+                    )) || []}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Enrollment Status Distribution */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg font-semibold">
+                    Enrollment Status
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {stats.byEnrollmentStatus?.map((statusData) => (
+                      <div
+                        key={statusData.enrollmentStatus}
+                        className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div
+                            className={`w-3 h-3 rounded-full ${
+                              (statusData.enrollmentStatus === 'ACTIVE'
+                                ? 'bg-green-500'
+                                : statusData.enrollmentStatus === 'SUSPENDED'
+                                ? 'bg-red-500'
+                                : 'bg-gray-500')
+                            }`}
+                          ></div>
+                          <span className="font-medium capitalize">
+                            {statusData.enrollmentStatus.toLowerCase().replace('_', ' ')}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-lg font-bold">{statusData._count}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {((statusData._count / (stats.overview.total || 1)) * 100).toFixed(1)}%
+                          </div>
+                        </div>
+                      </div>
+                    )) || []}
+                  </div>
                 </CardContent>
               </Card>
             </div>

@@ -1,7 +1,7 @@
-import { apiService } from "./api";
-import { API_ENDPOINTS } from "@/utils/constants";
+import { BaseService } from './base.service';
+import { ApiResponse } from '@/types/shared/api';
+import { API_ENDPOINTS } from '@/utils/constants';
 import {
-  ApiResponse,
   Faculty,
   FacultyListResponse,
   CreateFacultyRequest,
@@ -9,14 +9,16 @@ import {
   FacultyQuery,
   FacultyFormData,
   FacultyAnalytics,
-} from "@/types/shared";
+} from '@/types/shared';
 
-// ========================================
-// FACULTY SERVICE CLASS
-// ========================================
-
-class FacultyService {
-  private readonly endpoint = API_ENDPOINTS.FACULTIES.BASE;
+/**
+ * Faculty Service
+ * Handles all faculty-related API operations
+ */
+class FacultyService extends BaseService {
+  constructor() {
+    super(API_ENDPOINTS.FACULTIES.BASE);
+  }
 
   // ========================================
   // CORE CRUD OPERATIONS
@@ -25,56 +27,23 @@ class FacultyService {
   /**
    * Get all faculties with pagination and filtering
    */
-  async getFaculties(
-    query?: FacultyQuery
-  ): Promise<ApiResponse<FacultyListResponse>> {
-    try {
-      const params = new URLSearchParams();
-
-      if (query) {
-        Object.entries(query).forEach(([key, value]) => {
-          if (value !== undefined && value !== null && value !== "") {
-            params.append(key, value.toString());
-          }
-        });
-      }
-
-      const queryString = params.toString();
-      const url = queryString
-        ? `${this.endpoint}?${queryString}`
-        : this.endpoint;
-
-      return await apiService.get<FacultyListResponse>(url);
-    } catch (error) {
-      console.error("Error fetching faculties:", error);
-      throw error;
-    }
+  async getFaculties(query?: FacultyQuery): Promise<ApiResponse<FacultyListResponse>> {
+    return this.getPaginated<Faculty>(query);
   }
 
   /**
    * Get single faculty by ID
    */
   async getFaculty(id: number): Promise<ApiResponse<Faculty>> {
-    try {
-      return await apiService.get<Faculty>(`${this.endpoint}/${id}`);
-    } catch (error) {
-      console.error(`Error fetching faculty ${id}:`, error);
-      throw error;
-    }
+    return this.getById<Faculty>(id);
   }
 
   /**
    * Create new faculty
    */
-  async createFaculty(
-    data: CreateFacultyRequest
-  ): Promise<ApiResponse<Faculty>> {
-    try {
-      return await apiService.post<Faculty>(this.endpoint, data);
-    } catch (error) {
-      console.error("Error creating faculty:", error);
-      throw error;
-    }
+  async createFaculty(data: CreateFacultyRequest): Promise<ApiResponse<Faculty>> {
+    this.validateRequired(data, ['name', 'code', 'institutionId']);
+    return this.create<Faculty, CreateFacultyRequest>(data);
   }
 
   /**
@@ -84,118 +53,94 @@ class FacultyService {
     id: number,
     data: UpdateFacultyRequest
   ): Promise<ApiResponse<Faculty>> {
-    try {
-      return await apiService.put<Faculty>(`${this.endpoint}/${id}`, data);
-    } catch (error) {
-      console.error(`Error updating faculty ${id}:`, error);
-      throw error;
-    }
+    return this.update<Faculty, UpdateFacultyRequest>(id, data);
   }
 
   /**
    * Delete faculty
    */
   async deleteFaculty(id: number): Promise<ApiResponse<void>> {
-    try {
-      return await apiService.delete<void>(`${this.endpoint}/${id}`);
-    } catch (error) {
-      console.error(`Error deleting faculty ${id}:`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * Assign dean to faculty
-   */
-  async assignDean(
-    facultyId: number,
-    deanId: number
-  ): Promise<ApiResponse<Faculty>> {
-    try {
-      return await apiService.put<Faculty>(
-        `${this.endpoint}/${facultyId}/dean`,
-        { deanId }
-      );
-    } catch (error) {
-      console.error(`Error assigning dean to faculty ${facultyId}:`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * Remove dean from faculty
-   */
-  async removeDean(facultyId: number): Promise<ApiResponse<Faculty>> {
-    try {
-      return await apiService.delete<Faculty>(
-        `${this.endpoint}/${facultyId}/dean`
-      );
-    } catch (error) {
-      console.error(`Error removing dean from faculty ${facultyId}:`, error);
-      throw error;
-    }
+    return this.delete(id);
   }
 
   // ========================================
-  // UTILITY METHODS
+  // SPECIALIZED OPERATIONS
   // ========================================
 
   /**
-   * Transform form data to API request format
+   * Get faculties by institution
    */
-  transformFormData(formData: FacultyFormData): CreateFacultyRequest {
-    return {
-      name: formData.name,
-      code: formData.code,
-      institutionId: formData.institutionId,
-      description: formData.description || undefined,
-    };
+  async getFacultiesByInstitution(
+    institutionId: number,
+    query?: Omit<FacultyQuery, 'institutionId'>
+  ): Promise<ApiResponse<FacultyListResponse>> {
+    const fullQuery = { ...query, institutionId };
+    return this.getFaculties(fullQuery);
   }
 
   /**
-   * Transform faculty data for form display
-   */
-  transformToFormData(faculty: Faculty): FacultyFormData {
-    return {
-      name: faculty.name,
-      code: faculty.code,
-      institutionId: faculty.institutionId,
-      description: faculty.description || "",
-    };
-  }
-
-  // ========================================
-  // ANALYTICS METHODS
-  // ========================================
-
-  /**
-   * Get faculty analytics data
+   * Get faculty analytics
    */
   async getFacultyAnalytics(
     institutionId?: number
   ): Promise<ApiResponse<FacultyAnalytics>> {
-    try {
-      const params = new URLSearchParams();
+    const params = institutionId ? { institutionId } : undefined;
+    return this.getStats<FacultyAnalytics>('/analytics', params);
+  }
 
-      if (institutionId) {
-        params.append("institutionId", institutionId.toString());
-      }
+  /**
+   * Search faculties
+   */
+  async searchFaculties(
+    searchTerm: string,
+    institutionId?: number
+  ): Promise<ApiResponse<Faculty[]>> {
+    const additionalParams = institutionId ? { institutionId } : undefined;
+    return this.search<Faculty>(searchTerm, additionalParams);
+  }
 
-      const queryString = params.toString();
-      const url = queryString
-        ? `${this.endpoint}/analytics?${queryString}`
-        : `${this.endpoint}/analytics`;
+  /**
+   * Export faculties data
+   */
+  async exportFaculties(
+    filters: FacultyQuery = {},
+    format: 'csv' | 'excel' = 'csv'
+  ): Promise<Blob> {
+    return this.export(filters, format);
+  }
 
-      return await apiService.get<FacultyAnalytics>(url);
-    } catch (error) {
-      console.error("Error fetching faculty analytics:", error);
-      throw error;
-    }
+  // ========================================
+  // FORM UTILITIES
+  // ========================================
+
+  /**
+   * Get empty faculty form data
+   */
+  getEmptyFacultyForm(): FacultyFormData {
+    return {
+      name: '',
+      code: '',
+      institutionId: 0,
+      description: '',
+      deanId: undefined,
+      isActive: true,
+    };
+  }
+
+  /**
+   * Transform faculty for form
+   */
+  transformFacultyForForm(faculty: Faculty): FacultyFormData {
+    return {
+      name: faculty.name,
+      code: faculty.code,
+      institutionId: faculty.institutionId,
+      description: faculty.description || '',
+      deanId: faculty.deanId || undefined,
+      isActive: faculty.isActive,
+    };
   }
 }
 
-// ========================================
-// EXPORT SINGLETON INSTANCE
-// ========================================
-
 export const facultyService = new FacultyService();
+export default facultyService;

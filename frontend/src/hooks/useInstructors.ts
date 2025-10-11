@@ -27,10 +27,13 @@ export const useInstructors = (initialFilters: InstructorFilters = {}) => {
   const permissions = usePermissions();
   const { getDataFilters } = useDataScope();
 
-  // Check if user can view instructors
-  if (!permissions.canViewInstructors) {
-    throw new Error('Access denied: You do not have permission to view instructors');
-  }
+  // Check if user can view instructors - set error state instead of throwing
+  useEffect(() => {
+    if (!permissions.canViewInstructors) {
+      setError('Access denied: You do not have permission to view instructors');
+      setLoading(false);
+    }
+  }, [permissions.canViewInstructors, permissions]);
 
   const fetchInstructors = useCallback(async (filters: InstructorFilters = {}) => {
     try {
@@ -42,8 +45,16 @@ export const useInstructors = (initialFilters: InstructorFilters = {}) => {
       const combinedFilters = { ...initialFilters, ...filters, ...scopeFilters };
 
       const response = await instructorService.getInstructors(combinedFilters);
-      setInstructors(response.data);
-      setPagination(response.pagination);
+
+      setInstructors(response.data || []);
+      setPagination(response.pagination || {
+        page: 1,
+        limit: 10,
+        total: 0,
+        totalPages: 0,
+        hasNext: false,
+        hasPrev: false,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch instructors');
     } finally {
@@ -53,7 +64,8 @@ export const useInstructors = (initialFilters: InstructorFilters = {}) => {
 
   useEffect(() => {
     fetchInstructors();
-  }, [fetchInstructors]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount
 
   const createInstructor = useCallback(async (instructorData: CreateInstructorRequest): Promise<Instructor> => {
     if (!permissions.canCreateInstructors) {
@@ -125,7 +137,7 @@ export const useInstructors = (initialFilters: InstructorFilters = {}) => {
   }, [permissions.canAssignInstructorDepartments, fetchInstructors]);
 
   const updateInstructorStatus = useCallback(async (
-    id: number, 
+    id: number,
     status: { employmentStatus?: string; employmentType?: string }
   ): Promise<Instructor> => {
     if (!permissions.canUpdateInstructors) {

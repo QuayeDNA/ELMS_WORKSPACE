@@ -27,15 +27,57 @@ class InstructorService {
       }
     });
 
-    const response = await apiService.get<ApiResponse<InstructorsResponse>>(
-      `${this.basePath}?${params.toString()}`
-    );
+    const response = await apiService.get<{
+      success: boolean;
+      data: Instructor[];
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+        hasNext: boolean;
+        hasPrev: boolean;
+      };
+      filters: InstructorFilters;
+    }>(`${this.basePath}?${params.toString()}`);
 
-    if (!response.data?.success || !response.data?.data) {
+    if (!response.success || !response.data) {
       throw new Error("Failed to fetch instructors");
     }
 
-    return response.data.data;
+    // The response.data contains the actual API response
+    const apiData = response.data;
+
+    // Since the backend returns {success, data, pagination, filters}
+    // And the apiService wraps it, we need to handle both cases
+    let result;
+    if (apiData && typeof apiData === 'object' && 'success' in apiData) {
+      // apiData is the full backend response
+      result = {
+        success: apiData.success,
+        data: apiData.data,
+        pagination: apiData.pagination,
+        filters: apiData.filters,
+      };
+    } else {
+      // apiData is just the instructors array (fallback)
+      const instructorsArray = Array.isArray(apiData) ? apiData : [];
+      result = {
+        success: true,
+        data: instructorsArray,
+        pagination: {
+          page: 1,
+          limit: 10,
+          total: instructorsArray.length,
+          totalPages: 1,
+          hasNext: false,
+          hasPrev: false,
+        },
+        filters: {},
+      };
+    }
+
+    return result;
   }
 
   // Get instructor by staff ID

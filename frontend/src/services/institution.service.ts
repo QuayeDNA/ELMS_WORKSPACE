@@ -1,363 +1,280 @@
-import { apiService } from './api';
-import { ApiResponse } from '@/types/api';
+import { BaseService } from './base.service';
 import { API_ENDPOINTS } from '@/utils/constants';
 import {
-  Institution,
-  InstitutionListResponse,
-  CreateInstitutionRequest,
-  UpdateInstitutionRequest,
-  InstitutionQuery,
-  CreateInstitutionWithAdminRequest,
-  InstitutionWithAdminResponse,
-  InstitutionStats,
-  InstitutionSpecificAnalytics,
-  InstitutionFormData,
-  AdminFormData,
-  InstitutionType
-} from '@/types/institution';
+  Instructor,
+  InstructorsResponse,
+  CreateInstructorRequest,
+  UpdateInstructorRequest,
+  InstructorFilters,
+  DepartmentAssignment,
+  InstructorStats,
+  InstructorWorkload,
+  BulkInstructorImportResponse,
+} from '@/types/instructor';
 
-// ========================================
-// INSTITUTION SERVICE CLASS
-// ========================================
-
-class InstitutionService {
-  private readonly endpoint = API_ENDPOINTS.INSTITUTIONS.BASE;
+/**
+ * Instructor Service
+ * Handles all instructor-related API operations
+ */
+class InstructorService extends BaseService {
+  constructor() {
+    super(API_ENDPOINTS.INSTRUCTORS.BASE);
+  }
 
   // ========================================
   // CORE CRUD OPERATIONS
   // ========================================
 
   /**
-   * Get all institutions with pagination and filtering
+   * Get all instructors with pagination and filtering
    */
-  async getInstitutions(query?: InstitutionQuery): Promise<ApiResponse<InstitutionListResponse>> {
+  async getInstructors(filters: InstructorFilters = {}): Promise<InstructorsResponse> {
     try {
-      const params = new URLSearchParams();
-      
-      if (query) {
-        Object.entries(query).forEach(([key, value]) => {
-          if (value !== undefined && value !== null && value !== '') {
-            params.append(key, value.toString());
-          }
-        });
+      const response = await this.getPaginated<Instructor>(filters);
+
+      // Transform response to match expected InstructorsResponse format
+      if (response.success && response.data) {
+        return {
+          success: true,
+          data: {
+            instructors: response.data.data,
+            pagination: response.data.pagination,
+          },
+          message: response.message,
+        };
       }
 
-      const queryString = params.toString();
-      const url = queryString ? `${this.endpoint}?${queryString}` : this.endpoint;
-      
-      return await apiService.get<InstitutionListResponse>(url);
+      throw new Error(response.message || 'Failed to fetch instructors');
     } catch (error) {
-      console.error('Error fetching institutions:', error);
+      console.error('Error fetching instructors:', error);
       throw error;
     }
   }
 
   /**
-   * Get single institution by ID
+   * Get single instructor by ID
    */
-  async getInstitution(id: number): Promise<ApiResponse<Institution>> {
+  async getInstructorById(id: number): Promise<Instructor> {
     try {
-      return await apiService.get<Institution>(`${this.endpoint}/${id}`);
+      const response = await this.getById<Instructor>(id);
+
+      if (!response.data) {
+        throw new Error('Instructor not found');
+      }
+
+      return response.data;
     } catch (error) {
-      console.error(`Error fetching institution ${id}:`, error);
+      console.error(`Error fetching instructor ${id}:`, error);
       throw error;
     }
   }
 
   /**
-   * Create new institution
+   * Create new instructor
    */
-  async createInstitution(data: CreateInstitutionRequest): Promise<ApiResponse<Institution>> {
+  async createInstructor(data: CreateInstructorRequest): Promise<Instructor> {
+    this.validateRequired(data, ['firstName', 'lastName', 'email', 'departmentId']);
+    this.validateInstructorData(data);
+
     try {
-      return await apiService.post<Institution>(this.endpoint, data);
+      const response = await this.create<Instructor, CreateInstructorRequest>(data);
+
+      if (!response.data) {
+        throw new Error('Failed to create instructor');
+      }
+
+      return response.data;
     } catch (error) {
-      console.error('Error creating institution:', error);
+      console.error('Error creating instructor:', error);
       throw error;
     }
   }
 
   /**
-   * Update existing institution
+   * Update instructor
    */
-  async updateInstitution(id: number, data: UpdateInstitutionRequest): Promise<ApiResponse<Institution>> {
+  async updateInstructor(
+    id: number,
+    data: UpdateInstructorRequest
+  ): Promise<Instructor> {
     try {
-      return await apiService.put<Institution>(`${this.endpoint}/${id}`, data);
+      const response = await this.update<Instructor, UpdateInstructorRequest>(id, data);
+
+      if (!response.data) {
+        throw new Error('Failed to update instructor');
+      }
+
+      return response.data;
     } catch (error) {
-      console.error(`Error updating institution ${id}:`, error);
+      console.error(`Error updating instructor ${id}:`, error);
       throw error;
     }
   }
 
   /**
-   * Delete institution
+   * Delete instructor
    */
-  async deleteInstitution(id: number): Promise<ApiResponse<void>> {
+  async deleteInstructor(id: number): Promise<void> {
     try {
-      return await apiService.delete<void>(`${this.endpoint}/${id}`);
+      await this.delete(id);
     } catch (error) {
-      console.error(`Error deleting institution ${id}:`, error);
+      console.error(`Error deleting instructor ${id}:`, error);
       throw error;
     }
   }
 
   // ========================================
-  // INSTITUTION WITH ADMIN OPERATIONS
+  // SPECIALIZED OPERATIONS
   // ========================================
 
   /**
-   * Create institution with admin user
+   * Get instructors by department
    */
-  async createInstitutionWithAdmin(
-    data: CreateInstitutionWithAdminRequest
-  ): Promise<ApiResponse<InstitutionWithAdminResponse>> {
+  async getInstructorsByDepartment(
+    departmentId: number,
+    filters: Partial<InstructorFilters> = {}
+  ): Promise<InstructorsResponse> {
+    return this.getInstructors({ ...filters, departmentId });
+  }
+
+  /**
+   * Get instructors by academic rank
+   */
+  async getInstructorsByRank(
+    academicRank: string,
+    filters: Partial<InstructorFilters> = {}
+  ): Promise<InstructorsResponse> {
+    return this.getInstructors({
+      ...filters,
+      academicRank: academicRank as InstructorFilters['academicRank'],
+    });
+  }
+
+  /**
+   * Get instructor workload
+   */
+  async getInstructorWorkload(id: number): Promise<InstructorWorkload> {
     try {
-      return await apiService.post<InstitutionWithAdminResponse>(API_ENDPOINTS.INSTITUTIONS.WITH_ADMIN, data);
+      const response = await this.apiService.get<InstructorWorkload>(
+        `${this.endpoint}/${id}/workload`
+      );
+
+      if (!response.data) {
+        throw new Error('Failed to fetch instructor workload');
+      }
+
+      return response.data;
     } catch (error) {
-      console.error('Error creating institution with admin:', error);
+      console.error(`Error fetching instructor workload ${id}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update instructor department assignments
+   */
+  async updateDepartmentAssignments(
+    id: number,
+    assignments: DepartmentAssignment[]
+  ): Promise<Instructor> {
+    try {
+      const response = await this.apiService.put<Instructor>(
+        `${this.endpoint}/${id}/departments`,
+        { assignments }
+      );
+
+      if (!response.data) {
+        throw new Error('Failed to update department assignments');
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error(`Error updating department assignments for instructor ${id}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get instructor statistics
+   */
+  async getInstructorStats(
+    filters: Partial<InstructorFilters> = {}
+  ): Promise<InstructorStats> {
+    try {
+      const response = await this.getStats<InstructorStats>('/stats', filters);
+
+      if (!response.data) {
+        throw new Error('Failed to fetch instructor stats');
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching instructor stats:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Export instructors data
+   */
+  async exportInstructors(
+    filters: InstructorFilters = {},
+    format: 'csv' | 'excel' = 'csv'
+  ): Promise<Blob> {
+    return this.export(filters, format);
+  }
+
+  /**
+   * Bulk import instructors
+   */
+  async bulkImportInstructors(
+    instructors: CreateInstructorRequest[]
+  ): Promise<BulkInstructorImportResponse> {
+    try {
+      const response = await this.bulkOperation<BulkInstructorImportResponse, CreateInstructorRequest[]>(
+        'bulk-import',
+        instructors
+      );
+
+      if (!response.data) {
+        throw new Error('Failed to bulk import instructors');
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error('Error bulk importing instructors:', error);
       throw error;
     }
   }
 
   // ========================================
-  // ANALYTICS OPERATIONS
+  // VALIDATION HELPERS
   // ========================================
 
-  /**
-   * Get institution analytics
-   */
-  async getInstitutionAnalytics(id: number): Promise<ApiResponse<InstitutionSpecificAnalytics>> {
-    try {
-      return await apiService.get<InstitutionSpecificAnalytics>(API_ENDPOINTS.INSTITUTIONS.ANALYTICS(id));
-    } catch (error) {
-      console.error(`Error fetching analytics for institution ${id}:`, error);
-      throw error;
+  private validateInstructorData(data: CreateInstructorRequest): void {
+    if (!this.isValidEmail(data.email)) {
+      throw new Error('Invalid email format');
+    }
+
+    if (data.phone && !this.isValidPhone(data.phone)) {
+      throw new Error('Invalid phone number format');
+    }
+
+    if (data.dateOfBirth && new Date(data.dateOfBirth) > new Date()) {
+      throw new Error('Date of birth cannot be in the future');
     }
   }
-
-  /**
-   * Get overall analytics for all institutions
-   */
-  async getOverallAnalytics(): Promise<ApiResponse<InstitutionStats>> {
-    try {
-      return await apiService.get<InstitutionStats>(API_ENDPOINTS.INSTITUTIONS.OVERVIEW_ANALYTICS);
-    } catch (error) {
-      console.error('Error fetching overall analytics:', error);
-      throw error;
-    }
-  }
-
-  // ========================================
-  // UTILITY METHODS
-  // ========================================
-
-  /**
-   * Transform form data to API request format
-   */
-  transformFormToRequest(formData: InstitutionFormData): CreateInstitutionRequest {
-    return {
-      name: formData.name.trim(),
-      code: formData.code.trim().toUpperCase(),
-      type: formData.type,
-      establishedYear: formData.establishedYear ? parseInt(formData.establishedYear) : undefined,
-      address: formData.address.trim() || undefined,
-      city: formData.city.trim() || undefined,
-      state: formData.state.trim() || undefined,
-      country: formData.country.trim() || undefined,
-      contactEmail: formData.contactEmail.trim() || undefined,
-      contactPhone: formData.contactPhone.trim() || undefined,
-      website: formData.website.trim() || undefined,
-      description: formData.description.trim() || undefined,
-    };
-  }
-
-  /**
-   * Transform form data to institution with admin request
-   */
-  transformFormToWithAdminRequest(
-    institutionForm: InstitutionFormData,
-    adminForm: AdminFormData
-  ): CreateInstitutionWithAdminRequest {
-    return {
-      institution: this.transformFormToRequest(institutionForm),
-      admin: {
-        firstName: adminForm.firstName.trim(),
-        lastName: adminForm.lastName.trim(),
-        email: adminForm.email.trim().toLowerCase(),
-        password: adminForm.password,
-        phone: adminForm.phone.trim() || undefined,
-      },
-    };
-  }
-
-  /**
-   * Validate institution form data
-   */
-  validateInstitutionForm(formData: InstitutionFormData): string[] {
-    const errors: string[] = [];
-
-    if (!formData.name.trim()) {
-      errors.push('Institution name is required');
-    }
-
-    if (!formData.code.trim()) {
-      errors.push('Institution code is required');
-    } else if (formData.code.length < 2) {
-      errors.push('Institution code must be at least 2 characters');
-    }
-
-    if (!formData.type) {
-      errors.push('Institution type is required');
-    }
-
-    if (formData.establishedYear && parseInt(formData.establishedYear) > new Date().getFullYear()) {
-      errors.push('Established year cannot be in the future');
-    }
-
-    if (formData.contactEmail && !this.isValidEmail(formData.contactEmail)) {
-      errors.push('Contact email must be a valid email address');
-    }
-
-    if (formData.website && !this.isValidUrl(formData.website)) {
-      errors.push('Website must be a valid URL');
-    }
-
-    return errors;
-  }
-
-  /**
-   * Validate admin form data
-   */
-  validateAdminForm(formData: AdminFormData): string[] {
-    const errors: string[] = [];
-
-    if (!formData.firstName.trim()) {
-      errors.push('First name is required');
-    }
-
-    if (!formData.lastName.trim()) {
-      errors.push('Last name is required');
-    }
-
-    if (!formData.email.trim()) {
-      errors.push('Email is required');
-    } else if (!this.isValidEmail(formData.email)) {
-      errors.push('Email must be a valid email address');
-    }
-
-    if (!formData.password) {
-      errors.push('Password is required');
-    } else if (formData.password.length < 8) {
-      errors.push('Password must be at least 8 characters');
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      errors.push('Passwords do not match');
-    }
-
-    return errors;
-  }
-
-  /**
-   * Search institutions by term
-   */
-  async searchInstitutions(searchTerm: string): Promise<ApiResponse<Institution[]>> {
-    try {
-      const query: InstitutionQuery = {
-        search: searchTerm,
-        limit: 10,
-      };
-      
-      const response = await this.getInstitutions(query);
-      return {
-        ...response,
-        data: response.data?.institutions || [],
-      };
-    } catch (error) {
-      console.error('Error searching institutions:', error);
-      throw error;
-    }
-  }
-
-  // ========================================
-  // PRIVATE HELPER METHODS
-  // ========================================
 
   private isValidEmail(email: string): boolean {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   }
 
-  private isValidUrl(url: string): boolean {
-    try {
-      new URL(url);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  // ========================================
-  // FORM INITIALIZATION HELPERS
-  // ========================================
-
-  /**
-   * Get empty institution form data
-   */
-  getEmptyInstitutionForm(): InstitutionFormData {
-    return {
-      name: '',
-      code: '',
-      type: InstitutionType.UNIVERSITY,
-      establishedYear: '',
-      address: '',
-      city: '',
-      state: '',
-      country: '',
-      contactEmail: '',
-      contactPhone: '',
-      website: '',
-      description: '',
-    };
-  }
-
-  /**
-   * Get empty admin form data
-   */
-  getEmptyAdminForm(): AdminFormData {
-    return {
-      firstName: '',
-      lastName: '',
-      email: '',
-      password: '',
-      confirmPassword: '',
-      phone: '',
-    };
-  }
-
-  /**
-   * Convert institution to form data for editing
-   */
-  institutionToFormData(institution: Institution): InstitutionFormData {
-    return {
-      name: institution.name,
-      code: institution.code,
-      type: institution.type,
-      establishedYear: institution.establishedYear?.toString() || '',
-      address: institution.address || '',
-      city: institution.city || '',
-      state: institution.state || '',
-      country: institution.country || '',
-      contactEmail: institution.contactEmail || '',
-      contactPhone: institution.contactPhone || '',
-      website: institution.website || '',
-      description: institution.description || '',
-    };
+  private isValidPhone(phone: string): boolean {
+    const phoneRegex = /^[+]?[\d\s\-\\()]{10,}$/;
+    return phoneRegex.test(phone);
   }
 }
 
-// ========================================
-// EXPORT SINGLETON INSTANCE
-// ========================================
-
-export const institutionService = new InstitutionService();
-export default institutionService;
+export const instructorService = new InstructorService();
+export default instructorService;

@@ -1,18 +1,17 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
-import { useInstructors } from "@/hooks/useInstructors";
-import { InstructorFilters } from "@/types/instructor";
-import { usePermissions } from "@/hooks/usePermissions";
+import { instructorService } from "@/services/instructor.service";
+import { Instructor, InstructorFilters } from "@/types/instructor";
 import {
   Search,
-  Filter,
   Plus,
-  Download,
   BarChart3,
   Users,
   Edit,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 import {
   Select,
@@ -21,6 +20,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface InstructorsListProps {
   initialFilters?: InstructorFilters;
@@ -30,34 +32,75 @@ export const InstructorsList: React.FC<InstructorsListProps> = ({
   initialFilters = {},
 }) => {
   const navigate = useNavigate();
-  const [filters, setFilters] = useState<InstructorFilters>(initialFilters);
+  const [instructors, setInstructors] = useState<Instructor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [filters, setFilters] = useState<InstructorFilters>({
+    page: 1,
+    limit: 10,
+    ...initialFilters,
+  });
   const [searchQuery, setSearchQuery] = useState("");
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+    hasNext: false,
+    hasPrev: false,
+  });
 
-  const {
-    instructors,
-    loading,
-    error,
-    pagination,
-    fetchInstructors,
-    exportInstructors,
-    permissions,
-  } = useInstructors(initialFilters);
+  // Fetch instructors function
+  const fetchInstructors = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-  const { canViewInstructorStats } = usePermissions();
+      const response = await instructorService.getInstructors(filters);
 
+      setInstructors(response.data || []);
+      setPagination(response.pagination || {
+        page: 1,
+        limit: 10,
+        total: 0,
+        totalPages: 0,
+        hasNext: false,
+        hasPrev: false,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to fetch instructors");
+      setInstructors([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [filters]);
+
+  // Initial load
+  useEffect(() => {
+    fetchInstructors();
+  }, [fetchInstructors]);
+
+  // Fetch when filters change
+  useEffect(() => {
+    if (filters.page !== 1 || Object.keys(filters).length > 2) {
+      fetchInstructors();
+    }
+  }, [filters, fetchInstructors]);
+
+  // Search with debounce
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (searchQuery !== filters.search) {
-        setFilters((prev) => ({ ...prev, search: searchQuery, page: 1 }));
+        setFilters((prev) => ({
+          ...prev,
+          search: searchQuery.trim() || undefined,
+          page: 1
+        }));
       }
     }, 500);
 
     return () => clearTimeout(timeoutId);
   }, [searchQuery, filters.search]);
-
-  useEffect(() => {
-    fetchInstructors(filters);
-  }, [filters, fetchInstructors]);
 
   const handlePageChange = (page: number) => {
     setFilters((prev) => ({ ...prev, page }));
@@ -71,24 +114,8 @@ export const InstructorsList: React.FC<InstructorsListProps> = ({
     setFilters((prev) => ({ ...prev, sortBy, sortOrder, page: 1 }));
   };
 
-  const handleExport = async (format: "csv" | "excel" = "csv") => {
-    try {
-      const blob = await exportInstructors(filters, format);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `instructors-export.${format}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error("Export failed:", err);
-    }
-  };
-
   const clearFilters = () => {
-    setFilters({ page: 1, limit: filters.limit });
+    setFilters({ page: 1, limit: 10 });
     setSearchQuery("");
   };
 
@@ -100,20 +127,47 @@ export const InstructorsList: React.FC<InstructorsListProps> = ({
       .replace(/\b\w/g, (l) => l.toUpperCase());
   };
 
-  const formatEmploymentStatus = (status: string) => {
-    return status
+  const formatEmploymentType = (type: string) => {
+    return type
       .replace(/_/g, " ")
       .toLowerCase()
       .replace(/\b\w/g, (l) => l.toUpperCase());
   };
 
-  if (error) {
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case "ACTIVE":
+        return "default";
+      case "ON_LEAVE":
+        return "secondary";
+      case "RETIRED":
+        return "outline";
+      default:
+        return "destructive";
+    }
+  };
+
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <p className="text-red-600 mb-4">{error}</p>
-          <Button onClick={() => fetchInstructors(filters)}>Retry</Button>
+        <div className="flex items-center space-x-2">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span>Loading instructors...</span>
         </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+        <Button onClick={fetchInstructors} variant="outline">
+          Try Again
+        </Button>
       </div>
     );
   }
@@ -121,271 +175,219 @@ export const InstructorsList: React.FC<InstructorsListProps> = ({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold">Instructors</h1>
-          <p className="text-gray-600">
-            {pagination?.total || 0} instructors found
+          <p className="text-muted-foreground">
+            {pagination.total} instructor{pagination.total !== 1 ? 's' : ''} found
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {canViewInstructorStats && (
-            <Button variant="outline" size="sm">
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Statistics
-            </Button>
-          )}
-          {permissions.canExport && (
-            <Select
-              onValueChange={(value) => handleExport(value as "csv" | "excel")}
-            >
-              <SelectTrigger className="w-32">
-                <Download className="h-4 w-4 mr-2" />
-                <span>Export</span>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="csv">CSV</SelectItem>
-                <SelectItem value="excel">Excel</SelectItem>
-              </SelectContent>
-            </Select>
-          )}
-          {permissions.canCreate && (
-            <Button onClick={() => navigate("/admin/instructors/create")}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Instructor
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Search and Filters */}
-      <div className="flex items-center gap-4">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Search instructors by name, employee ID, or specialization..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <Button variant="outline" className="flex items-center gap-2">
-          <Filter className="h-4 w-4" />
-          Filters
-          {Object.keys(filters).length > 2 && (
-            <span className="ml-1 bg-blue-500 text-white text-xs rounded-full px-2 py-1">
-              {Object.keys(filters).length - 2}
-            </span>
-          )}
-        </Button>
-        {Object.keys(filters).length > 2 && (
-          <Button variant="ghost" onClick={clearFilters}>
-            Clear
+          <Button
+            onClick={() => navigate("/admin/instructors/stats")}
+            variant="outline"
+            size="sm"
+          >
+            <BarChart3 className="h-4 w-4 mr-2" />
+            Statistics
           </Button>
-        )}
+          <Button
+            onClick={() => navigate("/admin/instructors/new")}
+            size="sm"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Instructor
+          </Button>
+        </div>
       </div>
 
-      {/* Sort Controls */}
-      <div className="flex items-center gap-4">
-        <span className="text-sm text-gray-600">Sort by:</span>
-        <Select
-          value={filters.sortBy || "createdAt"}
-          onValueChange={(value) =>
-            handleSortChange(value, filters.sortOrder || "desc")
-          }
-        >
-          <SelectTrigger className="w-48">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="createdAt">Created Date</SelectItem>
-            <SelectItem value="staffId">Staff ID</SelectItem>
-            <SelectItem value="academicRank">Academic Rank</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select
-          value={filters.sortOrder || "desc"}
-          onValueChange={(value) =>
-            handleSortChange(
-              filters.sortBy || "createdAt",
-              value as "asc" | "desc"
-            )
-          }
-        >
-          <SelectTrigger className="w-32">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="asc">Ascending</SelectItem>
-            <SelectItem value="desc">Descending</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Instructors Grid */}
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="animate-pulse">
-            <div className="bg-gray-200 h-56 rounded-lg"></div>
-          </div>
-          <div className="animate-pulse">
-            <div className="bg-gray-200 h-56 rounded-lg"></div>
-          </div>
-          <div className="animate-pulse">
-            <div className="bg-gray-200 h-56 rounded-lg"></div>
-          </div>
-          <div className="animate-pulse">
-            <div className="bg-gray-200 h-56 rounded-lg"></div>
-          </div>
-          <div className="animate-pulse">
-            <div className="bg-gray-200 h-56 rounded-lg"></div>
-          </div>
-          <div className="animate-pulse">
-            <div className="bg-gray-200 h-56 rounded-lg"></div>
-          </div>
-        </div>
-      ) : instructors.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-gray-500 mb-4">No instructors found</p>
-          {permissions.canCreate && (
-            <Button onClick={() => navigate("/admin/instructors/create")}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add First Instructor
-            </Button>
-          )}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {instructors.map((instructor) => (
-            <div
-              key={instructor.id}
-              className="bg-white p-6 rounded-lg shadow border hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="font-semibold text-lg">
-                    {instructor.user.title && `${instructor.user.title} `}
-                    {instructor.user.firstName} {instructor.user.lastName}
-                  </h3>
-                  <p className="text-sm text-gray-600">{instructor.staffId}</p>
-                </div>
-                <span
-                  className={`px-2 py-1 text-xs rounded-full ${
-                    instructor.employmentStatus === "ACTIVE"
-                      ? "bg-green-100 text-green-800"
-                      : instructor.employmentStatus === "ON_LEAVE"
-                        ? "bg-yellow-100 text-yellow-800"
-                        : "bg-red-100 text-red-800"
-                  }`}
-                >
-                  {formatEmploymentStatus(instructor.employmentStatus)}
-                </span>
-              </div>
-
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Rank:</span>
-                  <span>{formatAcademicRank(instructor.academicRank)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Department:</span>
-                  <span className="truncate ml-2">
-                    {instructor.user.department?.name || "Unassigned"}
-                  </span>
-                </div>
-                {instructor.specialization && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Specialization:</span>
-                    <span className="truncate ml-2">
-                      {instructor.specialization}
-                    </span>
-                  </div>
-                )}
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Email:</span>
-                  <span className="truncate ml-2">{instructor.user.email}</span>
-                </div>
-                {instructor.officeLocation && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Office:</span>
-                    <span>{instructor.officeLocation}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-4 flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1"
-                  onClick={() =>
-                    navigate(`/admin/instructors/${instructor.id}`)
-                  }
-                >
-                  <Users className="h-4 w-4 mr-1" />
-                  View
-                </Button>
-                {permissions.canUpdate && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() =>
-                      navigate(`/admin/instructors/${instructor.id}/edit`)
-                    }
-                  >
-                    <Edit className="h-4 w-4 mr-1" />
-                    Edit
-                  </Button>
-                )}
+      {/* Filters */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search instructors by name, staff ID, or specialization..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
               </div>
             </div>
-          ))}
-        </div>
-      )}
+            <div className="flex gap-2">
+              <Select
+                value={filters.sortBy || "id"}
+                onValueChange={(value) => handleSortChange(value, filters.sortOrder || "desc")}
+              >
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="id">Created Date</SelectItem>
+                  <SelectItem value="firstName">First Name</SelectItem>
+                  <SelectItem value="lastName">Last Name</SelectItem>
+                  <SelectItem value="academicRank">Academic Rank</SelectItem>
+                  <SelectItem value="hireDate">Hire Date</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select
+                value={filters.sortOrder || "desc"}
+                onValueChange={(value) => handleSortChange(filters.sortBy || "id", value as "asc" | "desc")}
+              >
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue placeholder="Order" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="desc">Descending</SelectItem>
+                  <SelectItem value="asc">Ascending</SelectItem>
+                </SelectContent>
+              </Select>
+              {(filters.search || filters.sortBy !== "id" || filters.sortOrder !== "desc") && (
+                <Button onClick={clearFilters} variant="outline" size="sm">
+                  Clear Filters
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Pagination */}
-      {pagination?.totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">Items per page:</span>
-            <Select
-              value={String(filters.limit || 10)}
-              onValueChange={(value) => handleLimitChange(Number(value))}
-            >
-              <SelectTrigger className="w-20">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="10">10</SelectItem>
-                <SelectItem value="25">25</SelectItem>
-                <SelectItem value="50">50</SelectItem>
-                <SelectItem value="100">100</SelectItem>
-              </SelectContent>
-            </Select>
+      {/* Results */}
+      {instructors.length === 0 ? (
+        <Card>
+          <CardContent className="py-16">
+            <div className="text-center">
+              <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium mb-2">No instructors found</h3>
+              <p className="text-muted-foreground mb-4">
+                {filters.search
+                  ? "Try adjusting your search criteria"
+                  : "Get started by adding your first instructor"
+                }
+              </p>
+              <Button onClick={() => navigate("/admin/instructors/new")}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add First Instructor
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {/* Instructors Grid */}
+          <div className="grid gap-4">
+            {instructors.map((instructor) => (
+              <Card key={instructor.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="pt-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start space-x-4">
+                      <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                        <span className="text-blue-600 font-semibold">
+                          {instructor.user.firstName[0]}{instructor.user.lastName[0]}
+                        </span>
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2">
+                          <h3 className="font-semibold">
+                            {instructor.user.title} {instructor.user.firstName} {instructor.user.lastName}
+                          </h3>
+                          <Badge variant={getStatusBadgeVariant(instructor.employmentStatus)}>
+                            {formatEmploymentType(instructor.employmentStatus)}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Staff ID: {instructor.staffId}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {instructor.user.email}
+                        </p>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          <Badge variant="outline">
+                            {formatAcademicRank(instructor.academicRank)}
+                          </Badge>
+                          <Badge variant="outline">
+                            {formatEmploymentType(instructor.employmentType)}
+                          </Badge>
+                          {instructor.specialization && (
+                            <Badge variant="outline">
+                              {instructor.specialization}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {instructor.user.department?.name} • {instructor.user.department?.faculty?.name}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        onClick={() => navigate(`/admin/instructors/${instructor.id}`)}
+                        variant="outline"
+                        size="sm"
+                      >
+                        <Edit className="h-4 w-4 mr-1" />
+                        Edit
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
 
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handlePageChange(pagination?.page - 1)}
-              disabled={!pagination?.hasPrev}
-            >
-              Previous
-            </Button>
-            <span className="text-sm text-gray-600">
-              Page {pagination?.page || 1} of {pagination?.totalPages || 1}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handlePageChange(pagination?.page + 1)}
-              disabled={!pagination?.hasNext}
-            >
-              Next
-            </Button>
-          </div>
+          {/* Pagination */}
+          {pagination.totalPages > 1 && (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-muted-foreground">
+                      Showing {((pagination.page - 1) * pagination.limit) + 1} to{" "}
+                      {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
+                      {pagination.total} instructors
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Select
+                      value={pagination.limit.toString()}
+                      onValueChange={(value) => handleLimitChange(parseInt(value))}
+                    >
+                      <SelectTrigger className="w-[100px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10">10 per page</SelectItem>
+                        <SelectItem value="25">25 per page</SelectItem>
+                        <SelectItem value="50">50 per page</SelectItem>
+                        <SelectItem value="100">100 per page</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      onClick={() => handlePageChange(pagination.page - 1)}
+                      disabled={!pagination.hasPrev}
+                      variant="outline"
+                      size="sm"
+                    >
+                      Previous
+                    </Button>
+                    <span className="text-sm">
+                      Page {pagination.page} of {pagination.totalPages}
+                    </span>
+                    <Button
+                      onClick={() => handlePageChange(pagination.page + 1)}
+                      disabled={!pagination.hasNext}
+                      variant="outline"
+                      size="sm"
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
     </div>

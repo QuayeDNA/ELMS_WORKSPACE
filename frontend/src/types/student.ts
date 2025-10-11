@@ -228,3 +228,28 @@ export interface StudentStats {
     count: number;
   }>;
 }
+
+/**
+ * Backend Student Statistics Response Structure
+ * Matches the actual API response from the backend
+ */
+export interface BackendStudentStats {
+  overview: {
+    total: number;
+    active: number;
+    graduated: number;
+    suspended: number;
+  };
+  byLevel: Array<{
+    _count: number;
+    level: number;
+  }>;
+  byProgram: Array<{
+    _count: number;
+    programId: number;
+  }>;
+  byEnrollmentStatus: Array<{
+    _count: number;
+    enrollmentStatus: string;
+  }>;
+}

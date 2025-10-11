@@ -1,136 +1,123 @@
-import { apiService } from "./api";
-import { API_ENDPOINTS } from "@/utils/constants";
+import { BaseService } from './base.service';
+import { ApiResponse } from '@/types/shared/api';
+import { API_ENDPOINTS } from '@/utils/constants';
 import {
-  ApiResponse,
   Program,
   ProgramListResponse,
   CreateProgramRequest,
   UpdateProgramRequest,
   ProgramQuery,
   ProgramStats,
-} from "@/types/shared";
+} from '@/types/shared';
 
-export const programService = {
-  // Get all programs with pagination and filtering
-  async getPrograms(
-    query?: ProgramQuery
-  ): Promise<ApiResponse<ProgramListResponse>> {
-    try {
-      const params = new URLSearchParams();
+/**
+ * Program Service
+ * Handles all program-related API operations
+ */
+class ProgramService extends BaseService {
+  constructor() {
+    super(API_ENDPOINTS.PROGRAMS.BASE);
+  }
 
-      if (query?.departmentId)
-        params.append("departmentId", query.departmentId.toString());
-      if (query?.facultyId)
-        params.append("facultyId", query.facultyId.toString());
-      if (query?.institutionId)
-        params.append("institutionId", query.institutionId.toString());
-      if (query?.type) params.append("type", query.type);
-      if (query?.level) params.append("level", query.level);
-      if (query?.isActive !== undefined)
-        params.append("isActive", query.isActive.toString());
-      if (query?.page) params.append("page", query.page.toString());
-      if (query?.limit) params.append("limit", query.limit.toString());
-      if (query?.search) params.append("search", query.search);
-      if (query?.sortBy) params.append("sortBy", query.sortBy);
-      if (query?.sortOrder) params.append("sortOrder", query.sortOrder);
+  // ========================================
+  // CORE CRUD OPERATIONS
+  // ========================================
 
-      const queryString = params.toString();
-      const url = queryString
-        ? `${API_ENDPOINTS.PROGRAMS.BASE}?${queryString}`
-        : API_ENDPOINTS.PROGRAMS.BASE;
+  /**
+   * Get all programs with pagination and filtering
+   */
+  async getPrograms(query?: ProgramQuery): Promise<ApiResponse<ProgramListResponse>> {
+    return this.getPaginated<Program>(query);
+  }
 
-      return await apiService.get<ProgramListResponse>(url);
-    } catch (error) {
-      console.error("Error fetching programs:", error);
-      throw error;
-    }
-  },
-
-  // Get single program by ID
+  /**
+   * Get single program by ID
+   */
   async getProgramById(id: number): Promise<ApiResponse<Program>> {
-    try {
-      return await apiService.get<Program>(API_ENDPOINTS.PROGRAMS.BY_ID(id));
-    } catch (error) {
-      console.error("Error fetching program:", error);
-      throw error;
-    }
-  },
+    return this.getById<Program>(id);
+  }
 
-  // Create new program
-  async createProgram(
-    data: CreateProgramRequest
-  ): Promise<ApiResponse<Program>> {
-    try {
-      return await apiService.post<Program>(API_ENDPOINTS.PROGRAMS.BASE, data);
-    } catch (error) {
-      console.error("Error creating program:", error);
-      throw error;
-    }
-  },
+  /**
+   * Create new program
+   */
+  async createProgram(data: CreateProgramRequest): Promise<ApiResponse<Program>> {
+    this.validateRequired(data, ['name', 'code', 'departmentId', 'type', 'level', 'durationYears']);
+    return this.create<Program, CreateProgramRequest>(data);
+  }
 
-  // Update program
+  /**
+   * Update program
+   */
   async updateProgram(
     id: number,
     data: UpdateProgramRequest
   ): Promise<ApiResponse<Program>> {
-    try {
-      return await apiService.put<Program>(
-        API_ENDPOINTS.PROGRAMS.BY_ID(id),
-        data
-      );
-    } catch (error) {
-      console.error("Error updating program:", error);
-      throw error;
-    }
-  },
+    return this.update<Program, UpdateProgramRequest>(id, data);
+  }
 
-  // Delete program
+  /**
+   * Delete program
+   */
   async deleteProgram(id: number): Promise<ApiResponse<void>> {
-    try {
-      return await apiService.delete<void>(API_ENDPOINTS.PROGRAMS.BY_ID(id));
-    } catch (error) {
-      console.error("Error deleting program:", error);
-      throw error;
-    }
-  },
+    return this.delete(id);
+  }
 
-  // Get programs by department
+  // ========================================
+  // SPECIALIZED OPERATIONS
+  // ========================================
+
+  /**
+   * Get programs by department
+   */
   async getProgramsByDepartment(
     departmentId: number,
-    query?: {
-      page?: number;
-      limit?: number;
-      search?: string;
-      isActive?: boolean;
-    }
+    query?: Omit<ProgramQuery, 'departmentId'>
   ): Promise<ApiResponse<ProgramListResponse>> {
-    try {
-      const params = new URLSearchParams();
-      params.append("departmentId", departmentId.toString());
+    const fullQuery = { ...query, departmentId };
+    return this.getPrograms(fullQuery);
+  }
 
-      if (query?.page) params.append("page", query.page.toString());
-      if (query?.limit) params.append("limit", query.limit.toString());
-      if (query?.search) params.append("search", query.search);
-      if (query?.isActive !== undefined)
-        params.append("isActive", query.isActive.toString());
+  /**
+   * Get programs by faculty
+   */
+  async getProgramsByFaculty(
+    facultyId: number,
+    query?: Omit<ProgramQuery, 'facultyId'>
+  ): Promise<ApiResponse<ProgramListResponse>> {
+    const fullQuery = { ...query, facultyId };
+    return this.getPrograms(fullQuery);
+  }
 
-      const url = `${API_ENDPOINTS.PROGRAMS.BASE}?${params.toString()}`;
-      return await apiService.get<ProgramListResponse>(url);
-    } catch (error) {
-      console.error("Error fetching programs by department:", error);
-      throw error;
-    }
-  },
+  /**
+   * Get program statistics
+   */
+  async getProgramStats(
+    filters: Partial<ProgramQuery> = {}
+  ): Promise<ApiResponse<ProgramStats>> {
+    return this.getStats<ProgramStats>('/stats', filters);
+  }
 
-  // Get program statistics
-  async getProgramStats(id: number): Promise<ApiResponse<ProgramStats>> {
-    try {
-      return await apiService.get<ProgramStats>(
-        `${API_ENDPOINTS.PROGRAMS.BY_ID(id)}/stats`
-      );
-    } catch (error) {
-      console.error("Error fetching program stats:", error);
-      throw error;
-    }
-  },
-};
+  /**
+   * Export programs data
+   */
+  async exportPrograms(
+    filters: ProgramQuery = {},
+    format: 'csv' | 'excel' = 'csv'
+  ): Promise<Blob> {
+    return this.export(filters, format);
+  }
+
+  /**
+   * Search programs
+   */
+  async searchPrograms(
+    searchTerm: string,
+    departmentId?: number
+  ): Promise<ApiResponse<Program[]>> {
+    const additionalParams = departmentId ? { departmentId } : undefined;
+    return this.search<Program>(searchTerm, additionalParams);
+  }
+}
+
+export const programService = new ProgramService();
+export default programService;

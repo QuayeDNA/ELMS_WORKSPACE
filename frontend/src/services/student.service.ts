@@ -7,8 +7,9 @@ import {
   StudentFilters,
   BulkStudentImport,
   BulkStudentImportResponse,
-  StudentStats,
+  BackendStudentStats,
 } from "@/types/student";
+import { ApiResponse } from "@/types/api";
 import {
   API_ENDPOINTS,
   API_CONFIG,
@@ -55,9 +56,19 @@ class StudentService {
         }
       });
 
-      const response = await apiService.get<StudentsResponse>(
-        `${this.basePath}?${params.toString()}`
-      );
+      const response = await apiService.get<{
+        success: boolean;
+        data: Student[];
+        pagination: {
+          page: number;
+          limit: number;
+          total: number;
+          totalPages: number;
+          hasNext: boolean;
+          hasPrev: boolean;
+        };
+        filters?: StudentFilters;
+      }>(`${this.basePath}?${params.toString()}`);
 
       if (!response.success) {
         throw new Error(response.message || ERROR_MESSAGES.SERVER);
@@ -67,7 +78,45 @@ class StudentService {
         throw new Error(ERROR_MESSAGES.NOT_FOUND);
       }
 
-      return response.data;
+      // Handle the response structure - response.data contains the backend response
+      const apiData = response.data;
+
+      // Check if apiData is the full backend response or just the students array
+      let result: StudentsResponse;
+      if (apiData && typeof apiData === 'object' && 'success' in apiData) {
+        // apiData is the full backend response
+        result = {
+          success: apiData.success,
+          data: apiData.data || [],
+          pagination: apiData.pagination || {
+            page: 1,
+            limit: 20,
+            total: 0,
+            totalPages: 0,
+            hasNext: false,
+            hasPrev: false,
+          },
+          filters: apiData.filters || {},
+        };
+      } else {
+        // apiData is just the students array (fallback)
+        const studentsArray = Array.isArray(apiData) ? apiData : [];
+        result = {
+          success: true,
+          data: studentsArray,
+          pagination: {
+            page: 1,
+            limit: 20,
+            total: studentsArray.length,
+            totalPages: 1,
+            hasNext: false,
+            hasPrev: false,
+          },
+          filters: {},
+        };
+      }
+
+      return result;
     } catch (error) {
       console.error("Error fetching students:", error);
       throw error;
@@ -79,15 +128,22 @@ class StudentService {
    */
   async getStudentById(id: number): Promise<Student> {
     try {
-      const response = await apiService.get<Student>(
-        API_ENDPOINTS.STUDENTS.BY_ID(id)
-      );
+      const response = await apiService.get<{
+        success: boolean;
+        data: Student;
+      }>(API_ENDPOINTS.STUDENTS.BY_ID(id));
 
-      if (!response.data) {
+      if (!response.success || !response.data) {
         throw new Error(ERROR_MESSAGES.NOT_FOUND);
       }
 
-      return response.data;
+      // Handle the response structure
+      const apiData = response.data;
+      if (apiData && typeof apiData === 'object' && 'success' in apiData) {
+        return apiData.data;
+      } else {
+        return apiData as Student;
+      }
     } catch (error) {
       console.error(`Error fetching student ${id}:`, error);
       throw error;
@@ -99,15 +155,22 @@ class StudentService {
    */
   async getStudentByStudentId(studentId: string): Promise<Student> {
     try {
-      const response = await apiService.get<Student>(
-        `${this.basePath}/by-student-id/${studentId}`
-      );
+      const response = await apiService.get<{
+        success: boolean;
+        data: Student;
+      }>(`${this.basePath}/by-student-id/${studentId}`);
 
-      if (!response.data) {
+      if (!response.success || !response.data) {
         throw new Error(ERROR_MESSAGES.NOT_FOUND);
       }
 
-      return response.data;
+      // Handle the response structure
+      const apiData = response.data;
+      if (apiData && typeof apiData === 'object' && 'success' in apiData) {
+        return apiData.data;
+      } else {
+        return apiData as Student;
+      }
     } catch (error) {
       console.error(
         `Error fetching student by student ID ${studentId}:`,
@@ -125,16 +188,22 @@ class StudentService {
       // Validate required fields using constants
       this.validateStudentData(studentData);
 
-      const response = await apiService.post<Student>(
-        this.basePath,
-        studentData
-      );
+      const response = await apiService.post<{
+        success: boolean;
+        data: Student;
+      }>(this.basePath, studentData);
 
-      if (!response.data) {
+      if (!response.success || !response.data) {
         throw new Error(ERROR_MESSAGES.SERVER);
       }
 
-      return response.data;
+      // Handle the response structure
+      const apiData = response.data;
+      if (apiData && typeof apiData === 'object' && 'success' in apiData) {
+        return apiData.data;
+      } else {
+        return apiData as Student;
+      }
     } catch (error) {
       console.error("Error creating student:", error);
       throw error;
@@ -149,16 +218,22 @@ class StudentService {
     updates: UpdateStudentRequest
   ): Promise<Student> {
     try {
-      const response = await apiService.put<Student>(
-        API_ENDPOINTS.STUDENTS.BY_ID(id),
-        updates
-      );
+      const response = await apiService.put<{
+        success: boolean;
+        data: Student;
+      }>(API_ENDPOINTS.STUDENTS.BY_ID(id), updates);
 
-      if (!response.data) {
+      if (!response.success || !response.data) {
         throw new Error(ERROR_MESSAGES.SERVER);
       }
 
-      return response.data;
+      // Handle the response structure
+      const apiData = response.data;
+      if (apiData && typeof apiData === 'object' && 'success' in apiData) {
+        return apiData.data;
+      } else {
+        return apiData as Student;
+      }
     } catch (error) {
       console.error(`Error updating student ${id}:`, error);
       throw error;
@@ -207,16 +282,26 @@ class StudentService {
         throw new Error("Invalid academic status");
       }
 
-      const response = await apiService.patch<Student>(
+      const response = await apiService.patch<Student | ApiResponse<Student>>(
         API_ENDPOINTS.STUDENTS.UPDATE_STATUS(id),
         status
       );
 
-      if (!response.success || !response.data) {
+      // Handle different response structures
+      if (response.data && typeof response.data === 'object' && 'success' in response.data && 'data' in response.data) {
+        const apiResponse = response.data;
+        if (!apiResponse.success || !apiResponse.data) {
+          throw new Error(ERROR_MESSAGES.SERVER);
+        }
+        return apiResponse.data;
+      }
+
+      // Direct response structure
+      if (!response.data) {
         throw new Error(ERROR_MESSAGES.SERVER);
       }
 
-      return response.data;
+      return response.data as Student;
     } catch (error) {
       console.error(`Error updating student status ${id}:`, error);
       throw error;
@@ -225,10 +310,11 @@ class StudentService {
 
   /**
    * Get student statistics
+   * Returns the backend stats structure directly
    */
   async getStudentStats(
     filters: Partial<StudentFilters> = {}
-  ): Promise<StudentStats> {
+  ): Promise<BackendStudentStats> {
     try {
       const params = new URLSearchParams();
 
@@ -238,7 +324,7 @@ class StudentService {
         }
       });
 
-      const response = await apiService.get<StudentStats>(
+      const response = await apiService.get<BackendStudentStats>(
         `${API_ENDPOINTS.STUDENTS.STATS}?${params.toString()}`
       );
 
@@ -265,7 +351,7 @@ class StudentService {
         importData
       );
 
-      if (!response.success || !response.data) {
+      if (!response.data) {
         throw new Error(ERROR_MESSAGES.SERVER);
       }
 
@@ -325,19 +411,25 @@ class StudentService {
         `${API_ENDPOINTS.STUDENTS.BY_PROGRAM(programId)}?${params.toString()}`
       );
 
-      if (!response.success || !response.data) {
-        throw new Error(ERROR_MESSAGES.NOT_FOUND);
+      // Handle different response structures
+      if (response.data && typeof response.data === 'object') {
+        // Check if this is a nested response (response.data contains another response with success/data)
+        if ('success' in response.data && 'data' in response.data && 'pagination' in response.data) {
+          // This is the direct StudentsResponse structure
+          return response.data as StudentsResponse;
+        } else if ('success' in response.data && 'data' in response.data && !('pagination' in response.data)) {
+          // This might be a nested ApiResponse containing StudentsResponse
+          const apiResponse = response.data as ApiResponse<StudentsResponse>;
+          if (!apiResponse.success || !apiResponse.data) {
+            throw new Error(ERROR_MESSAGES.NOT_FOUND);
+          }
+          return apiResponse.data;
+        }
       }
 
-      // Check if the response data indicates an error
-      if (
-        typeof response.data === "object" &&
-        response.data !== null &&
-        "success" in response.data &&
-        !response.data.success
-      ) {
-        const errorData = response.data as { message?: string };
-        throw new Error(errorData.message || ERROR_MESSAGES.NOT_FOUND);
+      // Direct response structure
+      if (!response.data) {
+        throw new Error(ERROR_MESSAGES.NOT_FOUND);
       }
 
       return response.data;
@@ -367,19 +459,25 @@ class StudentService {
         `${this.basePath}?departmentId=${departmentId}&${params.toString()}`
       );
 
-      if (!response.success || !response.data) {
-        throw new Error(ERROR_MESSAGES.NOT_FOUND);
+      // Handle different response structures
+      if (response.data && typeof response.data === 'object') {
+        // Check if this is a nested response (response.data contains another response with success/data)
+        if ('success' in response.data && 'data' in response.data && 'pagination' in response.data) {
+          // This is the direct StudentsResponse structure
+          return response.data as StudentsResponse;
+        } else if ('success' in response.data && 'data' in response.data && !('pagination' in response.data)) {
+          // This might be a nested ApiResponse containing StudentsResponse
+          const apiResponse = response.data as ApiResponse<StudentsResponse>;
+          if (!apiResponse.success || !apiResponse.data) {
+            throw new Error(ERROR_MESSAGES.NOT_FOUND);
+          }
+          return apiResponse.data;
+        }
       }
 
-      // Check if the response data indicates an error
-      if (
-        typeof response.data === "object" &&
-        response.data !== null &&
-        "success" in response.data &&
-        !response.data.success
-      ) {
-        const errorData = response.data as { message?: string };
-        throw new Error(errorData.message || ERROR_MESSAGES.NOT_FOUND);
+      // Direct response structure
+      if (!response.data) {
+        throw new Error(ERROR_MESSAGES.NOT_FOUND);
       }
 
       return response.data;

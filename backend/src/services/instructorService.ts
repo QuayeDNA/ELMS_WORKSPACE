@@ -120,8 +120,11 @@ export const instructorService = {
         page,
         limit,
         total,
-        pages: Math.ceil(total / limit),
+        totalPages: Math.ceil(total / limit),
+        hasNext: page < Math.ceil(total / limit),
+        hasPrev: page > 1,
       },
+      filters: params,
     };
   },
 

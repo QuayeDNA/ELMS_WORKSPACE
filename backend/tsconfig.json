@@ -1,7 +1,9 @@
 {
   "compilerOptions": {
     "target": "ES2023",
-    "lib": ["ES2023"],
+    "lib": [
+      "ES2023"
+    ],
     "module": "node16",
     "moduleResolution": "node16",
     "outDir": "./dist",
@@ -36,19 +38,40 @@
     "removeComments": false,
     "importHelpers": false,
     "downlevelIteration": true,
+    "ignoreDeprecations": "6.0",
     "baseUrl": "./src",
     "paths": {
-      "@/*": ["*"],
-      "@/types/*": ["types/*"],
-      "@/services/*": ["services/*"],
-      "@/controllers/*": ["controllers/*"],
-      "@/middleware/*": ["middleware/*"],
-      "@/models/*": ["models/*"],
-      "@/utils/*": ["utils/*"],
-      "@/config/*": ["config/*"],
-      "@/routes/*": ["routes/*"]
+      "@/*": [
+        "*"
+      ],
+      "@/types/*": [
+        "types/*"
+      ],
+      "@/services/*": [
+        "services/*"
+      ],
+      "@/controllers/*": [
+        "controllers/*"
+      ],
+      "@/middleware/*": [
+        "middleware/*"
+      ],
+      "@/models/*": [
+        "models/*"
+      ],
+      "@/utils/*": [
+        "utils/*"
+      ],
+      "@/config/*": [
+        "config/*"
+      ],
+      "@/routes/*": [
+        "routes/*"
+      ]
     },
-    "typeRoots": ["./node_modules/@types"],
+    "typeRoots": [
+      "./node_modules/@types"
+    ],
   },
   "include": [
     "src/**/*",
@@ -64,6 +87,8 @@
   "ts-node": {
     "esm": false,
     "experimentalSpecifierResolution": "node",
-    "require": ["tsconfig-paths/register"]
+    "require": [
+      "tsconfig-paths/register"
+    ]
   }
 }

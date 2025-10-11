@@ -39,6 +39,11 @@ class ApiService {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const axiosError = error as any;
 
+        // Handle 304 Not Modified as success (it includes data)
+        if (axiosError.response?.status === 304) {
+          return axiosError.response;
+        }
+
         if (axiosError.response?.status === 401 && !axiosError.config?._retry) {
           axiosError.config = axiosError.config || {};
           axiosError.config._retry = true;
@@ -89,19 +94,26 @@ class ApiService {
   private async handleRequest<T>(requestPromise: Promise<AxiosResponse>): Promise<ApiResponse<T>> {
     try {
       const response: AxiosResponse = await requestPromise;
-      
-      // Check if the backend already returns a structured response
-      if (response.data && typeof response.data === 'object' && 'success' in response.data) {
-        // Backend already returns {success, data, message} structure
-        return response.data as ApiResponse<T>;
+
+      // Handle 304 Not Modified - treat as success
+      if (response.status === 304 || (response.status >= 200 && response.status < 400)) {
+        // Check if the backend already returns a structured response
+        if (response.data && typeof response.data === 'object' && 'success' in response.data) {
+          // Backend already returns {success, data, message} structure
+          return response.data as ApiResponse<T>;
+        }
+
+        // Backend returns raw data, wrap it
+        return {
+          success: true,
+          data: response.data,
+          message: 'Request successful',
+        };
       }
-      
-      // Backend returns raw data, wrap it
-      return {
-        success: true,
-        data: response.data,
-        message: 'Request successful',
-      };
+
+      // For other status codes, treat as error
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+
     } catch (error) {
       const apiError = this.createApiError(error);
       return {
