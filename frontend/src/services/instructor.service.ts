@@ -82,44 +82,44 @@ class InstructorService {
 
   // Get instructor by staff ID
   async getInstructorByStaffId(staffId: string): Promise<Instructor> {
-    const response = await apiService.get<ApiResponse<Instructor>>(
+    const response = await apiService.get<Instructor>(
       `${this.basePath}/by-staff-id/${staffId}`
     );
 
-    if (!response.data?.data) {
+    if (!response.data) {
       throw new Error("Instructor not found");
     }
 
-    return response.data.data;
+    return response.data;
   }
 
   // Get instructor by ID
   async getInstructorById(id: number): Promise<Instructor> {
-    const response = await apiService.get<ApiResponse<Instructor>>(
+    const response = await apiService.get<Instructor>(
       `${this.basePath}/${id}`
     );
 
-    if (!response.data?.data) {
+    if (!response.data) {
       throw new Error("Instructor not found");
     }
 
-    return response.data.data;
+    return response.data;
   }
 
   // Create new instructor
   async createInstructor(
     instructorData: CreateInstructorRequest
   ): Promise<Instructor> {
-    const response = await apiService.post<ApiResponse<Instructor>>(
+    const response = await apiService.post<Instructor>(
       this.basePath,
       instructorData
     );
 
-    if (!response.data?.data) {
+    if (!response.data) {
       throw new Error("Failed to create instructor");
     }
 
-    return response.data.data;
+    return response.data;
   }
 
   // Update instructor
@@ -127,16 +127,16 @@ class InstructorService {
     id: number,
     updates: UpdateInstructorRequest
   ): Promise<Instructor> {
-    const response = await apiService.put<ApiResponse<Instructor>>(
+    const response = await apiService.put<Instructor>(
       `${this.basePath}/${id}`,
       updates
     );
 
-    if (!response.data?.data) {
+    if (!response.data) {
       throw new Error("Failed to update instructor");
     }
 
-    return response.data.data;
+    return response.data;
   }
 
   // Delete instructor
@@ -149,16 +149,16 @@ class InstructorService {
     id: number,
     assignment: DepartmentAssignment
   ): Promise<Instructor> {
-    const response = await apiService.post<ApiResponse<Instructor>>(
+    const response = await apiService.post<Instructor>(
       `${this.basePath}/${id}/departments`,
       assignment
     );
 
-    if (!response.data?.data) {
+    if (!response.data) {
       throw new Error("Failed to assign instructor to department");
     }
 
-    return response.data.data;
+    return response.data;
   }
 
   // Remove instructor from department
@@ -166,15 +166,15 @@ class InstructorService {
     id: number,
     departmentId: number
   ): Promise<Instructor> {
-    const response = await apiService.delete<ApiResponse<Instructor>>(
+    const response = await apiService.delete<Instructor>(
       `${this.basePath}/${id}/departments/${departmentId}`
     );
 
-    if (!response.data?.data) {
+    if (!response.data) {
       throw new Error("Failed to remove instructor from department");
     }
 
-    return response.data.data;
+    return response.data;
   }
 
   // Update instructor status
@@ -206,28 +206,28 @@ class InstructorService {
       }
     });
 
-    const response = await apiService.get<ApiResponse<InstructorStats>>(
+    const response = await apiService.get<InstructorStats>(
       `${this.basePath}/stats?${params.toString()}`
     );
 
-    if (!response.data?.data) {
+    if (!response.data) {
       throw new Error("Failed to fetch instructor statistics");
     }
 
-    return response.data.data;
+    return response.data;
   }
 
   // Get instructor workload
   async getInstructorWorkload(id: number): Promise<InstructorWorkload> {
-    const response = await apiService.get<ApiResponse<InstructorWorkload>>(
+    const response = await apiService.get<InstructorWorkload>(
       `${this.basePath}/${id}/workload`
     );
 
-    if (!response.data?.data) {
+    if (!response.data) {
       throw new Error("Failed to fetch instructor workload");
     }
 
-    return response.data.data;
+    return response.data;
   }
 
   // Search instructors
@@ -315,15 +315,16 @@ class InstructorService {
   async bulkImportInstructors(
     instructors: CreateInstructorRequest[]
   ): Promise<BulkInstructorImportResponse> {
-    const response = await apiService.post<
-      ApiResponse<BulkInstructorImportResponse>
-    >(`${this.basePath}/bulk-import`, { instructors });
+    const response = await apiService.post<BulkInstructorImportResponse>(
+      `${this.basePath}/bulk-import`,
+      { instructors }
+    );
 
-    if (!response.data?.data) {
+    if (!response.data) {
       throw new Error("Failed to import instructors");
     }
 
-    return response.data.data;
+    return response.data;
   }
 }
 

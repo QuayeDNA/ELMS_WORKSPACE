@@ -61,7 +61,14 @@ export interface PaginatedListResponse<T> {
 /**
  * Standard paginated response wrapper
  */
-export interface PaginatedResponse<T> extends ApiResponse<PaginatedListResponse<T>> {}
+export interface PaginatedResponse<T> {
+  success: boolean;
+  message: string;
+  data: T[];
+  pagination: PaginationMeta;
+  error?: ApiError;
+  errors?: Record<string, string[]>;
+}
 
 // ========================================
 // CONVENIENCE TYPES FOR COMMON PATTERNS
@@ -112,16 +119,14 @@ export function createPaginatedResponse<T>(
   return {
     success: true,
     message,
-    data: {
-      data,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages,
-        hasNext: page < totalPages,
-        hasPrev: page > 1
-      }
+    data,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages,
+      hasNext: page < totalPages,
+      hasPrev: page > 1
     }
   };
 }

@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
-    "target": "ES2023",
+    "target": "ES2022",
     "lib": [
-      "ES2023"
+      "ES2022"
     ],
     "module": "node16",
     "moduleResolution": "node16",
@@ -38,37 +38,6 @@
     "removeComments": false,
     "importHelpers": false,
     "downlevelIteration": true,
-    "ignoreDeprecations": "6.0",
-    "baseUrl": "./src",
-    "paths": {
-      "@/*": [
-        "*"
-      ],
-      "@/types/*": [
-        "types/*"
-      ],
-      "@/services/*": [
-        "services/*"
-      ],
-      "@/controllers/*": [
-        "controllers/*"
-      ],
-      "@/middleware/*": [
-        "middleware/*"
-      ],
-      "@/models/*": [
-        "models/*"
-      ],
-      "@/utils/*": [
-        "utils/*"
-      ],
-      "@/config/*": [
-        "config/*"
-      ],
-      "@/routes/*": [
-        "routes/*"
-      ]
-    },
     "typeRoots": [
       "./node_modules/@types"
     ],

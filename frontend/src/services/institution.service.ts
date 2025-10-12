@@ -45,31 +45,22 @@ class InstitutionService extends BaseService {
       const url = this.buildUrl(this.endpoint, cleanFilters);
 
       // Make direct API call to get institutions
-      const response = await apiService.get<InstitutionListResponse>(url);      // The new backend returns: { success, message, data: { data: Institution[], pagination: {...} } }
-      // We need to transform it to match the expected InstitutionListResponse format
-      if (response.success && response.data) {
-        const backendData = response.data as any;
+      const response = await apiService.get<InstitutionListResponse>(url);
 
-        // Check if it's the new paginated format
-        if (backendData.data && backendData.pagination) {
-          return {
-            success: response.success,
-            message: response.message,
-            data: {
-              institutions: backendData.data,
-              total: backendData.pagination.total,
-              page: backendData.pagination.page,
-              totalPages: backendData.pagination.totalPages,
-              hasNext: backendData.pagination.hasNext,
-              hasPrev: backendData.pagination.hasPrev,
-            }
-          };
-        }
-
-        // Fallback for old format (direct institutions array)
-        if (Array.isArray(backendData.institutions)) {
-          return response as ApiResponse<InstitutionListResponse>;
-        }
+      // Transform the backend response to match expected InstitutionListResponse format
+      if (response.success && Array.isArray(response.data) && (response as any).pagination) {
+        return {
+          success: response.success,
+          message: response.message,
+          data: {
+            institutions: response.data,
+            total: (response as any).pagination.total,
+            page: (response as any).pagination.page,
+            totalPages: (response as any).pagination.totalPages,
+            hasNext: (response as any).pagination.hasNext,
+            hasPrev: (response as any).pagination.hasPrev,
+          }
+        };
       }
 
       // Fallback for empty or malformed response

@@ -1,9 +1,9 @@
 import { apiService } from './api';
 import { API_ENDPOINTS } from '@/utils/constants';
-import type { 
-  LoginRequest, 
-  RegisterRequest, 
-  AuthResponse, 
+import type {
+  LoginRequest,
+  RegisterRequest,
+  AuthResponse,
   User,
   ForgotPasswordRequest,
   ResetPasswordRequest,
@@ -62,12 +62,12 @@ class AuthService {
 
   async getCurrentUser(): Promise<User | null> {
     try {
-      const response = await apiService.get<{ success: boolean; message: string; data: User }>(API_ENDPOINTS.AUTH.PROFILE);
-      
-      if (response.success && response.data?.success && response.data.data) {
-        return response.data.data;
+      const response = await apiService.get<User>(API_ENDPOINTS.AUTH.PROFILE);
+
+      if (response.success && response.data) {
+        return response.data;
       }
-      
+
       return null;
     } catch {
       return null;
@@ -76,13 +76,13 @@ class AuthService {
 
   async refreshToken(refreshToken: string): Promise<string | null> {
     try {
-      const response = await apiService.post<{ success: boolean; message: string; data: AuthResponse }>(
+      const response = await apiService.post<AuthResponse>(
         API_ENDPOINTS.AUTH.REFRESH,
         { refreshToken }
       );
 
-      if (response.success && response.data?.success && response.data.data) {
-        return response.data.data.token;
+      if (response.success && response.data) {
+        return response.data.token;
       }
 
       return null;

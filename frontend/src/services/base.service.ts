@@ -61,12 +61,16 @@ export abstract class BaseService {
   ): Promise<PaginatedResponse<T>> {
     try {
       const url = this.buildUrl(this.endpoint, query);
-      const response = await apiService.get<PaginatedResponse<T>>(url);
+      const response = await apiService.get<any>(url);
 
-      // Since backend returns PaginatedResponse<T> and API service passes it through
-      // we need to extract the actual paginated data from the response.data
-      if (response.success && response.data) {
-        return response.data as PaginatedResponse<T>;
+      // Handle the backend response structure: { success, message, data: [...], pagination: {...} }
+      if (response.success && Array.isArray(response.data) && (response as any).pagination) {
+        return {
+          success: response.success,
+          message: response.message,
+          data: response.data,
+          pagination: (response as any).pagination,
+        };
       }
 
       // Fallback for error cases

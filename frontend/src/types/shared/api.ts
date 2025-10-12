@@ -42,6 +42,7 @@ export interface PaginationQuery {
 
 export interface PaginationMeta {
   page: number;
+  limit?: number;
   totalPages: number;
   total: number;
   hasNext: boolean;
