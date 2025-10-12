@@ -107,7 +107,7 @@ export interface ExamQuery {
   page?: number;
   limit?: number;
   search?: string;
-  sortBy?: string;
+  sortBy?: 'title' | 'examDate' | 'startTime' | 'duration' | 'status' | 'createdAt';
   sortOrder?: "asc" | "desc";
 }
 

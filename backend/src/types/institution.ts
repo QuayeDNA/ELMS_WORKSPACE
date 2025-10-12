@@ -1,6 +1,4 @@
-// ========================================
-// INSTITUTION TYPES
-// ========================================
+import { StatusQuery } from './shared/query';
 
 export enum InstitutionType {
   UNIVERSITY = 'UNIVERSITY',
@@ -73,24 +71,14 @@ export interface UpdateInstitutionRequest {
   description?: string;
 }
 
-export interface InstitutionQuery {
-  page?: number;
-  limit?: number;
-  search?: string;
+export interface InstitutionQuery extends StatusQuery {
   type?: InstitutionType;
   status?: InstitutionStatus;
   sortBy?: 'name' | 'code' | 'createdAt' | 'updatedAt';
-  sortOrder?: 'asc' | 'desc';
 }
 
-export interface InstitutionListResponse {
-  institutions: Institution[];
-  total: number;
-  page: number;
-  totalPages: number;
-  hasNext: boolean;
-  hasPrev: boolean;
-}
+// Note: InstitutionListResponse is now replaced by PaginatedResponse<Institution> from shared/api.ts
+// This ensures consistent response structure across all list endpoints
 
 export interface InstitutionStats {
   totalInstitutions: number;
@@ -134,7 +122,7 @@ export interface InstitutionSpecificAnalytics {
 export interface CreateInstitutionWithAdminRequest {
   // Institution data
   institution: CreateInstitutionRequest;
-  
+
   // Admin user data
   admin: {
     firstName: string;

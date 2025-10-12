@@ -51,8 +51,8 @@ export const UserList: React.FC<UserListProps> = ({ institutionId, facultyId, de
     try {
       const response = await userService.getUsers(query);
       if (response.success && response.data) {
-        setUsers(response.data.users);
-        setTotal(response.data.total);
+        setUsers(response.data);
+        setTotal(response.pagination.total);
       }
     } catch (error) {
       console.error('Error fetching users:', error);

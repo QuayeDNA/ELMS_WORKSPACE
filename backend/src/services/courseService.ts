@@ -1,11 +1,18 @@
 import { PrismaClient, CourseType } from '@prisma/client';
 import { Course, CreateCourseData, UpdateCourseData, CourseQuery, CourseByProgramQuery } from '../types/course';
+import {
+  PaginatedResponse,
+  ApiResponse,
+  createPaginatedResponse,
+  createSuccessResponse
+} from '../types/shared/api';
+import { normalizeQuery } from '../types/shared/query';
 
 const prisma = new PrismaClient();
 
 export const courseService = {
   // Get all courses with pagination and filtering
-  async getCourses(query: CourseQuery) {
+  async getCourses(query: CourseQuery): Promise<PaginatedResponse<Course>> {
     const {
       departmentId,
       facultyId,
@@ -13,12 +20,12 @@ export const courseService = {
       level,
       courseType,
       isActive,
-      page = 1,
-      limit = 10,
-      search = '',
+      page,
+      limit,
+      search,
       sortBy = 'createdAt',
-      sortOrder = 'desc'
-    } = query;
+      sortOrder
+    } = normalizeQuery(query);
 
     const skip = (page - 1) * limit;
 
@@ -94,16 +101,13 @@ export const courseService = {
       }
     });
 
-    return {
-      success: true,
-      data: courses,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit)
-      }
-    };
+    return createPaginatedResponse(
+      courses as Course[],
+      page,
+      limit,
+      total,
+      'Courses retrieved successfully'
+    );
   },
 
   // Get single course by ID

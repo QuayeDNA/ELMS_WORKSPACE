@@ -9,12 +9,10 @@ export function LoginPage() {
 
   // Redirect to appropriate dashboard if already authenticated
   if (isAuthenticated) {
-    console.log('LoginPage: User is authenticated, using redirect middleware');
     return <Navigate to="/dashboard" replace />;
   }
 
   const handleLoginSuccess = () => {
-    console.log('Login success - using role-based redirect');
     // Use role-based redirect (delay is handled in the hook)
     redirectAfterLogin();
   };

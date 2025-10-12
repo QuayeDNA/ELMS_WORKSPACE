@@ -66,7 +66,7 @@ export function useApiRequest<T>(
         setData(response.data);
         onSuccess?.(response.data);
       } else {
-        const errorMessage = response.error?.message || response.message || 'Request failed';
+        const errorMessage = response.error || response.message || 'Request failed';
         setError(errorMessage);
         onError?.(errorMessage);
       }
@@ -114,7 +114,7 @@ export function useApiRequest<T>(
   // Cleanup on unmount
   useEffect(() => {
     isMountedRef.current = true;
-    
+
     return () => {
       isMountedRef.current = false;
       if (abortControllerRef.current) {

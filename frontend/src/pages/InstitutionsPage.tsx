@@ -132,21 +132,23 @@ export function InstitutionsPage() {
         sortOrder: queryFilters.sortOrder,
       });
 
-      const data = response.data;
+      if (response.success && response.data) {
+        const data = response.data;
 
-      if (data) {
         setState((prev) => ({
           ...prev,
-          institutions: data.institutions,
+          institutions: data.institutions || [],
           pagination: {
-            page: data.page,
-            totalPages: data.totalPages,
-            total: data.total,
-            hasNext: data.hasNext,
-            hasPrev: data.hasPrev,
+            page: data.page || 1,
+            totalPages: data.totalPages || 1,
+            total: data.total || 0,
+            hasNext: data.hasNext || false,
+            hasPrev: data.hasPrev || false,
           },
           loading: false,
         }));
+      } else {
+        throw new Error(response.message || "Failed to fetch institutions");
       }
     } catch (error) {
       console.error("Failed to fetch institutions:", error);
@@ -305,7 +307,6 @@ export function InstitutionsPage() {
 
     try {
       await institutionService.deleteInstitution(institution.id);
-      console.log(`Institution "${institution.name}" deleted successfully.`);
       fetchInstitutions(); // Refresh data
       fetchAnalytics(); // Refresh analytics
     } catch (error) {

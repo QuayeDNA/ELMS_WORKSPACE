@@ -92,6 +92,15 @@ export interface CourseQuery {
   sortOrder?: "asc" | "desc";
 }
 
+export interface CourseListResponse {
+  courses: Course[];
+  total: number;
+  page: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
 export interface CourseStats {
   courseId: number;
   enrollmentCount: number;

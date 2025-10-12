@@ -1,6 +1,14 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { UserRole, UserStatus } from '../types/auth';
+import { User, CreateUserRequest, UpdateUserRequest } from '../types/user';
+import {
+  PaginatedResponse,
+  ApiResponse,
+  createPaginatedResponse,
+  createSuccessResponse
+} from '../types/shared/api';
+import { normalizeQuery, UserQuery } from '../types/shared/query';
 
 const prisma = new PrismaClient();
 
@@ -69,18 +77,7 @@ export class UserService {
     }
   }
 
-  async getUsers(query: {
-    institutionId?: number;
-    facultyId?: number;
-    departmentId?: number;
-    role?: UserRole;
-    status?: UserStatus;
-    page?: number;
-    limit?: number;
-    search?: string;
-    sortBy?: string;
-    sortOrder?: 'asc' | 'desc';
-  }) {
+  async getUsers(query: UserQuery = {}): Promise<PaginatedResponse<User>> {
     try {
       const {
         institutionId,
@@ -88,12 +85,12 @@ export class UserService {
         departmentId,
         role,
         status,
-        page = 1,
-        limit = 10,
-        search = '',
+        page,
+        limit,
+        search,
         sortBy = 'createdAt',
-        sortOrder = 'desc'
-      } = query;
+        sortOrder
+      } = normalizeQuery(query);
 
       const skip = (page - 1) * limit;
 
@@ -119,13 +116,20 @@ export class UserService {
             email: true,
             firstName: true,
             lastName: true,
+            middleName: true,
+            title: true,
             role: true,
             status: true,
             lastLogin: true,
+            emailVerified: true,
             institutionId: true,
             facultyId: true,
             departmentId: true,
             phone: true,
+            dateOfBirth: true,
+            gender: true,
+            nationality: true,
+            address: true,
             createdAt: true,
             updatedAt: true,
             institution: {
@@ -159,16 +163,13 @@ export class UserService {
         prisma.user.count({ where })
       ]);
 
-      const totalPages = Math.ceil(total / limit);
-
-      return {
-        users,
-        total,
+      return createPaginatedResponse(
+        users as User[],
         page,
-        totalPages,
-        hasNext: page < totalPages,
-        hasPrev: page > 1
-      };
+        limit,
+        total,
+        'Users retrieved successfully'
+      );
     } catch (error) {
       console.error('Error fetching users:', error);
       throw error;

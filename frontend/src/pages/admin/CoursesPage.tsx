@@ -60,15 +60,14 @@ const CoursesPage: React.FC = () => {
       const response = await courseService.getCourses(query);
 
       if (response?.success && response.data) {
-        const coursesData = response.data.courses || [];
-        const pagination = response.data.pagination;
+        const coursesData = response.data || [];
 
         setCourses(coursesData);
-        setTotalPages(pagination?.totalPages || 1);
+        setTotalPages(response.pagination.totalPages || 1);
 
         // Calculate stats
         setStats({
-          total: pagination?.total || coursesData.length,
+          total: response.pagination.total || coursesData.length,
           active: coursesData.filter((c: Course) => c.isActive).length,
           totalStudents: 0, // This would need proper data structure or separate API call
           totalLecturers: 0, // This would need to be calculated from lecturer assignments
@@ -85,7 +84,7 @@ const CoursesPage: React.FC = () => {
     try {
       const response = await departmentService.getDepartments({});
       if (response?.data) {
-        setDepartments(response.data.departments || []);
+        setDepartments(response.data || []);
       }
     } catch (error) {
       console.error("Error loading departments:", error);

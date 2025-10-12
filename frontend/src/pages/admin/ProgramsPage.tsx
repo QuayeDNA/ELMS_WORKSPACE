@@ -72,29 +72,29 @@ const ProgramsPage: React.FC = () => {
       };
 
       const response = await programService.getPrograms(query);
-      const programsData = response?.data?.programs || [];
+      const programsData = response?.data || [];
       setPrograms(programsData);
-      setTotalPages(response?.data?.totalPages || 1);
+      setTotalPages(response?.pagination?.totalPages || 1);
 
       // Extract unique departments from program data
       const uniqueDepartments = Array.from(
         new Map(
           programsData
-            .filter((program) => program.department)
-            .map((program) => [program.department!.id, program.department!])
+            .filter((program: Program) => program.department)
+            .map((program: Program) => [program.department!.id, program.department!])
         ).values()
       );
-      setDepartments(uniqueDepartments);
+      setDepartments(uniqueDepartments as any[]);
 
       // Calculate stats directly from the loaded data
-      const total = response?.data?.total || programsData.length;
-      const active = programsData.filter((p) => p.isActive).length;
+      const total = response?.pagination?.total || programsData.length;
+      const active = programsData.filter((p: Program) => p.isActive).length;
       const totalStudents = programsData.reduce(
-        (sum, p) => sum + (p.stats?.totalStudents || 0),
+        (sum: number, p: Program) => sum + (p.stats?.totalStudents || 0),
         0
       );
       const totalCourses = programsData.reduce(
-        (sum, p) => sum + (p.stats?.totalCourses || 0),
+        (sum: number, p: Program) => sum + (p.stats?.totalCourses || 0),
         0
       );
 

@@ -118,7 +118,7 @@ class ApiService {
       const apiError = this.createApiError(error);
       return {
         success: false,
-        error: apiError,
+        error: apiError.message,
         message: apiError.message,
       };
     }

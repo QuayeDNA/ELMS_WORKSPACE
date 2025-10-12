@@ -119,8 +119,8 @@ export const InstitutionDetailsPage = () => {
     try {
       setAnalyticsLoading(true);
       const response = await institutionService.getInstitutionAnalytics(parseInt(id));
-      if (response.data) {
-        setAnalytics(response.data);
+      if (response) {
+        setAnalytics(response);
       }
     } catch (err) {
       console.error('Failed to fetch institution analytics:', err);
@@ -274,13 +274,13 @@ export const InstitutionDetailsPage = () => {
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          <Button 
+          <Button
             onClick={() => {
               setShowAnalytics(!showAnalytics);
               if (!showAnalytics && !analytics) {
                 fetchAnalytics();
               }
-            }} 
+            }}
             variant={showAnalytics ? "default" : "outline"}
             className="flex items-center gap-2"
           >
@@ -484,8 +484,8 @@ export const InstitutionDetailsPage = () => {
           </CardHeader>
           <CardContent>
             {analytics ? (
-              <InstitutionSpecificAnalytics 
-                data={analytics} 
+              <InstitutionSpecificAnalytics
+                data={analytics}
                 loading={analyticsLoading}
                 institutionName={institution.name}
               />

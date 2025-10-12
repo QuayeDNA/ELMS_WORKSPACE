@@ -1,15 +1,15 @@
+import { ApiResponse } from '@/types/shared/api';
 import { apiService } from "./api";
 import {
   Student,
-  StudentsResponse,
   CreateStudentRequest,
   UpdateStudentRequest,
   StudentFilters,
   BulkStudentImport,
   BulkStudentImportResponse,
   BackendStudentStats,
+  StudentsResponse,
 } from "@/types/student";
-import { ApiResponse } from "@/types/api";
 import {
   API_ENDPOINTS,
   API_CONFIG,

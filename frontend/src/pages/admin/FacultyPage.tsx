@@ -54,6 +54,7 @@ import { facultyService } from "@/services/faculty.service";
 import { userService } from "@/services/user.service";
 import { useAuthStore } from "@/stores/auth.store";
 import { Faculty, FacultyQuery } from "@/types/shared";
+import { User } from "@/types/user";
 import { FacultyForm } from "@/components/faculty/FacultyForm";
 import { FacultyView } from "@/components/faculty/FacultyView";
 
@@ -103,7 +104,7 @@ export function FacultyPage() {
     enabled: !!user?.institutionId,
   });
 
-  const users = usersResponse?.data?.users || [];
+  const users = usersResponse?.data || [];
 
   // Delete faculty mutation
   const deleteMutation = useMutation({
@@ -187,8 +188,8 @@ export function FacultyPage() {
     }
   };
 
-  const faculties = facultyResponse?.data?.faculties || [];
-  const totalCount = facultyResponse?.data?.total || 0;
+  const faculties = facultyResponse?.data || [];
+  const totalCount = facultyResponse?.pagination?.total || 0;
   const totalPages = Math.ceil(totalCount / pageSize);
 
   const analytics = analyticsResponse?.data;
@@ -355,7 +356,7 @@ export function FacultyPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {faculties.map((faculty) => (
+                {faculties.map((faculty: Faculty) => (
                   <TableRow key={faculty.id}>
                     <TableCell>
                       <div className="flex items-center">
@@ -586,7 +587,7 @@ export function FacultyPage() {
                   <SelectValue placeholder="Choose a dean..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {users?.map((user) => (
+                  {users?.map((user: User) => (
                     <SelectItem key={user.id} value={user.id.toString()}>
                       {user.firstName} {user.lastName} ({user.email})
                     </SelectItem>

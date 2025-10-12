@@ -1,4 +1,12 @@
 import { PrismaClient } from "@prisma/client";
+import { Faculty, CreateFacultyRequest, UpdateFacultyRequest, FacultyQuery } from '../types/faculty';
+import {
+  PaginatedResponse,
+  ApiResponse,
+  createPaginatedResponse,
+  createSuccessResponse
+} from '../types/shared/api';
+import { normalizeQuery } from '../types/shared/query';
 
 const prisma = new PrismaClient();
 
@@ -59,23 +67,16 @@ export class FacultyService {
     }
   }
 
-  async getFaculties(query: {
-    institutionId?: number;
-    page?: number;
-    limit?: number;
-    search?: string;
-    sortBy?: "name" | "code" | "createdAt";
-    sortOrder?: "asc" | "desc";
-  }) {
+  async getFaculties(query: FacultyQuery = {}): Promise<PaginatedResponse<Faculty>> {
     try {
       const {
         institutionId,
-        page = 1,
-        limit = 10,
-        search = "",
+        page,
+        limit,
+        search,
         sortBy = "name",
-        sortOrder = "asc",
-      } = query;
+        sortOrder,
+      } = normalizeQuery(query);
 
       const skip = (page - 1) * limit;
 
@@ -110,6 +111,7 @@ export class FacultyService {
                 lastName: true,
                 email: true,
                 role: true,
+                title: true,
               },
             },
             _count: {
@@ -128,16 +130,13 @@ export class FacultyService {
         prisma.faculty.count({ where }),
       ]);
 
-      const totalPages = Math.ceil(total / limit);
-
-      return {
-        faculties,
-        total,
+      return createPaginatedResponse(
+        faculties as Faculty[],
         page,
-        totalPages,
-        hasNext: page < totalPages,
-        hasPrev: page > 1,
-      };
+        limit,
+        total,
+        'Faculties retrieved successfully'
+      );
     } catch (error) {
       console.error("Error fetching faculties:", error);
       throw error;

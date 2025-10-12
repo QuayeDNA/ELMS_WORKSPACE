@@ -98,7 +98,7 @@ export const UserEdit: React.FC<UserEditProps> = ({ user, onSuccess, onCancel })
         });
 
         if (response.success && response.data) {
-          setFaculties(response.data.faculties);
+          setFaculties(response.data);
         } else {
           setFaculties([]);
         }

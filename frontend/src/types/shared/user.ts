@@ -95,6 +95,7 @@ export interface CreateUserRequest {
 }
 
 export interface UpdateUserRequest {
+  email?: string;
   firstName?: string;
   lastName?: string;
   middleName?: string;
@@ -114,6 +115,7 @@ export interface UpdateUserRequest {
 export interface UserFormData {
   email: string;
   password: string;
+  confirmPassword?: string;
   firstName: string;
   lastName: string;
   middleName?: string;
@@ -122,12 +124,13 @@ export interface UserFormData {
   gender?: string;
   nationality?: string;
   address?: string;
-  role: string;
-  status: string;
+  role: UserRole;
+  status?: string;
   phone?: string;
   institutionId?: string;
   facultyId?: string;
   departmentId?: string;
+  isActive?: boolean;
 }
 
 // ========================================

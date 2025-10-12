@@ -27,6 +27,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 import { programService } from "@/services/program.service";
 import { departmentService } from "@/services/department.service";
+import { Department } from "@/types/shared";
 import { ProgramFormProps, ProgramType, ProgramLevel } from "@/types/shared";
 
 const programSchema = z.object({
@@ -73,7 +74,7 @@ const ProgramForm: React.FC<ProgramFormProps> = ({
     queryFn: () => departmentService.getDepartments({ limit: 100 }),
   });
 
-  const departments = departmentsResponse?.data?.departments || [];
+  const departments = departmentsResponse?.data || [];
 
   const form = useForm<ProgramFormValues>({
     resolver: zodResolver(programSchema),
@@ -230,7 +231,7 @@ const ProgramForm: React.FC<ProgramFormProps> = ({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {departments.map((department) => (
+                      {departments.map((department: Department) => (
                         <SelectItem
                           key={department.id}
                           value={department.id.toString()}

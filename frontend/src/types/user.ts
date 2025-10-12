@@ -141,7 +141,7 @@ export interface UserFormData {
   lastName: string;
   middleName: string;
   title: string;
-  role: string;
+  role: UserRole;
   status: string;
   phone: string;
   dateOfBirth: string;

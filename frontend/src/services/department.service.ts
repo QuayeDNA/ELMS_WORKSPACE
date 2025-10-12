@@ -1,9 +1,9 @@
 import { BaseService } from './base.service';
-import { ApiResponse } from '@/types/shared/api';
+import { ApiResponse, PaginatedResponse } from '@/types/shared/api';
 import { API_ENDPOINTS } from '@/utils/constants';
+import { apiService } from './api';
 import {
   Department,
-  DepartmentListResponse,
   CreateDepartmentRequest,
   UpdateDepartmentRequest,
   DepartmentQuery,
@@ -29,8 +29,12 @@ class DepartmentService extends BaseService {
   /**
    * Get all departments with pagination and filtering
    */
-  async getDepartments(query?: DepartmentQuery): Promise<ApiResponse<DepartmentListResponse>> {
-    return this.getPaginated<Department>(query);
+  async getDepartments(query?: DepartmentQuery): Promise<PaginatedResponse<Department>> {
+    const queryWithRecord = query ? { ...query } as Record<string, unknown> : undefined;
+
+    // The backend now returns a standardized PaginatedResponse<Department>
+    const response = await this.getPaginated<Department>(queryWithRecord);
+    return response;
   }
 
   /**
@@ -44,7 +48,7 @@ class DepartmentService extends BaseService {
    * Create new department
    */
   async createDepartment(data: CreateDepartmentRequest): Promise<ApiResponse<Department>> {
-    this.validateRequired(data, ['name', 'code', 'facultyId']);
+    this.validateRequired(data as unknown as Record<string, unknown>, ['name', 'code', 'facultyId']);
     return this.create<Department, CreateDepartmentRequest>(data);
   }
 
@@ -75,7 +79,7 @@ class DepartmentService extends BaseService {
   async getDepartmentsByFaculty(
     facultyId: number,
     query?: Omit<DepartmentQuery, 'facultyId'>
-  ): Promise<ApiResponse<DepartmentListResponse>> {
+  ): Promise<PaginatedResponse<Department>> {
     const fullQuery = { ...query, facultyId };
     return this.getDepartments(fullQuery);
   }
@@ -104,9 +108,31 @@ class DepartmentService extends BaseService {
   ): Promise<ApiResponse<DepartmentProgramsResponse>> {
     try {
       const url = this.buildUrl(`${this.endpoint}/${departmentId}/programs`, query);
-      return await this.apiService.get<DepartmentProgramsResponse>(url);
+      return await apiService.get<DepartmentProgramsResponse>(url);
     } catch (error) {
       console.error(`Error fetching programs for department ${departmentId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get courses in department
+   */
+  async getDepartmentCourses(
+    departmentId: number,
+    query?: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      level?: number;
+      isActive?: boolean;
+    }
+  ) {
+    try {
+      const url = this.buildUrl(`${this.endpoint}/${departmentId}/courses`, query);
+      return await apiService.get<any[]>(url);
+    } catch (error) {
+      console.error(`Error fetching courses for department ${departmentId}:`, error);
       throw error;
     }
   }
@@ -125,7 +151,7 @@ class DepartmentService extends BaseService {
   ): Promise<ApiResponse<DepartmentInstructorsResponse>> {
     try {
       const url = this.buildUrl(`${this.endpoint}/${departmentId}/instructors`, query);
-      return await this.apiService.get<DepartmentInstructorsResponse>(url);
+      return await apiService.get<DepartmentInstructorsResponse>(url);
     } catch (error) {
       console.error(`Error fetching instructors for department ${departmentId}:`, error);
       throw error;
@@ -146,7 +172,7 @@ class DepartmentService extends BaseService {
   ): Promise<ApiResponse<DepartmentStudentsResponse>> {
     try {
       const url = this.buildUrl(`${this.endpoint}/${departmentId}/students`, query);
-      return await this.apiService.get<DepartmentStudentsResponse>(url);
+      return await apiService.get<DepartmentStudentsResponse>(url);
     } catch (error) {
       console.error(`Error fetching students for department ${departmentId}:`, error);
       throw error;
@@ -160,7 +186,7 @@ class DepartmentService extends BaseService {
     filters: DepartmentQuery = {},
     format: 'csv' | 'excel' = 'csv'
   ): Promise<Blob> {
-    return this.export(filters, format);
+    return this.export(filters as Record<string, unknown>, format);
   }
 }
 

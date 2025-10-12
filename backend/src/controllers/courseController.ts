@@ -17,7 +17,7 @@ export const courseController = {
         page: parseInt(req.query.page as string) || 1,
         limit: parseInt(req.query.limit as string) || 10,
         search: req.query.search as string || '',
-        sortBy: req.query.sortBy as string || 'createdAt',
+        sortBy: (req.query.sortBy as 'name' | 'code' | 'level' | 'createdAt') || 'createdAt',
         sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'desc'
       };
 
@@ -250,7 +250,7 @@ export const courseController = {
           success: false,
           message: 'Invalid program ID'
         });
-      } 
+      }
       const query: CourseByProgramQuery = {
         page: parseInt(req.query.page as string) || 1,
         limit: parseInt(req.query.limit as string) || 10,

@@ -168,7 +168,7 @@ export const FacultyList: React.FC<FacultyListProps> = ({ institutionId }) => {
       {/* Faculty Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Faculties ({facultyResponse?.data?.total || 0})</CardTitle>
+          <CardTitle>Faculties ({facultyResponse?.pagination?.total || 0})</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -186,7 +186,7 @@ export const FacultyList: React.FC<FacultyListProps> = ({ institutionId }) => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {facultyResponse?.data?.faculties?.map((faculty: Faculty) => (
+                {facultyResponse?.data?.map((faculty: Faculty) => (
                   <TableRow key={faculty.id}>
                     <TableCell className="font-medium">
                       {faculty.name}
@@ -246,7 +246,7 @@ export const FacultyList: React.FC<FacultyListProps> = ({ institutionId }) => {
                     </TableCell>
                   </TableRow>
                 ))}
-                {facultyResponse?.data?.faculties?.length === 0 && (
+                {facultyResponse?.data?.length === 0 && (
                   <TableRow>
                     <TableCell
                       colSpan={6}

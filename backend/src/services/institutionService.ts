@@ -4,15 +4,22 @@ import {
   CreateInstitutionRequest,
   UpdateInstitutionRequest,
   InstitutionQuery,
-  InstitutionListResponse,
   InstitutionStats,
   InstitutionSpecificAnalytics,
   CreateInstitutionWithAdminRequest,
   InstitutionWithAdminResponse,
   InstitutionType,
-  InstitutionStatus
+  InstitutionStatus,
+  Institution
 } from '../types/institution';
 import { UserRole, UserStatus } from '../types/auth';
+import {
+  PaginatedResponse,
+  ApiResponse,
+  createPaginatedResponse,
+  createSuccessResponse
+} from '../types/shared/api';
+import { normalizeQuery } from '../types/shared/query';
 
 const prisma = new PrismaClient();
 
@@ -83,23 +90,23 @@ export class InstitutionService {
     }
   }
 
-  async getInstitutions(query: InstitutionQuery = {}): Promise<InstitutionListResponse> {
+  async getInstitutions(query: InstitutionQuery = {}): Promise<PaginatedResponse<Institution>> {
     try {
       const {
-        page = 1,
-        limit = 10,
+        page,
+        limit,
         search,
         type,
         status,
         sortBy = 'createdAt',
-        sortOrder = 'desc'
-      } = query;
+        sortOrder
+      } = normalizeQuery(query);
 
       const skip = (page - 1) * limit;
-      
+
       // Build where clause
       const where: any = {};
-      
+
       if (search) {
         where.OR = [
           { name: { contains: search, mode: 'insensitive' } },
@@ -107,11 +114,11 @@ export class InstitutionService {
           { city: { contains: search, mode: 'insensitive' } }
         ];
       }
-      
+
       if (type) {
         where.type = type;
       }
-      
+
       if (status) {
         where.status = status;
       }
@@ -135,8 +142,6 @@ export class InstitutionService {
         prisma.institution.count({ where })
       ]);
 
-      const totalPages = Math.ceil(total / limit);
-
       // Transform institutions to match Institution type
       const transformedInstitutions = institutions.map(({ _count, ...inst }) => ({
         ...inst,
@@ -152,16 +157,15 @@ export class InstitutionService {
         website: inst.website ?? undefined,
         description: inst.description ?? undefined,
         logoUrl: inst.logoUrl ?? undefined
-      }));
+      })) as Institution[];
 
-      return {
-        institutions: transformedInstitutions,
-        total,
+      return createPaginatedResponse(
+        transformedInstitutions,
         page,
-        totalPages,
-        hasNext: page < totalPages,
-        hasPrev: page > 1
-      };
+        limit,
+        total,
+        'Institutions retrieved successfully'
+      );
     } catch (error) {
       console.error('Error fetching institutions:', error);
       throw error;
@@ -249,22 +253,22 @@ export class InstitutionService {
       ] = await Promise.all([
         // Total count
         prisma.institution.count(),
-        
+
         // Active count
         prisma.institution.count({
           where: { status: InstitutionStatus.ACTIVE }
         }),
-        
+
         // Inactive count
         prisma.institution.count({
           where: { status: InstitutionStatus.INACTIVE }
         }),
-        
+
         // Pending count
         prisma.institution.count({
           where: { status: InstitutionStatus.PENDING }
         }),
-        
+
         // Group by type
         prisma.institution.groupBy({
           by: ['type'],
@@ -272,7 +276,7 @@ export class InstitutionService {
             type: true
           }
         }),
-        
+
         // Recent institutions
         prisma.institution.findMany({
           take: 5,

@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/select";
 import { departmentService } from "@/services/department.service";
 import { Department } from "@/types/shared/department";
-import { Faculty } from "@/types/faculty";
+import { Faculty } from "@/types/shared";
 import DepartmentForm from "@/components/department/DepartmentForm";
 import {
   Dialog,
@@ -71,28 +71,28 @@ const DepartmentsPage: React.FC = () => {
       };
 
       const response = await departmentService.getDepartments(query);
-      const departmentsData = response?.data?.departments || [];
+      const departmentsData = response?.data || [];
       setDepartments(departmentsData);
-      setTotalPages(response?.data?.totalPages || 1);
+      setTotalPages(response?.pagination?.totalPages || 1);
 
       // Extract unique faculties from department data
       const uniqueFaculties = Array.from(
         new Map(
           departmentsData
-            .filter((dept) => dept.faculty)
-            .map((dept) => [dept.faculty!.id, dept.faculty!])
+            .filter((dept: Department) => dept.faculty)
+            .map((dept: Department) => [dept.faculty!.id, dept.faculty!])
         ).values()
       );
-      setFaculties(uniqueFaculties);
+      setFaculties(uniqueFaculties as Faculty[]);
 
       // Calculate stats directly from the loaded data
-      const total = response?.data?.total || departmentsData.length;
+      const total = response?.pagination?.total || departmentsData.length;
       const active = departmentsData.filter(
-        (d) => d.type === "department"
+        (d: Department) => d.type === "department"
       ).length;
       const totalFaculty = uniqueFaculties.length;
       const totalStudents = departmentsData.reduce(
-        (sum, dept) => sum + (dept.stats?.totalUsers || 0),
+        (sum: number, dept: Department) => sum + (dept.stats?.totalUsers || 0),
         0
       );
 

@@ -79,17 +79,14 @@ const CourseDetailsPage: React.FC = () => {
 
   const handleEditCourse = () => {
     // Navigate to edit course page (to be implemented)
-    console.log("Edit course:", id);
   };
 
   const handleDeleteCourse = () => {
     // Show delete confirmation dialog (to be implemented)
-    console.log("Delete course:", id);
   };
 
   const handleAddOffering = () => {
     // Navigate to add offering page (to be implemented)
-    console.log("Add offering for course:", id);
   };
 
   if (loading) {
@@ -361,7 +358,7 @@ const CourseDetailsPage: React.FC = () => {
                 <CourseOfferingCard
                   key={offering.id}
                   offering={offering}
-                  onClick={() => console.log("View offering:", offering.id)}
+                  onClick={() => {/* TODO: Navigate to offering details */}}
                 />
               ))}
             </div>
@@ -400,7 +397,7 @@ const CourseDetailsPage: React.FC = () => {
                 <CourseLecturerCard
                   key={lecturer.id}
                   lecturer={lecturer}
-                  onClick={() => console.log("View lecturer:", lecturer.id)}
+                  onClick={() => {/* TODO: Navigate to lecturer details */}}
                 />
               ))}
             </div>
@@ -439,7 +436,7 @@ const CourseDetailsPage: React.FC = () => {
                 <EnrollmentCard
                   key={enrollment.id}
                   enrollment={enrollment}
-                  onClick={() => console.log("View enrollment:", enrollment.id)}
+                  onClick={() => {/* TODO: Navigate to enrollment details */}}
                 />
               ))}
             </div>

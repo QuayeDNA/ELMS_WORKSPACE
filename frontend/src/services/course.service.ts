@@ -1,12 +1,12 @@
 import { BaseService } from './base.service';
-import { ApiResponse } from '@/types/shared/api';
+import { ApiResponse, PaginatedResponse } from '@/types/shared/api';
 import { API_ENDPOINTS } from '@/utils/constants';
+import { apiService } from './api';
 import {
   Course,
   CreateCourseData,
   UpdateCourseData,
   CourseQuery,
-  CourseListResponse,
   CourseStats,
 } from '@/types/course';
 
@@ -26,26 +26,12 @@ class CourseService extends BaseService {
   /**
    * Get all courses with pagination and filtering
    */
-  async getCourses(query?: CourseQuery): Promise<ApiResponse<CourseListResponse>> {
-    try {
-      const response = await this.getPaginated<Course>(query);
+  async getCourses(query?: CourseQuery): Promise<PaginatedResponse<Course>> {
+    const queryWithRecord = query ? { ...query } as Record<string, unknown> : undefined;
 
-      // Check if the response data indicates an error
-      if (
-        response.data &&
-        typeof response.data === 'object' &&
-        'success' in response.data &&
-        !response.data.success
-      ) {
-        const errorData = response.data as { message?: string };
-        throw new Error(errorData.message || 'Failed to fetch courses');
-      }
-
-      return response;
-    } catch (error) {
-      console.error('Error fetching courses:', error);
-      throw error;
-    }
+    // The backend now returns a standardized PaginatedResponse<Course>
+    const response = await this.getPaginated<Course>(queryWithRecord);
+    return response;
   }
 
   /**
@@ -70,7 +56,7 @@ class CourseService extends BaseService {
    * Create new course
    */
   async createCourse(data: CreateCourseData): Promise<Course> {
-    this.validateRequired(data, ['name', 'code', 'departmentId', 'credits']);
+    this.validateRequired(data as unknown as Record<string, unknown>, ['name', 'code', 'departmentId', 'credits']);
 
     try {
       const response = await this.create<Course, CreateCourseData>(data);
@@ -136,10 +122,21 @@ class CourseService extends BaseService {
       level?: number;
       isActive?: boolean;
     }
-  ): Promise<ApiResponse<CourseListResponse>> {
+  ): Promise<PaginatedResponse<Course>> {
     try {
       const url = this.buildUrl(`/programs/${programId}/courses`, query);
-      return await this.apiService.get<CourseListResponse>(url);
+      const response = await apiService.get<PaginatedResponse<Course>>(url);
+
+      if (response.success && response.data) {
+        return response.data as PaginatedResponse<Course>;
+      }
+
+      return {
+        success: false,
+        data: [],
+        pagination: { page: 1, totalPages: 1, total: 0, hasNext: false, hasPrev: false },
+        error: response.error || 'Failed to fetch courses'
+      };
     } catch (error) {
       console.error(`Error fetching courses for program ${programId}:`, error);
       throw error;
@@ -152,7 +149,7 @@ class CourseService extends BaseService {
   async getCoursesByDepartment(
     departmentId: number,
     query?: Omit<CourseQuery, 'departmentId'>
-  ): Promise<ApiResponse<CourseListResponse>> {
+  ): Promise<PaginatedResponse<Course>> {
     const fullQuery = { ...query, departmentId };
     return this.getCourses(fullQuery);
   }
@@ -173,7 +170,7 @@ class CourseService extends BaseService {
     filters: CourseQuery = {},
     format: 'csv' | 'excel' = 'csv'
   ): Promise<Blob> {
-    return this.export(filters, format);
+    return this.export(filters as Record<string, unknown>, format);
   }
 
   /**

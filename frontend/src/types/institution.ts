@@ -214,11 +214,14 @@ export interface AdminFormData {
 // ========================================
 
 export interface InstitutionFilters {
-  search: string;
-  type: InstitutionType | 'ALL';
-  status: InstitutionStatus | 'ALL';
-  sortBy: 'name' | 'code' | 'createdAt' | 'updatedAt';
-  sortOrder: 'asc' | 'desc';
+  page?: number;
+  limit?: number;
+  search?: string;
+  type?: InstitutionType | 'ALL';
+  status?: InstitutionStatus | 'ALL';
+  sortBy?: 'name' | 'code' | 'createdAt' | 'updatedAt';
+  sortOrder?: 'asc' | 'desc';
+  code?: string;
 }
 
 export interface InstitutionTableColumn {
@@ -332,12 +335,15 @@ export const INSTITUTION_STATUS_CONFIG: Record<InstitutionStatus, {
   }
 };
 
-export const DEFAULT_INSTITUTION_FILTERS: InstitutionFilters = {
+export const DEFAULT_INSTITUTION_FILTERS: Required<InstitutionFilters> = {
+  page: 1,
+  limit: 10,
   search: '',
   type: 'ALL',
   status: 'ALL',
   sortBy: 'name',
-  sortOrder: 'asc'
+  sortOrder: 'asc',
+  code: '',
 };
 
 export const INSTITUTION_TABLE_COLUMNS: InstitutionTableColumn[] = [

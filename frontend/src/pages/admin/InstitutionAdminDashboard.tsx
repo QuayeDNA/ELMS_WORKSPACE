@@ -61,8 +61,8 @@ export function InstitutionAdminDashboard() {
     try {
       // Load institution analytics
       const statsResponse = await institutionService.getInstitutionAnalytics(user.institutionId);
-      if (statsResponse.success && statsResponse.data) {
-        setStats(statsResponse.data);
+      if (statsResponse) {
+        setStats(statsResponse);
       }
 
       // Load faculties
@@ -70,7 +70,7 @@ export function InstitutionAdminDashboard() {
         institutionId: user.institutionId
       });
       if (facultiesResponse.success && facultiesResponse.data) {
-        setFaculties(facultiesResponse.data.faculties);
+        setFaculties(facultiesResponse.data);
       }
 
       // Load users in institution
@@ -80,7 +80,7 @@ export function InstitutionAdminDashboard() {
         limit: 20
       });
       if (usersResponse.success && usersResponse.data) {
-        setUsers(usersResponse.data.users);
+        setUsers(usersResponse.data);
       }
     } catch (error) {
       console.error('Error loading dashboard data:', error);
@@ -97,27 +97,22 @@ export function InstitutionAdminDashboard() {
 
   const handleCreateFaculty = () => {
     // TODO: Open faculty creation modal
-    console.log('Create faculty');
   };
 
-  const handleEditFaculty = (faculty: Faculty) => {
+  const handleEditFaculty = (_faculty: Faculty) => {
     // TODO: Open faculty edit modal
-    console.log('Edit faculty:', faculty);
   };
 
-  const handleDeleteFaculty = (faculty: Faculty) => {
+  const handleDeleteFaculty = (_faculty: Faculty) => {
     // TODO: Open delete confirmation modal
-    console.log('Delete faculty:', faculty);
   };
 
   const handleCreateUser = () => {
     // TODO: Open user creation modal
-    console.log('Create user');
   };
 
-  const handleEditUser = (user: User) => {
+  const handleEditUser = (_user: User) => {
     // TODO: Open user edit modal
-    console.log('Edit user:', user);
   };
 
   if (loading) {

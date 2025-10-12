@@ -68,7 +68,7 @@ export const UserCreate: React.FC<UserCreateProps> = ({ onSuccess, onCancel, ins
       return USER_ROLES.filter(role => ![UserRole.SUPER_ADMIN].includes(role.value));
     } else if (isFacultyAdmin) {
       // Faculty Admin can create roles below them in their faculty
-      return USER_ROLES.filter(role => 
+      return USER_ROLES.filter(role =>
         [UserRole.EXAMS_OFFICER, UserRole.SCRIPT_HANDLER, UserRole.INVIGILATOR, UserRole.LECTURER, UserRole.STUDENT].includes(role.value)
       );
     }
@@ -132,7 +132,7 @@ export const UserCreate: React.FC<UserCreateProps> = ({ onSuccess, onCancel, ins
         });
 
         if (response.success && response.data) {
-          setFaculties(response.data.faculties);
+          setFaculties(response.data);
         } else {
           setFaculties([]);
         }
@@ -164,7 +164,7 @@ export const UserCreate: React.FC<UserCreateProps> = ({ onSuccess, onCancel, ins
         lastName: data.lastName,
         middleName: data.middleName || '',
         title: data.title || '',
-        role: data.role,
+        role: data.role as UserRole,
         status: 'ACTIVE', // Default status for new users
         phone: data.phone || '',
         dateOfBirth: data.dateOfBirth || '',
@@ -177,7 +177,7 @@ export const UserCreate: React.FC<UserCreateProps> = ({ onSuccess, onCancel, ins
       };
 
       const requestData = userService.transformFormData(formData);
-      
+
       // Handle special "NONE_OPTIONAL" values
       if (requestData.facultyId && requestData.facultyId.toString() === 'NONE_OPTIONAL') {
         requestData.facultyId = undefined;
@@ -185,7 +185,7 @@ export const UserCreate: React.FC<UserCreateProps> = ({ onSuccess, onCancel, ins
       if (requestData.departmentId && requestData.departmentId.toString() === 'NONE_OPTIONAL') {
         requestData.departmentId = undefined;
       }
-      
+
       const response = await userService.createUser(requestData);
 
       if (response.success) {
@@ -394,8 +394,8 @@ export const UserCreate: React.FC<UserCreateProps> = ({ onSuccess, onCancel, ins
           >
             <SelectTrigger>
               <SelectValue placeholder={
-                !isSuperAdmin 
-                  ? "Institution pre-selected" 
+                !isSuperAdmin
+                  ? "Institution pre-selected"
                   : isLoadingInstitutions
                     ? "Loading institutions..."
                     : "Select institution"

@@ -1,9 +1,9 @@
 import { BaseService } from './base.service';
-import { ApiResponse } from '@/types/shared/api';
+import { ApiResponse, PaginatedResponse } from '@/types/shared/api';
 import { API_ENDPOINTS } from '@/utils/constants';
+import { apiService } from './api';
 import {
   User,
-  UserListResponse,
   CreateUserRequest,
   UpdateUserRequest,
   UserQuery,
@@ -29,8 +29,12 @@ class UserService extends BaseService {
   /**
    * Get all users with pagination and filtering
    */
-  async getUsers(query?: UserQuery): Promise<ApiResponse<UserListResponse>> {
-    return this.getPaginated<User>(query);
+  async getUsers(query?: UserQuery): Promise<PaginatedResponse<User>> {
+    const queryWithRecord = query ? { ...query } as Record<string, unknown> : undefined;
+
+    // The backend now returns a standardized PaginatedResponse<User>
+    const response = await this.getPaginated<User>(queryWithRecord);
+    return response;
   }
 
   /**
@@ -44,7 +48,7 @@ class UserService extends BaseService {
    * Create new user
    */
   async createUser(data: CreateUserRequest): Promise<ApiResponse<User>> {
-    this.validateRequired(data, ['firstName', 'lastName', 'email', 'password', 'role']);
+    this.validateRequired(data as unknown as Record<string, unknown>, ['firstName', 'lastName', 'email', 'password', 'role']);
     this.validateUserData(data);
     return this.create<User, CreateUserRequest>(data);
   }
@@ -80,7 +84,7 @@ class UserService extends BaseService {
     institutionId: number
   ): Promise<ApiResponse<User[]>> {
     try {
-      return await this.apiService.get<User[]>(
+      return await apiService.get<User[]>(
         `${API_ENDPOINTS.INSTITUTIONS.BASE}/${institutionId}/users`
       );
     } catch (error) {
@@ -96,7 +100,7 @@ class UserService extends BaseService {
     facultyId: number
   ): Promise<ApiResponse<User[]>> {
     try {
-      return await this.apiService.get<User[]>(
+      return await apiService.get<User[]>(
         `${API_ENDPOINTS.FACULTIES.BASE}/${facultyId}/users`
       );
     } catch (error) {
@@ -112,7 +116,7 @@ class UserService extends BaseService {
     departmentId: number
   ): Promise<ApiResponse<User[]>> {
     try {
-      return await this.apiService.get<User[]>(
+      return await apiService.get<User[]>(
         `${API_ENDPOINTS.DEPARTMENTS.BASE}/${departmentId}/users`
       );
     } catch (error) {
@@ -140,7 +144,7 @@ class UserService extends BaseService {
     status: string
   ): Promise<ApiResponse<User>> {
     try {
-      return await this.apiService.put<User>(
+      return await apiService.put<User>(
         `${this.endpoint}/${id}/status`,
         { status }
       );
@@ -157,7 +161,7 @@ class UserService extends BaseService {
     filters: UserQuery = {},
     format: 'csv' | 'excel' = 'csv'
   ): Promise<Blob> {
-    return this.export(filters, format);
+    return this.export(filters as Record<string, unknown>, format);
   }
 
   // ========================================
@@ -198,9 +202,9 @@ class UserService extends BaseService {
       password: '',
       confirmPassword: '',
       role: user.role,
-      institutionId: user.institutionId,
-      facultyId: user.facultyId,
-      departmentId: user.departmentId,
+      institutionId: user.institutionId?.toString(),
+      facultyId: user.facultyId?.toString(),
+      departmentId: user.departmentId?.toString(),
       phone: user.phone || '',
       dateOfBirth: user.dateOfBirth,
       title: user.title || '',
@@ -220,6 +224,50 @@ class UserService extends BaseService {
    */
   getUserStatusOptions() {
     return USER_STATUSES;
+  }
+
+  /**
+   * Get display name for user
+   */
+  getDisplayName(user: User): string {
+    const middleName = user.middleName ? ` ${user.middleName} ` : ' ';
+    return `${user.firstName}${middleName}${user.lastName}`;
+  }
+
+  /**
+   * Get role label for user
+   */
+  getRoleLabel(role: UserRole): string {
+    const roleOption = USER_ROLES.find(r => r.value === role);
+    return roleOption ? roleOption.label : role;
+  }
+
+  /**
+   * Get status label for user
+   */
+  getStatusLabel(status: string): string {
+    const statusOption = USER_STATUSES.find(s => s.value === status);
+    return statusOption ? statusOption.label : status;
+  }
+
+  /**
+   * Transform form data to request format
+   */
+  transformFormData(formData: UserFormData): CreateUserRequest {
+    return {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      middleName: formData.middleName || undefined,
+      email: formData.email,
+      password: formData.password,
+      role: formData.role,
+      institutionId: formData.institutionId ? parseInt(formData.institutionId) : undefined,
+      facultyId: formData.facultyId ? parseInt(formData.facultyId) : undefined,
+      departmentId: formData.departmentId ? parseInt(formData.departmentId) : undefined,
+      phone: formData.phone || undefined,
+      dateOfBirth: formData.dateOfBirth,
+      title: formData.title || undefined,
+    };
   }
 
   // ========================================

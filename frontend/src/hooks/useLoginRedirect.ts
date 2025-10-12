@@ -12,7 +12,7 @@ export function useLoginRedirect() {
     // Add a small delay to ensure user state is updated
     setTimeout(() => {
       const currentUser = useAuthStore.getState().user;
-      
+
       if (!currentUser) {
         console.warn('No user found after login');
         navigate('/dashboard', { replace: true });
@@ -20,7 +20,6 @@ export function useLoginRedirect() {
       }
 
       const redirectPath = getRedirectPath(currentUser.role);
-      console.log(`Redirecting ${currentUser.role} to ${redirectPath}`);
       navigate(redirectPath, { replace: true });
     }, 50); // Small delay to ensure state is updated
   };

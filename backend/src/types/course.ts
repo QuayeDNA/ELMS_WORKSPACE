@@ -1,4 +1,5 @@
 import { CourseType as PrismaCourseType } from '@prisma/client';
+import { DepartmentalQuery, ActiveQuery } from './shared/query';
 
 export { PrismaCourseType as CourseType };
 
@@ -78,18 +79,10 @@ export interface UpdateCourseData {
   isActive?: boolean;
 }
 
-export interface CourseQuery {
-  departmentId?: number;
-  facultyId?: number;
-  institutionId?: number;
+export interface CourseQuery extends DepartmentalQuery, ActiveQuery {
   level?: number;
   courseType?: PrismaCourseType;
-  isActive?: boolean;
-  page?: number;
-  limit?: number;
-  search?: string;
-  sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortBy?: 'name' | 'code' | 'level' | 'createdAt';
 }
 
 export interface CourseByProgramQuery {

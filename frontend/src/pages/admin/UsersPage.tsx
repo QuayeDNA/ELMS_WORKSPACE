@@ -117,18 +117,18 @@ export function UsersPage() {
     },
   });
 
-  const users = userResponse?.data?.users || [];
-  const total = userResponse?.data?.total || 0;
-  const totalPages = userResponse?.data?.totalPages || 1;
+  const users = userResponse?.data || [];
+  const total = userResponse?.pagination?.total || 0;
+  const totalPages = userResponse?.pagination?.totalPages || 1;
 
   // Calculate stats for the current user scope
   const stats = {
     totalUsers: total,
-    activeUsers: users.filter((u) => u.status === UserStatus.ACTIVE).length,
+    activeUsers: users.filter((u: User) => u.status === UserStatus.ACTIVE).length,
     pendingUsers: users.filter(
-      (u) => u.status === UserStatus.PENDING_VERIFICATION
+      (u: User) => u.status === UserStatus.PENDING_VERIFICATION
     ).length,
-    adminUsers: users.filter((u) =>
+    adminUsers: users.filter((u: User) =>
       [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.FACULTY_ADMIN].includes(
         u.role
       )
@@ -340,7 +340,7 @@ export function UsersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((user) => (
+                {users.map((user: User) => (
                   <TableRow key={user.id}>
                     <TableCell>
                       <div className="flex items-center space-x-3">

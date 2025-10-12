@@ -1,9 +1,8 @@
 import { BaseService } from './base.service';
-import { ApiResponse } from '@/types/shared/api';
+import { ApiResponse, PaginatedResponse } from '@/types/shared/api';
 import { API_ENDPOINTS } from '@/utils/constants';
 import {
   Program,
-  ProgramListResponse,
   CreateProgramRequest,
   UpdateProgramRequest,
   ProgramQuery,
@@ -26,8 +25,12 @@ class ProgramService extends BaseService {
   /**
    * Get all programs with pagination and filtering
    */
-  async getPrograms(query?: ProgramQuery): Promise<ApiResponse<ProgramListResponse>> {
-    return this.getPaginated<Program>(query);
+  async getPrograms(query?: ProgramQuery): Promise<PaginatedResponse<Program>> {
+    const queryWithRecord = query ? { ...query } as Record<string, unknown> : undefined;
+
+    // The backend now returns a standardized PaginatedResponse<Program>
+    const response = await this.getPaginated<Program>(queryWithRecord);
+    return response;
   }
 
   /**
@@ -41,7 +44,7 @@ class ProgramService extends BaseService {
    * Create new program
    */
   async createProgram(data: CreateProgramRequest): Promise<ApiResponse<Program>> {
-    this.validateRequired(data, ['name', 'code', 'departmentId', 'type', 'level', 'durationYears']);
+    this.validateRequired(data as unknown as Record<string, unknown>, ['name', 'code', 'departmentId', 'type', 'level', 'durationYears']);
     return this.create<Program, CreateProgramRequest>(data);
   }
 
@@ -72,7 +75,7 @@ class ProgramService extends BaseService {
   async getProgramsByDepartment(
     departmentId: number,
     query?: Omit<ProgramQuery, 'departmentId'>
-  ): Promise<ApiResponse<ProgramListResponse>> {
+  ): Promise<PaginatedResponse<Program>> {
     const fullQuery = { ...query, departmentId };
     return this.getPrograms(fullQuery);
   }
@@ -83,7 +86,7 @@ class ProgramService extends BaseService {
   async getProgramsByFaculty(
     facultyId: number,
     query?: Omit<ProgramQuery, 'facultyId'>
-  ): Promise<ApiResponse<ProgramListResponse>> {
+  ): Promise<PaginatedResponse<Program>> {
     const fullQuery = { ...query, facultyId };
     return this.getPrograms(fullQuery);
   }
@@ -104,7 +107,7 @@ class ProgramService extends BaseService {
     filters: ProgramQuery = {},
     format: 'csv' | 'excel' = 'csv'
   ): Promise<Blob> {
-    return this.export(filters, format);
+    return this.export(filters as Record<string, unknown>, format);
   }
 
   /**

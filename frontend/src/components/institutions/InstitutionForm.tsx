@@ -78,15 +78,15 @@ export const InstitutionForm = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate institution form
     const institutionErrors = institutionService.validateInstitutionForm(institutionData);
-    let allErrors = [...institutionErrors];
+    let allErrors = Object.values(institutionErrors);
 
     // Validate admin form if needed
     if (mode === 'create-with-admin') {
       const adminErrors = institutionService.validateAdminForm(adminData);
-      allErrors = [...allErrors, ...adminErrors];
+      allErrors = [...allErrors, ...Object.values(adminErrors)];
     }
 
     if (allErrors.length > 0) {
@@ -114,7 +114,7 @@ export const InstitutionForm = ({
           <Building2 className="h-5 w-5" />
           Basic Information
         </h3>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="institution-name">Institution Name *</Label>
@@ -126,7 +126,7 @@ export const InstitutionForm = ({
               disabled={loading}
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="institution-code">Institution Code *</Label>
             <Input
@@ -187,7 +187,7 @@ export const InstitutionForm = ({
           <MapPin className="h-5 w-5" />
           Location Information
         </h3>
-        
+
         <div className="space-y-2">
           <Label htmlFor="address">Address</Label>
           <Textarea
@@ -211,7 +211,7 @@ export const InstitutionForm = ({
               disabled={loading}
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="state">State/Region</Label>
             <Input
@@ -222,7 +222,7 @@ export const InstitutionForm = ({
               disabled={loading}
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="country">Country</Label>
             <Input
@@ -242,7 +242,7 @@ export const InstitutionForm = ({
           <Phone className="h-5 w-5" />
           Contact Information
         </h3>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="contact-email">Contact Email</Label>
@@ -255,7 +255,7 @@ export const InstitutionForm = ({
               disabled={loading}
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="contact-phone">Contact Phone</Label>
             <Input
@@ -287,7 +287,7 @@ export const InstitutionForm = ({
           <FileText className="h-5 w-5" />
           Description
         </h3>
-        
+
         <div className="space-y-2">
           <Label htmlFor="description">Institution Description</Label>
           <Textarea
@@ -310,7 +310,7 @@ export const InstitutionForm = ({
           <User className="h-5 w-5" />
           Admin User Information
         </h3>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="admin-first-name">First Name *</Label>
@@ -322,7 +322,7 @@ export const InstitutionForm = ({
               disabled={loading}
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="admin-last-name">Last Name *</Label>
             <Input
@@ -347,7 +347,7 @@ export const InstitutionForm = ({
               disabled={loading}
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="admin-phone">Phone Number</Label>
             <Input
@@ -372,7 +372,7 @@ export const InstitutionForm = ({
               disabled={loading}
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="admin-confirm-password">Confirm Password *</Label>
             <Input

@@ -64,7 +64,7 @@ export const FacultyCreate: React.FC<FacultyCreateProps> = ({
           });
           const allUsers = [
             ...(lecturerResponse.success && lecturerResponse.data
-              ? lecturerResponse.data.users || []
+              ? lecturerResponse.data || []
               : []),
           ];
           // Remove duplicates based on user ID

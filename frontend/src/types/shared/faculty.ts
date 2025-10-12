@@ -13,6 +13,7 @@ export interface Faculty {
   establishedYear?: number;
   institutionId: number;
   deanId?: number;
+  isActive?: boolean;
   createdAt: string;
   updatedAt: string;
   institution?: Institution;
@@ -86,6 +87,8 @@ export interface FacultyFormData {
   code: string;
   institutionId: number;
   description?: string;
+  deanId?: number;
+  isActive?: boolean;
 }
 
 // ========================================

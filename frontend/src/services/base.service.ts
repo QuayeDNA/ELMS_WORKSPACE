@@ -1,4 +1,4 @@
-import { ApiResponse, PaginationQuery, PaginationMeta } from '@/types/shared/api';
+import { ApiResponse, PaginationQuery, PaginatedResponse } from '@/types/shared/api';
 import { apiService } from './api';
 
 /**
@@ -58,10 +58,24 @@ export abstract class BaseService {
    */
   protected async getPaginated<T>(
     query?: PaginationQuery & Record<string, unknown>
-  ): Promise<ApiResponse<{ data: T[]; pagination: PaginationMeta }>> {
+  ): Promise<PaginatedResponse<T>> {
     try {
       const url = this.buildUrl(this.endpoint, query);
-      return await apiService.get(url);
+      const response = await apiService.get<PaginatedResponse<T>>(url);
+
+      // Since backend returns PaginatedResponse<T> and API service passes it through
+      // we need to extract the actual paginated data from the response.data
+      if (response.success && response.data) {
+        return response.data as PaginatedResponse<T>;
+      }
+
+      // Fallback for error cases
+      return {
+        success: false,
+        data: [],
+        pagination: { page: 1, totalPages: 1, total: 0, hasNext: false, hasPrev: false },
+        error: response.error || 'Failed to fetch data'
+      };
     } catch (error) {
       console.error(`Error fetching paginated data from ${this.endpoint}:`, error);
       throw error;
@@ -207,7 +221,7 @@ export abstract class BaseService {
     transformer?: (data: T) => R
   ): ApiResponse<R> {
     if (!transformer || !response.data) {
-      return response as ApiResponse<R>;
+      return response as unknown as ApiResponse<R>;
     }
 
     return {

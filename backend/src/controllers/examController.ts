@@ -31,7 +31,7 @@ export const examController = {
         page: parseInt(req.query.page as string) || 1,
         limit: parseInt(req.query.limit as string) || 10,
         search: (req.query.search as string) || "",
-        sortBy: (req.query.sortBy as string) || "examDate",
+        sortBy: (req.query.sortBy as 'title' | 'examDate' | 'startTime' | 'duration' | 'status' | 'createdAt') || "examDate",
         sortOrder: (req.query.sortOrder as "asc" | "desc") || "desc",
       };
 
@@ -246,7 +246,7 @@ export const examController = {
         page: parseInt(req.query.page as string) || 1,
         limit: parseInt(req.query.limit as string) || 10,
         search: (req.query.search as string) || "",
-        sortBy: (req.query.sortBy as string) || "examDate",
+        sortBy: (req.query.sortBy as 'title' | 'examDate' | 'startTime' | 'duration' | 'status' | 'createdAt') || "examDate",
         sortOrder: (req.query.sortOrder as "asc" | "desc") || "desc",
       };
 
@@ -293,7 +293,7 @@ export const examController = {
         page: parseInt(req.query.page as string) || 1,
         limit: parseInt(req.query.limit as string) || 10,
         search: (req.query.search as string) || "",
-        sortBy: (req.query.sortBy as string) || "examDate",
+        sortBy: (req.query.sortBy as 'title' | 'examDate' | 'startTime' | 'duration' | 'status' | 'createdAt') || "examDate",
         sortOrder: (req.query.sortOrder as "asc" | "desc") || "desc",
       };
 

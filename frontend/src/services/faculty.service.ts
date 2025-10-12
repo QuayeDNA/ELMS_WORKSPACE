@@ -1,9 +1,8 @@
 import { BaseService } from './base.service';
-import { ApiResponse } from '@/types/shared/api';
+import { ApiResponse, PaginatedResponse } from '@/types/shared/api';
 import { API_ENDPOINTS } from '@/utils/constants';
 import {
   Faculty,
-  FacultyListResponse,
   CreateFacultyRequest,
   UpdateFacultyRequest,
   FacultyQuery,
@@ -27,8 +26,12 @@ class FacultyService extends BaseService {
   /**
    * Get all faculties with pagination and filtering
    */
-  async getFaculties(query?: FacultyQuery): Promise<ApiResponse<FacultyListResponse>> {
-    return this.getPaginated<Faculty>(query);
+  async getFaculties(query?: FacultyQuery): Promise<PaginatedResponse<Faculty>> {
+    const queryWithRecord = query ? { ...query } as Record<string, unknown> : undefined;
+
+    // The backend now returns a standardized PaginatedResponse<Faculty>
+    const response = await this.getPaginated<Faculty>(queryWithRecord);
+    return response;
   }
 
   /**
@@ -42,7 +45,7 @@ class FacultyService extends BaseService {
    * Create new faculty
    */
   async createFaculty(data: CreateFacultyRequest): Promise<ApiResponse<Faculty>> {
-    this.validateRequired(data, ['name', 'code', 'institutionId']);
+    this.validateRequired(data as unknown as Record<string, unknown>, ['name', 'code', 'institutionId']);
     return this.create<Faculty, CreateFacultyRequest>(data);
   }
 
@@ -73,7 +76,7 @@ class FacultyService extends BaseService {
   async getFacultiesByInstitution(
     institutionId: number,
     query?: Omit<FacultyQuery, 'institutionId'>
-  ): Promise<ApiResponse<FacultyListResponse>> {
+  ): Promise<PaginatedResponse<Faculty>> {
     const fullQuery = { ...query, institutionId };
     return this.getFaculties(fullQuery);
   }
@@ -106,7 +109,25 @@ class FacultyService extends BaseService {
     filters: FacultyQuery = {},
     format: 'csv' | 'excel' = 'csv'
   ): Promise<Blob> {
-    return this.export(filters, format);
+    return this.export(filters as Record<string, unknown>, format);
+  }
+
+  // ========================================
+  // DEAN MANAGEMENT
+  // ========================================
+
+  /**
+   * Assign dean to faculty
+   */
+  async assignDean(facultyId: number, deanId: number): Promise<ApiResponse<Faculty>> {
+    return this.update<Faculty, { deanId: number }>(facultyId, { deanId });
+  }
+
+  /**
+   * Remove dean from faculty
+   */
+  async removeDean(facultyId: number): Promise<ApiResponse<Faculty>> {
+    return this.update<Faculty, { deanId: null }>(facultyId, { deanId: null });
   }
 
   // ========================================
@@ -137,7 +158,30 @@ class FacultyService extends BaseService {
       institutionId: faculty.institutionId,
       description: faculty.description || '',
       deanId: faculty.deanId || undefined,
-      isActive: faculty.isActive,
+      isActive: faculty.isActive ?? true,
+    };
+  }
+
+  /**
+   * Transform form data to create request format
+   */
+  transformFormData(formData: FacultyFormData): CreateFacultyRequest {
+    return {
+      name: formData.name,
+      code: formData.code,
+      institutionId: formData.institutionId,
+      description: formData.description || undefined,
+    };
+  }
+
+  /**
+   * Transform form data to update request format
+   */
+  transformFormDataToUpdate(formData: FacultyFormData): UpdateFacultyRequest {
+    return {
+      name: formData.name,
+      code: formData.code,
+      description: formData.description || undefined,
     };
   }
 }

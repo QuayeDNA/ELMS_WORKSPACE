@@ -21,7 +21,6 @@ import { DepartmentCoursesList } from "@/components/department/DepartmentCourses
 import { DepartmentInstructorsList } from "@/components/department/DepartmentInstructorsList";
 import { DepartmentStudentsList } from "@/components/department/DepartmentStudentsList";
 import {
-  DepartmentCoursesResponse,
   DepartmentDetails,
 } from "@/types/shared/department";
 import { Program } from "@/types/shared/program";
@@ -74,28 +73,25 @@ const DepartmentDetailsPage: React.FC = () => {
 
   const department = departmentResponse?.data;
   const programs = programsResponse?.data?.programs || [];
-  const courses = (coursesResponse as DepartmentCoursesResponse)?.courses || [];
-  const instructors = instructorsResponse?.instructors || [];
-  const students = studentsResponse?.students || [];
+  const courses = coursesResponse?.data || [];
+  const instructors = instructorsResponse?.data?.instructors || [];
+  const students = studentsResponse?.data?.students || [];
 
-  const handleViewProgram = (program: Program) => {
+  const handleViewProgram = (_program: Program) => {
     // TODO: Navigate to program details page
-    console.log("View program:", program);
   };
 
-  const handleViewCourse = (course: DepartmentDetails["courses"][0]) => {
+  const handleViewCourse = (_course: DepartmentDetails["courses"][0]) => {
     // TODO: Navigate to course details page
-    console.log("View course:", course);
   };
 
   const handleViewInstructor = (
-    instructor: DepartmentDetails["instructors"][0]
+    _instructor: DepartmentDetails["instructors"][0]
   ) => {
     // TODO: Navigate to instructor details page
-    console.log("View instructor:", instructor);
   };
 
-  const handleViewStudent = (student: {
+  const handleViewStudent = (_student: {
     id: number;
     userId: number;
     studentId: string;
@@ -108,7 +104,6 @@ const DepartmentDetailsPage: React.FC = () => {
     program?: { id: number; name: string; code: string };
   }) => {
     // TODO: Navigate to student details page
-    console.log("View student:", student);
   };
 
   if (departmentLoading) {

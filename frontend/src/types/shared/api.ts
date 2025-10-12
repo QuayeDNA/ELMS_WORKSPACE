@@ -4,24 +4,22 @@
 
 export interface ApiResponse<T = unknown> {
   success: boolean;
-  message: string;
+  message?: string;
   data?: T;
-  error?: ApiError;
+  error?: string;
   errors?: Record<string, string[]>;
 }
 
-export interface PaginatedResponse<T>
-  extends ApiResponse<{
-    data: T[];
-    pagination: {
-      page: number;
-      limit: number;
-      total: number;
-      totalPages: number;
-      hasNext: boolean;
-      hasPrev: boolean;
-    };
-  }> {}
+/**
+ * Standard paginated response structure matching backend
+ */
+export interface PaginatedResponse<T> {
+  success: boolean;
+  data: T[];
+  pagination: PaginationMeta;
+  error?: string;
+  message?: string;
+}
 
 export interface ApiError {
   message: string;
@@ -44,9 +42,8 @@ export interface PaginationQuery {
 
 export interface PaginationMeta {
   page: number;
-  limit: number;
-  total: number;
   totalPages: number;
+  total: number;
   hasNext: boolean;
   hasPrev: boolean;
 }

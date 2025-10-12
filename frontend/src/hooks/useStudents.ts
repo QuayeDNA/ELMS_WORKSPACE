@@ -6,7 +6,7 @@ import {
   CreateStudentRequest,
   UpdateStudentRequest,
   StudentFilters,
-  StudentStats,
+  BackendStudentStats,
   BulkStudentImport
 } from '@/types/student';
 
@@ -53,10 +53,10 @@ export const useStudents = (initialFilters: StudentFilters = {}) => {
   // Only fetch once on mount - remove the problematic dependencies
   useEffect(() => {
     let isMounted = true;
-    
+
     const initialFetch = async () => {
       if (!isMounted) return;
-      
+
       try {
         setLoading(true);
         setError(null);
@@ -64,7 +64,7 @@ export const useStudents = (initialFilters: StudentFilters = {}) => {
         const scopeFilters = getDataFilters();
         const combinedFilters = { ...initialFilters, ...scopeFilters };
         const response = await studentService.getStudents(combinedFilters);
-        
+
         if (isMounted) {
           setStudents(response.data);
           setPagination(response.pagination);
@@ -217,7 +217,7 @@ export const useStudentById = (id: number) => {
 };
 
 export const useStudentStats = (filters: Partial<StudentFilters> = {}) => {
-  const [stats, setStats] = useState<StudentStats | null>(null);
+  const [stats, setStats] = useState<BackendStudentStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

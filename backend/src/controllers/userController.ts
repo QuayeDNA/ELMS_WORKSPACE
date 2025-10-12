@@ -21,16 +21,12 @@ export const userController = {
         page: parseInt(req.query.page as string) || 1,
         limit: parseInt(req.query.limit as string) || 10,
         search: (req.query.search as string) || "",
-        sortBy: (req.query.sortBy as string) || "createdAt",
+        sortBy: (req.query.sortBy as 'firstName' | 'lastName' | 'email' | 'role' | 'createdAt' | 'lastLogin') || "createdAt",
         sortOrder: (req.query.sortOrder as "asc" | "desc") || "desc",
       };
 
       const result = await userService.getUsers(query);
-      res.json({
-        success: true,
-        data: result,
-        message: "Users retrieved successfully",
-      });
+      res.json(result);
     } catch (error) {
       console.error("Error fetching users:", error);
       res.status(500).json({

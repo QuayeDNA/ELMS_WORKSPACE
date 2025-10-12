@@ -102,12 +102,12 @@ const DepartmentForm: React.FC<DepartmentFormProps> = ({
     queryFn: async () => {
       if (user?.role === "SUPER_ADMIN") {
         const response = await facultyService.getFaculties({});
-        return response.data?.faculties || [];
+        return response.data || [];
       } else if (user?.role === "ADMIN" && user.institutionId) {
         const response = await facultyService.getFaculties({
           institutionId: user.institutionId,
         });
-        return response.data?.faculties || [];
+        return response.data || [];
       } else if (user?.role === "FACULTY_ADMIN" && user.facultyId) {
         const response = await facultyService.getFaculty(user.facultyId);
         return response.data ? [response.data] : [];
