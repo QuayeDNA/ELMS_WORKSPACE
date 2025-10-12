@@ -669,4 +669,100 @@ export const studentService = {
     // Return CSV format template with headers
     return headers.join(",") + "\n";
   },
+
+  // Get students by department
+  async getStudentsByDepartment(params: {
+    departmentId: number;
+    page?: number;
+    limit?: number;
+    search?: string;
+    sortBy?: string;
+    sortOrder?: "asc" | "desc";
+  }) {
+    const {
+      departmentId,
+      page = 1,
+      limit = 10,
+      search = "",
+      sortBy = "admissionDate",
+      sortOrder = "desc",
+    } = params;
+
+    const skip = (page - 1) * limit;
+
+    const where: any = {
+      program: {
+        departmentId,
+      },
+      ...(search
+        ? {
+            OR: [
+              { studentId: { contains: search, mode: "insensitive" } },
+              { indexNumber: { contains: search, mode: "insensitive" } },
+              {
+                user: {
+                  OR: [
+                    { firstName: { contains: search, mode: "insensitive" } },
+                    { lastName: { contains: search, mode: "insensitive" } },
+                    { email: { contains: search, mode: "insensitive" } },
+                  ],
+                },
+              },
+            ],
+          }
+        : {}),
+    };
+
+    const [students, total] = await Promise.all([
+      prisma.studentProfile.findMany({
+        where,
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              status: true,
+            },
+          },
+          program: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+              department: {
+                select: {
+                  id: true,
+                  name: true,
+                  code: true,
+                },
+              },
+            },
+          },
+        },
+        skip,
+        take: limit,
+        orderBy: {
+          [sortBy]: sortOrder,
+        },
+      }),
+      prisma.studentProfile.count({ where }),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      success: true,
+      message: "Students retrieved successfully",
+      data: {
+        students,
+        total,
+        page,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
+      },
+    };
+  },
 };

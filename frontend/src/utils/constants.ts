@@ -32,19 +32,20 @@ export const API_ENDPOINTS = {
   PROGRAMS: {
     BASE: '/api/programs',
     BY_ID: (id: number) => `/api/programs/${id}`,
-    BY_DEPARTMENT: (departmentId: number) => `/api/departments/${departmentId}/programs`,
+    BY_DEPARTMENT: (departmentId: number) => `/api/programs/departments/${departmentId}/programs`,
   },
   COURSES: {
     BASE: '/api/courses',
     BY_ID: (id: number) => `/api/courses/${id}`,
     BY_PROGRAM: (programId: number) => `/api/programs/${programId}/courses`,
-    BY_DEPARTMENT: (departmentId: number) => `/api/departments/${departmentId}/courses`,
+    BY_DEPARTMENT: (departmentId: number) => `/api/courses/department/${departmentId}`,
   },
   STUDENTS: {
     BASE: '/api/students',
     BY_ID: (id: number) => `/api/students/${id}`,
     BY_PROGRAM: (programId: number) => `/api/programs/${programId}/students`,
     BY_COURSE: (courseId: number) => `/api/courses/${courseId}/students`,
+    BY_DEPARTMENT: (departmentId: number) => `/api/students/department/${departmentId}`,
     BULK_IMPORT: '/api/students/bulk-import',
     UPDATE_STATUS: (id: number) => `/api/students/${id}/status`,
     STATS: '/api/students/stats',
@@ -53,7 +54,7 @@ export const API_ENDPOINTS = {
   INSTRUCTORS: {
     BASE: '/api/instructors',
     BY_ID: (id: number) => `/api/instructors/${id}`,
-    BY_DEPARTMENT: (departmentId: number) => `/api/departments/${departmentId}/instructors`,
+    BY_DEPARTMENT: (departmentId: number) => `/api/instructors/department/${departmentId}`,
     BULK_IMPORT: '/api/instructors/bulk-import',
     STATS: '/api/instructors/stats',
   },

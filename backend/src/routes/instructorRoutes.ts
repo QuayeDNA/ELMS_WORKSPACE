@@ -63,11 +63,11 @@ router.post(
   instructorController.bulkImportInstructors
 );
 
-// Additional routes
+// Get instructors by department
 router.get(
-  "/:id/workload",
+  "/department/:departmentId",
   requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.FACULTY_ADMIN),
-  instructorController.getInstructorWorkload
+  instructorController.getInstructorsByDepartment
 );
 router.get(
   "/export",

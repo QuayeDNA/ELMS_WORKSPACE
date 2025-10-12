@@ -73,7 +73,7 @@ export const studentController = {
     try {
       const studentId = req.params.studentId;
       const student = await studentService.getStudentByStudentId(studentId);
-      
+
       if (!student) {
         return res.status(404).json({
           success: false,
@@ -204,7 +204,7 @@ export const studentController = {
   async bulkImportStudents(req: Request, res: Response) {
     try {
       const { students } = req.body;
-      
+
       if (!Array.isArray(students) || students.length === 0) {
         return res.status(400).json({
           success: false,
@@ -273,11 +273,11 @@ export const studentController = {
       };
 
       const result = await studentService.exportStudents(filters, format as 'csv' | 'excel');
-      
+
       // Set appropriate headers based on format
       const filename = `students-export.${format}`;
       const contentType = format === 'csv' ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-      
+
       res.setHeader('Content-Type', contentType);
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
       res.send(result);
@@ -296,10 +296,10 @@ export const studentController = {
     try {
       const format = (req.query.format as string) || 'csv';
       const result = await studentService.getImportTemplate(format as 'csv' | 'excel');
-      
+
       const filename = `student-import-template.${format}`;
       const contentType = format === 'csv' ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-      
+
       res.setHeader('Content-Type', contentType);
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
       res.send(result);
@@ -308,6 +308,38 @@ export const studentController = {
       res.status(500).json({
         success: false,
         message: 'Failed to download import template',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  },
+
+  // Get students by department
+  async getStudentsByDepartment(req: Request, res: Response) {
+    try {
+      const departmentId = parseInt(req.params.departmentId);
+      if (isNaN(departmentId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid department ID'
+        });
+      }
+
+      const query = {
+        departmentId,
+        page: parseInt(req.query.page as string) || 1,
+        limit: parseInt(req.query.limit as string) || 10,
+        search: req.query.search as string || '',
+        sortBy: req.query.sortBy as string,
+        sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'desc'
+      };
+
+      const result = await studentService.getStudentsByDepartment(query);
+      res.json(result);
+    } catch (error) {
+      console.error('Error fetching students by department:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch students by department',
         error: error instanceof Error ? error.message : 'Unknown error'
       });
     }

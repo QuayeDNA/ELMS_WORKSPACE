@@ -63,14 +63,45 @@ export abstract class BaseService {
       const url = this.buildUrl(this.endpoint, query);
       const response = await apiService.get<any>(url);
 
-      // Handle the backend response structure: { success, message, data: [...], pagination: {...} }
-      if (response.success && Array.isArray(response.data) && (response as any).pagination) {
-        return {
-          success: response.success,
-          message: response.message,
-          data: response.data,
-          pagination: (response as any).pagination,
-        };
+      // Handle the backend response structure: { success, message, data: {...}, ... }
+      if (response.success && response.data) {
+        const backendData = response.data;
+
+        // Check if data is an array (institutions/users format)
+        if (Array.isArray(backendData) && (response as any).pagination) {
+          return {
+            success: response.success,
+            message: response.message,
+            data: backendData,
+            pagination: (response as any).pagination,
+          };
+        }
+
+        // Check if data is an object with departments array (departments format)
+        if (backendData && typeof backendData === 'object' && Array.isArray(backendData.departments)) {
+          return {
+            success: response.success,
+            message: response.message,
+            data: backendData.departments,
+            pagination: {
+              page: backendData.page,
+              totalPages: backendData.totalPages,
+              total: backendData.total,
+              hasNext: backendData.hasNext,
+              hasPrev: backendData.hasPrev,
+            },
+          };
+        }
+
+        // Check if data is an object with the data array and pagination (nested format)
+        if (backendData && typeof backendData === 'object' && backendData.data && backendData.pagination) {
+          return {
+            success: response.success,
+            message: response.message,
+            data: backendData.data,
+            pagination: backendData.pagination,
+          };
+        }
       }
 
       // Fallback for error cases

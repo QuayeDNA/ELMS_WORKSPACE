@@ -107,7 +107,7 @@ class DepartmentService extends BaseService {
     }
   ): Promise<ApiResponse<DepartmentProgramsResponse>> {
     try {
-      const url = this.buildUrl(`${this.endpoint}/${departmentId}/programs`, query);
+      const url = this.buildUrl(`../programs/departments/${departmentId}/programs`, query);
       return await apiService.get<DepartmentProgramsResponse>(url);
     } catch (error) {
       console.error(`Error fetching programs for department ${departmentId}:`, error);
@@ -129,7 +129,7 @@ class DepartmentService extends BaseService {
     }
   ) {
     try {
-      const url = this.buildUrl(`${this.endpoint}/${departmentId}/courses`, query);
+      const url = this.buildUrl(`../courses/department/${departmentId}`, query);
       return await apiService.get<any[]>(url);
     } catch (error) {
       console.error(`Error fetching courses for department ${departmentId}:`, error);
@@ -150,7 +150,7 @@ class DepartmentService extends BaseService {
     }
   ): Promise<ApiResponse<DepartmentInstructorsResponse>> {
     try {
-      const url = this.buildUrl(`${this.endpoint}/${departmentId}/instructors`, query);
+      const url = this.buildUrl(`../instructors/department/${departmentId}`, query);
       return await apiService.get<DepartmentInstructorsResponse>(url);
     } catch (error) {
       console.error(`Error fetching instructors for department ${departmentId}:`, error);
@@ -171,7 +171,7 @@ class DepartmentService extends BaseService {
     }
   ): Promise<ApiResponse<DepartmentStudentsResponse>> {
     try {
-      const url = this.buildUrl(`${this.endpoint}/${departmentId}/students`, query);
+      const url = this.buildUrl(`../students/department/${departmentId}`, query);
       return await apiService.get<DepartmentStudentsResponse>(url);
     } catch (error) {
       console.error(`Error fetching students for department ${departmentId}:`, error);

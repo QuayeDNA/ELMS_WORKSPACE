@@ -11,8 +11,12 @@ router.use(authenticateToken);
 // Public routes (authenticated users)
 router.get('/stats', studentController.getStudentStats);
 
-// Admin routes - require SUPER_ADMIN, ADMIN, or FACULTY_ADMIN roles
-router.get('/', requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.FACULTY_ADMIN), studentController.getStudents);
+// Get students by department
+router.get(
+  "/department/:departmentId",
+  requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.FACULTY_ADMIN),
+  studentController.getStudentsByDepartment
+);
 router.get('/export', requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.FACULTY_ADMIN), studentController.exportStudents);
 router.get('/import-template', requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.FACULTY_ADMIN), studentController.downloadImportTemplate);
 router.get('/:id', requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.FACULTY_ADMIN), studentController.getStudentById);

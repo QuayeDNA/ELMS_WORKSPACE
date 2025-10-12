@@ -725,4 +725,104 @@ export const instructorService = {
     // For excel, return the data as is (would need additional processing)
     return instructors.data;
   },
+
+  // Get instructors by department
+  async getInstructorsByDepartment(params: {
+    departmentId: number;
+    page?: number;
+    limit?: number;
+    search?: string;
+    sortBy?: string;
+    sortOrder?: "asc" | "desc";
+  }) {
+    const {
+      departmentId,
+      page = 1,
+      limit = 10,
+      search = "",
+      sortBy = "createdAt",
+      sortOrder = "desc",
+    } = params;
+
+    const skip = (page - 1) * limit;
+
+    const where: any = {
+      lecturerDepartments: {
+        some: {
+          departmentId,
+        },
+      },
+      ...(search
+        ? {
+            OR: [
+              { staffId: { contains: search, mode: "insensitive" } },
+              { specialization: { contains: search, mode: "insensitive" } },
+              {
+                user: {
+                  OR: [
+                    { firstName: { contains: search, mode: "insensitive" } },
+                    { lastName: { contains: search, mode: "insensitive" } },
+                    { email: { contains: search, mode: "insensitive" } },
+                  ],
+                },
+              },
+            ],
+          }
+        : {}),
+    };
+
+    const [instructors, total] = await Promise.all([
+      prisma.lecturerProfile.findMany({
+        where,
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              status: true,
+            },
+            include: {
+              lecturerDepartments: {
+                where: {
+                  departmentId,
+                },
+                include: {
+                  department: {
+                    select: {
+                      id: true,
+                      name: true,
+                      code: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        skip,
+        take: limit,
+        orderBy: {
+          [sortBy]: sortOrder,
+        },
+      }),
+      prisma.lecturerProfile.count({ where }),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      success: true,
+      message: "Instructors retrieved successfully",
+      data: {
+        instructors,
+        total,
+        page,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
+      },
+    };
+  },
 };

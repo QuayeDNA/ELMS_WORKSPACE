@@ -410,4 +410,36 @@ export const instructorController = {
       });
     }
   },
+
+  // Get instructors by department
+  async getInstructorsByDepartment(req: Request, res: Response) {
+    try {
+      const departmentId = parseInt(req.params.departmentId);
+      if (isNaN(departmentId)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid department ID",
+        });
+      }
+
+      const query = {
+        departmentId,
+        page: parseInt(req.query.page as string) || 1,
+        limit: parseInt(req.query.limit as string) || 10,
+        search: (req.query.search as string) || "",
+        sortBy: (req.query.sortBy as string) || "id",
+        sortOrder: (req.query.sortOrder as "asc" | "desc") || "desc",
+      };
+
+      const result = await instructorService.getInstructorsByDepartment(query);
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching instructors by department:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch instructors by department",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  },
 };
