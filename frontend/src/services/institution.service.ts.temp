@@ -56,7 +56,7 @@ class InstitutionService extends BaseService {
   async getInstitution(id: number): Promise<InstitutionResponse> {
     try {
       const response = await this.get<Institution>(`/${id}`);
-
+      
       if (response.success && response.data) {
         return {
           success: true,
@@ -78,7 +78,7 @@ class InstitutionService extends BaseService {
   async createInstitution(data: CreateInstitutionRequest): Promise<InstitutionResponse> {
     try {
       const response = await this.post<Institution>('', data);
-
+      
       if (response.success && response.data) {
         return {
           success: true,
@@ -100,7 +100,7 @@ class InstitutionService extends BaseService {
   async updateInstitution(id: number, data: UpdateInstitutionRequest): Promise<InstitutionResponse> {
     try {
       const response = await this.put<Institution>(`/${id}`, data);
-
+      
       if (response.success && response.data) {
         return {
           success: true,
@@ -122,7 +122,7 @@ class InstitutionService extends BaseService {
   async deleteInstitution(id: number): Promise<{ success: boolean; message: string }> {
     try {
       const response = await this.delete(`/${id}`);
-
+      
       return {
         success: response.success,
         message: response.message || 'Institution deleted successfully',
@@ -143,7 +143,7 @@ class InstitutionService extends BaseService {
   async getAnalytics(): Promise<InstitutionAnalytics> {
     try {
       const response = await this.get<InstitutionAnalytics>(API_ENDPOINTS.INSTITUTIONS.OVERVIEW_ANALYTICS);
-
+      
       if (response.success && response.data) {
         return response.data;
       }
@@ -161,7 +161,7 @@ class InstitutionService extends BaseService {
   async getInstitutionAnalytics(id: number): Promise<InstitutionSpecificAnalytics> {
     try {
       const response = await this.get<InstitutionSpecificAnalytics>(API_ENDPOINTS.INSTITUTIONS.ANALYTICS(id));
-
+      
       if (response.success && response.data) {
         return response.data;
       }
@@ -184,18 +184,18 @@ class InstitutionService extends BaseService {
     try {
       const filters: InstitutionFilters = { code };
       const response = await this.getInstitutions(filters);
-
+      
       if (response.success && response.data) {
         const institutions = response.data.institutions;
-
+        
         if (excludeId) {
           // When updating, exclude the current institution from the check
           return !institutions.some(inst => inst.code === code && inst.id !== excludeId);
         }
-
+        
         return institutions.length === 0;
       }
-
+      
       return false;
     } catch (error) {
       console.error('Error checking code availability:', error);

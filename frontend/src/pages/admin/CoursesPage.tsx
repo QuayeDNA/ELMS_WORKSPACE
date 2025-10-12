@@ -30,17 +30,6 @@ import { Course } from "@/types/course";
 import { Department } from "@/types/shared/department";
 import { Plus, Search, Edit, Trash2, Eye, FileText } from "lucide-react";
 
-interface CourseResponse {
-  success: boolean;
-  data: Course[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-}
-
 const CoursesPage: React.FC = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -68,22 +57,20 @@ const CoursesPage: React.FC = () => {
           : undefined,
       };
 
-      const response = (await courseService.getCourses(
-        query
-      )) as CourseResponse;
-      if (response?.success) {
-        const coursesData = response.data || [];
-        setCourses(coursesData);
-        setTotalPages(response.pagination?.totalPages || 1);
+      const response = await courseService.getCourses(query);
 
-        // Calculate stats immediately after setting courses
+      if (response?.success && response.data) {
+        const coursesData = response.data.courses || [];
+        const pagination = response.data.pagination;
+
+        setCourses(coursesData);
+        setTotalPages(pagination?.totalPages || 1);
+
+        // Calculate stats
         setStats({
-          total: response.pagination?.total || coursesData.length,
-          active: coursesData.filter((c) => c.isActive).length,
-          totalStudents: coursesData.reduce(
-            (sum, c) => sum + (c._count?.courseOfferings || 0),
-            0
-          ),
+          total: pagination?.total || coursesData.length,
+          active: coursesData.filter((c: Course) => c.isActive).length,
+          totalStudents: 0, // This would need proper data structure or separate API call
           totalLecturers: 0, // This would need to be calculated from lecturer assignments
         });
       }
@@ -92,7 +79,9 @@ const CoursesPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, searchTerm, selectedDepartment]);  const loadDepartments = useCallback(async () => {
+  }, [currentPage, searchTerm, selectedDepartment]);
+
+  const loadDepartments = useCallback(async () => {
     try {
       const response = await departmentService.getDepartments({});
       if (response?.data) {
