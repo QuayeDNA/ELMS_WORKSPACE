@@ -1,0 +1,3876 @@
+{
+	"info": {
+		"_postman_id": "elms-complete-api-2024",
+		"name": "ELMS Complete API Collection",
+		"description": "Comprehensive collection of all 150+ ELMS API endpoints organized by module. Includes authentication, user management, academic administration, registration system, and exam management.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{authToken}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "authToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "userId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "institutionId",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "facultyId",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "departmentId",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "programId",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "courseId",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "studentId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "instructorId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "academicYearId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "semesterId",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "academicPeriodId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "registrationId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "courseOfferingId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "examId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "venueId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "roomId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "incidentId",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "0. Health & System",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["health"]
+						},
+						"description": "Check if the server is running and database is connected"
+					}
+				},
+				{
+					"name": "API Info",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api",
+							"host": ["{{baseUrl}}"],
+							"path": ["api"]
+						},
+						"description": "Get API information and available endpoints"
+					}
+				},
+				{
+					"name": "Database Status",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/database/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "database", "status"]
+						},
+						"description": "Get database connection status and statistics"
+					}
+				}
+			],
+			"description": "System health checks and API information"
+		},
+		{
+			"name": "1. Authentication",
+			"item": [
+				{
+					"name": "Register User",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"SecurePass123!\",\n  \"role\": \"STUDENT\",\n  \"institutionId\": 1\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/register",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "register"]
+						}
+					}
+				},
+				{
+					"name": "Login - Super Admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response.data && response.data.token) {",
+									"        pm.collectionVariables.set('authToken', response.data.token);",
+									"        if (response.data.user && response.data.user.id) {",
+									"            pm.collectionVariables.set('userId', response.data.user.id);",
+									"        }",
+									"        console.log('✅ Token saved:', response.data.token.substring(0, 20) + '...');",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"admin@elms.com\",\n  \"password\": \"Admin@123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "Login - Institution Admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response.data && response.data.token) {",
+									"        pm.collectionVariables.set('authToken', response.data.token);",
+									"        if (response.data.user && response.data.user.id) {",
+									"            pm.collectionVariables.set('userId', response.data.user.id);",
+									"        }",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"admin@git.edu.gh\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "Login - Faculty Admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response.data && response.data.token) {",
+									"        pm.collectionVariables.set('authToken', response.data.token);",
+									"        if (response.data.user && response.data.user.id) {",
+									"            pm.collectionVariables.set('userId', response.data.user.id);",
+									"        }",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"dean.engineering@git.edu.gh\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "Login - Lecturer",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response.data && response.data.token) {",
+									"        pm.collectionVariables.set('authToken', response.data.token);",
+									"        if (response.data.user && response.data.user.id) {",
+									"            pm.collectionVariables.set('userId', response.data.user.id);",
+									"        }",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"james.lecturer@git.edu.gh\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "Login - Student",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response.data && response.data.token) {",
+									"        pm.collectionVariables.set('authToken', response.data.token);",
+									"        if (response.data.user && response.data.user.id) {",
+									"            pm.collectionVariables.set('userId', response.data.user.id);",
+									"            pm.collectionVariables.set('studentId', response.data.user.id);",
+									"        }",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"alice.student@st.git.edu.gh\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "Refresh Token",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refreshToken\": \"your-refresh-token\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/refresh",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "refresh"]
+						}
+					}
+				},
+				{
+					"name": "Forgot Password",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/forgot-password",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "forgot-password"]
+						}
+					}
+				},
+				{
+					"name": "Reset Password",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"token\": \"reset-token\",\n  \"newPassword\": \"NewPassword123!\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/reset-password",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "reset-password"]
+						}
+					}
+				},
+				{
+					"name": "Verify Email",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/verify-email/:token",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "verify-email", ":token"],
+							"variable": [
+								{
+									"key": "token",
+									"value": "verification-token"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Resend Verification Email",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/resend-verification",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "resend-verification"]
+						}
+					}
+				},
+				{
+					"name": "Get Profile",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "profile"]
+						}
+					}
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/logout",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "logout"]
+						}
+					}
+				},
+				{
+					"name": "Change Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"currentPassword\": \"OldPassword123!\",\n  \"newPassword\": \"NewPassword123!\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/change-password",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "change-password"]
+						}
+					}
+				},
+				{
+					"name": "Get Roles",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/roles",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "roles"]
+						}
+					}
+				},
+				{
+					"name": "Get My Permissions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/my-permissions",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "my-permissions"]
+						}
+					}
+				},
+				{
+					"name": "Admin - Create User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"New\",\n  \"lastName\": \"User\",\n  \"email\": \"newuser@example.com\",\n  \"password\": \"SecurePass123!\",\n  \"role\": \"STUDENT\",\n  \"institutionId\": 1\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/admin/create-user",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "admin", "create-user"]
+						}
+					}
+				},
+				{
+					"name": "Admin - Create Faculty Admin",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Faculty\",\n  \"lastName\": \"Admin\",\n  \"email\": \"facultyadmin@example.com\",\n  \"password\": \"SecurePass123!\",\n  \"role\": \"FACULTY_ADMIN\",\n  \"institutionId\": 1,\n  \"facultyId\": 1\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/admin/create-faculty-admin",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "admin", "create-faculty-admin"]
+						}
+					}
+				},
+				{
+					"name": "Admin - Create Exam Officer",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Exam\",\n  \"lastName\": \"Officer\",\n  \"email\": \"examofficer@example.com\",\n  \"password\": \"SecurePass123!\",\n  \"role\": \"EXAMS_OFFICER\",\n  \"institutionId\": 1,\n  \"facultyId\": 1\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/admin/create-exam-officer",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "admin", "create-exam-officer"]
+						}
+					}
+				},
+				{
+					"name": "Admin - Create Script Handler",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Script\",\n  \"lastName\": \"Handler\",\n  \"email\": \"scripthandler@example.com\",\n  \"password\": \"SecurePass123!\",\n  \"role\": \"SCRIPT_HANDLER\",\n  \"institutionId\": 1\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/admin/create-script-handler",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "admin", "create-script-handler"]
+						}
+					}
+				},
+				{
+					"name": "Admin - Create Invigilator",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Invigilator\",\n  \"lastName\": \"Staff\",\n  \"email\": \"invigilator@example.com\",\n  \"password\": \"SecurePass123!\",\n  \"role\": \"INVIGILATOR\",\n  \"institutionId\": 1\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/admin/create-invigilator",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "admin", "create-invigilator"]
+						}
+					}
+				},
+				{
+					"name": "Admin - Create Lecturer",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"New\",\n  \"lastName\": \"Lecturer\",\n  \"email\": \"newlecturer@example.com\",\n  \"password\": \"SecurePass123!\",\n  \"role\": \"LECTURER\",\n  \"institutionId\": 1,\n  \"facultyId\": 1,\n  \"departmentId\": 1\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/admin/create-lecturer",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "admin", "create-lecturer"]
+						}
+					}
+				},
+				{
+					"name": "Admin - Create Student",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"New\",\n  \"lastName\": \"Student\",\n  \"email\": \"newstudent@st.example.com\",\n  \"password\": \"SecurePass123!\",\n  \"role\": \"STUDENT\",\n  \"institutionId\": 1,\n  \"programId\": 1\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/admin/create-student",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "admin", "create-student"]
+						}
+					}
+				}
+			],
+			"description": "Authentication and user management endpoints"
+		},
+		{
+			"name": "2. Users",
+			"item": [
+				{
+					"name": "Get All Users",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/users?page=1&limit=10&role=STUDENT&institutionId={{institutionId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "users"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number"
+								},
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Items per page"
+								},
+								{
+									"key": "role",
+									"value": "STUDENT",
+									"description": "Filter by role",
+									"disabled": true
+								},
+								{
+									"key": "institutionId",
+									"value": "{{institutionId}}",
+									"description": "Filter by institution",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Get all users with pagination and filtering. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					}
+				},
+				{
+					"name": "Get User by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/{{userId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "users", "{{userId}}"]
+						},
+						"description": "Get single user by ID. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					}
+				},
+				{
+					"name": "Create User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"SecurePass123!\",\n  \"role\": \"LECTURER\",\n  \"institutionId\": {{institutionId}},\n  \"facultyId\": {{facultyId}},\n  \"departmentId\": {{departmentId}}\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "users"]
+						},
+						"description": "Create new user. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.user && jsonData.user.id) {",
+									"        pm.collectionVariables.set('userId', jsonData.user.id);",
+									"        console.log('User ID saved:', jsonData.user.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Update User",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Updated\",\n  \"email\": \"john.updated@example.com\",\n  \"role\": \"LECTURER\",\n  \"institutionId\": {{institutionId}},\n  \"facultyId\": {{facultyId}},\n  \"departmentId\": {{departmentId}}\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/{{userId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "users", "{{userId}}"]
+						},
+						"description": "Update user. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					}
+				},
+				{
+					"name": "Delete User",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/{{userId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "users", "{{userId}}"]
+						},
+						"description": "Delete user (soft delete). Accessible by: Super Admin only"
+					}
+				},
+				{
+					"name": "Get Users by Institution",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/institutions/{{institutionId}}/users",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "users", "institutions", "{{institutionId}}", "users"]
+						},
+						"description": "Get users by institution. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					}
+				},
+				{
+					"name": "Get Users by Faculty",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/faculties/{{facultyId}}/users",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "users", "faculties", "{{facultyId}}", "users"]
+						},
+						"description": "Get users by faculty. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					}
+				}
+			],
+			"description": "User management endpoints with CRUD operations and filtering"
+		},
+		{
+			"name": "3. Institutions",
+			"item": [
+				{
+					"name": "Get All Institutions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/institutions?page=1&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "institutions"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number"
+								},
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Items per page"
+								}
+							]
+						},
+						"description": "Get all institutions with pagination. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					}
+				},
+				{
+					"name": "Get Institution by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/institutions/{{institutionId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "institutions", "{{institutionId}}"]
+						},
+						"description": "Get single institution by ID. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					}
+				},
+				{
+					"name": "Create Institution",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"New University\",\n  \"code\": \"NU\",\n  \"type\": \"UNIVERSITY\",\n  \"address\": \"123 Education Street\",\n  \"city\": \"Accra\",\n  \"country\": \"Ghana\",\n  \"phone\": \"+233123456789\",\n  \"email\": \"info@newuniversity.edu.gh\",\n  \"website\": \"https://newuniversity.edu.gh\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/institutions",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "institutions"]
+						},
+						"description": "Create new institution. Accessible by: Super Admin only"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.institution && jsonData.institution.id) {",
+									"        pm.collectionVariables.set('institutionId', jsonData.institution.id);",
+									"        console.log('Institution ID saved:', jsonData.institution.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Update Institution",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated University\",\n  \"code\": \"UU\",\n  \"type\": \"UNIVERSITY\",\n  \"address\": \"456 Updated Street\",\n  \"city\": \"Accra\",\n  \"country\": \"Ghana\",\n  \"phone\": \"+233987654321\",\n  \"email\": \"info@updated.edu.gh\",\n  \"website\": \"https://updated.edu.gh\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/institutions/{{institutionId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "institutions", "{{institutionId}}"]
+						},
+						"description": "Update institution. Accessible by: Super Admin, Institution Admin (own institution only)"
+					}
+				},
+				{
+					"name": "Delete Institution",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/institutions/{{institutionId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "institutions", "{{institutionId}}"]
+						},
+						"description": "Delete institution. Accessible by: Super Admin only"
+					}
+				},
+				{
+					"name": "Create Institution with Admin",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"institution\": {\n    \"name\": \"New University with Admin\",\n    \"code\": \"NUA\",\n    \"type\": \"UNIVERSITY\",\n    \"address\": \"789 Admin Street\",\n    \"city\": \"Kumasi\",\n    \"country\": \"Ghana\",\n    \"phone\": \"+233111222333\",\n    \"email\": \"info@newadmin.edu.gh\",\n    \"website\": \"https://newadmin.edu.gh\"\n  },\n  \"admin\": {\n    \"firstName\": \"Admin\",\n    \"lastName\": \"User\",\n    \"email\": \"admin@newadmin.edu.gh\",\n    \"password\": \"AdminPass123!\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/institutions/with-admin",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "institutions", "with-admin"]
+						},
+						"description": "Create institution with admin user. Accessible by: Super Admin only"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.institution && jsonData.institution.id) {",
+									"        pm.collectionVariables.set('institutionId', jsonData.institution.id);",
+									"        console.log('Institution ID saved:', jsonData.institution.id);",
+									"    }",
+									"    if (jsonData.admin && jsonData.admin.id) {",
+									"        pm.collectionVariables.set('userId', jsonData.admin.id);",
+									"        console.log('Admin User ID saved:', jsonData.admin.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Get Institution Analytics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/institutions/{{institutionId}}/analytics",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "institutions", "{{institutionId}}", "analytics"]
+						},
+						"description": "Get institution analytics. Accessible by: Super Admin, Institution Admin (own institution only)"
+					}
+				},
+				{
+					"name": "Get Overall Analytics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/institutions/analytics/overview",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "institutions", "analytics", "overview"]
+						},
+						"description": "Get overall analytics across all institutions. Accessible by: Super Admin only"
+					}
+				}
+			],
+			"description": "Institution management with CRUD operations, analytics, and admin creation"
+		},
+		{
+			"name": "4. Faculties",
+			"item": [
+				{
+					"name": "Get All Faculties",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/faculties?page=1&limit=10&institutionId={{institutionId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "faculties"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number"
+								},
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Items per page"
+								},
+								{
+									"key": "institutionId",
+									"value": "{{institutionId}}",
+									"description": "Filter by institution",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Get all faculties with pagination and filtering. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					}
+				},
+				{
+					"name": "Get Faculty Analytics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/faculties/analytics",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "faculties", "analytics"]
+						},
+						"description": "Get faculty analytics. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					}
+				},
+				{
+					"name": "Get Faculty by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/faculties/{{facultyId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "faculties", "{{facultyId}}"]
+						},
+						"description": "Get single faculty by ID. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					}
+				},
+				{
+					"name": "Create Faculty",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Faculty of Science\",\n  \"code\": \"SCI\",\n  \"institutionId\": {{institutionId}},\n  \"description\": \"Faculty of Science and Technology\",\n  \"establishedYear\": 2020\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/faculties",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "faculties"]
+						},
+						"description": "Create new faculty. Accessible by: Super Admin, Institution Admin"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.faculty && jsonData.faculty.id) {",
+									"        pm.collectionVariables.set('facultyId', jsonData.faculty.id);",
+									"        console.log('Faculty ID saved:', jsonData.faculty.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Update Faculty",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Faculty of Science and Technology\",\n  \"code\": \"FST\",\n  \"institutionId\": {{institutionId}},\n  \"description\": \"Updated Faculty of Science and Technology\",\n  \"establishedYear\": 2020\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/faculties/{{facultyId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "faculties", "{{facultyId}}"]
+						},
+						"description": "Update faculty. Accessible by: Super Admin, Institution Admin"
+					}
+				},
+				{
+					"name": "Delete Faculty",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/faculties/{{facultyId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "faculties", "{{facultyId}}"]
+						},
+						"description": "Delete faculty. Accessible by: Super Admin only"
+					}
+				},
+				{
+					"name": "Get Faculties by Institution",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/faculties/institutions/{{institutionId}}/faculties",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "faculties", "institutions", "{{institutionId}}", "faculties"]
+						},
+						"description": "Get faculties by institution. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					}
+				},
+				{
+					"name": "Assign Dean to Faculty",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"deanId\": {{instructorId}}\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/faculties/{{facultyId}}/dean",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "faculties", "{{facultyId}}", "dean"]
+						},
+						"description": "Assign dean to faculty. Accessible by: Super Admin, Institution Admin"
+					}
+				},
+				{
+					"name": "Remove Dean from Faculty",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/faculties/{{facultyId}}/dean",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "faculties", "{{facultyId}}", "dean"]
+						},
+						"description": "Remove dean from faculty. Accessible by: Super Admin, Institution Admin"
+					}
+				}
+			],
+			"description": "Faculty management with CRUD operations, analytics, and dean assignment"
+		},
+		{
+			"name": "5. Departments",
+			"item": [
+				{
+					"name": "Get All Departments",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/departments?page=1&limit=10&facultyId={{facultyId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "departments"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number"
+								},
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Items per page"
+								},
+								{
+									"key": "facultyId",
+									"value": "{{facultyId}}",
+									"description": "Filter by faculty",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Get all departments with pagination and filtering. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					}
+				},
+				{
+					"name": "Get Department by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/departments/{{departmentId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "departments", "{{departmentId}}"]
+						},
+						"description": "Get single department by ID. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					}
+				},
+				{
+					"name": "Create Department",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Computer Science Department\",\n  \"code\": \"CS\",\n  \"facultyId\": {{facultyId}},\n  \"description\": \"Department of Computer Science and Information Technology\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/departments",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "departments"]
+						},
+						"description": "Create new department. Accessible by: Super Admin, Institution Admin"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.department && jsonData.department.id) {",
+									"        pm.collectionVariables.set('departmentId', jsonData.department.id);",
+									"        console.log('Department ID saved:', jsonData.department.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Update Department",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Computer Science and IT Department\",\n  \"code\": \"CSIT\",\n  \"facultyId\": {{facultyId}},\n  \"description\": \"Updated Department of Computer Science and Information Technology\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/departments/{{departmentId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "departments", "{{departmentId}}"]
+						},
+						"description": "Update department. Accessible by: Super Admin, Institution Admin"
+					}
+				},
+				{
+					"name": "Delete Department",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/departments/{{departmentId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "departments", "{{departmentId}}"]
+						},
+						"description": "Delete department. Accessible by: Super Admin only"
+					}
+				},
+				{
+					"name": "Get Departments by Faculty",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/departments/faculties/{{facultyId}}/departments",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "departments", "faculties", "{{facultyId}}", "departments"]
+						},
+						"description": "Get departments by faculty. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					}
+				},
+				{
+					"name": "Get Department Analytics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/departments/analytics",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "departments", "analytics"]
+						},
+						"description": "Get department analytics. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					}
+				}
+			],
+			"description": "Department management with CRUD operations and analytics"
+		},
+		{
+			"name": "6. Programs",
+			"item": [
+				{
+					"name": "Get All Programs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/programs?page=1&limit=10&departmentId={{departmentId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "programs"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number"
+								},
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Items per page"
+								},
+								{
+									"key": "departmentId",
+									"value": "{{departmentId}}",
+									"description": "Filter by department",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Get all programs with pagination and filtering. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					}
+				},
+				{
+					"name": "Get Program by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/programs/{{programId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "programs", "{{programId}}"]
+						},
+						"description": "Get single program by ID. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					}
+				},
+				{
+					"name": "Create Program",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Bachelor of Science in Computer Science\",\n  \"code\": \"BSC-CS\",\n  \"departmentId\": {{departmentId}},\n  \"programType\": \"BACHELOR\",\n  \"duration\": 4,\n  \"description\": \"Four-year undergraduate program in Computer Science\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/programs",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "programs"]
+						},
+						"description": "Create new program. Accessible by: Super Admin, Institution Admin"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.program && jsonData.program.id) {",
+									"        pm.collectionVariables.set('programId', jsonData.program.id);",
+									"        console.log('Program ID saved:', jsonData.program.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Update Program",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Bachelor of Science in Computer Science (Updated)\",\n  \"code\": \"BSC-CS-V2\",\n  \"departmentId\": {{departmentId}},\n  \"programType\": \"BACHELOR\",\n  \"duration\": 4,\n  \"description\": \"Updated four-year undergraduate program in Computer Science\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/programs/{{programId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "programs", "{{programId}}"]
+						},
+						"description": "Update program. Accessible by: Super Admin, Institution Admin"
+					}
+				},
+				{
+					"name": "Delete Program",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/programs/{{programId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "programs", "{{programId}}"]
+						},
+						"description": "Delete program. Accessible by: Super Admin only"
+					}
+				},
+				{
+					"name": "Get Programs by Department",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/programs/departments/{{departmentId}}/programs",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "programs", "departments", "{{departmentId}}", "programs"]
+						},
+						"description": "Get programs by department. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					}
+				}
+			],
+			"description": "Program management with CRUD operations and department filtering"
+		},
+		{
+			"name": "7. Program Prefixes",
+			"item": [
+				{
+					"name": "Get All Program Prefixes",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/program-prefixes",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "program-prefixes"]
+						},
+						"description": "Get all program prefixes. Accessible by: Super Admin, Institution Admin"
+					}
+				},
+				{
+					"name": "Get Program Prefix by Type",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/program-prefixes/BACHELOR",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "program-prefixes", "BACHELOR"]
+						},
+						"description": "Get program prefix by type (BACHELOR, MASTER, DOCTORATE, DIPLOMA, CERTIFICATE). Accessible by: Super Admin, Institution Admin"
+					}
+				},
+				{
+					"name": "Update Program Prefix",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"prefix\": \"BSc\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/program-prefixes/BACHELOR",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "program-prefixes", "BACHELOR"]
+						},
+						"description": "Update program prefix for a specific type. Accessible by: Super Admin, Institution Admin"
+					}
+				},
+				{
+					"name": "Bulk Update Prefixes",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"prefixes\": [\n    { \"programType\": \"BACHELOR\", \"prefix\": \"BSc\" },\n    { \"programType\": \"MASTER\", \"prefix\": \"MSc\" },\n    { \"programType\": \"DOCTORATE\", \"prefix\": \"PhD\" }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/program-prefixes/bulk/update",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "program-prefixes", "bulk", "update"]
+						},
+						"description": "Bulk update multiple program prefixes. Accessible by: Super Admin, Institution Admin"
+					}
+				}
+			],
+			"description": "Program prefix configuration for different program types"
+		},
+		{
+			"name": "8. Courses",
+			"item": [
+				{
+					"name": "Get All Courses",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/courses?page=1&limit=10&departmentId={{departmentId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "courses"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number"
+								},
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Items per page"
+								},
+								{
+									"key": "departmentId",
+									"value": "{{departmentId}}",
+									"description": "Filter by department",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Get all courses with pagination and filtering. Accessible by: Super Admin, Institution Admin, Faculty Admin, Lecturer"
+					}
+				},
+				{
+					"name": "Get Course by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/courses/{{courseId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "courses", "{{courseId}}"]
+						},
+						"description": "Get single course by ID. Accessible by: All authenticated users"
+					}
+				},
+				{
+					"name": "Create Course",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"code\": \"CS101\",\n  \"name\": \"Introduction to Computer Science\",\n  \"departmentId\": {{departmentId}},\n  \"credits\": 3,\n  \"level\": 100,\n  \"semester\": \"FIRST\",\n  \"description\": \"Fundamental concepts of computer science and programming\",\n  \"courseType\": \"CORE\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/courses",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "courses"]
+						},
+						"description": "Create new course. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.course && jsonData.course.id) {",
+									"        pm.collectionVariables.set('courseId', jsonData.course.id);",
+									"        console.log('Course ID saved:', jsonData.course.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Update Course",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"code\": \"CS101\",\n  \"name\": \"Introduction to Computer Science (Updated)\",\n  \"departmentId\": {{departmentId}},\n  \"credits\": 3,\n  \"level\": 100,\n  \"semester\": \"FIRST\",\n  \"description\": \"Updated fundamental concepts of computer science and programming\",\n  \"courseType\": \"CORE\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/courses/{{courseId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "courses", "{{courseId}}"]
+						},
+						"description": "Update course. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					}
+				},
+				{
+					"name": "Delete Course",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/courses/{{courseId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "courses", "{{courseId}}"]
+						},
+						"description": "Delete course. Accessible by: Super Admin, Institution Admin"
+					}
+				},
+				{
+					"name": "Get Courses by Department",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/courses/department/{{departmentId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "courses", "department", "{{departmentId}}"]
+						},
+						"description": "Get courses by department. Accessible by: Super Admin, Institution Admin, Faculty Admin, Lecturer"
+					}
+				},
+				{
+					"name": "Get Courses by Program",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/courses/program/{{programId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "courses", "program", "{{programId}}"]
+						},
+						"description": "Get courses by program. Accessible by: All authenticated users"
+					}
+				}
+			],
+			"description": "Course management with CRUD operations and filtering by department/program"
+		},
+		{
+			"name": "9. Students",
+			"item": [
+				{
+					"name": "Get Student Statistics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/students/stats",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "students", "stats"]
+						},
+						"description": "Get student statistics. Accessible by: All authenticated users"
+					}
+				},
+				{
+					"name": "Get All Students",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/students?page=1&limit=10&programId={{programId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "students"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number"
+								},
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Items per page"
+								},
+								{
+									"key": "programId",
+									"value": "{{programId}}",
+									"description": "Filter by program",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Get all students with pagination. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					}
+				},
+				{
+					"name": "Get Students by Department",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/students/department/{{departmentId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "students", "department", "{{departmentId}}"]
+						},
+						"description": "Get students by department. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					}
+				},
+				{
+					"name": "Export Students",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/students/export?format=csv&programId={{programId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "students", "export"],
+							"query": [
+								{
+									"key": "format",
+									"value": "csv",
+									"description": "Export format (csv, excel)"
+								},
+								{
+									"key": "programId",
+									"value": "{{programId}}",
+									"description": "Filter by program",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Export students to CSV or Excel. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					}
+				},
+				{
+					"name": "Download Import Template",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/students/import-template",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "students", "import-template"]
+						},
+						"description": "Download CSV template for bulk import. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					}
+				},
+				{
+					"name": "Get Student by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/students/{{studentId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "students", "{{studentId}}"]
+						},
+						"description": "Get student by ID. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					}
+				},
+				{
+					"name": "Get Student by Student ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/students/by-student-id/2024001",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "students", "by-student-id", "2024001"]
+						},
+						"description": "Get student by their student ID number. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					}
+				},
+				{
+					"name": "Create Student",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Student\",\n  \"email\": \"john.student@st.example.com\",\n  \"studentId\": \"2024001\",\n  \"programId\": {{programId}},\n  \"entryYear\": 2024,\n  \"expectedGraduationYear\": 2028,\n  \"dateOfBirth\": \"2002-05-15\",\n  \"gender\": \"MALE\",\n  \"phone\": \"+233123456789\",\n  \"address\": \"123 Student Street\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/students",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "students"]
+						},
+						"description": "Create new student. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.student && jsonData.student.id) {",
+									"        pm.collectionVariables.set('studentId', jsonData.student.id);",
+									"        console.log('Student ID saved:', jsonData.student.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Update Student",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Updated Student\",\n  \"email\": \"john.updated@st.example.com\",\n  \"studentId\": \"2024001\",\n  \"programId\": {{programId}},\n  \"entryYear\": 2024,\n  \"expectedGraduationYear\": 2028,\n  \"dateOfBirth\": \"2002-05-15\",\n  \"gender\": \"MALE\",\n  \"phone\": \"+233987654321\",\n  \"address\": \"456 Updated Street\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/students/{{studentId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "students", "{{studentId}}"]
+						},
+						"description": "Update student. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					}
+				},
+				{
+					"name": "Delete Student",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/students/{{studentId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "students", "{{studentId}}"]
+						},
+						"description": "Delete student. Accessible by: Super Admin, Institution Admin"
+					}
+				},
+				{
+					"name": "Update Student Status",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"ACTIVE\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/students/{{studentId}}/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "students", "{{studentId}}", "status"]
+						},
+						"description": "Update student status (ACTIVE, INACTIVE, SUSPENDED, GRADUATED). Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					}
+				},
+				{
+					"name": "Bulk Import Students",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "multipart/form-data"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": "/path/to/students.csv",
+									"description": "CSV file with student data"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/students/bulk-import",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "students", "bulk-import"]
+						},
+						"description": "Bulk import students from CSV file. Accessible by: Super Admin, Institution Admin"
+					}
+				}
+			],
+			"description": "Student management with CRUD, bulk operations, import/export, and statistics"
+		},
+		{
+			"name": "10. Instructors",
+			"item": [
+				{
+					"name": "Get Instructor Statistics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/instructors/stats",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "instructors", "stats"]
+						},
+						"description": "Get instructor statistics. Accessible by: All authenticated users"
+					}
+				},
+				{
+					"name": "Get All Instructors",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/instructors?page=1&limit=10&departmentId={{departmentId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "instructors"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number"
+								},
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Items per page"
+								},
+								{
+									"key": "departmentId",
+									"value": "{{departmentId}}",
+									"description": "Filter by department",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Get all instructors with pagination. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					}
+				},
+				{
+					"name": "Get Instructor by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/instructors/{{instructorId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "instructors", "{{instructorId}}"]
+						},
+						"description": "Get instructor by ID. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					}
+				},
+				{
+					"name": "Get Instructor by Staff ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/instructors/by-staff-id/STF2024001",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "instructors", "by-staff-id", "STF2024001"]
+						},
+						"description": "Get instructor by staff ID. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					}
+				},
+				{
+					"name": "Create Instructor",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Dr. Jane\",\n  \"lastName\": \"Instructor\",\n  \"email\": \"jane.instructor@example.com\",\n  \"staffId\": \"STF2024001\",\n  \"title\": \"Dr.\",\n  \"rank\": \"SENIOR_LECTURER\",\n  \"institutionId\": {{institutionId}},\n  \"facultyId\": {{facultyId}},\n  \"departmentIds\": [{{departmentId}}],\n  \"phone\": \"+233123456789\",\n  \"specialization\": \"Computer Science\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/instructors",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "instructors"]
+						},
+						"description": "Create new instructor. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.instructor && jsonData.instructor.id) {",
+									"        pm.collectionVariables.set('instructorId', jsonData.instructor.id);",
+									"        console.log('Instructor ID saved:', jsonData.instructor.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Update Instructor",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Dr. Jane\",\n  \"lastName\": \"Updated Instructor\",\n  \"email\": \"jane.updated@example.com\",\n  \"staffId\": \"STF2024001\",\n  \"title\": \"Prof.\",\n  \"rank\": \"PROFESSOR\",\n  \"institutionId\": {{institutionId}},\n  \"facultyId\": {{facultyId}},\n  \"departmentIds\": [{{departmentId}}],\n  \"phone\": \"+233987654321\",\n  \"specialization\": \"Computer Science & AI\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/instructors/{{instructorId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "instructors", "{{instructorId}}"]
+						},
+						"description": "Update instructor. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					}
+				},
+				{
+					"name": "Delete Instructor",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/instructors/{{instructorId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "instructors", "{{instructorId}}"]
+						},
+						"description": "Delete instructor. Accessible by: Super Admin, Institution Admin"
+					}
+				},
+				{
+					"name": "Update Instructor Status",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"ACTIVE\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/instructors/{{instructorId}}/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "instructors", "{{instructorId}}", "status"]
+						},
+						"description": "Update instructor status (ACTIVE, INACTIVE, ON_LEAVE). Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					}
+				},
+				{
+					"name": "Assign to Department",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"departmentId\": {{departmentId}}\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/instructors/{{instructorId}}/departments",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "instructors", "{{instructorId}}", "departments"]
+						},
+						"description": "Assign instructor to department. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					}
+				},
+				{
+					"name": "Remove from Department",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/instructors/{{instructorId}}/departments/{{departmentId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "instructors", "{{instructorId}}", "departments", "{{departmentId}}"]
+						},
+						"description": "Remove instructor from department. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					}
+				},
+				{
+					"name": "Bulk Import Instructors",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "multipart/form-data"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": "/path/to/instructors.csv",
+									"description": "CSV file with instructor data"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/instructors/bulk-import",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "instructors", "bulk-import"]
+						},
+						"description": "Bulk import instructors from CSV file. Accessible by: Super Admin, Institution Admin"
+					}
+				},
+				{
+					"name": "Get Instructors by Department",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/instructors/department/{{departmentId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "instructors", "department", "{{departmentId}}"]
+						},
+						"description": "Get instructors by department. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					}
+				},
+				{
+					"name": "Export Instructors",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/instructors/export?format=csv&departmentId={{departmentId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "instructors", "export"],
+							"query": [
+								{
+									"key": "format",
+									"value": "csv",
+									"description": "Export format (csv, excel)"
+								},
+								{
+									"key": "departmentId",
+									"value": "{{departmentId}}",
+									"description": "Filter by department",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Export instructors to CSV or Excel. Accessible by: Super Admin, Institution Admin, Faculty Admin"
+					}
+				}
+			],
+			"description": "Instructor management with CRUD, department assignments, bulk operations, and statistics"
+		},
+		{
+			"name": "11. Academic Periods",
+			"item": [
+				{
+					"name": "Academic Years",
+					"item": [
+						{
+							"name": "Get Academic Period Statistics",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/academic-periods/academic-years/stats",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "academic-periods", "academic-years", "stats"]
+								},
+								"description": "Get statistics about academic periods including years, semesters, and periods. Access: All authenticated users."
+							},
+							"response": []
+						},
+						{
+							"name": "Get Current Academic Year",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/academic-periods/academic-years/current",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "academic-periods", "academic-years", "current"]
+								},
+								"description": "Get the current active academic year. Access: All authenticated users."
+							},
+							"response": []
+						},
+						{
+							"name": "Get All Academic Years",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/academic-periods/academic-years?page=1&limit=10",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "academic-periods", "academic-years"],
+									"query": [
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "limit",
+											"value": "10"
+										}
+									]
+								},
+								"description": "Get all academic years with pagination. Access: Admin, Faculty Admin, Super Admin."
+							},
+							"response": []
+						},
+						{
+							"name": "Get Academic Year by ID",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/academic-periods/academic-years/{{academicYearId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "academic-periods", "academic-years", "{{academicYearId}}"]
+								},
+								"description": "Get a specific academic year by ID. Access: Admin, Faculty Admin, Super Admin."
+							},
+							"response": []
+						},
+						{
+							"name": "Create Academic Year",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"if (pm.response.code === 201) {",
+											"    const response = pm.response.json();",
+											"    if (response.data && response.data.id) {",
+											"        pm.collectionVariables.set('academicYearId', response.data.id);",
+											"        console.log('Academic Year ID saved:', response.data.id);",
+											"    }",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"2024/2025\",\n  \"startDate\": \"2024-09-01T00:00:00.000Z\",\n  \"endDate\": \"2025-08-31T23:59:59.999Z\",\n  \"isCurrent\": true\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/academic-periods/academic-years",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "academic-periods", "academic-years"]
+								},
+								"description": "Create a new academic year. Access: Admin, Super Admin."
+							},
+							"response": []
+						},
+						{
+							"name": "Update Academic Year",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"2024/2025 - Updated\",\n  \"startDate\": \"2024-09-01T00:00:00.000Z\",\n  \"endDate\": \"2025-08-31T23:59:59.999Z\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/academic-periods/academic-years/{{academicYearId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "academic-periods", "academic-years", "{{academicYearId}}"]
+								},
+								"description": "Update an existing academic year. Access: Admin, Super Admin."
+							},
+							"response": []
+						},
+						{
+							"name": "Set Current Academic Year",
+							"request": {
+								"method": "PATCH",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/academic-periods/academic-years/{{academicYearId}}/set-current",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "academic-periods", "academic-years", "{{academicYearId}}", "set-current"]
+								},
+								"description": "Set an academic year as the current active year. Access: Admin, Super Admin."
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Academic Year",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/academic-periods/academic-years/{{academicYearId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "academic-periods", "academic-years", "{{academicYearId}}"]
+								},
+								"description": "Delete an academic year. Access: Admin, Super Admin."
+							},
+							"response": []
+						}
+					],
+					"description": "Academic year management - represents the full academic year (e.g., 2024/2025). Includes CRUD operations and setting the current year."
+				},
+				{
+					"name": "Semesters",
+					"item": [
+						{
+							"name": "Get Current Semester",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/academic-periods/semesters/current",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "academic-periods", "semesters", "current"]
+								},
+								"description": "Get the current active semester. Access: All authenticated users."
+							},
+							"response": []
+						},
+						{
+							"name": "Get All Semesters",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/academic-periods/semesters?page=1&limit=10&academicYearId={{academicYearId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "academic-periods", "semesters"],
+									"query": [
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "limit",
+											"value": "10"
+										},
+										{
+											"key": "academicYearId",
+											"value": "{{academicYearId}}"
+										}
+									]
+								},
+								"description": "Get all semesters with pagination and optional filtering by academic year. Access: Admin, Faculty Admin, Super Admin."
+							},
+							"response": []
+						},
+						{
+							"name": "Get Semester by ID",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/academic-periods/semesters/{{semesterId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "academic-periods", "semesters", "{{semesterId}}"]
+								},
+								"description": "Get a specific semester by ID. Access: Admin, Faculty Admin, Super Admin."
+							},
+							"response": []
+						},
+						{
+							"name": "Create Semester",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"if (pm.response.code === 201) {",
+											"    const response = pm.response.json();",
+											"    if (response.data && response.data.id) {",
+											"        pm.collectionVariables.set('semesterId', response.data.id);",
+											"        console.log('Semester ID saved:', response.data.id);",
+											"    }",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"academicYearId\": \"{{academicYearId}}\",\n  \"name\": \"First Semester\",\n  \"type\": \"FIRST_SEMESTER\",\n  \"startDate\": \"2024-09-01T00:00:00.000Z\",\n  \"endDate\": \"2025-01-15T23:59:59.999Z\",\n  \"isCurrent\": true\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/academic-periods/semesters",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "academic-periods", "semesters"]
+								},
+								"description": "Create a new semester within an academic year. Types: FIRST_SEMESTER, SECOND_SEMESTER, SUMMER. Access: Admin, Super Admin."
+							},
+							"response": []
+						},
+						{
+							"name": "Update Semester",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"First Semester - Updated\",\n  \"startDate\": \"2024-09-01T00:00:00.000Z\",\n  \"endDate\": \"2025-01-15T23:59:59.999Z\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/academic-periods/semesters/{{semesterId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "academic-periods", "semesters", "{{semesterId}}"]
+								},
+								"description": "Update an existing semester. Access: Admin, Super Admin."
+							},
+							"response": []
+						},
+						{
+							"name": "Set Current Semester",
+							"request": {
+								"method": "PATCH",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/academic-periods/semesters/{{semesterId}}/set-current",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "academic-periods", "semesters", "{{semesterId}}", "set-current"]
+								},
+								"description": "Set a semester as the current active semester. Access: Admin, Super Admin."
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Semester",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/academic-periods/semesters/{{semesterId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "academic-periods", "semesters", "{{semesterId}}"]
+								},
+								"description": "Delete a semester. Access: Admin, Super Admin."
+							},
+							"response": []
+						}
+					],
+					"description": "Semester management - represents specific semesters within academic years (First, Second, Summer). Includes CRUD operations and setting the current semester."
+				},
+				{
+					"name": "Academic Periods",
+					"item": [
+						{
+							"name": "Get Current Academic Period",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/academic-periods/periods/current",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "academic-periods", "periods", "current"]
+								},
+								"description": "Get the current active academic period (registration period). Access: All authenticated users."
+							},
+							"response": []
+						},
+						{
+							"name": "Get Academic Period Status",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/academic-periods/periods/{{academicPeriodId}}/status",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "academic-periods", "periods", "{{academicPeriodId}}", "status"]
+								},
+								"description": "Get the current status of an academic period (registration open/closed, add-drop open/closed). Access: All authenticated users."
+							},
+							"response": []
+						},
+						{
+							"name": "Get All Academic Periods",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/academic-periods/periods?page=1&limit=10",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "academic-periods", "periods"],
+									"query": [
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "limit",
+											"value": "10"
+										}
+									]
+								},
+								"description": "Get all academic periods with pagination. Access: Admin, Faculty Admin, Super Admin."
+							},
+							"response": []
+						},
+						{
+							"name": "Get Academic Period by ID",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/academic-periods/periods/{{academicPeriodId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "academic-periods", "periods", "{{academicPeriodId}}"]
+								},
+								"description": "Get a specific academic period by ID. Access: Admin, Faculty Admin, Super Admin."
+							},
+							"response": []
+						},
+						{
+							"name": "Get Academic Period by Semester",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/academic-periods/periods/semester/{{semesterId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "academic-periods", "periods", "semester", "{{semesterId}}"]
+								},
+								"description": "Get academic period for a specific semester. Access: Admin, Faculty Admin, Super Admin."
+							},
+							"response": []
+						},
+						{
+							"name": "Create Academic Period",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"if (pm.response.code === 201) {",
+											"    const response = pm.response.json();",
+											"    if (response.data && response.data.id) {",
+											"        pm.collectionVariables.set('academicPeriodId', response.data.id);",
+											"        console.log('Academic Period ID saved:', response.data.id);",
+											"    }",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"semesterId\": \"{{semesterId}}\",\n  \"registrationStartDate\": \"2024-08-15T00:00:00.000Z\",\n  \"registrationEndDate\": \"2024-09-05T23:59:59.999Z\",\n  \"addDropStartDate\": \"2024-09-01T00:00:00.000Z\",\n  \"addDropEndDate\": \"2024-09-15T23:59:59.999Z\",\n  \"isRegistrationOpen\": false,\n  \"isAddDropOpen\": false\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/academic-periods/periods",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "academic-periods", "periods"]
+								},
+								"description": "Create a new academic period with registration and add/drop dates. Access: Admin, Super Admin."
+							},
+							"response": []
+						},
+						{
+							"name": "Update Academic Period",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"registrationStartDate\": \"2024-08-15T00:00:00.000Z\",\n  \"registrationEndDate\": \"2024-09-05T23:59:59.999Z\",\n  \"addDropStartDate\": \"2024-09-01T00:00:00.000Z\",\n  \"addDropEndDate\": \"2024-09-15T23:59:59.999Z\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/academic-periods/periods/{{academicPeriodId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "academic-periods", "periods", "{{academicPeriodId}}"]
+								},
+								"description": "Update an existing academic period. Access: Admin, Super Admin."
+							},
+							"response": []
+						},
+						{
+							"name": "Open Registration",
+							"request": {
+								"method": "PATCH",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/academic-periods/periods/{{academicPeriodId}}/open-registration",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "academic-periods", "periods", "{{academicPeriodId}}", "open-registration"]
+								},
+								"description": "Open registration for the academic period. Access: Admin, Super Admin."
+							},
+							"response": []
+						},
+						{
+							"name": "Close Registration",
+							"request": {
+								"method": "PATCH",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/academic-periods/periods/{{academicPeriodId}}/close-registration",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "academic-periods", "periods", "{{academicPeriodId}}", "close-registration"]
+								},
+								"description": "Close registration for the academic period. Access: Admin, Super Admin."
+							},
+							"response": []
+						},
+						{
+							"name": "Open Add/Drop",
+							"request": {
+								"method": "PATCH",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/academic-periods/periods/{{academicPeriodId}}/open-add-drop",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "academic-periods", "periods", "{{academicPeriodId}}", "open-add-drop"]
+								},
+								"description": "Open add/drop period for course changes. Access: Admin, Super Admin."
+							},
+							"response": []
+						},
+						{
+							"name": "Close Add/Drop",
+							"request": {
+								"method": "PATCH",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/academic-periods/periods/{{academicPeriodId}}/close-add-drop",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "academic-periods", "periods", "{{academicPeriodId}}", "close-add-drop"]
+								},
+								"description": "Close add/drop period. Access: Admin, Super Admin."
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Academic Period",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/academic-periods/periods/{{academicPeriodId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "academic-periods", "periods", "{{academicPeriodId}}"]
+								},
+								"description": "Delete an academic period. Access: Admin, Super Admin."
+							},
+							"response": []
+						}
+					],
+					"description": "Academic period management - controls registration and add/drop periods within semesters. Includes CRUD operations and workflow management (open/close registration and add/drop)."
+				}
+			],
+			"description": "Academic period management with Academic Years, Semesters, and Periods. Controls the entire academic calendar including registration and add/drop workflows."
+		},
+		{
+			"name": "12. Registrations",
+			"item": [
+				{
+					"name": "Create Registration",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    if (response.data && response.data.id) {",
+									"        pm.collectionVariables.set('registrationId', response.data.id);",
+									"        console.log('Registration ID saved:', response.data.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"studentId\": \"{{studentId}}\",\n  \"semesterId\": \"{{semesterId}}\",\n  \"academicPeriodId\": \"{{academicPeriodId}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/registrations",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "registrations"]
+						},
+						"description": "Create a new course registration for a student in a specific semester. Access: Student (own), Lecturer (as advisor), Faculty Admin, Admin."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Registration by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/registrations/{{registrationId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "registrations", "{{registrationId}}"]
+						},
+						"description": "Get a specific registration by ID. Access: Student (own), Lecturer, Faculty Admin, Admin."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Student Registrations",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/registrations/student/{{studentId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "registrations", "student", "{{studentId}}"]
+						},
+						"description": "Get all registrations for a specific student. Access: Student (own), Lecturer, Faculty Admin, Admin."
+					},
+					"response": []
+				},
+				{
+					"name": "Add Course to Registration",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"courseOfferingId\": \"{{courseOfferingId}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/registrations/{{registrationId}}/courses",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "registrations", "{{registrationId}}", "courses"]
+						},
+						"description": "Add a course to an existing registration. Access: Student (own), Lecturer (as advisor), Faculty Admin, Admin."
+					},
+					"response": []
+				},
+				{
+					"name": "Remove Course from Registration",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/registrations/courses/{{courseId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "registrations", "courses", "{{courseId}}"]
+						},
+						"description": "Remove a course from a registration. Access: Student (own), Lecturer (as advisor), Faculty Admin, Admin."
+					},
+					"response": []
+				},
+				{
+					"name": "Submit Registration",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/registrations/{{registrationId}}/submit",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "registrations", "{{registrationId}}", "submit"]
+						},
+						"description": "Submit registration for advisor approval. Access: Student (own)."
+					},
+					"response": []
+				},
+				{
+					"name": "Approve Registration",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"comments\": \"Registration approved. Good selection of courses.\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/registrations/{{registrationId}}/approve",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "registrations", "{{registrationId}}", "approve"]
+						},
+						"description": "Approve a student's registration. Access: Lecturer (as advisor), Faculty Admin, Admin."
+					},
+					"response": []
+				},
+				{
+					"name": "Reject Registration",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"reason\": \"Too many courses. Please reduce to maximum 6 courses.\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/registrations/{{registrationId}}/reject",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "registrations", "{{registrationId}}", "reject"]
+						},
+						"description": "Reject a student's registration with reason. Access: Lecturer (as advisor), Faculty Admin, Admin."
+					},
+					"response": []
+				},
+				{
+					"name": "Validate Registration",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/registrations/{{registrationId}}/validate",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "registrations", "{{registrationId}}", "validate"]
+						},
+						"description": "Validate a registration against prerequisites, credit limits, and other rules. Access: Student (own), Lecturer, Faculty Admin, Admin."
+					},
+					"response": []
+				},
+				{
+					"name": "Check Course Eligibility",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/registrations/eligibility/{{studentId}}/{{courseOfferingId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "registrations", "eligibility", "{{studentId}}", "{{courseOfferingId}}"]
+						},
+						"description": "Check if a student is eligible to register for a specific course offering. Access: Student (own), Lecturer, Faculty Admin, Admin."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Eligible Courses",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/registrations/eligible-courses/{{studentId}}/{{semesterId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "registrations", "eligible-courses", "{{studentId}}", "{{semesterId}}"]
+						},
+						"description": "Get all courses a student is eligible to register for in a semester. Access: Student (own), Lecturer, Faculty Admin, Admin."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Registration Summary",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/registrations/summary/{{studentId}}/{{semesterId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "registrations", "summary", "{{studentId}}", "{{semesterId}}"]
+						},
+						"description": "Get a summary of student's registration for a semester including total credits, courses, and status. Access: Student (own), Lecturer, Faculty Admin, Admin."
+					},
+					"response": []
+				}
+			],
+			"description": "Course registration workflow including creation, course add/drop, submission, approval/rejection, validation, and eligibility checking."
+		},
+		{
+			"name": "13. Prerequisites",
+			"item": [
+				{
+					"name": "Check Prerequisites",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/prerequisites/check/{{studentId}}/{{courseId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "prerequisites", "check", "{{studentId}}", "{{courseId}}"]
+						},
+						"description": "Check if a student has met all prerequisites for a specific course. Returns true/false with details. Access: Student (own), Lecturer, Faculty Admin, Admin."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Missing Prerequisites",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/prerequisites/missing/{{studentId}}/{{courseId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "prerequisites", "missing", "{{studentId}}", "{{courseId}}"]
+						},
+						"description": "Get a list of missing prerequisites for a student to take a specific course. Access: Student (own), Lecturer, Faculty Admin, Admin."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Course Prerequisites",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/prerequisites/course/{{courseId}}/{{programId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "prerequisites", "course", "{{courseId}}", "{{programId}}"]
+						},
+						"description": "Get all prerequisites for a course in a specific program. Access: All authenticated users."
+					},
+					"response": []
+				},
+				{
+					"name": "Batch Check Prerequisites",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"studentId\": \"{{studentId}}\",\n  \"courseIds\": [\"{{courseId}}\", \"2\", \"3\"]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/prerequisites/batch-check",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "prerequisites", "batch-check"]
+						},
+						"description": "Check prerequisites for multiple courses at once. Returns status for each course. Access: Student (own), Lecturer, Faculty Admin, Admin."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Courses Requiring Prerequisite",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/prerequisites/dependent/{{courseId}}/{{programId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "prerequisites", "dependent", "{{courseId}}", "{{programId}}"]
+						},
+						"description": "Get all courses that require a specific course as a prerequisite. Access: All authenticated users."
+					},
+					"response": []
+				},
+				{
+					"name": "Validate Prerequisite Chain",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/prerequisites/validate-chain/{{studentId}}/{{courseId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "prerequisites", "validate-chain", "{{studentId}}", "{{courseId}}"]
+						},
+						"description": "Validate the entire chain of prerequisites for a course, checking if student has completed all direct and indirect prerequisites. Access: Student (own), Lecturer, Faculty Admin, Admin."
+					},
+					"response": []
+				}
+			],
+			"description": "Prerequisite checking and validation including single checks, batch checks, missing prerequisites, and prerequisite chain validation."
+		},
+		{
+			"name": "14. Exams",
+			"item": [
+				{
+					"name": "Get All Exams",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/exams?page=1&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "exams"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Get all exams with pagination and filtering. Access: Admin, Faculty Admin, Exams Officer, Lecturer."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Exam by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/exams/{{examId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "exams", "{{examId}}"]
+						},
+						"description": "Get a specific exam by ID. Access: Admin, Faculty Admin, Exams Officer, Lecturer, Student."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Exam",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    if (response.data && response.data.id) {",
+									"        pm.collectionVariables.set('examId', response.data.id);",
+									"        console.log('Exam ID saved:', response.data.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"courseId\": \"{{courseId}}\",\n  \"type\": \"FINAL\",\n  \"date\": \"2025-01-20T09:00:00.000Z\",\n  \"duration\": 180,\n  \"totalMarks\": 100,\n  \"instructions\": \"Answer all questions. No calculators allowed.\",\n  \"status\": \"SCHEDULED\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/exams",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "exams"]
+						},
+						"description": "Create a new exam. Types: MIDTERM, FINAL, QUIZ, ASSIGNMENT. Access: Admin, Faculty Admin, Exams Officer."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Exam",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"date\": \"2025-01-21T09:00:00.000Z\",\n  \"duration\": 180,\n  \"instructions\": \"Answer all questions. Calculators allowed for section B only.\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/exams/{{examId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "exams", "{{examId}}"]
+						},
+						"description": "Update an existing exam. Access: Admin, Faculty Admin, Exams Officer."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Exam Status",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"IN_PROGRESS\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/exams/{{examId}}/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "exams", "{{examId}}", "status"]
+						},
+						"description": "Update exam status. Statuses: SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED, POSTPONED. Access: Admin, Faculty Admin, Exams Officer."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Exam",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/exams/{{examId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "exams", "{{examId}}"]
+						},
+						"description": "Delete an exam. Access: Super Admin, Admin."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Exams by Faculty",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/exams/faculty/{{facultyId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "exams", "faculty", "{{facultyId}}"]
+						},
+						"description": "Get all exams for a specific faculty. Access: Admin, Faculty Admin, Exams Officer, Lecturer."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Exams by Course",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/exams/course/{{courseId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "exams", "course", "{{courseId}}"]
+						},
+						"description": "Get all exams for a specific course. Access: Admin, Faculty Admin, Exams Officer, Lecturer."
+					},
+					"response": []
+				}
+			],
+			"description": "Exam management with CRUD operations, status updates, and filtering by faculty/course."
+		},
+		{
+			"name": "15. Venues",
+			"item": [
+				{
+					"name": "Venues",
+					"item": [
+						{
+							"name": "Get All Venues",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/venues?page=1&limit=10",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "venues"],
+									"query": [
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "limit",
+											"value": "10"
+										}
+									]
+								},
+								"description": "Get all venues with pagination. Access: Admin, Faculty Admin, Exams Officer, Lecturer."
+							},
+							"response": []
+						},
+						{
+							"name": "Get Venue by ID",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/venues/{{venueId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "venues", "{{venueId}}"]
+								},
+								"description": "Get a specific venue by ID. Access: Admin, Faculty Admin, Exams Officer, Lecturer."
+							},
+							"response": []
+						},
+						{
+							"name": "Create Venue",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"if (pm.response.code === 201) {",
+											"    const response = pm.response.json();",
+											"    if (response.data && response.data.id) {",
+											"        pm.collectionVariables.set('venueId', response.data.id);",
+											"        console.log('Venue ID saved:', response.data.id);",
+											"    }",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"Main Examination Hall\",\n  \"code\": \"MEH\",\n  \"institutionId\": \"{{institutionId}}\",\n  \"location\": \"Building A, Ground Floor\",\n  \"totalCapacity\": 200,\n  \"examCapacity\": 100\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/venues",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "venues"]
+								},
+								"description": "Create a new venue. Access: Super Admin, Admin."
+							},
+							"response": []
+						},
+						{
+							"name": "Update Venue",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"Main Examination Hall - Renovated\",\n  \"totalCapacity\": 250,\n  \"examCapacity\": 125\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/venues/{{venueId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "venues", "{{venueId}}"]
+								},
+								"description": "Update an existing venue. Access: Super Admin, Admin."
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Venue",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/venues/{{venueId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "venues", "{{venueId}}"]
+								},
+								"description": "Delete a venue. Access: Super Admin, Admin."
+							},
+							"response": []
+						},
+						{
+							"name": "Get Venues by Institution",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/venues/institution/{{institutionId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "venues", "institution", "{{institutionId}}"]
+								},
+								"description": "Get all venues for a specific institution. Access: Admin, Faculty Admin, Exams Officer, Lecturer."
+							},
+							"response": []
+						}
+					],
+					"description": "Venue management for exam locations including buildings and halls."
+				},
+				{
+					"name": "Rooms",
+					"item": [
+						{
+							"name": "Get All Rooms",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/venues/rooms/all?page=1&limit=10",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "venues", "rooms", "all"],
+									"query": [
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "limit",
+											"value": "10"
+										}
+									]
+								},
+								"description": "Get all rooms across all venues with pagination. Access: Admin, Faculty Admin, Exams Officer, Lecturer."
+							},
+							"response": []
+						},
+						{
+							"name": "Get Room by ID",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/venues/rooms/{{roomId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "venues", "rooms", "{{roomId}}"]
+								},
+								"description": "Get a specific room by ID. Access: Admin, Faculty Admin, Exams Officer, Lecturer."
+							},
+							"response": []
+						},
+						{
+							"name": "Create Room",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"if (pm.response.code === 201) {",
+											"    const response = pm.response.json();",
+											"    if (response.data && response.data.id) {",
+											"        pm.collectionVariables.set('roomId', response.data.id);",
+											"        console.log('Room ID saved:', response.data.id);",
+											"    }",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"Room A101\",\n  \"code\": \"A101\",\n  \"capacity\": 30,\n  \"examCapacity\": 15,\n  \"floor\": \"1st Floor\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/venues/{{venueId}}/rooms",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "venues", "{{venueId}}", "rooms"]
+								},
+								"description": "Create a new room within a venue. Access: Super Admin, Admin."
+							},
+							"response": []
+						},
+						{
+							"name": "Update Room",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"Room A101 - Upgraded\",\n  \"capacity\": 35,\n  \"examCapacity\": 18\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/venues/rooms/{{roomId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "venues", "rooms", "{{roomId}}"]
+								},
+								"description": "Update an existing room. Access: Super Admin, Admin."
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Room",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/venues/rooms/{{roomId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "venues", "rooms", "{{roomId}}"]
+								},
+								"description": "Delete a room. Access: Super Admin, Admin."
+							},
+							"response": []
+						},
+						{
+							"name": "Get Rooms by Venue",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/venues/{{venueId}}/rooms",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "venues", "{{venueId}}", "rooms"]
+								},
+								"description": "Get all rooms within a specific venue. Access: Admin, Faculty Admin, Exams Officer, Lecturer."
+							},
+							"response": []
+						}
+					],
+					"description": "Room management within venues for detailed exam space allocation."
+				}
+			],
+			"description": "Venue and room management for exam locations. Includes CRUD operations for both venues and rooms."
+		},
+		{
+			"name": "16. Incidents",
+			"item": [
+				{
+					"name": "Get Incident Statistics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/incidents/stats/overview",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "incidents", "stats", "overview"]
+						},
+						"description": "Get overview statistics of all incidents. Access: Admin, Faculty Admin, Exams Officer."
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Incidents",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/incidents?page=1&limit=10&status=PENDING",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "incidents"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "status",
+									"value": "PENDING"
+								}
+							]
+						},
+						"description": "Get all incidents with pagination and filtering. Statuses: PENDING, ASSIGNED, RESOLVED, CLOSED. Access: Admin, Faculty Admin, Exams Officer, Invigilator."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Incident by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/incidents/{{incidentId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "incidents", "{{incidentId}}"]
+						},
+						"description": "Get a specific incident by ID. Access: Admin, Faculty Admin, Exams Officer, Invigilator, Lecturer."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Incident",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    if (response.data && response.data.id) {",
+									"        pm.collectionVariables.set('incidentId', response.data.id);",
+									"        console.log('Incident ID saved:', response.data.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"examId\": \"{{examId}}\",\n  \"type\": \"CHEATING\",\n  \"description\": \"Student found with unauthorized materials during exam\",\n  \"severity\": \"HIGH\",\n  \"studentId\": \"{{studentId}}\",\n  \"location\": \"Room A101\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/incidents",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "incidents"]
+						},
+						"description": "Create a new incident report. Types: CHEATING, DISRUPTION, MEDICAL, TECHNICAL, OTHER. Severity: LOW, MEDIUM, HIGH, CRITICAL. Access: All authenticated users."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Incident",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"description\": \"Student found with unauthorized materials. Confiscated materials and submitted to exam officer.\",\n  \"severity\": \"CRITICAL\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/incidents/{{incidentId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "incidents", "{{incidentId}}"]
+						},
+						"description": "Update an existing incident. Access: Admin, Faculty Admin, Exams Officer."
+					},
+					"response": []
+				},
+				{
+					"name": "Assign Incident",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"assigneeId\": \"{{userId}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/incidents/{{incidentId}}/assign",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "incidents", "{{incidentId}}", "assign"]
+						},
+						"description": "Assign an incident to a user for investigation. Access: Admin, Faculty Admin, Exams Officer."
+					},
+					"response": []
+				},
+				{
+					"name": "Resolve Incident",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"resolution\": \"Student disciplinary committee hearing scheduled. Case forwarded to faculty dean.\",\n  \"action\": \"REFERRED\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/incidents/{{incidentId}}/resolve",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "incidents", "{{incidentId}}", "resolve"]
+						},
+						"description": "Mark an incident as resolved with resolution notes. Access: Admin, Faculty Admin, Exams Officer."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Incident",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/incidents/{{incidentId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "incidents", "{{incidentId}}"]
+						},
+						"description": "Delete an incident. Access: Super Admin, Admin."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Incidents by Exam",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/incidents/exam/{{examId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "incidents", "exam", "{{examId}}"]
+						},
+						"description": "Get all incidents for a specific exam. Access: Admin, Faculty Admin, Exams Officer, Invigilator, Lecturer."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Incidents by Script",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/incidents/script/{{scriptId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "incidents", "script", "{{scriptId}}"]
+						},
+						"description": "Get all incidents related to a specific exam script. Access: Admin, Faculty Admin, Exams Officer, Script Handler, Lecturer."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Incidents by Reporter",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/incidents/reporter/{{userId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "incidents", "reporter", "{{userId}}"]
+						},
+						"description": "Get all incidents reported by a specific user. Access: Admin, Faculty Admin, Exams Officer."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Incidents by Assignee",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/incidents/assignee/{{userId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "incidents", "assignee", "{{userId}}"]
+						},
+						"description": "Get all incidents assigned to a specific user. Access: Admin, Faculty Admin, Exams Officer."
+					},
+					"response": []
+				}
+			],
+			"description": "Incident management for exam-related issues including cheating, disruptions, medical emergencies, and technical problems. Includes assignment and resolution workflow."
+		}
+	]
+}
