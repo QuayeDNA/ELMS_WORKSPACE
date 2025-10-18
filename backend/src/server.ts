@@ -61,6 +61,10 @@ import incidentRoutes from "./routes/incidentRoutes";
 import venueRoutes from "./routes/venueRoutes";
 import examRoutes from "./routes/examRoutes";
 import programPrefixRoutes from "./routes/programPrefixRoutes";
+import registrationRoutes from "./routes/registrationRoutes";
+import prerequisiteRoutes from "./routes/prerequisiteRoutes";
+import semesterRecordRoutes from "./routes/semesterRecordRoutes";
+import academicHistoryRoutes from "./routes/academicHistoryRoutes";
 
 // Load environment variables
 dotenv.config();
@@ -247,6 +251,18 @@ app.use("/api/instructors", instructorRoutes);
 
 // Academic Period routes
 app.use("/api/academic-periods", academicPeriodRoutes);
+
+// Registration routes (Phase 2)
+app.use("/api/registrations", registrationRoutes);
+
+// Prerequisite routes (Phase 2)
+app.use("/api/prerequisites", prerequisiteRoutes);
+
+// Semester Record routes (Phase 2)
+app.use("/api/semester-records", semesterRecordRoutes);
+
+// Academic History routes (Phase 2)
+app.use("/api/academic-history", academicHistoryRoutes);
 
 // Exam routes
 app.use("/api/exams", examRoutes);

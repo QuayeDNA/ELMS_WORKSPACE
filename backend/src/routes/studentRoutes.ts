@@ -11,6 +11,9 @@ router.use(authenticateToken);
 // Public routes (authenticated users)
 router.get('/stats', studentController.getStudentStats);
 
+// Get all students (main list endpoint)
+router.get('/', requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.FACULTY_ADMIN), studentController.getStudents);
+
 // Get students by department
 router.get(
   "/department/:departmentId",

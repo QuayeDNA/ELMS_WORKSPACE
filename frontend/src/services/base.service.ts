@@ -1,4 +1,4 @@
-import { ApiResponse, PaginationQuery, PaginatedResponse } from '@/types/shared/api';
+import { ApiResponse, PaginationQuery, PaginatedResponse, PaginationMeta } from '@/types/shared/api';
 import { apiService } from './api';
 
 /**
@@ -64,44 +64,52 @@ export abstract class BaseService {
       const response = await apiService.get<any>(url);
 
       // Handle the backend response structure: { success, message, data: {...}, ... }
-      if (response.success && response.data) {
-        const backendData = response.data;
+      if (!response.success || !response.data) {
+        return {
+          success: false,
+          data: [],
+          pagination: { page: 1, totalPages: 1, total: 0, hasNext: false, hasPrev: false },
+          error: response.error || 'Failed to fetch data'
+        };
+      }
 
-        // Check if data is an array (institutions/users format)
-        if (Array.isArray(backendData) && (response as any).pagination) {
-          return {
-            success: response.success,
-            message: response.message,
-            data: backendData,
-            pagination: (response as any).pagination,
-          };
-        }
+      const backendData = response.data;
 
-        // Check if data is an object with departments array (departments format)
-        if (backendData && typeof backendData === 'object' && Array.isArray(backendData.departments)) {
-          return {
-            success: response.success,
-            message: response.message,
-            data: backendData.departments,
-            pagination: {
-              page: backendData.page,
-              totalPages: backendData.totalPages,
-              total: backendData.total,
-              hasNext: backendData.hasNext,
-              hasPrev: backendData.hasPrev,
-            },
-          };
-        }
+      // Early return for array format (institutions/users)
+      const responseWithPagination = response as { pagination?: PaginationMeta };
+      if (Array.isArray(backendData) && responseWithPagination.pagination) {
+        return {
+          success: response.success,
+          message: response.message,
+          data: backendData,
+          pagination: responseWithPagination.pagination,
+        };
+      }
 
-        // Check if data is an object with the data array and pagination (nested format)
-        if (backendData && typeof backendData === 'object' && backendData.data && backendData.pagination) {
-          return {
-            success: response.success,
-            message: response.message,
-            data: backendData.data,
-            pagination: backendData.pagination,
-          };
-        }
+      // Early return for departments format with departments array
+      if (backendData && typeof backendData === 'object' && Array.isArray(backendData.departments)) {
+        return {
+          success: response.success,
+          message: response.message,
+          data: backendData.departments,
+          pagination: {
+            page: backendData.page,
+            totalPages: backendData.totalPages,
+            total: backendData.total,
+            hasNext: backendData.hasNext,
+            hasPrev: backendData.hasPrev,
+          },
+        };
+      }
+
+      // Early return for nested format with data array and pagination
+      if (backendData && typeof backendData === 'object' && backendData.data && backendData.pagination) {
+        return {
+          success: response.success,
+          message: response.message,
+          data: backendData.data,
+          pagination: backendData.pagination,
+        };
       }
 
       // Fallback for error cases

@@ -81,11 +81,9 @@ class StudentService {
       // Handle the response structure - response.data contains the backend response
       const apiData = response.data;
 
-      // Check if apiData is the full backend response or just the students array
-      let result: StudentsResponse;
+      // Early return for full backend response structure
       if (apiData && typeof apiData === 'object' && 'success' in apiData) {
-        // apiData is the full backend response
-        result = {
+        return {
           success: apiData.success,
           data: apiData.data || [],
           pagination: apiData.pagination || {
@@ -98,25 +96,23 @@ class StudentService {
           },
           filters: apiData.filters || {},
         };
-      } else {
-        // apiData is just the students array (fallback)
-        const studentsArray = Array.isArray(apiData) ? apiData : [];
-        result = {
-          success: true,
-          data: studentsArray,
-          pagination: {
-            page: 1,
-            limit: 20,
-            total: studentsArray.length,
-            totalPages: 1,
-            hasNext: false,
-            hasPrev: false,
-          },
-          filters: {},
-        };
       }
 
-      return result;
+      // Handle array response (fallback)
+      const studentsArray = Array.isArray(apiData) ? apiData : [];
+      return {
+        success: true,
+        data: studentsArray,
+        pagination: {
+          page: 1,
+          limit: 20,
+          total: studentsArray.length,
+          totalPages: 1,
+          hasNext: false,
+          hasPrev: false,
+        },
+        filters: {},
+      };
     } catch (error) {
       console.error("Error fetching students:", error);
       throw error;
@@ -139,11 +135,13 @@ class StudentService {
 
       // Handle the response structure
       const apiData = response.data;
+
+      // Early return for nested response structure
       if (apiData && typeof apiData === 'object' && 'success' in apiData) {
         return apiData.data;
-      } else {
-        return apiData as Student;
       }
+
+      return apiData as Student;
     } catch (error) {
       console.error(`Error fetching student ${id}:`, error);
       throw error;
@@ -166,11 +164,13 @@ class StudentService {
 
       // Handle the response structure
       const apiData = response.data;
+
+      // Early return for nested response structure
       if (apiData && typeof apiData === 'object' && 'success' in apiData) {
         return apiData.data;
-      } else {
-        return apiData as Student;
       }
+
+      return apiData as Student;
     } catch (error) {
       console.error(
         `Error fetching student by student ID ${studentId}:`,
@@ -199,11 +199,13 @@ class StudentService {
 
       // Handle the response structure
       const apiData = response.data;
+
+      // Early return for nested response structure
       if (apiData && typeof apiData === 'object' && 'success' in apiData) {
         return apiData.data;
-      } else {
-        return apiData as Student;
       }
+
+      return apiData as Student;
     } catch (error) {
       console.error("Error creating student:", error);
       throw error;
@@ -229,11 +231,13 @@ class StudentService {
 
       // Handle the response structure
       const apiData = response.data;
+
+      // Early return for nested response structure
       if (apiData && typeof apiData === 'object' && 'success' in apiData) {
         return apiData.data;
-      } else {
-        return apiData as Student;
       }
+
+      return apiData as Student;
     } catch (error) {
       console.error(`Error updating student ${id}:`, error);
       throw error;
@@ -287,21 +291,18 @@ class StudentService {
         status
       );
 
-      // Handle different response structures
-      if (response.data && typeof response.data === 'object' && 'success' in response.data && 'data' in response.data) {
-        const apiResponse = response.data;
-        if (!apiResponse.success || !apiResponse.data) {
-          throw new Error(ERROR_MESSAGES.SERVER);
-        }
-        return apiResponse.data;
+      // Early return for direct Student response
+      if (response.data && !('success' in response.data)) {
+        return response.data as Student;
       }
 
-      // Direct response structure
-      if (!response.data) {
+      // Handle nested ApiResponse structure
+      const apiResponse = response.data as ApiResponse<Student>;
+      if (!apiResponse.success || !apiResponse.data) {
         throw new Error(ERROR_MESSAGES.SERVER);
       }
 
-      return response.data as Student;
+      return apiResponse.data;
     } catch (error) {
       console.error(`Error updating student status ${id}:`, error);
       throw error;
@@ -411,28 +412,22 @@ class StudentService {
         `${API_ENDPOINTS.STUDENTS.BY_PROGRAM(programId)}?${params.toString()}`
       );
 
-      // Handle different response structures
-      if (response.data && typeof response.data === 'object') {
-        // Check if this is a nested response (response.data contains another response with success/data)
-        if ('success' in response.data && 'data' in response.data && 'pagination' in response.data) {
-          // This is the direct StudentsResponse structure
-          return response.data as StudentsResponse;
-        } else if ('success' in response.data && 'data' in response.data && !('pagination' in response.data)) {
-          // This might be a nested ApiResponse containing StudentsResponse
-          const apiResponse = response.data as ApiResponse<StudentsResponse>;
-          if (!apiResponse.success || !apiResponse.data) {
-            throw new Error(ERROR_MESSAGES.NOT_FOUND);
-          }
-          return apiResponse.data;
-        }
+      // Early return for direct StudentsResponse structure
+      if (response.data && typeof response.data === 'object' && 'success' in response.data && 'data' in response.data && 'pagination' in response.data) {
+        return response.data as StudentsResponse;
       }
 
-      // Direct response structure
-      if (!response.data) {
+      // Handle nested ApiResponse containing StudentsResponse
+      if (!response.data || typeof response.data !== 'object' || !('success' in response.data) || !('data' in response.data)) {
         throw new Error(ERROR_MESSAGES.NOT_FOUND);
       }
 
-      return response.data;
+      const apiResponse = response.data as ApiResponse<StudentsResponse>;
+      if (!apiResponse.success || !apiResponse.data) {
+        throw new Error(ERROR_MESSAGES.NOT_FOUND);
+      }
+
+      return apiResponse.data;
     } catch (error) {
       console.error(`Error fetching students by program ${programId}:`, error);
       throw error;
@@ -459,28 +454,22 @@ class StudentService {
         `${this.basePath}?departmentId=${departmentId}&${params.toString()}`
       );
 
-      // Handle different response structures
-      if (response.data && typeof response.data === 'object') {
-        // Check if this is a nested response (response.data contains another response with success/data)
-        if ('success' in response.data && 'data' in response.data && 'pagination' in response.data) {
-          // This is the direct StudentsResponse structure
-          return response.data as StudentsResponse;
-        } else if ('success' in response.data && 'data' in response.data && !('pagination' in response.data)) {
-          // This might be a nested ApiResponse containing StudentsResponse
-          const apiResponse = response.data as ApiResponse<StudentsResponse>;
-          if (!apiResponse.success || !apiResponse.data) {
-            throw new Error(ERROR_MESSAGES.NOT_FOUND);
-          }
-          return apiResponse.data;
-        }
+      // Early return for direct StudentsResponse structure
+      if (response.data && typeof response.data === 'object' && 'success' in response.data && 'data' in response.data && 'pagination' in response.data) {
+        return response.data as StudentsResponse;
       }
 
-      // Direct response structure
-      if (!response.data) {
+      // Handle nested ApiResponse containing StudentsResponse
+      if (!response.data || typeof response.data !== 'object' || !('success' in response.data) || !('data' in response.data)) {
         throw new Error(ERROR_MESSAGES.NOT_FOUND);
       }
 
-      return response.data;
+      const apiResponse = response.data as ApiResponse<StudentsResponse>;
+      if (!apiResponse.success || !apiResponse.data) {
+        throw new Error(ERROR_MESSAGES.NOT_FOUND);
+      }
+
+      return apiResponse.data;
     } catch (error) {
       console.error(
         `Error fetching students by department ${departmentId}:`,

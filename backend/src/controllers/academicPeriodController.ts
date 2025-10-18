@@ -70,7 +70,7 @@ export const academicPeriodController = {
     try {
       const institutionId = req.query.institutionId ? parseInt(req.query.institutionId as string) : undefined;
       const academicYear = await academicPeriodService.getCurrentAcademicYear(institutionId);
-      
+
       if (!academicYear) {
         return res.status(404).json({
           success: false,
@@ -258,7 +258,7 @@ export const academicPeriodController = {
     try {
       const academicYearId = req.query.academicYearId ? parseInt(req.query.academicYearId as string) : undefined;
       const semester = await academicPeriodService.getCurrentSemester(academicYearId);
-      
+
       if (!semester) {
         return res.status(404).json({
           success: false,
@@ -395,6 +395,336 @@ export const academicPeriodController = {
       res.status(500).json({
         success: false,
         message: 'Failed to fetch academic period statistics',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  },
+
+  // ========================================
+  // ACADEMIC PERIOD ENDPOINTS (NEW)
+  // ========================================
+
+  // Create new academic period
+  async createAcademicPeriod(req: Request, res: Response) {
+    try {
+      const academicPeriod = await academicPeriodService.createAcademicPeriod(req.body);
+      res.status(201).json({
+        success: true,
+        message: 'Academic period created successfully',
+        data: academicPeriod
+      });
+    } catch (error) {
+      console.error('Error creating academic period:', error);
+      res.status(400).json({
+        success: false,
+        message: 'Failed to create academic period',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  },
+
+  // Get all academic periods with filters
+  async getAcademicPeriods(req: Request, res: Response) {
+    try {
+      const filters = {
+        semesterId: req.query.semesterId ? parseInt(req.query.semesterId as string) : undefined,
+        academicYearId: req.query.academicYearId ? parseInt(req.query.academicYearId as string) : undefined,
+        institutionId: req.query.institutionId ? parseInt(req.query.institutionId as string) : undefined,
+        isActive: req.query.isActive ? req.query.isActive === 'true' : undefined,
+        isRegistrationOpen: req.query.isRegistrationOpen ? req.query.isRegistrationOpen === 'true' : undefined,
+        isAddDropOpen: req.query.isAddDropOpen ? req.query.isAddDropOpen === 'true' : undefined
+      };
+
+      const academicPeriods = await academicPeriodService.getAcademicPeriods(filters);
+      res.json({
+        success: true,
+        data: academicPeriods
+      });
+    } catch (error) {
+      console.error('Error fetching academic periods:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch academic periods',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  },
+
+  // Get single academic period by ID
+  async getAcademicPeriodById(req: Request, res: Response) {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid academic period ID'
+        });
+      }
+
+      const academicPeriod = await academicPeriodService.getAcademicPeriodById(id);
+      if (!academicPeriod) {
+        return res.status(404).json({
+          success: false,
+          message: 'Academic period not found'
+        });
+      }
+
+      res.json({
+        success: true,
+        data: academicPeriod
+      });
+    } catch (error) {
+      console.error('Error fetching academic period:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch academic period',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  },
+
+  // Get academic period by semester ID
+  async getAcademicPeriodBySemester(req: Request, res: Response) {
+    try {
+      const semesterId = parseInt(req.params.semesterId);
+      if (isNaN(semesterId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid semester ID'
+        });
+      }
+
+      const academicPeriod = await academicPeriodService.getAcademicPeriodBySemester(semesterId);
+      if (!academicPeriod) {
+        return res.status(404).json({
+          success: false,
+          message: 'Academic period not found for this semester'
+        });
+      }
+
+      res.json({
+        success: true,
+        data: academicPeriod
+      });
+    } catch (error) {
+      console.error('Error fetching academic period:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch academic period',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  },
+
+  // Get current active academic period
+  async getCurrentAcademicPeriod(req: Request, res: Response) {
+    try {
+      const institutionId = req.query.institutionId ? parseInt(req.query.institutionId as string) : undefined;
+      const academicPeriod = await academicPeriodService.getCurrentAcademicPeriod(institutionId);
+
+      if (!academicPeriod) {
+        return res.status(404).json({
+          success: false,
+          message: 'No current academic period found'
+        });
+      }
+
+      res.json({
+        success: true,
+        data: academicPeriod
+      });
+    } catch (error) {
+      console.error('Error fetching current academic period:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch current academic period',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  },
+
+  // Update academic period
+  async updateAcademicPeriod(req: Request, res: Response) {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid academic period ID'
+        });
+      }
+
+      const academicPeriod = await academicPeriodService.updateAcademicPeriod(id, req.body);
+      res.json({
+        success: true,
+        message: 'Academic period updated successfully',
+        data: academicPeriod
+      });
+    } catch (error) {
+      console.error('Error updating academic period:', error);
+      res.status(400).json({
+        success: false,
+        message: 'Failed to update academic period',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  },
+
+  // Delete academic period
+  async deleteAcademicPeriod(req: Request, res: Response) {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid academic period ID'
+        });
+      }
+
+      await academicPeriodService.deleteAcademicPeriod(id);
+      res.json({
+        success: true,
+        message: 'Academic period deleted successfully'
+      });
+    } catch (error) {
+      console.error('Error deleting academic period:', error);
+      res.status(400).json({
+        success: false,
+        message: 'Failed to delete academic period',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  },
+
+  // Open registration for a period
+  async openRegistration(req: Request, res: Response) {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid academic period ID'
+        });
+      }
+
+      const academicPeriod = await academicPeriodService.openRegistration(id);
+      res.json({
+        success: true,
+        message: 'Registration opened successfully',
+        data: academicPeriod
+      });
+    } catch (error) {
+      console.error('Error opening registration:', error);
+      res.status(400).json({
+        success: false,
+        message: 'Failed to open registration',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  },
+
+  // Close registration for a period
+  async closeRegistration(req: Request, res: Response) {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid academic period ID'
+        });
+      }
+
+      const academicPeriod = await academicPeriodService.closeRegistration(id);
+      res.json({
+        success: true,
+        message: 'Registration closed successfully',
+        data: academicPeriod
+      });
+    } catch (error) {
+      console.error('Error closing registration:', error);
+      res.status(400).json({
+        success: false,
+        message: 'Failed to close registration',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  },
+
+  // Open add/drop for a period
+  async openAddDrop(req: Request, res: Response) {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid academic period ID'
+        });
+      }
+
+      const academicPeriod = await academicPeriodService.openAddDrop(id);
+      res.json({
+        success: true,
+        message: 'Add/Drop period opened successfully',
+        data: academicPeriod
+      });
+    } catch (error) {
+      console.error('Error opening add/drop:', error);
+      res.status(400).json({
+        success: false,
+        message: 'Failed to open add/drop period',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  },
+
+  // Close add/drop for a period
+  async closeAddDrop(req: Request, res: Response) {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid academic period ID'
+        });
+      }
+
+      const academicPeriod = await academicPeriodService.closeAddDrop(id);
+      res.json({
+        success: true,
+        message: 'Add/Drop period closed successfully',
+        data: academicPeriod
+      });
+    } catch (error) {
+      console.error('Error closing add/drop:', error);
+      res.status(400).json({
+        success: false,
+        message: 'Failed to close add/drop period',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  },
+
+  // Get academic period status
+  async getAcademicPeriodStatus(req: Request, res: Response) {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid academic period ID'
+        });
+      }
+
+      const status = await academicPeriodService.getAcademicPeriodStatus(id);
+      res.json({
+        success: true,
+        data: status
+      });
+    } catch (error) {
+      console.error('Error fetching academic period status:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch academic period status',
         error: error instanceof Error ? error.message : 'Unknown error'
       });
     }

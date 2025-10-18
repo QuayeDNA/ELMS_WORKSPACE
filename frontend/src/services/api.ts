@@ -1,5 +1,5 @@
 import axios, { AxiosResponse } from 'axios';
-import { API_BASE_URL } from '@/utils/constants';
+import { API_BASE_URL, API_ENDPOINTS } from '@/utils/constants';
 import { storageService } from './storage.service';
 import { ApiResponse, ApiError } from '@/types/api';
 
@@ -51,7 +51,7 @@ class ApiService {
           // Try to refresh token
           const refreshToken = storageService.getRefreshToken();
           if (refreshToken) {
-            const response = await this.api.post('/auth/refresh', {
+            const response = await this.api.post(API_ENDPOINTS.AUTH.REFRESH, {
               refreshToken,
             });
             const responseData = response.data as { data: { token: string } };

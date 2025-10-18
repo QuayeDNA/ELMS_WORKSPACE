@@ -130,7 +130,7 @@ class DepartmentService extends BaseService {
   ) {
     try {
       const url = this.buildUrl(`../courses/department/${departmentId}`, query);
-      return await apiService.get<any[]>(url);
+      return await apiService.get<unknown[]>(url);
     } catch (error) {
       console.error(`Error fetching courses for department ${departmentId}:`, error);
       throw error;

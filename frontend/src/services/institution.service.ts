@@ -48,17 +48,18 @@ class InstitutionService extends BaseService {
       const response = await apiService.get<InstitutionListResponse>(url);
 
       // Transform the backend response to match expected InstitutionListResponse format
-      if (response.success && Array.isArray(response.data) && (response as any).pagination) {
+      const responseWithPagination = response as { pagination?: any };
+      if (response.success && Array.isArray(response.data) && responseWithPagination.pagination) {
         return {
           success: response.success,
           message: response.message,
           data: {
             institutions: response.data,
-            total: (response as any).pagination.total,
-            page: (response as any).pagination.page,
-            totalPages: (response as any).pagination.totalPages,
-            hasNext: (response as any).pagination.hasNext,
-            hasPrev: (response as any).pagination.hasPrev,
+            total: responseWithPagination.pagination.total,
+            page: responseWithPagination.pagination.page,
+            totalPages: responseWithPagination.pagination.totalPages,
+            hasNext: responseWithPagination.pagination.hasNext,
+            hasPrev: responseWithPagination.pagination.hasPrev,
           }
         };
       }
