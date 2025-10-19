@@ -2417,14 +2417,14 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"name\": \"2024/2025\",\n  \"startDate\": \"2024-09-01T00:00:00.000Z\",\n  \"endDate\": \"2025-08-31T23:59:59.999Z\",\n  \"isCurrent\": true\n}"
+									"raw": "{\n  \"yearCode\": \"2024/2025\",\n  \"startDate\": \"2024-09-01T00:00:00.000Z\",\n  \"endDate\": \"2025-08-31T23:59:59.999Z\",\n  \"isCurrent\": true,\n  \"institutionId\": {{institutionId}}\n}"
 								},
 								"url": {
 									"raw": "{{baseUrl}}/api/academic-periods/academic-years",
 									"host": ["{{baseUrl}}"],
 									"path": ["api", "academic-periods", "academic-years"]
 								},
-								"description": "Create a new academic year. Access: Admin, Super Admin."
+								"description": "Create a new academic year. Access: Admin, Super Admin. Requires institutionId to be set."
 							},
 							"response": []
 						},
@@ -2440,7 +2440,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"name\": \"2024/2025 - Updated\",\n  \"startDate\": \"2024-09-01T00:00:00.000Z\",\n  \"endDate\": \"2025-08-31T23:59:59.999Z\"\n}"
+									"raw": "{\n  \"yearCode\": \"2024/2025 - Updated\",\n  \"startDate\": \"2024-09-01T00:00:00.000Z\",\n  \"endDate\": \"2025-08-31T23:59:59.999Z\"\n}"
 								},
 								"url": {
 									"raw": "{{baseUrl}}/api/academic-periods/academic-years/{{academicYearId}}",
