@@ -109,7 +109,7 @@ export function useApiRequest<T>(
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [...deps, execute, immediate]);
+  }, [...deps, immediate]); // FIXED: Removed 'execute' from deps to prevent infinite loop
 
   // Cleanup on unmount
   useEffect(() => {

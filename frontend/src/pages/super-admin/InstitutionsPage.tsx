@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus } from "lucide-react";
+import { Plus, Building2, TrendingUp, TrendingDown, Activity, Grid3x3, Table2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Pagination,
   PaginationContent,
@@ -19,10 +19,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { StatCard } from "@/components/ui/stat-card";
 
 // Import our modular components
 import {
   InstitutionTable,
+  InstitutionCard,
   InstitutionFilters,
   InstitutionAnalytics,
   InstitutionAnalyticsData,
@@ -110,6 +112,7 @@ export function InstitutionsPage() {
   });
 
   const [actionLoading, setActionLoading] = useState<{[key: number]: boolean}>({});
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
 
   // ========================================
   // DATA FETCHING
@@ -364,98 +367,251 @@ export function InstitutionsPage() {
   const renderInstitutionsContent = () => {
     if (state.error) {
       return (
-        <Card>
-          <CardContent className="p-6 text-center">
-            <p className="text-red-600 mb-4">{state.error}</p>
-            <Button onClick={() => fetchInstitutions()}>Try Again</Button>
+        <Card className="border-red-200 bg-red-50/50">
+          <CardContent className="p-8 text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-4">
+              <Activity className="h-8 w-8 text-red-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-red-900 mb-2">Error Loading Institutions</h3>
+            <p className="text-red-700 mb-4">{state.error}</p>
+            <Button onClick={() => fetchInstitutions()} variant="outline" className="border-red-300 text-red-700 hover:bg-red-100">
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    if (state.loading) {
+      return (
+        <div className="space-y-6">
+          {viewMode === 'grid' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardHeader>
+                    <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="p-6">
+                <div className="space-y-3">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="flex items-center space-x-4 animate-pulse">
+                      <div className="h-12 w-12 bg-gray-200 rounded"></div>
+                      <div className="flex-1">
+                        <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
+                        <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      );
+    }
+
+    if (state.institutions.length === 0) {
+      return (
+        <Card className="border-dashed">
+          <CardContent className="p-12 text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
+              <Building2 className="h-8 w-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Institutions Found</h3>
+            <p className="text-gray-600 mb-4">
+              {filters.search || filters.type !== 'ALL' || filters.status !== 'ALL'
+                ? 'Try adjusting your filters to find what you\'re looking for.'
+                : 'Get started by creating your first institution.'}
+            </p>
+            {(filters.search || filters.type !== 'ALL' || filters.status !== 'ALL') && (
+              <Button onClick={handleClearFilters} variant="outline">
+                Clear Filters
+              </Button>
+            )}
           </CardContent>
         </Card>
       );
     }
 
     return (
-      <div className="space-y-4">
-        <InstitutionTable
-          institutions={state.institutions}
-          loading={state.loading}
-          onView={handleViewInstitution}
-          onEdit={handleEditInstitution}
-          onDelete={handleDeleteInstitution}
-          onActivate={handleActivateInstitution}
-          onDeactivate={handleDeactivateInstitution}
-          actionLoading={actionLoading}
-        />
+      <div className="space-y-6">
+        {/* Quick Stats */}
+        {analyticsState.data && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard
+              title="Total Institutions"
+              value={analyticsState.data.totalInstitutions?.toString() || "0"}
+              icon={Building2}
+              trend={{
+                value: 12,
+                label: "vs last month",
+              }}
+            />
+            <StatCard
+              title="Active"
+              value={analyticsState.data.activeInstitutions?.toString() || "0"}
+              icon={TrendingUp}
+              trend={{
+                value: 8,
+                label: "vs last month",
+              }}
+            />
+            <StatCard
+              title="Inactive"
+              value={analyticsState.data.inactiveInstitutions?.toString() || "0"}
+              icon={TrendingDown}
+              trend={{
+                value: -2,
+                label: "vs last month",
+              }}
+            />
+            <StatCard
+              title="Pending"
+              value={analyticsState.data.pendingInstitutions?.toString() || "0"}
+              icon={Activity}
+              trend={{
+                value: 3,
+                label: "vs last month",
+              }}
+            />
+          </div>
+        )}
+
+        {/* View Mode Selector */}
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">{state.pagination.total}</span> institution{state.pagination.total !== 1 ? 's' : ''} found
+          </div>
+          <div className="flex gap-1 border rounded-lg p-1 bg-muted/50">
+            <Button
+              variant={viewMode === 'table' ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('table')}
+              className="gap-2"
+            >
+              <Table2 className="h-4 w-4" />
+              <span className="hidden sm:inline">Table</span>
+            </Button>
+            <Button
+              variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+              className="gap-2"
+            >
+              <Grid3x3 className="h-4 w-4" />
+              <span className="hidden sm:inline">Grid</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Content Area */}
+        {viewMode === 'table' ? (
+          <InstitutionTable
+            institutions={state.institutions}
+            loading={state.loading}
+            onView={handleViewInstitution}
+            onEdit={handleEditInstitution}
+            onDelete={handleDeleteInstitution}
+            onActivate={handleActivateInstitution}
+            onDeactivate={handleDeactivateInstitution}
+            actionLoading={actionLoading}
+          />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {state.institutions.map((institution) => (
+              <InstitutionCard
+                key={institution.id}
+                institution={institution}
+                onView={handleViewInstitution}
+                onEdit={handleEditInstitution}
+                onDelete={handleDeleteInstitution}
+                onToggleStatus={(inst) => {
+                  if (inst.status === InstitutionStatus.ACTIVE) {
+                    handleDeactivateInstitution(inst.id);
+                  } else {
+                    handleActivateInstitution(inst.id);
+                  }
+                }}
+                compact
+              />
+            ))}
+          </div>
+        )}
 
         {/* Pagination Controls */}
         {state.pagination.totalPages > 1 && (
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-700">
-              Showing {(state.pagination.page - 1) * 10 + 1} to{" "}
-              {Math.min(state.pagination.page * 10, state.pagination.total)} of{" "}
-              {state.pagination.total} results
-            </div>
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handlePageChange(state.pagination.page - 1);
-                    }}
-                    className={
-                      !state.pagination.hasPrev
-                        ? "pointer-events-none opacity-50"
-                        : ""
-                    }
-                  />
-                </PaginationItem>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="text-sm text-muted-foreground">
+                  Showing <span className="font-medium text-foreground">{(state.pagination.page - 1) * 10 + 1}</span> to{" "}
+                  <span className="font-medium text-foreground">{Math.min(state.pagination.page * 10, state.pagination.total)}</span> of{" "}
+                  <span className="font-medium text-foreground">{state.pagination.total}</span> results
+                </div>
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (state.pagination.hasPrev) handlePageChange(state.pagination.page - 1);
+                        }}
+                        className={!state.pagination.hasPrev ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
 
-                {/* Page numbers */}
-                {Array.from(
-                  { length: Math.min(state.pagination.totalPages, 5) },
-                  (_, i) => {
-                    const page = i + 1;
-                    return (
-                      <PaginationItem key={page}>
-                        <PaginationLink
-                          href="#"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handlePageChange(page);
-                          }}
-                          isActive={page === state.pagination.page}
-                        >
-                          {page}
-                        </PaginationLink>
+                    {Array.from({ length: Math.min(state.pagination.totalPages, 5) }, (_, i) => {
+                      const page = i + 1;
+                      return (
+                        <PaginationItem key={page}>
+                          <PaginationLink
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handlePageChange(page);
+                            }}
+                            isActive={page === state.pagination.page}
+                            className="cursor-pointer"
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    })}
+
+                    {state.pagination.totalPages > 5 && (
+                      <PaginationItem>
+                        <PaginationEllipsis />
                       </PaginationItem>
-                    );
-                  }
-                )}
+                    )}
 
-                {state.pagination.totalPages > 5 && (
-                  <PaginationItem>
-                    <PaginationEllipsis />
-                  </PaginationItem>
-                )}
-
-                <PaginationItem>
-                  <PaginationNext
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handlePageChange(state.pagination.page + 1);
-                    }}
-                    className={
-                      !state.pagination.hasNext
-                        ? "pointer-events-none opacity-50"
-                        : ""
-                    }
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          </div>
+                    <PaginationItem>
+                      <PaginationNext
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (state.pagination.hasNext) handlePageChange(state.pagination.page + 1);
+                        }}
+                        className={!state.pagination.hasNext ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            </CardContent>
+          </Card>
         )}
       </div>
     );
@@ -468,26 +624,27 @@ export function InstitutionsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Institutions</h1>
-          <p className="text-gray-600">
+          <h1 className="text-3xl font-bold tracking-tight">Institutions</h1>
+          <p className="text-muted-foreground mt-1">
             Manage educational institutions and their administrators
           </p>
         </div>
         <Button
-          className="flex items-center gap-2"
+          className="gap-2 shadow-sm"
           onClick={handleAddInstitution}
         >
           <Plus className="h-4 w-4" />
-          Add Institution
+          <span className="hidden sm:inline">Add Institution</span>
+          <span className="sm:hidden">Add</span>
         </Button>
       </div>
 
       <Tabs defaultValue="institutions" className="space-y-6">
-        <TabsList>
+        <TabsList className="bg-muted/50">
           <TabsTrigger value="institutions">All Institutions</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics & Insights</TabsTrigger>
         </TabsList>
 
         {/* All Institutions Tab */}
@@ -532,9 +689,9 @@ export function InstitutionsPage() {
         open={formState.isOpen}
         onOpenChange={(open) => !open && handleFormCancel()}
       >
-        <DialogContent className="min-w-6xl w-full max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-2xl font-bold">
               {formState.mode === "edit"
                 ? "Edit Institution"
                 : formState.mode === "create-with-admin"

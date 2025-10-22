@@ -159,6 +159,13 @@ model User {
   academicPeriodsCreated AcademicPeriod[]
   calendarImports        AcademicCalendarImport[]
 
+  // Exam timetable management
+  timetablesCreated      ExamTimetable[]      @relation("TimetableCreator")
+  timetablesPublished    ExamTimetable[]      @relation("TimetablePublisher")
+  timetablesApproved     ExamTimetable[]      @relation("TimetableApprover")
+  timetableImports       TimetableImport[]
+  conflictsResolved      TimetableConflict[]
+
   // Course registration (PHASE 2)
   courseRegistrations    CourseRegistration[] @relation("StudentRegistrations")
   registrationsApproved  CourseRegistration[] @relation("RegistrationApprovers")
@@ -333,6 +340,7 @@ model Institution {
   venues      Venue[]
   academicYears AcademicYear[]
   calendarImports AcademicCalendarImport[]
+  examTimetables ExamTimetable[]
 
   @@map("institutions")
 }
@@ -356,6 +364,7 @@ model Faculty {
   users         User[]
   departments   Department[]
   exams         Exam[]
+  examTimetables ExamTimetable[]
 
   @@unique([institutionId, code])
   @@map("faculties")
@@ -461,6 +470,7 @@ model Course {
   programCourses ProgramCourse[]
   courseOfferings CourseOffering[]
   enrollments     Enrollment[]
+  timetableEntries ExamTimetableEntry[]
 
   @@map("courses")
 }
@@ -510,6 +520,7 @@ model AcademicYear {
   createdAt     DateTime    @default(now())
 
   semesters     Semester[]
+  examTimetables ExamTimetable[]
 
   @@map("academic_years")
 }
@@ -532,6 +543,7 @@ model Semester {
   courseRegistrations CourseRegistration[]
   semesterRecords  StudentSemesterRecord[]
   enrollments      Enrollment[]
+  examTimetables   ExamTimetable[]
 
   @@unique([academicYearId, semesterNumber])
   @@map("semesters")
@@ -579,6 +591,7 @@ model AcademicPeriod {
   updatedAt               DateTime  @updatedAt
 
   creator                 User?     @relation(fields: [createdBy], references: [id])
+  examTimetables          ExamTimetable[]
 
   @@map("academic_periods")
 }
@@ -1015,6 +1028,7 @@ model Exam {
   scripts     Script[]
   incidents   Incident[]
   examSessions ExamSession[]
+  timetableEntries ExamTimetableEntry[]
 
   @@map("exams")
 }
@@ -1039,6 +1053,279 @@ model ExamSession {
 }
 
 // ========================================
+// EXAM TIMETABLE & SCHEDULING
+// ========================================
+
+enum ExamTimetableStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  PUBLISHED
+  IN_PROGRESS
+  COMPLETED
+  ARCHIVED
+}
+
+enum TimetableApprovalStatus {
+  NOT_SUBMITTED
+  PENDING
+  APPROVED
+  REJECTED
+  REVISION_REQUIRED
+}
+
+enum ExamTimetableEntryStatus {
+  DRAFT
+  SCHEDULED
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  RESCHEDULED
+}
+
+enum TimetableFileType {
+  CSV
+  EXCEL
+  ICAL
+  JSON
+  PDF
+}
+
+enum TimetableImportStatus {
+  PENDING
+  VALIDATING
+  VALIDATED
+  IMPORTING
+  COMPLETED
+  FAILED
+  PARTIALLY_COMPLETED
+}
+
+enum ConflictType {
+  STUDENT_OVERLAP
+  VENUE_OVERLAP
+  INVIGILATOR_OVERLAP
+  CAPACITY_EXCEEDED
+  TIME_VIOLATION
+  DATE_VIOLATION
+  PREREQUISITE_VIOLATION
+}
+
+enum ConflictSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+// Exam Timetable - container for all scheduled exams in a period
+model ExamTimetable {
+  id          Int                    @id @default(autoincrement())
+  title       String
+  description String?
+
+  // Academic period linkage
+  academicYearId   Int
+  academicYear     AcademicYear       @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  semesterId       Int
+  semester         Semester           @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  academicPeriodId Int?
+  academicPeriod   AcademicPeriod?    @relation(fields: [academicPeriodId], references: [id])
+
+  // Institution/Faculty scope
+  institutionId Int
+  institution   Institution          @relation(fields: [institutionId], references: [id])
+  facultyId     Int?
+  faculty       Faculty?             @relation(fields: [facultyId], references: [id])
+
+  // Date range
+  startDate DateTime
+  endDate   DateTime
+
+  // Status
+  status        ExamTimetableStatus     @default(DRAFT)
+  isPublished   Boolean                 @default(false)
+  publishedAt   DateTime?
+  publishedBy   Int?
+  publisher     User?                   @relation("TimetablePublisher", fields: [publishedBy], references: [id])
+
+  // Approval workflow
+  approvalStatus  TimetableApprovalStatus @default(NOT_SUBMITTED)
+  approvedBy      Int?
+  approver        User?                   @relation("TimetableApprover", fields: [approvedBy], references: [id])
+  approvedAt      DateTime?
+  rejectionReason String?
+
+  // Configuration
+  allowOverlaps          Boolean @default(false)
+  autoResolveConflicts   Boolean @default(true)
+  defaultExamDuration    Int     @default(180) // minutes
+
+  // Statistics
+  totalExams       Int   @default(0)
+  totalConflicts   Int   @default(0)
+  venuesUtilization Float?
+
+  // Metadata
+  createdBy Int
+  creator   User     @relation("TimetableCreator", fields: [createdBy], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  entries  ExamTimetableEntry[]
+  imports  TimetableImport[]
+  conflicts TimetableConflict[]
+
+  @@index([institutionId, academicYearId, semesterId])
+  @@index([status, isPublished])
+  @@map("exam_timetables")
+}
+
+// Exam Timetable Entry - individual scheduled exam
+model ExamTimetableEntry {
+  id          Int                     @id @default(autoincrement())
+  timetableId Int
+  timetable   ExamTimetable           @relation(fields: [timetableId], references: [id], onDelete: Cascade)
+
+  // Link to actual Exam (created when entry is confirmed)
+  examId      Int?
+  exam        Exam?                   @relation(fields: [examId], references: [id])
+
+  // Core exam details
+  courseId    Int
+  course      Course                  @relation(fields: [courseId], references: [id])
+
+  // Program/Student information (stored as JSON arrays)
+  programIds  String                  // JSON array of program IDs
+  level       Int?                    // 100, 200, 300, 400
+  studentCount Int?
+
+  // Scheduling
+  examDate    DateTime
+  startTime   DateTime
+  endTime     DateTime
+  duration    Int                     // minutes
+
+  // Venue details
+  venueId     Int
+  venue       Venue                   @relation(fields: [venueId], references: [id])
+  roomIds     String                  // JSON array of room IDs
+  seatingCapacity Int?
+
+  // Invigilator assignments (stored as JSON arrays)
+  invigilatorIds     String           // JSON array of invigilator user IDs
+  chiefInvigilatorId Int?
+
+  // Status
+  status             ExamTimetableEntryStatus @default(DRAFT)
+  notes              String?
+  specialRequirements String?
+
+  // Conflict detection
+  hasConflicts    Boolean @default(false)
+  conflictDetails String? // JSON array of conflict descriptions
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  conflictsAsEntry1 TimetableConflict[] @relation("ConflictEntry1")
+  conflictsAsEntry2 TimetableConflict[] @relation("ConflictEntry2")
+
+  @@index([timetableId, examDate])
+  @@index([courseId])
+  @@index([venueId, examDate, startTime])
+  @@index([status, hasConflicts])
+  @@map("exam_timetable_entries")
+}
+
+// Timetable Conflict - tracks scheduling conflicts
+model TimetableConflict {
+  id          String              @id @default(uuid())
+  timetableId Int
+  timetable   ExamTimetable       @relation(fields: [timetableId], references: [id], onDelete: Cascade)
+
+  // Conflict type and severity
+  type        ConflictType
+  severity    ConflictSeverity    @default(MEDIUM)
+
+  // Affected entries (usually 2, but can be more)
+  entry1Id    Int
+  entry1      ExamTimetableEntry  @relation("ConflictEntry1", fields: [entry1Id], references: [id], onDelete: Cascade)
+  entry2Id    Int
+  entry2      ExamTimetableEntry  @relation("ConflictEntry2", fields: [entry2Id], references: [id], onDelete: Cascade)
+
+  // Additional affected entry IDs (JSON array for multi-way conflicts)
+  additionalEntryIds String?
+
+  // Conflict details
+  description       String
+  affectedStudents  Int?
+  affectedPrograms  String?        // JSON array of program IDs
+
+  // Resolution
+  canAutoResolve       Boolean @default(false)
+  suggestedResolution  String?
+  isResolved           Boolean @default(false)
+  resolvedAt           DateTime?
+  resolvedBy           Int?
+  resolver             User?   @relation(fields: [resolvedBy], references: [id])
+
+  detectedAt DateTime @default(now())
+
+  @@index([timetableId, isResolved])
+  @@index([type, severity])
+  @@map("timetable_conflicts")
+}
+
+// Timetable Import - tracks calendar imports
+model TimetableImport {
+  id          Int                     @id @default(autoincrement())
+  timetableId Int?
+  timetable   ExamTimetable?          @relation(fields: [timetableId], references: [id], onDelete: SetNull)
+
+  // File details
+  fileName    String
+  fileUrl     String?
+  fileType    TimetableFileType
+  fileSize    Int?
+
+  // Import metadata
+  status            TimetableImportStatus @default(PENDING)
+  totalRecords      Int                   @default(0)
+  importedRecords   Int                   @default(0)
+  failedRecords     Int                   @default(0)
+  skippedRecords    Int                   @default(0)
+
+  // Error tracking (stored as JSON)
+  errors            String?               // JSON array of error objects
+  warnings          String?               // JSON array of warning objects
+
+  // Configuration (stored as JSON)
+  importMapping     String?               // JSON object: column mapping
+  importOptions     String?               // JSON object: import options
+
+  // Validation
+  validationPassed  Boolean               @default(false)
+  validationErrors  String?               // JSON array
+
+  // Preview data (stored as JSON, cleared after import)
+  previewData       String?               // JSON array of preview entries
+
+  // Audit
+  importedBy  Int
+  importer    User     @relation(fields: [importedBy], references: [id])
+  importedAt  DateTime @default(now())
+  completedAt DateTime?
+
+  @@index([timetableId, status])
+  @@index([importedBy, importedAt])
+  @@map("timetable_imports")
+}
+
+// ========================================
 // VENUE MANAGEMENT
 // ========================================
 
@@ -1054,6 +1341,7 @@ model Venue {
 
   rooms         Room[]
   exams         Exam[]
+  timetableEntries ExamTimetableEntry[]
 
   @@map("venues")
 }

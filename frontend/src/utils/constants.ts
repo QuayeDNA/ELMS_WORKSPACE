@@ -58,9 +58,35 @@ export const API_ENDPOINTS = {
     STATS: '/api/instructors/stats',
   },
   ACADEMIC_PERIODS: {
-    BASE: '/api/academic-periods',
-    BY_ID: (id: number) => `/api/academic-periods/${id}`,
-    CURRENT: '/api/academic-periods/current',
+    // Academic Years
+    ACADEMIC_YEARS: '/api/academic-periods/academic-years',
+    ACADEMIC_YEAR_BY_ID: (id: number) => `/api/academic-periods/academic-years/${id}`,
+    CURRENT_ACADEMIC_YEAR: '/api/academic-periods/academic-years/current',
+    SET_CURRENT_ACADEMIC_YEAR: (id: number) => `/api/academic-periods/academic-years/${id}/set-current`,
+
+    // Semesters
+    SEMESTERS: '/api/academic-periods/semesters',
+    SEMESTER_BY_ID: (id: number) => `/api/academic-periods/semesters/${id}`,
+    CURRENT_SEMESTER: '/api/academic-periods/semesters/current',
+    SET_CURRENT_SEMESTER: (id: number) => `/api/academic-periods/semesters/${id}/set-current`,
+
+    // Academic Periods (detailed period configurations)
+    PERIODS: '/api/academic-periods/periods',
+    PERIOD_BY_ID: (id: number) => `/api/academic-periods/periods/${id}`,
+    PERIOD_BY_SEMESTER: (semesterId: number) => `/api/academic-periods/periods/semester/${semesterId}`,
+    CURRENT_PERIOD: '/api/academic-periods/periods/current',
+    PERIOD_STATUS: (id: number) => `/api/academic-periods/periods/${id}/status`,
+    OPEN_REGISTRATION: (id: number) => `/api/academic-periods/periods/${id}/open-registration`,
+    CLOSE_REGISTRATION: (id: number) => `/api/academic-periods/periods/${id}/close-registration`,
+    OPEN_ADD_DROP: (id: number) => `/api/academic-periods/periods/${id}/open-add-drop`,
+    CLOSE_ADD_DROP: (id: number) => `/api/academic-periods/periods/${id}/close-add-drop`,
+
+    // Statistics
+    STATS: '/api/academic-periods/academic-years/stats',
+
+    // Calendar Import (Future feature)
+    CALENDAR_IMPORTS: '/api/academic-periods/calendar-imports',
+    CALENDAR_IMPORT_BY_ID: (id: number) => `/api/academic-periods/calendar-imports/${id}`,
   },
 } as const;
 

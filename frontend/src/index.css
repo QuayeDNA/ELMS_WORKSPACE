@@ -49,8 +49,11 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
+
+  /* UPDATED: Academic Blue Theme - Primary Color */
+  --primary: oklch(0.51 0.18 252);        /* Blue 600 - #2563eb */
+  --primary-foreground: oklch(1 0 0);     /* Pure White */
+
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
@@ -60,16 +63,22 @@
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
+
+  /* UPDATED: Focus ring matches primary */
+  --ring: oklch(0.51 0.18 252);
+
+  /* Chart colors for data visualization */
+  --chart-1: oklch(0.646 0.222 41.116);   /* Orange */
+  --chart-2: oklch(0.51 0.18 252);        /* Blue - Primary */
+  --chart-3: oklch(0.398 0.07 227.392);   /* Dark Blue */
+  --chart-4: oklch(0.828 0.189 84.429);   /* Yellow */
+  --chart-5: oklch(0.769 0.188 70.08);    /* Green */
+
+  /* UPDATED: Sidebar with blue accent */
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.51 0.18 252); /* Blue */
+  --sidebar-primary-foreground: oklch(1 0 0);
   --sidebar-accent: oklch(0.97 0 0);
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
@@ -116,5 +125,9 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }

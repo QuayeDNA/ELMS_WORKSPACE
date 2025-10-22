@@ -2,7 +2,7 @@ import { useAuthStore } from '@/stores/auth.store';
 import { UserRole } from '@/types/auth';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SuperAdminDashboard } from './SuperAdminDashboard';
+import { SuperAdminDashboard } from '@/pages/super-admin/SuperAdminDashboard';
 
 export function DashboardPage() {
   const { user } = useAuthStore();
@@ -38,7 +38,7 @@ export function DashboardPage() {
   switch (user.role) {
     case UserRole.SUPER_ADMIN:
       return <SuperAdminDashboard />;
-    
+
     default:
       return (
         <div className="space-y-6">
@@ -50,7 +50,7 @@ export function DashboardPage() {
               </p>
             </div>
           </div>
-          
+
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">
               Role: {user.role.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}

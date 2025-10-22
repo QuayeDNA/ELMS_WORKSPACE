@@ -65,6 +65,9 @@ import registrationRoutes from "./routes/registrationRoutes";
 import prerequisiteRoutes from "./routes/prerequisiteRoutes";
 import semesterRecordRoutes from "./routes/semesterRecordRoutes";
 import academicHistoryRoutes from "./routes/academicHistoryRoutes";
+import examTimetableRoutes from "./routes/examTimetableRoutes";
+import timetableEntryRoutes from "./routes/timetableEntryRoutes";
+import timetableConflictRoutes from "./routes/timetableConflictRoutes";
 
 // Load environment variables
 dotenv.config();
@@ -266,6 +269,11 @@ app.use("/api/academic-history", academicHistoryRoutes);
 
 // Exam routes
 app.use("/api/exams", examRoutes);
+
+// Exam timetable routes (Phase 3 - Advanced)
+app.use("/api/timetables", examTimetableRoutes);
+app.use("/api/timetable-entries", timetableEntryRoutes);
+app.use("/api/timetable-conflicts", timetableConflictRoutes);
 
 // Incident routes
 app.use("/api/incidents", incidentRoutes);

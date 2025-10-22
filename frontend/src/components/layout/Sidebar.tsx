@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth.store";
+import { RoleBadge } from "@/components/ui/role-badge";
 import { UserRole } from "@/types/auth";
 import {
   LayoutDashboard,
@@ -21,6 +22,7 @@ import {
   Cog,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
+import { Separator } from "@/components/ui/separator";
 
 interface SidebarItem {
   title: string;
@@ -52,18 +54,53 @@ const getSidebarItemsForRole = (role: UserRole): SidebarContent[] => {
           description: "System overview and analytics",
         },
         {
-          title: "Institutions",
-          href: "/institutions",
+          title: "Management",
           icon: Building,
           roles: [UserRole.SUPER_ADMIN],
-          description: "Register and manage institutions",
+          items: [
+            {
+              title: "Institutions",
+              href: "/institutions",
+              icon: Building,
+              roles: [UserRole.SUPER_ADMIN],
+              description: "Register and manage institutions",
+            },
+            {
+              title: "Users",
+              href: "/users",
+              icon: Users,
+              roles: [UserRole.SUPER_ADMIN],
+              description: "Manage all system users",
+            },
+          ],
         },
         {
-          title: "Users",
-          href: "/users",
-          icon: Users,
+          title: "System",
+          icon: Cog,
           roles: [UserRole.SUPER_ADMIN],
-          description: "Manage all users in the system",
+          items: [
+            {
+              title: "Audit Logs",
+              href: "/system/audit-logs",
+              icon: FileText,
+              roles: [UserRole.SUPER_ADMIN],
+              description: "View system audit logs",
+            },
+            {
+              title: "System Health",
+              href: "/system/health",
+              icon: BarChart3,
+              roles: [UserRole.SUPER_ADMIN],
+              description: "Monitor system health",
+            },
+            {
+              title: "Backups",
+              href: "/system/backups",
+              icon: FileCheck,
+              roles: [UserRole.SUPER_ADMIN],
+              description: "Manage system backups",
+            },
+          ],
         },
         {
           title: "Settings",
@@ -122,6 +159,41 @@ const getSidebarItemsForRole = (role: UserRole): SidebarContent[] => {
               icon: BookOpen,
               roles: [UserRole.ADMIN],
               description: "Manage courses",
+            },
+            {
+              title: "Programs",
+              href: "/admin/programs",
+              icon: GraduationCap,
+              roles: [UserRole.ADMIN],
+              description: "Manage programs",
+            },
+          ],
+        },
+        {
+          title: "Academic Calendar",
+          icon: School,
+          roles: [UserRole.ADMIN],
+          items: [
+            {
+              title: "Academic Years",
+              href: "/admin/academic/years",
+              icon: LayoutDashboard,
+              roles: [UserRole.ADMIN],
+              description: "Manage academic years",
+            },
+            {
+              title: "Semesters",
+              href: "/admin/academic/semesters",
+              icon: BookOpen,
+              roles: [UserRole.ADMIN],
+              description: "Manage semesters",
+            },
+            {
+              title: "Academic Periods",
+              href: "/admin/academic/periods",
+              icon: ClipboardCheck,
+              roles: [UserRole.ADMIN],
+              description: "Manage academic periods",
             },
           ],
         },
@@ -247,7 +319,7 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
   const location = useLocation();
   const { user } = useAuthStore();
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
-    new Set(["Academics"])
+    new Set(["Academics", "Academic Calendar"])
   );
 
   if (!user) return null;
@@ -286,23 +358,28 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
         key={item.href}
         to={item.href}
         className={cn(
-          "flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors group ml-4",
+          "flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group ml-4 relative",
           active
-            ? "bg-blue-50 text-blue-700 border-l-4 border-blue-600"
-            : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
+            ? "bg-primary text-primary-foreground shadow-sm"
+            : "text-gray-700 hover:bg-gray-100 hover:text-gray-900",
           collapsed ? "justify-center px-2 ml-0" : ""
         )}
         title={collapsed ? item.title : undefined}
       >
-        <Icon className={cn("h-4 w-4 flex-shrink-0", !collapsed && "mr-3")} />
+        {/* Active indicator */}
+        {active && !collapsed && (
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary-foreground rounded-r-full" />
+        )}
+
+        <Icon className={cn(
+          "h-4 w-4 flex-shrink-0 transition-transform group-hover:scale-110",
+          !collapsed && "mr-3",
+          active && "drop-shadow-sm"
+        )} />
+
         {!collapsed && (
           <div className="flex-1 min-w-0">
-            <div className="truncate font-medium">{item.title}</div>
-            {item.description && (
-              <div className="text-xs text-gray-500 truncate mt-0.5">
-                {item.description}
-              </div>
-            )}
+            <div className="truncate">{item.title}</div>
           </div>
         )}
       </Link>
@@ -319,28 +396,36 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
         <button
           onClick={() => toggleGroup(group.title)}
           className={cn(
-            "flex items-center w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors group",
+            "flex items-center w-full px-3 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 group",
             active
-              ? "bg-blue-50 text-blue-700"
-              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
+              ? "bg-primary/10 text-primary"
+              : "text-gray-700 hover:bg-gray-100 hover:text-gray-900",
             collapsed ? "justify-center px-2" : ""
           )}
           title={collapsed ? group.title : undefined}
         >
-          <Icon className={cn("h-5 w-5 flex-shrink-0", !collapsed && "mr-3")} />
+          <Icon className={cn(
+            "h-5 w-5 flex-shrink-0 transition-transform group-hover:scale-110",
+            !collapsed && "mr-3"
+          )} />
           {!collapsed && (
             <div className="flex-1 flex items-center justify-between min-w-0">
-              <div className="truncate font-medium">{group.title}</div>
+              <div className="truncate">{group.title}</div>
               {isExpanded ? (
-                <ChevronDown className="h-4 w-4 text-gray-400" />
+                <ChevronDown className="h-4 w-4 text-gray-400 transition-transform" />
               ) : (
-                <ChevronRight className="h-4 w-4 text-gray-400" />
+                <ChevronRight className="h-4 w-4 text-gray-400 transition-transform" />
               )}
             </div>
           )}
         </button>
-        {!collapsed && isExpanded && (
-          <div className="space-y-1">
+        {!collapsed && (
+          <div
+            className={cn(
+              "space-y-1 overflow-hidden transition-all duration-300",
+              isExpanded ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+            )}
+          >
             {group.items.map((item) => renderNavItem(item))}
           </div>
         )}
@@ -359,53 +444,77 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
   return (
     <div
       className={cn(
-        "flex flex-col h-full bg-white border-r border-gray-200",
+        "flex flex-col h-full bg-white border-r border-gray-200 transition-all duration-300",
         collapsed ? "w-16" : "w-64"
       )}
     >
       {/* Logo */}
       <div
         className={cn(
-          "flex items-center px-4 py-4 border-b border-gray-200",
+          "flex items-center h-16 px-4 border-b border-gray-200 bg-gradient-to-r from-primary/5 to-transparent",
           collapsed && "justify-center px-2"
         )}
       >
         {collapsed ? (
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">E</span>
+          <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center shadow-lg">
+            <span className="text-white font-bold text-lg">E</span>
           </div>
         ) : (
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">E</span>
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center shadow-lg">
+              <span className="text-white font-bold text-lg">E</span>
             </div>
             <div>
-              <h1 className="font-bold text-gray-900">ELMS</h1>
-              <p className="text-xs text-gray-500">Exam System</p>
+              <h1 className="font-bold text-gray-900 text-lg">ELMS</h1>
+              <p className="text-xs text-gray-500">Exam Logistics</p>
             </div>
           </div>
         )}
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-2 overflow-y-auto">
-        {sidebarItems.map((content) => renderSidebarContent(content))}
-      </nav>
+      <div className="flex-1 px-3 py-4 overflow-y-auto">
+        <nav className="space-y-2">
+          {sidebarItems.map((content) => renderSidebarContent(content))}
+        </nav>
+      </div>
 
-      {/* User Role Badge */}
-      {!collapsed && user && (
-        <div className="p-4 border-t border-gray-200">
-          <div className="text-xs text-gray-500 mb-2">Current Role</div>
-          <div className="inline-block px-3 py-2 bg-blue-100 text-blue-800 text-xs rounded-lg font-medium">
-            {user.role
-              .replace("_", " ")
-              .toLowerCase()
-              .replace(/\b\w/g, (l) => l.toUpperCase())}
+      {/* User Section */}
+      {user && (
+        <>
+          <Separator />
+          <div className={cn(
+            "p-4 bg-gradient-to-r from-primary/5 to-transparent",
+            collapsed && "p-2"
+          )}>
+            {collapsed ? (
+              <div className="w-10 h-10 mx-auto bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+                <span className="text-white font-semibold text-sm">
+                  {user.firstName.charAt(0)}{user.lastName.charAt(0)}
+                </span>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-white font-semibold text-sm">
+                      {user.firstName.charAt(0)}{user.lastName.charAt(0)}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {user.firstName} {user.lastName}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {user.email}
+                    </p>
+                  </div>
+                </div>
+                <RoleBadge role={user.role} className="w-full justify-center" />
+              </div>
+            )}
           </div>
-          <div className="text-xs text-gray-500 mt-2">
-            {user.firstName} {user.lastName}
-          </div>
-        </div>
+        </>
       )}
     </div>
   );

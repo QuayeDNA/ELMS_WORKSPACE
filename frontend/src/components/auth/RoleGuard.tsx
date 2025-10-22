@@ -11,11 +11,11 @@ interface RoleGuardProps {
   redirectTo?: string;
 }
 
-export function RoleGuard({ 
-  children, 
-  allowedRoles, 
+export function RoleGuard({
+  children,
+  allowedRoles,
   fallbackComponent,
-  redirectTo = '/dashboard' 
+  redirectTo = '/unauthorized'
 }: Readonly<RoleGuardProps>) {
   const { user, isAuthenticated } = useAuthStore();
 
@@ -41,7 +41,7 @@ export function RoleGuard({
       <div className="container mx-auto p-6">
         <Alert variant="destructive">
           <AlertDescription>
-            You don't have permission to access this page. 
+            You don't have permission to access this page.
             Contact your administrator if you believe this is an error.
           </AlertDescription>
         </Alert>

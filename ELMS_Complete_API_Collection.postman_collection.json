@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "elms-complete-api-2024",
 		"name": "ELMS Complete API Collection",
-		"description": "Comprehensive collection of all 150+ ELMS API endpoints organized by module. Includes authentication, user management, academic administration, registration system, and exam management.",
+		"description": "Comprehensive collection of all 165+ ELMS API endpoints organized by module. Includes authentication, user management, academic administration, registration system, exam management, and exam timetable/scheduling with conflict detection.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"auth": {
@@ -108,6 +108,21 @@
 		},
 		{
 			"key": "incidentId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "timetableId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "entryId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "conflictId",
 			"value": "",
 			"type": "string"
 		}
@@ -3354,6 +3369,486 @@
 				}
 			],
 			"description": "Exam management with CRUD operations, status updates, and filtering by faculty/course."
+		},
+		{
+			"name": "14.1. Exam Timetables",
+			"item": [
+				{
+					"name": "Timetables",
+					"item": [
+						{
+							"name": "Get All Timetables",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/timetables?page=1&limit=10&institutionId={{institutionId}}&status=DRAFT",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "timetables"],
+									"query": [
+										{
+											"key": "page",
+											"value": "1",
+											"description": "Page number for pagination"
+										},
+										{
+											"key": "limit",
+											"value": "10",
+											"description": "Number of records per page"
+										},
+										{
+											"key": "institutionId",
+											"value": "{{institutionId}}",
+											"description": "Filter by institution"
+										},
+										{
+											"key": "facultyId",
+											"value": "{{facultyId}}",
+											"disabled": true,
+											"description": "Filter by faculty"
+										},
+										{
+											"key": "academicYearId",
+											"value": "{{academicYearId}}",
+											"disabled": true,
+											"description": "Filter by academic year"
+										},
+										{
+											"key": "semesterId",
+											"value": "{{semesterId}}",
+											"disabled": true,
+											"description": "Filter by semester"
+										},
+										{
+											"key": "status",
+											"value": "DRAFT",
+											"description": "Filter by status: DRAFT, PENDING_APPROVAL, APPROVED, PUBLISHED, COMPLETED, ARCHIVED"
+										},
+										{
+											"key": "isPublished",
+											"value": "false",
+											"disabled": true,
+											"description": "Filter by published status"
+										},
+										{
+											"key": "search",
+											"value": "",
+											"disabled": true,
+											"description": "Search in title and description"
+										}
+									]
+								},
+								"description": "Get all exam timetables with pagination and filtering. Supports filtering by institution, faculty, academic year, semester, status, and search. Access: Admin, Faculty Admin, Exams Officer."
+							},
+							"response": []
+						},
+						{
+							"name": "Get Timetable by ID",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/timetables/{{timetableId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "timetables", "{{timetableId}}"]
+								},
+								"description": "Get a specific exam timetable by ID with full details including entries and conflicts. Access: Admin, Faculty Admin, Exams Officer, Lecturer, Student (if published)."
+							},
+							"response": []
+						},
+						{
+							"name": "Create Timetable",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"if (pm.response.code === 201) {",
+											"    const response = pm.response.json();",
+											"    if (response.data && response.data.id) {",
+											"        pm.collectionVariables.set('timetableId', response.data.id);",
+											"        console.log('Timetable ID saved:', response.data.id);",
+											"    }",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"title\": \"Final Exams - Semester 1, 2024/2025\",\n  \"description\": \"Final examination timetable for all programs in Faculty of Science\",\n  \"institutionId\": {{institutionId}},\n  \"facultyId\": {{facultyId}},\n  \"academicYearId\": {{academicYearId}},\n  \"semesterId\": {{semesterId}},\n  \"academicPeriodId\": {{academicPeriodId}},\n  \"startDate\": \"2025-01-20\",\n  \"endDate\": \"2025-02-10\",\n  \"allowOverlaps\": false,\n  \"autoResolveConflicts\": true,\n  \"defaultExamDuration\": 180,\n  \"createdBy\": {{userId}}\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/timetables",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "timetables"]
+								},
+								"description": "Create a new exam timetable. Validates academic period consistency, institution-faculty relationships, and date ranges. Access: Admin, Faculty Admin, Exams Officer."
+							},
+							"response": []
+						},
+						{
+							"name": "Update Timetable",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"title\": \"Final Exams - Semester 1, 2024/2025 (Updated)\",\n  \"description\": \"Updated final examination timetable\",\n  \"startDate\": \"2025-01-22\",\n  \"endDate\": \"2025-02-12\",\n  \"allowOverlaps\": false,\n  \"autoResolveConflicts\": true\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/timetables/{{timetableId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "timetables", "{{timetableId}}"]
+								},
+								"description": "Update an existing exam timetable. Cannot update if already published. Access: Admin, Faculty Admin, Exams Officer."
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Timetable",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/timetables/{{timetableId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "timetables", "{{timetableId}}"]
+								},
+								"description": "Delete a timetable. Only allowed if in DRAFT status and has no entries. Access: Admin, Faculty Admin, Exams Officer."
+							},
+							"response": []
+						},
+						{
+							"name": "Submit for Approval",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/timetables/{{timetableId}}/submit-for-approval",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "timetables", "{{timetableId}}", "submit-for-approval"]
+								},
+								"description": "Submit timetable for approval. Timetable must have entries. Access: Exams Officer, Faculty Admin."
+							},
+							"response": []
+						},
+						{
+							"name": "Approve Timetable",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"approvedBy\": {{userId}}\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/timetables/{{timetableId}}/approve",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "timetables", "{{timetableId}}", "approve"]
+								},
+								"description": "Approve a timetable that was submitted for approval. Access: Admin, Faculty Admin."
+							},
+							"response": []
+						},
+						{
+							"name": "Reject Timetable",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"reason\": \"Conflicts detected that need resolution before approval.\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/timetables/{{timetableId}}/reject",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "timetables", "{{timetableId}}", "reject"]
+								},
+								"description": "Reject a timetable with a reason. Returns timetable to DRAFT status. Access: Admin, Faculty Admin."
+							},
+							"response": []
+						},
+						{
+							"name": "Publish Timetable",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"publishedBy\": {{userId}}\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/timetables/{{timetableId}}/publish",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "timetables", "{{timetableId}}", "publish"]
+								},
+								"description": "Publish an approved timetable to make it visible to students. Must be approved and have no critical unresolved conflicts. Access: Admin, Faculty Admin, Exams Officer."
+							},
+							"response": []
+						},
+						{
+							"name": "Get Timetable Statistics",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/timetables/{{timetableId}}/statistics",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "timetables", "{{timetableId}}", "statistics"]
+								},
+								"description": "Get comprehensive statistics for a timetable including exam counts, venue utilization, conflict summary, and status breakdown. Access: Admin, Faculty Admin, Exams Officer."
+							},
+							"response": []
+						}
+					],
+					"description": "Exam timetable management with create, update, approval workflow, and publish operations."
+				},
+				{
+					"name": "Timetable Entries",
+					"item": [
+						{
+							"name": "Get Timetable Entries",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/timetables/{{timetableId}}/entries?page=1&limit=50",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "timetables", "{{timetableId}}", "entries"],
+									"query": [
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "limit",
+											"value": "50"
+										},
+										{
+											"key": "courseId",
+											"value": "{{courseId}}",
+											"disabled": true,
+											"description": "Filter by course"
+										},
+										{
+											"key": "programId",
+											"value": "{{programId}}",
+											"disabled": true,
+											"description": "Filter by program"
+										},
+										{
+											"key": "venueId",
+											"value": "{{venueId}}",
+											"disabled": true,
+											"description": "Filter by venue"
+										},
+										{
+											"key": "examDate",
+											"value": "2025-01-20",
+											"disabled": true,
+											"description": "Filter by specific date"
+										},
+										{
+											"key": "hasConflicts",
+											"value": "true",
+											"disabled": true,
+											"description": "Filter entries with conflicts"
+										},
+										{
+											"key": "status",
+											"value": "SCHEDULED",
+											"disabled": true,
+											"description": "Filter by status: DRAFT, SCHEDULED, CONFIRMED, IN_PROGRESS, COMPLETED, CANCELLED"
+										}
+									]
+								},
+								"description": "Get all entries for a timetable with filtering by course, program, venue, date, and conflict status. Access: Admin, Faculty Admin, Exams Officer, Lecturer, Student (if published)."
+							},
+							"response": []
+						},
+						{
+							"name": "Get Entry by ID",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/timetable-entries/{{entryId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "timetable-entries", "{{entryId}}"]
+								},
+								"description": "Get a specific timetable entry by ID with full details including programs, rooms, and invigilators. Access: Admin, Faculty Admin, Exams Officer, Lecturer, Student (if published)."
+							},
+							"response": []
+						},
+						{
+							"name": "Create Timetable Entry",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"if (pm.response.code === 201) {",
+											"    const response = pm.response.json();",
+											"    if (response.data && response.data.id) {",
+											"        pm.collectionVariables.set('entryId', response.data.id);",
+											"        console.log('Entry ID saved:', response.data.id);",
+											"    }",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"timetableId\": {{timetableId}},\n  \"courseId\": {{courseId}},\n  \"programIds\": [{{programId}}],\n  \"level\": 300,\n  \"examDate\": \"2025-01-22T00:00:00.000Z\",\n  \"startTime\": \"2025-01-22T09:00:00.000Z\",\n  \"endTime\": \"2025-01-22T12:00:00.000Z\",\n  \"duration\": 180,\n  \"venueId\": {{venueId}},\n  \"roomIds\": [1, 2],\n  \"invigilatorIds\": [{{instructorId}}],\n  \"chiefInvigilatorId\": {{instructorId}},\n  \"notes\": \"Bring student ID cards\",\n  \"specialRequirements\": \"Extra time for students with accommodations\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/timetables/{{timetableId}}/entries",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "timetables", "{{timetableId}}", "entries"]
+								},
+								"description": "Create a new timetable entry. Validates course, programs, venue, rooms, and automatically detects conflicts. Calculates seating capacity from rooms. Access: Admin, Faculty Admin, Exams Officer."
+							},
+							"response": []
+						},
+						{
+							"name": "Update Timetable Entry",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"examDate\": \"2025-01-23T00:00:00.000Z\",\n  \"startTime\": \"2025-01-23T09:00:00.000Z\",\n  \"endTime\": \"2025-01-23T12:00:00.000Z\",\n  \"roomIds\": [1, 2, 3],\n  \"invigilatorIds\": [{{instructorId}}],\n  \"notes\": \"Updated: Bring student ID and writing materials\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/timetable-entries/{{entryId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "timetable-entries", "{{entryId}}"]
+								},
+								"description": "Update an existing timetable entry. Re-checks for conflicts after update. Cannot update if timetable is published. Access: Admin, Faculty Admin, Exams Officer."
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Timetable Entry",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/timetable-entries/{{entryId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "timetable-entries", "{{entryId}}"]
+								},
+								"description": "Delete a timetable entry. Cannot delete if timetable is published. Access: Admin, Faculty Admin, Exams Officer."
+							},
+							"response": []
+						}
+					],
+					"description": "Individual timetable entry management with CRUD operations and automatic conflict detection."
+				},
+				{
+					"name": "Conflict Management",
+					"item": [
+						{
+							"name": "Detect Conflicts",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/timetables/{{timetableId}}/detect-conflicts",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "timetables", "{{timetableId}}", "detect-conflicts"]
+								},
+								"description": "Manually trigger conflict detection for a timetable. Checks for: student overlaps, venue/room overlaps, invigilator overlaps, capacity issues, time violations, date violations. Access: Admin, Faculty Admin, Exams Officer."
+							},
+							"response": []
+						},
+						{
+							"name": "Get Timetable Conflicts",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/timetables/{{timetableId}}/conflicts",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "timetables", "{{timetableId}}", "conflicts"]
+								},
+								"description": "Get all conflicts for a timetable with summary by severity (CRITICAL, HIGH, MEDIUM, LOW) and type (STUDENT_OVERLAP, VENUE_OVERLAP, INVIGILATOR_OVERLAP, CAPACITY_EXCEEDED, etc.). Access: Admin, Faculty Admin, Exams Officer."
+							},
+							"response": []
+						},
+						{
+							"name": "Resolve Conflict",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"resolvedBy\": {{userId}}\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/timetable-conflicts/{{conflictId}}/resolve",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "timetable-conflicts", "{{conflictId}}", "resolve"]
+								},
+								"description": "Mark a conflict as resolved. Typically done after manually adjusting the conflicting entries. Access: Admin, Faculty Admin, Exams Officer."
+							},
+							"response": []
+						}
+					],
+					"description": "Conflict detection and resolution for exam timetable scheduling with comprehensive validation."
+				}
+			],
+			"description": "Comprehensive exam timetable/schedule management system with CRUD operations, approval workflow, conflict detection, and automatic validation of courses, programs, venues, and relationships. Supports both manual entry creation and bulk import."
 		},
 		{
 			"name": "15. Venues",

@@ -5,13 +5,6 @@ import { Loader2, Mail, Lock, ChevronDown, User } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuthStore } from "@/stores/auth.store";
 import type { LoginRequest } from "@/types/auth";
@@ -246,17 +239,15 @@ export function LoginForm({ onSuccess }: Readonly<LoginFormProps>) {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold text-center">
-          Sign In
-        </CardTitle>
-        <CardDescription className="text-center">
+    <div className="space-y-6">
+      <div className="space-y-2 text-center">
+        <h1 className="text-3xl font-bold tracking-tight">Welcome Back</h1>
+        <p className="text-muted-foreground">
           Enter your credentials to access ELMS
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {error && (
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
@@ -374,7 +365,6 @@ export function LoginForm({ onSuccess }: Readonly<LoginFormProps>) {
             )}
           </Button>
         </form>
-      </CardContent>
-    </Card>
+    </div>
   );
 }

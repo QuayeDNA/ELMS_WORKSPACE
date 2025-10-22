@@ -6,6 +6,13 @@ import { RootRedirect } from "@/components/auth/RedirectMiddleware";
 import { Layout } from "@/components/layout/Layout";
 import { UserRole } from "@/types/auth";
 import { LoadingSpinner } from "@/components/ui/Loading";
+import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
+import {
+  NotFound,
+  Unauthorized,
+  Forbidden,
+  ServerError,
+} from "@/components/shared";
 
 // Lazy load pages for better performance
 const LoginPage = lazy(() =>
@@ -18,89 +25,144 @@ const DashboardPage = lazy(() =>
     default: module.DashboardPage,
   }))
 );
-const NotFoundPage = lazy(() =>
-  import("@/pages/NotFoundPage").then((module) => ({
-    default: module.NotFoundPage,
-  }))
-);
 const SettingsPage = lazy(() =>
   import("@/pages/SettingsPage").then((module) => ({
     default: module.SettingsPage,
   }))
 );
 
+// Component Showcase (Development Only)
+const ComponentShowcase = lazy(() =>
+  import("@/pages/ComponentShowcase").then((module) => ({
+    default: module.ComponentShowcase,
+  }))
+);
+
 // Super Admin Pages
 const InstitutionsPage = lazy(() =>
-  import("@/pages/InstitutionsPage").then((module) => ({
+  import("@/pages/super-admin/InstitutionsPage").then((module) => ({
     default: module.InstitutionsPage,
   }))
 );
 const InstitutionDetailsPage = lazy(() =>
-  import("@/pages/InstitutionDetailsPage").then((module) => ({
+  import("@/pages/super-admin/InstitutionDetailsPage").then((module) => ({
     default: module.InstitutionDetailsPage,
   }))
 );
 const UsersPage = lazy(() =>
-  import("@/pages/UsersPage").then((module) => ({ default: module.UsersPage }))
+  import("@/pages/super-admin/UsersPage").then((module) => ({ default: module.UsersPage }))
 );
 
-// Admin Pages
+// Institution Admin Pages
 const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
+
+// Dean Pages
+const DeanDashboard = lazy(() =>
+  import("@/pages/dean").then((module) => ({
+    default: module.DeanDashboard,
+  }))
+);
+
+// HOD Pages
+const HodDashboard = lazy(() =>
+  import("@/pages/hod").then((module) => ({
+    default: module.HodDashboard,
+  }))
+);
+
+// Exams Officer Pages
+const ExamsOfficerDashboard = lazy(() =>
+  import("@/pages/exams-officer").then((module) => ({
+    default: module.ExamsOfficerDashboard,
+  }))
+);
+
+// Lecturer Pages
+const LecturerDashboard = lazy(() =>
+  import("@/pages/lecturer").then((module) => ({
+    default: module.LecturerDashboard,
+  }))
+);
+
+// Student Pages
+const StudentDashboard = lazy(() =>
+  import("@/pages/student").then((module) => ({
+    default: module.StudentDashboard,
+  }))
+);
+
 const StudentsPage = lazy(() =>
-  import("@/pages/admin/StudentsPage").then((module) => ({
+  import("@/pages/institution-admin/StudentsPage").then((module) => ({
     default: module.default,
   }))
 );
-const InstructorsPage = lazy(() => import("@/pages/admin/InstructorsPage"));
+const InstructorsPage = lazy(() => import("@/pages/institution-admin/InstructorsPage"));
 const InstructorDetailPage = lazy(
-  () => import("@/pages/admin/InstructorDetailPage")
+  () => import("@/pages/institution-admin/InstructorDetailPage")
 );
 const InstructorCreatePage = lazy(
-  () => import("@/pages/admin/InstructorCreatePage")
+  () => import("@/pages/institution-admin/InstructorCreatePage")
 );
 const InstructorEditPage = lazy(
-  () => import("@/pages/admin/InstructorEditPage")
+  () => import("@/pages/institution-admin/InstructorEditPage")
 );
 const AdminUsersPage = lazy(() =>
-  import("@/pages/admin/UsersPage").then((module) => ({
+  import("@/pages/institution-admin/UsersPage").then((module) => ({
     default: module.UsersPage,
   }))
 );
 const FacultyPage = lazy(() =>
-  import("@/pages/admin/FacultyPage").then((module) => ({
+  import("@/pages/institution-admin/FacultyPage").then((module) => ({
     default: module.FacultyPage,
   }))
 );
-const DepartmentsPage = lazy(() => import("@/pages/admin/DepartmentsPage"));
+const DepartmentsPage = lazy(() => import("@/pages/institution-admin/DepartmentsPage"));
 const DepartmentDetailsPage = lazy(
-  () => import("@/pages/admin/DepartmentDetailsPage")
+  () => import("@/pages/institution-admin/DepartmentDetailsPage")
 );
-const CoursesPage = lazy(() => import("@/pages/admin/CoursesPage"));
-const CourseDetailsPage = lazy(() => import("@/pages/admin/CourseDetailsPage"));
+const CoursesPage = lazy(() => import("@/pages/institution-admin/CoursesPage"));
+const CourseDetailsPage = lazy(() => import("@/pages/institution-admin/CourseDetailsPage"));
+
+// Academic Pages
+const AcademicYearsPage = lazy(() =>
+  import("@/pages/academic/AcademicYearsPage").then((module) => ({
+    default: module.default,
+  }))
+);
+const SemestersPage = lazy(() =>
+  import("@/pages/academic/SemestersPage").then((module) => ({
+    default: module.default,
+  }))
+);
+const AcademicPeriodsPage = lazy(() =>
+  import("@/pages/academic/AcademicPeriodsPage").then((module) => ({
+    default: module.default,
+  }))
+);
 
 // Placeholder Pages
 const ExamsPage = lazy(() =>
-  import("@/pages/admin/PlaceholderPages").then((module) => ({
+  import("@/pages/institution-admin/PlaceholderPages").then((module) => ({
     default: module.ExamsPage,
   }))
 );
 const IncidentsPage = lazy(() =>
-  import("@/pages/admin/PlaceholderPages").then((module) => ({
+  import("@/pages/institution-admin/PlaceholderPages").then((module) => ({
     default: module.IncidentsPage,
   }))
 );
 const ScriptsPage = lazy(() =>
-  import("@/pages/admin/PlaceholderPages").then((module) => ({
+  import("@/pages/institution-admin/PlaceholderPages").then((module) => ({
     default: module.ScriptsPage,
   }))
 );
 const ReportsPage = lazy(() =>
-  import("@/pages/admin/PlaceholderPages").then((module) => ({
+  import("@/pages/institution-admin/PlaceholderPages").then((module) => ({
     default: module.ReportsPage,
   }))
 );
 const AdminSettingsPage = lazy(() =>
-  import("@/pages/admin/PlaceholderPages").then((module) => ({
+  import("@/pages/institution-admin/PlaceholderPages").then((module) => ({
     default: module.SettingsPage,
   }))
 );
@@ -156,9 +218,60 @@ const MultiRoleAdminLayout = ({
   </AuthGuard>
 );
 
+const DeanLayout = ({ children }: { children: React.ReactNode }) => (
+  <AuthGuard>
+    <RoleGuard allowedRoles={[UserRole.DEAN]}>
+      <Layout>
+        <Suspense fallback={<LoadingSpinner />}>{children}</Suspense>
+      </Layout>
+    </RoleGuard>
+  </AuthGuard>
+);
+
+const HodLayout = ({ children }: { children: React.ReactNode }) => (
+  <AuthGuard>
+    <RoleGuard allowedRoles={[UserRole.HOD]}>
+      <Layout>
+        <Suspense fallback={<LoadingSpinner />}>{children}</Suspense>
+      </Layout>
+    </RoleGuard>
+  </AuthGuard>
+);
+
+const ExamsOfficerLayout = ({ children }: { children: React.ReactNode }) => (
+  <AuthGuard>
+    <RoleGuard allowedRoles={[UserRole.EXAMS_OFFICER]}>
+      <Layout>
+        <Suspense fallback={<LoadingSpinner />}>{children}</Suspense>
+      </Layout>
+    </RoleGuard>
+  </AuthGuard>
+);
+
+const LecturerLayout = ({ children }: { children: React.ReactNode }) => (
+  <AuthGuard>
+    <RoleGuard allowedRoles={[UserRole.LECTURER]}>
+      <Layout>
+        <Suspense fallback={<LoadingSpinner />}>{children}</Suspense>
+      </Layout>
+    </RoleGuard>
+  </AuthGuard>
+);
+
+const StudentLayout = ({ children }: { children: React.ReactNode }) => (
+  <AuthGuard>
+    <RoleGuard allowedRoles={[UserRole.STUDENT]}>
+      <Layout>
+        <Suspense fallback={<LoadingSpinner />}>{children}</Suspense>
+      </Layout>
+    </RoleGuard>
+  </AuthGuard>
+);
+
 export function AppRoutes() {
   return (
-    <Routes>
+    <ErrorBoundary>
+      <Routes>
       {/* Public Routes */}
       <Route
         path="/login"
@@ -364,6 +477,34 @@ export function AppRoutes() {
           </AdminLayout>
         }
       />
+
+      {/* Academic Calendar Routes */}
+      <Route
+        path="/admin/academic/years"
+        element={
+          <AdminLayout>
+            <AcademicYearsPage />
+          </AdminLayout>
+        }
+      />
+      <Route
+        path="/admin/academic/semesters"
+        element={
+          <AdminLayout>
+            <SemestersPage />
+          </AdminLayout>
+        }
+      />
+      <Route
+        path="/admin/academic/periods"
+        element={
+          <AdminLayout>
+            <AcademicPeriodsPage />
+          </AdminLayout>
+        }
+      />
+
+      {/* Examination Routes */}
       <Route
         path="/admin/exams"
         element={
@@ -405,6 +546,56 @@ export function AppRoutes() {
         }
       />
 
+      {/* Dean Routes */}
+      <Route
+        path="/dean"
+        element={
+          <DeanLayout>
+            <DeanDashboard />
+          </DeanLayout>
+        }
+      />
+
+      {/* HOD Routes */}
+      <Route
+        path="/hod"
+        element={
+          <HodLayout>
+            <HodDashboard />
+          </HodLayout>
+        }
+      />
+
+      {/* Exams Officer Routes */}
+      <Route
+        path="/exams-officer"
+        element={
+          <ExamsOfficerLayout>
+            <ExamsOfficerDashboard />
+          </ExamsOfficerLayout>
+        }
+      />
+
+      {/* Lecturer Routes */}
+      <Route
+        path="/lecturer"
+        element={
+          <LecturerLayout>
+            <LecturerDashboard />
+          </LecturerLayout>
+        }
+      />
+
+      {/* Student Routes */}
+      <Route
+        path="/student"
+        element={
+          <StudentLayout>
+            <StudentDashboard />
+          </StudentLayout>
+        }
+      />
+
       {/* General Protected Routes - removed since we handle in role-specific dashboards */}
       <Route
         path="/settings"
@@ -415,15 +606,52 @@ export function AppRoutes() {
         }
       />
 
-      {/* 404 Page */}
+      {/* Component Showcase - Development Only */}
+      <Route
+        path="/showcase"
+        element={
+          <PublicLayout>
+            <ComponentShowcase />
+          </PublicLayout>
+        }
+      />
+
+      {/* Error Pages */}
+      <Route
+        path="/unauthorized"
+        element={
+          <PublicLayout>
+            <Unauthorized />
+          </PublicLayout>
+        }
+      />
+      <Route
+        path="/forbidden"
+        element={
+          <PublicLayout>
+            <Forbidden />
+          </PublicLayout>
+        }
+      />
+      <Route
+        path="/server-error"
+        element={
+          <PublicLayout>
+            <ServerError />
+          </PublicLayout>
+        }
+      />
+
+      {/* 404 Page - Must be last */}
       <Route
         path="*"
         element={
           <PublicLayout>
-            <NotFoundPage />
+            <NotFound />
           </PublicLayout>
         }
       />
-    </Routes>
+      </Routes>
+    </ErrorBoundary>
   );
 }
