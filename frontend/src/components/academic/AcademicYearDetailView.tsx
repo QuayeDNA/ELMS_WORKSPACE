@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { X, Plus, Calendar, Edit, Trash2, Check, Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Calendar, Edit, Trash2, Check, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { useApiRequest } from '@/hooks/useApiRequest';
 import { academicService } from '@/services/academic.service';
-import { AcademicYear, Semester, AcademicPeriod } from '@/types/academic';
+import { Semester } from '@/types/academic';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -126,7 +126,7 @@ export function AcademicYearDetailView({
   return (
     <>
       <Sheet open={open} onOpenChange={handleClose}>
-        <SheetContent className="sm:max-w-2xl overflow-y-auto">
+        <SheetContent className="sm:max-w-2xl overflow-y-auto p-4">
           <SheetHeader>
             <SheetTitle className="flex items-center gap-3">
               <div className="p-2 bg-primary/10 rounded-lg">

@@ -20,6 +20,7 @@ import {
   School,
   ClipboardCheck,
   Cog,
+  Calendar,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { Separator } from "@/components/ui/separator";
@@ -171,31 +172,10 @@ const getSidebarItemsForRole = (role: UserRole): SidebarContent[] => {
         },
         {
           title: "Academic Calendar",
-          icon: School,
+          href: "/admin/academic-calendar",
+          icon: Calendar,
           roles: [UserRole.ADMIN],
-          items: [
-            {
-              title: "Academic Years",
-              href: "/admin/academic/years",
-              icon: LayoutDashboard,
-              roles: [UserRole.ADMIN],
-              description: "Manage academic years",
-            },
-            {
-              title: "Semesters",
-              href: "/admin/academic/semesters",
-              icon: BookOpen,
-              roles: [UserRole.ADMIN],
-              description: "Manage semesters",
-            },
-            {
-              title: "Academic Periods",
-              href: "/admin/academic/periods",
-              icon: ClipboardCheck,
-              roles: [UserRole.ADMIN],
-              description: "Manage academic periods",
-            },
-          ],
+          description: "Manage academic years, semesters, and periods",
         },
         {
           title: "Examination",
@@ -319,7 +299,7 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
   const location = useLocation();
   const { user } = useAuthStore();
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
-    new Set(["Academics", "Academic Calendar"])
+    new Set(["Academics"])
   );
 
   if (!user) return null;

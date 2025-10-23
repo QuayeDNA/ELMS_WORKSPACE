@@ -248,7 +248,7 @@ interface AcademicPeriodCalendarProps {
 ```
 
 ### 9. Update Routing
-**Files**: 
+**Files**:
 - `frontend/src/routes/AppRoutes.tsx` ⚠️ **NEEDS UPDATE**
 - `frontend/src/components/layout/Sidebar.tsx` ⚠️ **NEEDS UPDATE**
 
@@ -428,6 +428,6 @@ return {
 
 ---
 
-**Last Updated**: Current Session  
-**Implementation Progress**: 60%  
+**Last Updated**: Current Session
+**Implementation Progress**: 60%
 **Estimated Time to Complete**: 4-6 hours for remaining components

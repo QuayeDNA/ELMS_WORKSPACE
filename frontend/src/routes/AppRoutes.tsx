@@ -124,20 +124,8 @@ const CoursesPage = lazy(() => import("@/pages/institution-admin/CoursesPage"));
 const CourseDetailsPage = lazy(() => import("@/pages/institution-admin/CourseDetailsPage"));
 
 // Academic Pages
-const AcademicYearsPage = lazy(() =>
-  import("@/pages/academic/AcademicYearsPage").then((module) => ({
-    default: module.default,
-  }))
-);
-const SemestersPage = lazy(() =>
-  import("@/pages/academic/SemestersPage").then((module) => ({
-    default: module.default,
-  }))
-);
-const AcademicPeriodsPage = lazy(() =>
-  import("@/pages/academic/AcademicPeriodsPage").then((module) => ({
-    default: module.default,
-  }))
+const AcademicCalendarPage = lazy(() =>
+  import("@/pages/institution-admin/AcademicCalendarPage")
 );
 
 // Placeholder Pages
@@ -478,28 +466,12 @@ export function AppRoutes() {
         }
       />
 
-      {/* Academic Calendar Routes */}
+      {/* Academic Calendar Route - Unified */}
       <Route
-        path="/admin/academic/years"
+        path="/admin/academic-calendar"
         element={
           <AdminLayout>
-            <AcademicYearsPage />
-          </AdminLayout>
-        }
-      />
-      <Route
-        path="/admin/academic/semesters"
-        element={
-          <AdminLayout>
-            <SemestersPage />
-          </AdminLayout>
-        }
-      />
-      <Route
-        path="/admin/academic/periods"
-        element={
-          <AdminLayout>
-            <AcademicPeriodsPage />
+            <AcademicCalendarPage />
           </AdminLayout>
         }
       />

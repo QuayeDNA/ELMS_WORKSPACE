@@ -119,8 +119,13 @@ export const academicPeriodService = {
       });
     }
 
+    // Convert date strings to Date objects for Prisma
     const academicYear = await prisma.academicYear.create({
-      data,
+      data: {
+        ...data,
+        startDate: new Date(data.startDate),
+        endDate: new Date(data.endDate)
+      },
       include: {
         institution: {
           select: {
@@ -161,9 +166,18 @@ export const academicPeriodService = {
       });
     }
 
+    // Convert date strings to Date objects if present
+    const updateData: any = { ...data };
+    if (data.startDate) {
+      updateData.startDate = new Date(data.startDate);
+    }
+    if (data.endDate) {
+      updateData.endDate = new Date(data.endDate);
+    }
+
     return await prisma.academicYear.update({
       where: { id },
-      data,
+      data: updateData,
       include: {
         institution: {
           select: {
@@ -355,8 +369,13 @@ export const academicPeriodService = {
       });
     }
 
+    // Convert date strings to Date objects for Prisma
     const semester = await prisma.semester.create({
-      data,
+      data: {
+        ...data,
+        startDate: new Date(data.startDate),
+        endDate: new Date(data.endDate)
+      },
       include: {
         academicYear: {
           include: {
@@ -398,9 +417,18 @@ export const academicPeriodService = {
       });
     }
 
+    // Convert date strings to Date objects if present
+    const updateData: any = { ...data };
+    if (data.startDate) {
+      updateData.startDate = new Date(data.startDate);
+    }
+    if (data.endDate) {
+      updateData.endDate = new Date(data.endDate);
+    }
+
     return await prisma.semester.update({
       where: { id },
-      data,
+      data: updateData,
       include: {
         academicYear: {
           include: {

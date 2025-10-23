@@ -1,11 +1,10 @@
 import { useState } from 'react';
-import { Calendar, Clock, BookOpen, FileCheck, Trophy, Edit, ExternalLink } from 'lucide-react';
+import { Calendar, Clock, BookOpen, FileCheck, Trophy, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AcademicPeriod } from '@/types/academic';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { academicService } from '@/services/academic.service';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -173,7 +172,7 @@ export function AcademicPeriodCalendar({ period, semesterId }: AcademicPeriodCal
         <div className="relative">
           {/* Timeline Bar */}
           <div className="h-2 bg-muted rounded-full overflow-hidden flex">
-            {phases.map((phase, index) => {
+            {phases.map((phase) => {
               if (phase.optional && !phase.start) return null;
               return (
                 <div

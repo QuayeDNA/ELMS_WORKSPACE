@@ -176,12 +176,12 @@ class AcademicService extends BaseService {
   }
 
   /**
-   * ⏳ TODO: POST - Set current academic year
+   * ⏳ TODO: PATCH - Set current academic year
    * Service ready, component implementation pending
    */
   async setCurrentAcademicYear(id: number): Promise<ApiResponse<AcademicYear>> {
     try {
-      return await apiService.post<AcademicYear>(
+      return await apiService.patch<AcademicYear>(
         API_ENDPOINTS.ACADEMIC_PERIODS.SET_CURRENT_ACADEMIC_YEAR(id)
       );
     } catch (error) {
@@ -325,12 +325,12 @@ class AcademicService extends BaseService {
   }
 
   /**
-   * ⏳ TODO: POST - Set current semester
+   * ⏳ TODO: PATCH - Set current semester
    * Service ready, component implementation pending
    */
   async setCurrentSemester(id: number): Promise<ApiResponse<Semester>> {
     try {
-      return await apiService.post<Semester>(
+      return await apiService.patch<Semester>(
         API_ENDPOINTS.ACADEMIC_PERIODS.SET_CURRENT_SEMESTER(id)
       );
     } catch (error) {

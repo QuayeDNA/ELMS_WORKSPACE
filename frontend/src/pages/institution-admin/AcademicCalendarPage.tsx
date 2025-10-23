@@ -1,25 +1,19 @@
 import { useState } from 'react';
-import { Plus, Calendar, Search, Grid3x3, Table2, RefreshCw } from 'lucide-react';
+import { Plus, Calendar, Grid3x3, Table2, RefreshCw } from 'lucide-react';
 import { useApiRequest } from '@/hooks/useApiRequest';
 import { academicService } from '@/services/academic.service';
 import { AcademicYear } from '@/types/academic';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { toast } from 'sonner';
+import { SearchAndFilter } from '@/components/shared/SearchAndFilter';
 import { AcademicYearDetailView } from '@/components/academic/AcademicYearDetailView';
 import { AcademicYearForm } from '@/components/academic/AcademicYearForm';
 import { AcademicYearCard } from '@/components/academic/AcademicYearCard';
 import { AcademicYearTable } from '@/components/academic/AcademicYearTable';
+import { useAuthStore } from '@/stores/auth.store';
 
 /**
  * Academic Calendar Page
@@ -35,6 +29,10 @@ import { AcademicYearTable } from '@/components/academic/AcademicYearTable';
  * - Quick actions for calendar management
  */
 export default function AcademicCalendarPage() {
+  // Get user's institution ID
+  const { user } = useAuthStore();
+  const institutionId = user?.institutionId;
+
   // View state
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [searchTerm, setSearchTerm] = useState('');
@@ -44,7 +42,7 @@ export default function AcademicCalendarPage() {
   const [showYearForm, setShowYearForm] = useState(false);
   const [editingYear, setEditingYear] = useState<AcademicYear | null>(null);
 
-  // Fetch academic years
+  // Fetch academic years - filtered by institution
   const {
     data: academicYearsData,
     loading,
@@ -58,15 +56,16 @@ export default function AcademicCalendarPage() {
         search: searchTerm,
         sortBy: 'createdAt',
         sortOrder,
+        institutionId, // Filter by user's institution
       }),
-    [page, searchTerm, sortOrder],
+    [page, searchTerm, sortOrder, institutionId],
     { immediate: true }
   );
 
-  // Fetch current academic year
+  // Fetch current academic year - filtered by institution
   const { data: currentYearData } = useApiRequest(
-    () => academicService.getCurrentAcademicYear(),
-    [],
+    () => academicService.getCurrentAcademicYear(institutionId),
+    [institutionId],
     { immediate: true }
   );
 
@@ -235,51 +234,40 @@ export default function AcademicCalendarPage() {
         </Card>
       )}
 
-      {/* Filters and Controls */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-1 items-center gap-2">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search academic years..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9"
-            />
+      {/* Filters and Search */}
+      <SearchAndFilter
+        searchPlaceholder="Search academic years..."
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        sortOptions={[
+          { label: 'Newest First', value: 'desc' },
+          { label: 'Oldest First', value: 'asc' },
+        ]}
+        sortValue={sortOrder}
+        onSortChange={(value) => setSortOrder(value as 'asc' | 'desc')}
+        rightContent={
+          <div className="flex gap-1 border rounded-lg p-1 bg-muted/50">
+            <Button
+              variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+              className="gap-2"
+            >
+              <Grid3x3 className="h-4 w-4" />
+              <span className="hidden sm:inline">Grid</span>
+            </Button>
+            <Button
+              variant={viewMode === 'table' ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('table')}
+              className="gap-2"
+            >
+              <Table2 className="h-4 w-4" />
+              <span className="hidden sm:inline">Table</span>
+            </Button>
           </div>
-          <Select value={sortOrder} onValueChange={(value: 'asc' | 'desc') => setSortOrder(value)}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Sort by" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="desc">Newest First</SelectItem>
-              <SelectItem value="asc">Oldest First</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* View Mode Toggle */}
-        <div className="flex gap-1 border rounded-lg p-1 bg-muted/50">
-          <Button
-            variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
-            size="sm"
-            onClick={() => setViewMode('grid')}
-            className="gap-2"
-          >
-            <Grid3x3 className="h-4 w-4" />
-            <span className="hidden sm:inline">Grid</span>
-          </Button>
-          <Button
-            variant={viewMode === 'table' ? 'secondary' : 'ghost'}
-            size="sm"
-            onClick={() => setViewMode('table')}
-            className="gap-2"
-          >
-            <Table2 className="h-4 w-4" />
-            <span className="hidden sm:inline">Table</span>
-          </Button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Results Count */}
       {pagination && (
@@ -377,10 +365,10 @@ export default function AcademicCalendarPage() {
       {/* Academic Year Form (Create/Edit) */}
       {showYearForm && (
         <AcademicYearForm
-          year={editingYear}
+          academicYear={editingYear || undefined}
           open={showYearForm}
           onSuccess={handleFormSuccess}
-          onCancel={handleFormCancel}
+          onClose={handleFormCancel}
         />
       )}
     </div>
