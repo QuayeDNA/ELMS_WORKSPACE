@@ -129,12 +129,23 @@ export function AcademicYearForm({ open, onClose, onSuccess, academicYear }: Aca
   const onSubmit = async (data: AcademicYearFormData) => {
     setIsSubmitting(true);
     try {
+      // Ensure institutionId is always a number
+      const institutionId = isSuperAdmin
+        ? data.institutionId || user?.institutionId
+        : user?.institutionId;
+
+      if (!institutionId) {
+        toast.error('Institution ID is required');
+        setIsSubmitting(false);
+        return;
+      }
+
       const payload = {
         yearCode: data.yearCode,
         startDate: data.startDate,
         endDate: data.endDate,
         isCurrent: data.isCurrent || false,
-        institutionId: isSuperAdmin ? data.institutionId : user?.institutionId,
+        institutionId,
       };
 
       if (isEditing && academicYear) {
@@ -236,7 +247,7 @@ export function AcademicYearForm({ open, onClose, onSuccess, academicYear }: Aca
                 <SelectContent>
                   {/* TODO: Load institutions from API */}
                   <SelectItem value={user?.institutionId?.toString() || '1'}>
-                    {user?.institutionName || 'Default Institution'}
+                    Institution {user?.institutionId || '1'}
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -249,7 +260,11 @@ export function AcademicYearForm({ open, onClose, onSuccess, academicYear }: Aca
           {/* Set as Current */}
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
-              <Checkbox id="isCurrent" {...register('isCurrent')} />
+              <Checkbox
+                id="isCurrent"
+                checked={watch('isCurrent')}
+                onCheckedChange={(checked) => setValue('isCurrent', checked as boolean)}
+              />
               <Label htmlFor="isCurrent" className="text-sm font-normal cursor-pointer">
                 Set as current academic year
               </Label>

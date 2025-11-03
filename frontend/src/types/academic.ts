@@ -123,6 +123,7 @@ export interface UpdateSemesterRequest {
 
 export interface SemesterQuery {
   academicYearId?: number;
+  institutionId?: number;
   isCurrent?: boolean;
   page?: number;
   limit?: number;

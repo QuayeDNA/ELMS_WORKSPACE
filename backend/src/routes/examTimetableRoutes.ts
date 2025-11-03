@@ -1,6 +1,7 @@
 import express from "express";
 import { examTimetableController } from "../controllers/examTimetableController";
-import { authenticateToken } from "../middleware/auth";
+import { authenticateToken, requireRole } from "../middleware/auth";
+import { UserRole } from "../types/auth";
 
 const router = express.Router();
 
@@ -11,54 +12,116 @@ router.use(authenticateToken);
 // TIMETABLE ROUTES
 // ========================================
 
-// Get all timetables with filtering
+// Get all timetables with filtering (all authenticated users)
 router.get("/", examTimetableController.getTimetables);
 
-// Get single timetable by ID
+// Get single timetable by ID (all authenticated users)
 router.get("/:id", examTimetableController.getTimetableById);
 
-// Create new timetable
-router.post("/", examTimetableController.createTimetable);
+// Create new timetable (ADMIN, EXAMS_OFFICER)
+router.post(
+  "/",
+  requireRole(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.EXAMS_OFFICER),
+  examTimetableController.createTimetable
+);
 
-// Update timetable
-router.put("/:id", examTimetableController.updateTimetable);
+// Update timetable (ADMIN, EXAMS_OFFICER)
+router.put(
+  "/:id",
+  requireRole(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.EXAMS_OFFICER),
+  examTimetableController.updateTimetable
+);
 
-// Delete timetable
-router.delete("/:id", examTimetableController.deleteTimetable);
+// Delete timetable (ADMIN only)
+router.delete(
+  "/:id",
+  requireRole(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  examTimetableController.deleteTimetable
+);
 
-// Publish timetable
-router.post("/:id/publish", examTimetableController.publishTimetable);
+// Publish timetable (ADMIN, EXAMS_OFFICER)
+router.post(
+  "/:id/publish",
+  requireRole(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.EXAMS_OFFICER),
+  examTimetableController.publishTimetable
+);
 
-// Submit for approval
-router.post("/:id/submit-for-approval", examTimetableController.submitForApproval);
+// Submit for approval (ADMIN, EXAMS_OFFICER)
+router.post(
+  "/:id/submit-for-approval",
+  requireRole(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.EXAMS_OFFICER),
+  examTimetableController.submitForApproval
+);
 
-// Approve timetable
-router.post("/:id/approve", examTimetableController.approveTimetable);
+// Approve timetable (ADMIN, FACULTY_ADMIN can approve)
+router.post(
+  "/:id/approve",
+  requireRole(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.FACULTY_ADMIN),
+  examTimetableController.approveTimetable
+);
 
-// Reject timetable
-router.post("/:id/reject", examTimetableController.rejectTimetable);
+// Reject timetable (ADMIN, FACULTY_ADMIN can reject)
+router.post(
+  "/:id/reject",
+  requireRole(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.FACULTY_ADMIN),
+  examTimetableController.rejectTimetable
+);
 
-// Get timetable statistics
+// Get timetable statistics (all authenticated users)
 router.get("/:id/statistics", examTimetableController.getTimetableStatistics);
 
 // ========================================
 // TIMETABLE ENTRY ROUTES
 // ========================================
 
-// Get entries for a timetable
+// Get entries for a timetable (all authenticated users)
 router.get("/:timetableId/entries", examTimetableController.getTimetableEntries);
 
-// Create new entry
-router.post("/:timetableId/entries", examTimetableController.createTimetableEntry);
+// Create new entry (ADMIN, EXAMS_OFFICER)
+router.post(
+  "/:timetableId/entries",
+  requireRole(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.EXAMS_OFFICER),
+  examTimetableController.createTimetableEntry
+);
+
+// Update entry (ADMIN, EXAMS_OFFICER, FACULTY_ADMIN)
+// Permission checks are handled in the service layer
+router.put(
+  "/:timetableId/entries/:entryId",
+  requireRole(
+    UserRole.ADMIN,
+    UserRole.SUPER_ADMIN,
+    UserRole.EXAMS_OFFICER,
+    UserRole.FACULTY_ADMIN
+  ),
+  examTimetableController.updateTimetableEntry
+);
+
+// Delete entry (ADMIN, EXAMS_OFFICER only)
+router.delete(
+  "/:timetableId/entries/:entryId",
+  requireRole(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.EXAMS_OFFICER),
+  examTimetableController.deleteTimetableEntry
+);
+
+// Get entry permissions (all authenticated users)
+router.get(
+  "/entries/:entryId/permissions",
+  examTimetableController.getEntryPermissions
+);
 
 // ========================================
 // CONFLICT ROUTES
 // ========================================
 
-// Detect conflicts
-router.post("/:id/detect-conflicts", examTimetableController.detectConflicts);
+// Detect conflicts (ADMIN, EXAMS_OFFICER)
+router.post(
+  "/:id/detect-conflicts",
+  requireRole(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.EXAMS_OFFICER),
+  examTimetableController.detectConflicts
+);
 
-// Get conflicts
+// Get conflicts (all authenticated users)
 router.get("/:id/conflicts", examTimetableController.getTimetableConflicts);
 
 export default router;

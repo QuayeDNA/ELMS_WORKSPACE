@@ -60,6 +60,7 @@ export interface UpdateSemesterData {
 
 export interface SemesterQueryParams {
   academicYearId?: number;
+  institutionId?: number;
   isCurrent?: boolean;
   page?: number;
   limit?: number;

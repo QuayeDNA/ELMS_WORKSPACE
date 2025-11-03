@@ -1036,7 +1036,105 @@ export const examTimetableService = {
   /**
    * Update a timetable entry
    */
-  async updateTimetableEntry(id: number, data: UpdateTimetableEntryData) {
+  /**
+   * Get modification permissions for a user on a specific entry
+   */
+  async getModificationPermissions(
+    userId: number,
+    userRole: string,
+    entryId: number
+  ) {
+    // Get entry with faculty/department context
+    const entry = await prisma.examTimetableEntry.findUnique({
+      where: { id: entryId },
+      include: {
+        timetable: {
+          include: { faculty: true }
+        },
+        course: {
+          include: { department: true }
+        }
+      }
+    });
+
+    if (!entry) {
+      throw new Error('Entry not found');
+    }
+
+    // ADMIN and EXAMS_OFFICER: Full permissions
+    if (['ADMIN', 'SUPER_ADMIN', 'EXAMS_OFFICER'].includes(userRole)) {
+      return {
+        canModifyTime: true,
+        canModifyDate: true,
+        canModifyVenue: true,
+        canModifyInvigilators: true,
+        canModifyCourse: true,
+        canDelete: true,
+        scope: 'ALL'
+      };
+    }
+
+    // DEAN/FACULTY_ADMIN: Venue and invigilators for faculty exams only
+    if (['DEAN', 'FACULTY_ADMIN'].includes(userRole)) {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { facultyId: true }
+      });
+
+      const isFacultyExam = entry.timetable.facultyId === user?.facultyId;
+
+      return {
+        canModifyTime: false,
+        canModifyDate: false,
+        canModifyVenue: isFacultyExam,
+        canModifyInvigilators: isFacultyExam,
+        canModifyCourse: false,
+        canDelete: false,
+        scope: isFacultyExam ? 'FACULTY' : 'NONE'
+      };
+    }
+
+    // HOD: Venue and invigilators for department courses only
+    if (userRole === 'HOD') {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { departmentId: true }
+      });
+
+      const isDepartmentCourse = entry.course.departmentId === user?.departmentId;
+
+      return {
+        canModifyTime: false,
+        canModifyDate: false,
+        canModifyVenue: isDepartmentCourse,
+        canModifyInvigilators: isDepartmentCourse,
+        canModifyCourse: false,
+        canDelete: false,
+        scope: isDepartmentCourse ? 'DEPARTMENT' : 'NONE'
+      };
+    }
+
+    // Default: No permissions
+    return {
+      canModifyTime: false,
+      canModifyDate: false,
+      canModifyVenue: false,
+      canModifyInvigilators: false,
+      canModifyCourse: false,
+      canDelete: false,
+      scope: 'NONE'
+    };
+  },
+
+  /**
+   * Update timetable entry with role-based permission checks
+   */
+  async updateTimetableEntry(
+    id: number,
+    data: UpdateTimetableEntryData,
+    userId?: number,
+    userRole?: string
+  ) {
     // Get existing entry
     const existing = await prisma.examTimetableEntry.findUnique({
       where: { id },
@@ -1054,6 +1152,36 @@ export const examTimetableService = {
       existing.timetable.status === ExamTimetableStatus.ARCHIVED
     ) {
       throw new Error("Cannot edit entries in a published/completed/archived timetable");
+    }
+
+    // Check permissions if userId and userRole provided
+    if (userId && userRole) {
+      const permissions = await this.getModificationPermissions(
+        userId,
+        userRole,
+        id
+      );
+
+      // Check if user is trying to modify restricted fields
+      if (data.examDate && !permissions.canModifyDate) {
+        throw new Error('You do not have permission to modify exam dates');
+      }
+
+      if ((data.startTime || data.endTime || data.duration) && !permissions.canModifyTime) {
+        throw new Error('You do not have permission to modify exam times');
+      }
+
+      if ((data.venueId || data.roomIds) && !permissions.canModifyVenue) {
+        throw new Error('You do not have permission to modify venues');
+      }
+
+      if ((data.invigilatorIds || data.chiefInvigilatorId) && !permissions.canModifyInvigilators) {
+        throw new Error('You do not have permission to modify invigilators');
+      }
+
+      if (data.courseId && !permissions.canModifyCourse) {
+        throw new Error('You do not have permission to change the course');
+      }
     }
 
     // Validate changes
@@ -1142,7 +1270,10 @@ export const examTimetableService = {
   /**
    * Delete a timetable entry
    */
-  async deleteTimetableEntry(id: number) {
+  /**
+   * Delete timetable entry with permission checks
+   */
+  async deleteTimetableEntry(id: number, userId?: number, userRole?: string) {
     const entry = await prisma.examTimetableEntry.findUnique({
       where: { id },
       include: { timetable: true },
@@ -1159,6 +1290,19 @@ export const examTimetableService = {
       entry.timetable.status === ExamTimetableStatus.ARCHIVED
     ) {
       throw new Error("Cannot delete entries from a published/completed/archived timetable");
+    }
+
+    // Check permissions if userId and userRole provided
+    if (userId && userRole) {
+      const permissions = await this.getModificationPermissions(
+        userId,
+        userRole,
+        id
+      );
+
+      if (!permissions.canDelete) {
+        throw new Error('You do not have permission to delete timetable entries');
+      }
     }
 
     await prisma.examTimetableEntry.delete({

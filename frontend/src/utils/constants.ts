@@ -88,6 +88,25 @@ export const API_ENDPOINTS = {
     CALENDAR_IMPORTS: '/api/academic-periods/calendar-imports',
     CALENDAR_IMPORT_BY_ID: (id: number) => `/api/academic-periods/calendar-imports/${id}`,
   },
+  EXAM_TIMETABLES: {
+    // Timetables
+    BASE: '/api/timetables',
+    BY_ID: (id: number) => `/api/timetables/${id}`,
+    PUBLISH: (id: number) => `/api/timetables/${id}/publish`,
+    SUBMIT_FOR_APPROVAL: (id: number) => `/api/timetables/${id}/submit-for-approval`,
+    APPROVE: (id: number) => `/api/timetables/${id}/approve`,
+    REJECT: (id: number) => `/api/timetables/${id}/reject`,
+    STATISTICS: (id: number) => `/api/timetables/${id}/statistics`,
+
+    // Entries
+    ENTRIES: (timetableId: number) => `/api/timetables/${timetableId}/entries`,
+    ENTRY_BY_ID: (timetableId: number, entryId: number) => `/api/timetables/${timetableId}/entries/${entryId}`,
+    ENTRY_PERMISSIONS: (timetableId: number, entryId: number) => `/api/timetables/${timetableId}/entries/${entryId}/permissions`,
+
+    // Conflicts
+    DETECT_CONFLICTS: (id: number) => `/api/timetables/${id}/detect-conflicts`,
+    CONFLICTS: (id: number) => `/api/timetables/${id}/conflicts`,
+  },
 } as const;
 
 export const STORAGE_KEYS = {

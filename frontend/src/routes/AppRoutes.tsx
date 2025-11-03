@@ -128,12 +128,14 @@ const AcademicCalendarPage = lazy(() =>
   import("@/pages/institution-admin/AcademicCalendarPage")
 );
 
-// Placeholder Pages
-const ExamsPage = lazy(() =>
-  import("@/pages/institution-admin/PlaceholderPages").then((module) => ({
-    default: module.ExamsPage,
-  }))
+const ExamTimetableListPage = lazy(() =>
+  import("@/pages/admin/ExamTimetableListPage")
 );
+const ExamTimetableDetailPage = lazy(() =>
+  import("@/pages/admin/ExamTimetableDetailPage")
+);
+
+// Placeholder Pages
 const IncidentsPage = lazy(() =>
   import("@/pages/institution-admin/PlaceholderPages").then((module) => ({
     default: module.IncidentsPage,
@@ -481,7 +483,15 @@ export function AppRoutes() {
         path="/admin/exams"
         element={
           <AdminLayout>
-            <ExamsPage />
+            <ExamTimetableListPage />
+          </AdminLayout>
+        }
+      />
+      <Route
+        path="/admin/exams/:id"
+        element={
+          <AdminLayout>
+            <ExamTimetableDetailPage />
           </AdminLayout>
         }
       />

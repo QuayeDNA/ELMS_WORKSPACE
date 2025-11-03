@@ -96,7 +96,7 @@ export const examTimetableController = {
    */
   async createTimetable(req: Request, res: Response) {
     try {
-      const userId = (req as any).user?.id;
+      const userId = req.user?.userId;
       if (!userId) {
         return res.status(401).json({
           success: false,
@@ -206,7 +206,7 @@ export const examTimetableController = {
   async publishTimetable(req: Request, res: Response) {
     try {
       const id = parseInt(req.params.id);
-      const userId = (req as any).user?.id;
+      const userId = req.user?.userId;
 
       if (isNaN(id)) {
         return res.status(400).json({
@@ -267,7 +267,7 @@ export const examTimetableController = {
   async approveTimetable(req: Request, res: Response) {
     try {
       const id = parseInt(req.params.id);
-      const userId = (req as any).user?.id;
+      const userId = req.user?.userId;
 
       if (isNaN(id)) {
         return res.status(400).json({
@@ -496,69 +496,6 @@ export const examTimetableController = {
     }
   },
 
-  /**
-   * PUT /api/timetables/entries/:id
-   * Update a timetable entry
-   */
-  async updateTimetableEntry(req: Request, res: Response) {
-    try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid entry ID",
-        });
-      }
-
-      const data: UpdateTimetableEntryData = req.body;
-      const result = await examTimetableService.updateTimetableEntry(id, data);
-      res.json(result);
-    } catch (error) {
-      console.error("Error updating timetable entry:", error);
-      const statusCode =
-        error instanceof Error && error.message.includes("not found")
-          ? 404
-          : 500;
-      res.status(statusCode).json({
-        success: false,
-        message: "Failed to update timetable entry",
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
-    }
-  },
-
-  /**
-   * DELETE /api/timetables/entries/:id
-   * Delete a timetable entry
-   */
-  async deleteTimetableEntry(req: Request, res: Response) {
-    try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid entry ID",
-        });
-      }
-
-      const result = await examTimetableService.deleteTimetableEntry(id);
-      res.json(result);
-    } catch (error) {
-      console.error("Error deleting timetable entry:", error);
-      const statusCode =
-        error instanceof Error && error.message.includes("not found")
-          ? 404
-          : error instanceof Error && error.message.includes("Cannot delete")
-          ? 400
-          : 500;
-      res.status(statusCode).json({
-        success: false,
-        message: "Failed to delete timetable entry",
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
-    }
-  },
-
   // ========================================
   // CONFLICT MANAGEMENT
   // ========================================
@@ -622,7 +559,7 @@ export const examTimetableController = {
   async resolveConflict(req: Request, res: Response) {
     try {
       const conflictId = req.params.conflictId;
-      const userId = (req as any).user?.id;
+      const userId = req.user?.userId;
 
       if (!userId) {
         return res.status(401).json({
@@ -641,6 +578,143 @@ export const examTimetableController = {
       res.status(500).json({
         success: false,
         message: "Failed to resolve conflict",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  },
+
+  /**
+   * PUT /api/timetables/:timetableId/entries/:entryId
+   * Update a timetable entry with role-based permissions
+   */
+  async updateTimetableEntry(req: Request, res: Response) {
+    try {
+      const entryId = parseInt(req.params.entryId);
+      const userId = req.user?.userId;
+      const userRole = req.user?.role;
+
+      if (isNaN(entryId)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid entry ID",
+        });
+      }
+
+      if (!userId || !userRole) {
+        return res.status(401).json({
+          success: false,
+          message: "Authentication required",
+        });
+      }
+
+      const data: UpdateTimetableEntryData = req.body;
+
+      const result = await examTimetableService.updateTimetableEntry(
+        entryId,
+        data,
+        userId,
+        userRole
+      );
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error updating entry:", error);
+
+      const statusCode =
+        error instanceof Error && error.message.includes('permission') ? 403 :
+        error instanceof Error && error.message.includes('not found') ? 404 : 500;
+
+      res.status(statusCode).json({
+        success: false,
+        message: error instanceof Error ? error.message : "Failed to update entry",
+      });
+    }
+  },
+
+  /**
+   * DELETE /api/timetables/:timetableId/entries/:entryId
+   * Delete a timetable entry with permission checks
+   */
+  async deleteTimetableEntry(req: Request, res: Response) {
+    try {
+      const entryId = parseInt(req.params.entryId);
+      const userId = req.user?.userId;
+      const userRole = req.user?.role;
+
+      if (isNaN(entryId)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid entry ID",
+        });
+      }
+
+      if (!userId || !userRole) {
+        return res.status(401).json({
+          success: false,
+          message: "Authentication required",
+        });
+      }
+
+      const result = await examTimetableService.deleteTimetableEntry(
+        entryId,
+        userId,
+        userRole
+      );
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error deleting entry:", error);
+
+      const statusCode =
+        error instanceof Error && error.message.includes('permission') ? 403 :
+        error instanceof Error && error.message.includes('not found') ? 404 : 500;
+
+      res.status(statusCode).json({
+        success: false,
+        message: error instanceof Error ? error.message : "Failed to delete entry",
+      });
+    }
+  },
+
+  /**
+   * GET /api/timetables/entries/:entryId/permissions
+   * Get what the current user can modify for this entry
+   */
+  async getEntryPermissions(req: Request, res: Response) {
+    try {
+      const entryId = parseInt(req.params.entryId);
+      const userId = req.user?.userId;
+      const userRole = req.user?.role;
+
+      if (isNaN(entryId)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid entry ID",
+        });
+      }
+
+      if (!userId || !userRole) {
+        return res.status(401).json({
+          success: false,
+          message: "Authentication required",
+        });
+      }
+
+      const permissions = await examTimetableService.getModificationPermissions(
+        userId,
+        userRole,
+        entryId
+      );
+
+      res.json({
+        success: true,
+        data: permissions,
+      });
+    } catch (error) {
+      console.error("Error getting permissions:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to get permissions",
         error: error instanceof Error ? error.message : "Unknown error",
       });
     }

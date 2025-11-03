@@ -228,11 +228,11 @@ export function AcademicYearDetailView({
       {/* Semester Form Modal */}
       {showSemesterForm && (
         <SemesterForm
-          semester={editingSemester}
+          semester={editingSemester || undefined}
           academicYearId={yearId}
           open={showSemesterForm}
           onSuccess={handleSemesterFormSuccess}
-          onCancel={() => {
+          onClose={() => {
             setShowSemesterForm(false);
             setEditingSemester(null);
           }}

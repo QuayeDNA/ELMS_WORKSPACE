@@ -200,6 +200,7 @@ export const academicPeriodController = {
     try {
       const query = {
         academicYearId: req.query.academicYearId ? parseInt(req.query.academicYearId as string) : undefined,
+        institutionId: req.user!.institutionId, // Add institution filtering for multi-tenant isolation
         isCurrent: req.query.isCurrent ? req.query.isCurrent === 'true' : undefined,
         page: parseInt(req.query.page as string) || 1,
         limit: parseInt(req.query.limit as string) || 10,

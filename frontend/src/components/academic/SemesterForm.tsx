@@ -188,7 +188,13 @@ export function SemesterForm({
         toast.success('Semester updated successfully');
       } else {
         const response = await academicService.createSemester(semesterData);
-        semesterId = response.data.id;
+        const createdId = response.data?.id;
+
+        if (!createdId) {
+          throw new Error('Failed to create semester: No ID returned');
+        }
+
+        semesterId = createdId;
         toast.success('Semester created successfully');
       }
 

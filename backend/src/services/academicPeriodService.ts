@@ -247,6 +247,7 @@ export const academicPeriodService = {
   async getSemesters(params: SemesterQueryParams) {
     const {
       academicYearId,
+      institutionId,
       isCurrent,
       page = 1,
       limit = 10,
@@ -260,6 +261,12 @@ export const academicPeriodService = {
     const where: any = {
       AND: [
         academicYearId ? { academicYearId } : {},
+        // Critical: Filter by institution for multi-tenant data isolation
+        institutionId ? {
+          academicYear: {
+            institutionId: institutionId
+          }
+        } : {},
         isCurrent !== undefined ? { isCurrent } : {},
         search ? {
           name: { contains: search, mode: 'insensitive' }

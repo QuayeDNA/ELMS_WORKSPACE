@@ -96,19 +96,8 @@ class ApiService {
     try {
       const response: AxiosResponse = await requestPromise;
 
-      // Handle 304 Not Modified - treat as success
-      if (response.status === 304 || (response.status >= 200 && response.status < 400)) {
-        // For 304 responses, the data might be empty, but that's actually an error
-        // because we expect the cached data to be present
-        if (!response.data && response.status === 304) {
-          console.warn('⚠️ 304 response with no data - cache issue');
-          return {
-            success: false,
-            error: 'Cached data not available',
-            message: 'Please refresh the page',
-          };
-        }
-
+      // Handle successful responses (200-299, 304)
+      if (response.status === 304 || (response.status >= 200 && response.status < 300)) {
         // Check if the backend already returns a structured response
         if (response.data && typeof response.data === 'object' && 'success' in response.data) {
           // Backend already returns {success, data, message} structure, return it directly

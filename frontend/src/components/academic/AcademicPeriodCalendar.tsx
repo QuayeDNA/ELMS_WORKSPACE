@@ -86,8 +86,8 @@ export function AcademicPeriodCalendar({ period, semesterId }: AcademicPeriodCal
   };
 
   const handleUploadExamTimetable = () => {
-    // Navigate to exam timetable page with pre-filled dates
-    navigate('/admin/exams/timetable', {
+    // Navigate to exam timetable list page with pre-filled dates
+    navigate('/admin/exams', {
       state: {
         semesterId,
         examStartDate: period.examStartDate,

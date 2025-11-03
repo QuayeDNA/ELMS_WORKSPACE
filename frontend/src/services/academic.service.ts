@@ -40,7 +40,7 @@ class AcademicService extends BaseService {
    */
   async getAcademicYears(query?: AcademicYearQuery): Promise<ApiResponse<PaginatedResponse<AcademicYear>>> {
     try {
-      const url = this.buildUrl(API_ENDPOINTS.ACADEMIC_PERIODS.ACADEMIC_YEARS, query);
+      const url = this.buildUrl(API_ENDPOINTS.ACADEMIC_PERIODS.ACADEMIC_YEARS, query as Record<string, unknown>);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const response = await apiService.get<any>(url);
 
@@ -69,7 +69,8 @@ class AcademicService extends BaseService {
       }
 
       // Backend returns paginated response with 'pages' field, transform to 'totalPages'
-      const backendPagination = response.pagination || {};
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const backendPagination = (response as any).pagination || {};
       const totalPages = backendPagination.pages || backendPagination.totalPages || 1;
       const page = backendPagination.page || query?.page || 1;
       const total = backendPagination.total || response.data.length;
@@ -199,7 +200,7 @@ class AcademicService extends BaseService {
    */
   async getSemesters(query?: SemesterQuery): Promise<ApiResponse<PaginatedResponse<Semester>>> {
     try {
-      const url = this.buildUrl(API_ENDPOINTS.ACADEMIC_PERIODS.SEMESTERS, query);
+      const url = this.buildUrl(API_ENDPOINTS.ACADEMIC_PERIODS.SEMESTERS, query as Record<string, unknown>);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const response = await apiService.get<any>(url);
 
@@ -216,7 +217,8 @@ class AcademicService extends BaseService {
       }
 
       // Backend returns paginated response with 'pages' field, transform to 'totalPages'
-      const backendPagination = response.pagination || {};
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const backendPagination = (response as any).pagination || {};
       const totalPages = backendPagination.pages || backendPagination.totalPages || 1;
       const page = backendPagination.page || query?.page || 1;
       const total = backendPagination.total || response.data.length;
@@ -348,7 +350,7 @@ class AcademicService extends BaseService {
    */
   async getAcademicPeriods(query?: AcademicPeriodQuery): Promise<ApiResponse<AcademicPeriod[]>> {
     try {
-      const url = this.buildUrl(API_ENDPOINTS.ACADEMIC_PERIODS.PERIODS, query);
+      const url = this.buildUrl(API_ENDPOINTS.ACADEMIC_PERIODS.PERIODS, query as Record<string, unknown>);
       return await apiService.get<AcademicPeriod[]>(url);
     } catch (error) {
       console.error('Error fetching academic periods:', error);
