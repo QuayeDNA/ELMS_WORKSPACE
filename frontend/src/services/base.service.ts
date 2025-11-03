@@ -61,7 +61,7 @@ export abstract class BaseService {
   ): Promise<PaginatedResponse<T>> {
     try {
       const url = this.buildUrl(this.endpoint, query);
-      const response = await apiService.get<any>(url);
+      const response = await apiService.get<unknown>(url);
 
       // Handle the backend response structure: { success, message, data: {...}, ... }
       if (!response.success || !response.data) {
@@ -73,7 +73,7 @@ export abstract class BaseService {
         };
       }
 
-      const backendData = response.data;
+      const backendData = response.data as Record<string, unknown>;
 
       // Early return for array format (institutions/users)
       const responseWithPagination = response as { pagination?: PaginationMeta };
@@ -91,13 +91,13 @@ export abstract class BaseService {
         return {
           success: response.success,
           message: response.message,
-          data: backendData.departments,
+          data: backendData.departments as T[],
           pagination: {
-            page: backendData.page,
-            totalPages: backendData.totalPages,
-            total: backendData.total,
-            hasNext: backendData.hasNext,
-            hasPrev: backendData.hasPrev,
+            page: backendData.page as number,
+            totalPages: backendData.totalPages as number,
+            total: backendData.total as number,
+            hasNext: backendData.hasNext as boolean,
+            hasPrev: backendData.hasPrev as boolean,
           },
         };
       }
@@ -107,9 +107,33 @@ export abstract class BaseService {
         return {
           success: response.success,
           message: response.message,
-          data: backendData.data,
-          pagination: backendData.pagination,
+          data: backendData.data as T[],
+          pagination: backendData.pagination as PaginationMeta,
         };
+      }
+
+      // Handle backend responses where data is in a named property (e.g., venues, institutions, etc.)
+      // Check for common patterns where the data array has the same name as the endpoint
+      const endpointName = this.endpoint.split('/').pop()?.replace(/s$/, ''); // Remove trailing 's' to get singular
+      if (backendData && typeof backendData === 'object' && backendData.pagination) {
+        // Check if there's a property that matches the endpoint name (plural or singular)
+        const possibleKeys = [
+          this.endpoint.split('/').pop(), // e.g., 'venues'
+          endpointName + 's', // e.g., 'venues' if endpoint was 'venue'
+          endpointName, // e.g., 'venue'
+          'data', // fallback
+        ];
+
+        for (const key of possibleKeys) {
+          if (key && key in backendData && Array.isArray(backendData[key])) {
+            return {
+              success: response.success,
+              message: response.message,
+              data: backendData[key] as T[],
+              pagination: backendData.pagination as PaginationMeta,
+            };
+          }
+        }
       }
 
       // Fallback for error cases

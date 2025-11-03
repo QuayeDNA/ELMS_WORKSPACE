@@ -37,7 +37,9 @@
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.1",
-    "prisma": "^6.17.1"
+    "multer": "^2.0.2",
+    "prisma": "^6.17.1",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -45,6 +47,7 @@
     "@types/express": "^5.0.3",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/morgan": "^1.9.10",
+    "@types/multer": "^2.0.0",
     "@types/node": "^24.3.0",
     "nodemon": "^3.1.10",
     "ts-node": "^10.9.2",

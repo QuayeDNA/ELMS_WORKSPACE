@@ -468,21 +468,22 @@ export const examTimetableController = {
       // Validate required fields
       if (
         !data.courseId ||
-        !data.programIds ||
-        data.programIds.length === 0 ||
         !data.examDate ||
         !data.startTime ||
         !data.endTime ||
         !data.duration ||
-        !data.venueId ||
-        !data.roomIds ||
-        data.roomIds.length === 0
+        !data.venueId
       ) {
         return res.status(400).json({
           success: false,
-          message: "Missing required fields",
+          message: "Missing required fields: courseId, examDate, startTime, endTime, duration, venueId",
         });
       }
+
+      // Ensure arrays exist (can be empty)
+      if (!data.programIds) data.programIds = [];
+      if (!data.roomIds) data.roomIds = [];
+      if (!data.invigilatorIds) data.invigilatorIds = [];
 
       const result = await examTimetableService.createTimetableEntry(data);
       res.status(201).json(result);

@@ -5,6 +5,19 @@ import { API_ENDPOINTS } from '@/utils/constants';
 // TYPES
 // ========================================
 
+export interface BulkUploadResult {
+  success: boolean;
+  totalRows: number;
+  successCount: number;
+  failureCount: number;
+  errors: Array<{
+    row: number;
+    field?: string;
+    message: string;
+  }>;
+  createdEntries?: ExamTimetableEntry[];
+}
+
 export interface ExamTimetable {
   id: number;
   title: string;
@@ -495,5 +508,55 @@ export const examTimetableService = {
         isResolved: boolean;
       }>;
     }>(API_ENDPOINTS.EXAM_TIMETABLES.CONFLICTS(timetableId));
+  },
+
+  /**
+   * Download bulk upload template
+   */
+  async downloadBulkUploadTemplate(timetableId: number): Promise<Blob> {
+    const response = await fetch(
+      `${import.meta.env.VITE_API_BASE_URL}/api/bulk-upload/timetables/${timetableId}/bulk-upload/template`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to download template');
+    }
+
+    return await response.blob();
+  },
+
+  /**
+   * Upload bulk entries
+   */
+  async uploadBulkEntries(timetableId: number, file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(
+      `${import.meta.env.VITE_API_BASE_URL}/api/bulk-upload/timetables/${timetableId}/bulk-upload`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        },
+        body: formData,
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to upload file');
+    }
+
+    return await response.json() as {
+      message: string;
+      result: BulkUploadResult;
+    };
   },
 };

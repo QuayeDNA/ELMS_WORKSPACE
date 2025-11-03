@@ -107,6 +107,14 @@ export const API_ENDPOINTS = {
     DETECT_CONFLICTS: (id: number) => `/api/timetables/${id}/detect-conflicts`,
     CONFLICTS: (id: number) => `/api/timetables/${id}/conflicts`,
   },
+  VENUES: {
+    BASE: '/api/venues',
+    BY_ID: (id: number) => `/api/venues/${id}`,
+    BY_INSTITUTION: (institutionId: number) => `/api/venues/institution/${institutionId}`,
+    ROOMS_ALL: '/api/venues/rooms/all',
+    ROOMS: (venueId: number) => `/api/venues/${venueId}/rooms`,
+    ROOM_BY_ID: (id: number) => `/api/venues/rooms/${id}`,
+  },
 } as const;
 
 export const STORAGE_KEYS = {

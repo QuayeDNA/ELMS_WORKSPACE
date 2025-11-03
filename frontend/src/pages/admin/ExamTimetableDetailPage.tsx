@@ -33,6 +33,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 import {
   examTimetableService,
@@ -41,11 +51,13 @@ import {
   ExamTimetableStatus,
   TimetableApprovalStatus,
   CreateTimetableEntryData,
+  UpdateTimetableData,
 } from '@/services/examTimetable.service';
 import { useAuthStore } from '@/stores/auth.store';
 import { TimetableEntryList } from '@/components/exams/TimetableEntryList';
 import { TimetableEntryForm } from '@/components/exams/TimetableEntryForm';
 import { BulkUploadEntries } from '@/components/exams/BulkUploadEntries';
+import { TimetableEditDialog } from '@/components/exams/TimetableEditDialog';
 
 export default function ExamTimetableDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -64,6 +76,11 @@ export default function ExamTimetableDetailPage() {
   const [deleteEntryDialogOpen, setDeleteEntryDialogOpen] = useState(false);
   const [entryToDelete, setEntryToDelete] = useState<ExamTimetableEntry | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  // Approval state
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -232,6 +249,77 @@ export default function ExamTimetableDetailPage() {
     }
   };
 
+  // Approval handlers
+  const handleApprove = async () => {
+    if (!timetable?.id) return;
+
+    try {
+      setActionLoading(true);
+      const response = await examTimetableService.approveTimetable(timetable.id);
+
+      if (response.success) {
+        toast.success('Timetable approved successfully');
+        fetchTimetable();
+      } else {
+        toast.error(response.message || 'Failed to approve timetable');
+      }
+    } catch (error) {
+      console.error('Error approving timetable:', error);
+      toast.error('Failed to approve timetable');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!timetable?.id || !rejectionReason.trim()) return;
+
+    try {
+      setActionLoading(true);
+      const response = await examTimetableService.rejectTimetable(timetable.id, rejectionReason);
+
+      if (response.success) {
+        toast.success('Timetable rejected');
+        fetchTimetable();
+        setRejectDialogOpen(false);
+        setRejectionReason("");
+      } else {
+        toast.error(response.message || 'Failed to reject timetable');
+      }
+    } catch (error) {
+      console.error('Error rejecting timetable:', error);
+      toast.error('Failed to reject timetable');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleEditTimetable = () => {
+    setEditDialogOpen(true);
+  };
+
+  const handleEditSubmit = async (data: UpdateTimetableData) => {
+    if (!timetable?.id) return;
+
+    try {
+      setActionLoading(true);
+      const response = await examTimetableService.updateTimetable(timetable.id, data);
+
+      if (response.success) {
+        toast.success('Timetable updated successfully');
+        fetchTimetable();
+        setEditDialogOpen(false);
+      } else {
+        toast.error(response.message || 'Failed to update timetable');
+      }
+    } catch (error) {
+      console.error('Error updating timetable:', error);
+      toast.error('Failed to update timetable');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const getStatusBadge = (status: ExamTimetableStatus) => {
     const statusConfig = {
       [ExamTimetableStatus.DRAFT]: { variant: 'secondary' as const, icon: FileText, label: 'Draft' },
@@ -313,9 +401,11 @@ export default function ExamTimetableDetailPage() {
   const canPublish = (user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') &&
     timetable.status === ExamTimetableStatus.APPROVED;
   const canSubmit = canEdit && timetable.status === ExamTimetableStatus.DRAFT;
+  const canApprove = (user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'FACULTY_ADMIN') &&
+    timetable.approvalStatus === TimetableApprovalStatus.PENDING;
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="space-y-1">
@@ -337,6 +427,28 @@ export default function ExamTimetableDetailPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          {canApprove && (
+            <>
+              <Button
+                variant="default"
+                onClick={handleApprove}
+                disabled={actionLoading}
+                className="gap-2 bg-green-600 hover:bg-green-700"
+              >
+                <CheckCircle className="h-4 w-4" />
+                Approve
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => setRejectDialogOpen(true)}
+                disabled={actionLoading}
+                className="gap-2"
+              >
+                <XCircle className="h-4 w-4" />
+                Reject
+              </Button>
+            </>
+          )}
           {canSubmit && (
             <Button
               variant="outline"
@@ -361,7 +473,7 @@ export default function ExamTimetableDetailPage() {
           {canEdit && (
             <Button
               variant="outline"
-              onClick={() => navigate(`/admin/exams/${timetable.id}?edit=true`)}
+              onClick={handleEditTimetable}
               className="gap-2"
             >
               <Edit className="h-4 w-4" />
@@ -688,6 +800,63 @@ export default function ExamTimetableDetailPage() {
           onOpenChange={setUploadDialogOpen}
           timetableId={timetable.id}
           onUploadComplete={handleUploadComplete}
+        />
+      )}
+
+      {/* Reject Timetable Dialog */}
+      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Reject Timetable</DialogTitle>
+            <DialogDescription>
+              Please provide a reason for rejecting this timetable. This will be recorded for audit purposes.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="reason">Rejection Reason</Label>
+              <Textarea
+                id="reason"
+                placeholder="Enter the reason for rejection..."
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setRejectDialogOpen(false);
+                setRejectionReason("");
+              }}
+              disabled={actionLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleReject}
+              disabled={actionLoading || !rejectionReason.trim()}
+            >
+              {actionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Reject Timetable
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Timetable Dialog */}
+      {timetable && (
+        <TimetableEditDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          timetable={timetable}
+          onSubmit={handleEditSubmit}
+          loading={actionLoading}
         />
       )}
     </div>

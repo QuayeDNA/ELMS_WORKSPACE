@@ -5,46 +5,7 @@ import dotenv from "dotenv";
 import { PrismaClient } from "@prisma/client";
 
 // Initialize Prisma Client
-const prisma = new PrismaClient({
-  log: [
-    {
-      emit: 'event',
-      level: 'query',
-    },
-    {
-      emit: 'event',
-      level: 'error',
-    },
-    {
-      emit: 'event',
-      level: 'info',
-    },
-    {
-      emit: 'event',
-      level: 'warn',
-    },
-  ],
-});
-
-// Database connection logging
-prisma.$on('query', (e) => {
-  if (process.env.NODE_ENV === 'development') {
-    console.log('📊 Query: ' + e.query);
-    console.log('⏱️  Duration: ' + e.duration + 'ms');
-  }
-});
-
-prisma.$on('error', (e) => {
-  console.error('❌ Database Error:', e);
-});
-
-prisma.$on('info', (e) => {
-  console.log('ℹ️  Database Info:', e.message);
-});
-
-prisma.$on('warn', (e) => {
-  console.warn('⚠️  Database Warning:', e.message);
-});
+const prisma = new PrismaClient();
 
 // Import routes
 import authRoutes from "./routes/authRoutes";
@@ -68,6 +29,7 @@ import academicHistoryRoutes from "./routes/academicHistoryRoutes";
 import examTimetableRoutes from "./routes/examTimetableRoutes";
 import timetableEntryRoutes from "./routes/timetableEntryRoutes";
 import timetableConflictRoutes from "./routes/timetableConflictRoutes";
+import bulkUploadRoutes from "./routes/bulkUploadRoutes";
 
 // Load environment variables
 dotenv.config();
@@ -169,10 +131,29 @@ app.get("/api", (req, res) => {
     documentation: "/api/docs",
     health: "/health",
     database: "/api/database/status",
-    auth: "/api/auth",
-    exams: "/api/exams",
-    scripts: "/api/scripts",
-    incidents: "/api/incidents",
+    endpoints: {
+      auth: "/api/auth",
+      users: "/api/users",
+      institutions: "/api/institutions",
+      faculties: "/api/faculties",
+      departments: "/api/departments",
+      programs: "/api/programs",
+      "program-prefixes": "/api/program-prefixes",
+      courses: "/api/courses",
+      students: "/api/students",
+      instructors: "/api/instructors",
+      "academic-periods": "/api/academic-periods",
+      registrations: "/api/registrations",
+      prerequisites: "/api/prerequisites",
+      "semester-records": "/api/semester-records",
+      "academic-history": "/api/academic-history",
+      exams: "/api/exams",
+      timetables: "/api/timetables",
+      "timetable-entries": "/api/timetable-entries",
+      "timetable-conflicts": "/api/timetable-conflicts",
+      incidents: "/api/incidents",
+      venues: "/api/venues"
+    },
     timestamp: new Date().toISOString(),
   });
 });
@@ -275,6 +256,9 @@ app.use("/api/timetables", examTimetableRoutes);
 app.use("/api/timetable-entries", timetableEntryRoutes);
 app.use("/api/timetable-conflicts", timetableConflictRoutes);
 
+// Bulk upload routes
+app.use("/api/bulk-upload", bulkUploadRoutes);
+
 // Incident routes
 app.use("/api/incidents", incidentRoutes);
 
@@ -363,24 +347,11 @@ app.use((req, res) => {
 
 async function initializeDatabase() {
   try {
-    console.log('🔗 Connecting to database...');
     await prisma.$connect();
-
-    // Test the connection with a simple query
     await prisma.$queryRaw`SELECT 1`;
-
-    // Get database info
-    const userCount = await prisma.user.count();
-    const institutionCount = await prisma.institution.count();
-
-    console.log('✅ Database connection established successfully!');
-    console.log(`📊 Database Stats: ${userCount} users, ${institutionCount} institutions`);
-    console.log(`🗄️  Database URL: ${process.env.DATABASE_URL?.replace(/:[^:]*@/, ':****@')}`);
-
     return true;
   } catch (error) {
-    console.error('❌ Failed to connect to database:', error);
-    console.error('💡 Please ensure PostgreSQL is running and credentials are correct');
+    console.error('Failed to connect to database:', error);
     return false;
   }
 }

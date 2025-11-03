@@ -134,6 +134,9 @@ const ExamTimetableListPage = lazy(() =>
 const ExamTimetableDetailPage = lazy(() =>
   import("@/pages/admin/ExamTimetableDetailPage")
 );
+const VenuesPage = lazy(() =>
+  import("@/pages/admin/VenuesPage")
+);
 
 // Placeholder Pages
 const IncidentsPage = lazy(() =>
@@ -492,6 +495,14 @@ export function AppRoutes() {
         element={
           <AdminLayout>
             <ExamTimetableDetailPage />
+          </AdminLayout>
+        }
+      />
+      <Route
+        path="/admin/venues"
+        element={
+          <AdminLayout>
+            <VenuesPage />
           </AdminLayout>
         }
       />

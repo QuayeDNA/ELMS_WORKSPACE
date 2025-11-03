@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
+import { examTimetableService, BulkUploadResult } from '@/services/examTimetable.service';
 
 // ========================================
 // TYPES
@@ -30,11 +31,14 @@ interface BulkUploadEntriesProps {
 export const BulkUploadEntries: React.FC<BulkUploadEntriesProps> = ({
   open,
   onOpenChange,
+  timetableId,
   onUploadComplete,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadResult, setUploadResult] = useState<BulkUploadResult | null>(null);
+  const [downloadingTemplate, setDownloadingTemplate] = useState(false);
 
   // ========================================
   // FILE HANDLING
@@ -67,79 +71,70 @@ export const BulkUploadEntries: React.FC<BulkUploadEntriesProps> = ({
 
     try {
       setUploading(true);
+      setUploadResult(null);
 
-      // TODO: Implement actual upload to backend
-      // For now, show a placeholder message
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Upload the file
+      const response = await examTimetableService.uploadBulkEntries(timetableId, selectedFile);
 
-      toast.success('Bulk upload functionality will be implemented shortly');
+      setUploadResult(response.result);
 
-      onUploadComplete();
-      handleClose();
-    } catch (error) {
+      // Show results
+      if (response.result.successCount > 0) {
+        toast.success(
+          `Successfully uploaded ${response.result.successCount} of ${response.result.totalRows} entries`
+        );
+      }
+
+      if (response.result.failureCount > 0) {
+        toast.error(
+          `${response.result.failureCount} entries failed. Check the error details.`
+        );
+      }
+
+      // If all succeeded, close dialog and refresh
+      if (response.result.failureCount === 0) {
+        onUploadComplete();
+        setTimeout(() => handleClose(), 1500);
+      }
+    } catch (error: unknown) {
       console.error('Error uploading file:', error);
-      toast.error('Failed to upload entries. Please try again.');
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to upload entries. Please try again.'
+      );
     } finally {
       setUploading(false);
     }
   };
 
-  const handleDownloadTemplate = () => {
-    // Create CSV template
-    const headers = [
-      'courseCode',
-      'examDate',
-      'startTime',
-      'duration',
-      'venueCode',
-      'level',
-      'notes',
-      'specialRequirements',
-    ];
+  const handleDownloadTemplate = async () => {
+    try {
+      setDownloadingTemplate(true);
 
-    const sampleData = [
-      [
-        'CSC101',
-        '2024-05-15',
-        '09:00',
-        '180',
-        'HALL-A',
-        '100',
-        'First semester exam',
-        'Calculator required',
-      ],
-      [
-        'CSC201',
-        '2024-05-16',
-        '14:00',
-        '120',
-        'HALL-B',
-        '200',
-        '',
-        '',
-      ],
-    ];
+      // Download the dynamic template
+      const blob = await examTimetableService.downloadBulkUploadTemplate(timetableId);
 
-    const csvContent = [
-      headers.join(','),
-      ...sampleData.map((row) => row.join(',')),
-    ].join('\n');
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `exam-entries-template-${timetableId}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
 
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'exam-entries-template.csv';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
-    toast.success('Template downloaded successfully');
+      toast.success('Dynamic template downloaded successfully');
+    } catch (error) {
+      console.error('Error downloading template:', error);
+      toast.error('Failed to download template. Please try again.');
+    } finally {
+      setDownloadingTemplate(false);
+    }
   };
 
   const handleClose = () => {
     setSelectedFile(null);
+    setUploadResult(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -167,12 +162,13 @@ export const BulkUploadEntries: React.FC<BulkUploadEntriesProps> = ({
               variant="outline"
               onClick={handleDownloadTemplate}
               className="w-full gap-2"
+              disabled={downloadingTemplate}
             >
               <Download className="h-4 w-4" />
-              Download Template
+              {downloadingTemplate ? 'Downloading...' : 'Download Dynamic Template'}
             </Button>
             <p className="text-sm text-muted-foreground mt-2">
-              Download the template file and fill it with your exam entries
+              Download an Excel template with course and venue dropdowns pre-filled from your institution's data
             </p>
           </div>
 
@@ -227,9 +223,50 @@ export const BulkUploadEntries: React.FC<BulkUploadEntriesProps> = ({
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription className="text-sm">
-              The file must contain columns: courseCode, examDate, startTime, duration, venueCode, level (optional), notes (optional), specialRequirements (optional).
+              <strong>Template Features:</strong>
+              <ul className="list-disc list-inside mt-1 space-y-1">
+                <li>Dropdown menus for Course Codes (from your institution)</li>
+                <li>Dropdown menus for Venue Codes (from your institution)</li>
+                <li>Auto-fill for Course Names and Venue Names</li>
+                <li>Built-in validation and instructions</li>
+                <li>Sample data to guide you</li>
+              </ul>
             </AlertDescription>
           </Alert>
+
+          {/* Upload Results */}
+          {uploadResult && (
+            <div className="space-y-3">
+              <h3 className="font-medium">Upload Results</h3>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-muted p-3 rounded-lg text-center">
+                  <div className="text-2xl font-bold">{uploadResult.totalRows}</div>
+                  <div className="text-sm text-muted-foreground">Total Rows</div>
+                </div>
+                <div className="bg-green-50 border border-green-200 p-3 rounded-lg text-center">
+                  <div className="text-2xl font-bold text-green-600">{uploadResult.successCount}</div>
+                  <div className="text-sm text-green-700">Succeeded</div>
+                </div>
+                <div className="bg-red-50 border border-red-200 p-3 rounded-lg text-center">
+                  <div className="text-2xl font-bold text-red-600">{uploadResult.failureCount}</div>
+                  <div className="text-sm text-red-700">Failed</div>
+                </div>
+              </div>
+
+              {uploadResult.errors.length > 0 && (
+                <div className="max-h-48 overflow-y-auto border rounded-lg p-3 space-y-2">
+                  <h4 className="font-medium text-sm text-destructive">Errors:</h4>
+                  {uploadResult.errors.map((error, index) => (
+                    <div key={index} className="text-sm bg-red-50 border border-red-200 p-2 rounded">
+                      <span className="font-medium">Row {error.row}:</span>{' '}
+                      {error.field && <span className="text-muted-foreground">({error.field})</span>}{' '}
+                      {error.message}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <DialogFooter>

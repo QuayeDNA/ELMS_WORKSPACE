@@ -190,6 +190,13 @@ const getSidebarItemsForRole = (role: UserRole): SidebarContent[] => {
               description: "Manage examinations",
             },
             {
+              title: "Venues",
+              href: "/admin/venues",
+              icon: Building2,
+              roles: [UserRole.ADMIN],
+              description: "Manage exam venues and rooms",
+            },
+            {
               title: "Incidents",
               href: "/admin/incidents",
               icon: AlertTriangle,

@@ -40,7 +40,9 @@ import {
   CreateTimetableEntryData,
 } from '@/services/examTimetable.service';
 import { courseService } from '@/services/course.service';
+import { venueService } from '@/services/venue.service';
 import { Course } from '@/types/course';
+import { Venue } from '@/types/venue';
 
 // ========================================
 // VALIDATION SCHEMA
@@ -51,7 +53,7 @@ const entryFormSchema = z.object({
   examDate: z.date(),
   startTime: z.string().min(1, 'Start time is required'),
   duration: z.number().min(15, 'Duration must be at least 15 minutes'),
-  venueId: z.number().optional(),
+  venueId: z.number().min(1, 'Venue is required'),
   level: z.number().optional(),
   notes: z.string().optional(),
   specialRequirements: z.string().optional(),
@@ -91,7 +93,9 @@ export const TimetableEntryForm: React.FC<TimetableEntryFormProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
+  const [venues, setVenues] = useState<Venue[]>([]);
   const [loadingCourses, setLoadingCourses] = useState(false);
+  const [loadingVenues, setLoadingVenues] = useState(false);
 
   const isEdit = !!entry;
 
@@ -109,6 +113,20 @@ export const TimetableEntryForm: React.FC<TimetableEntryFormProps> = ({
       specialRequirements: entry?.specialRequirements || '',
     },
   });
+
+  // ========================================
+  // HANDLERS
+  // ========================================
+
+  // Handle course selection - auto-populate level
+  const handleCourseChange = (courseId: number) => {
+    const selectedCourse = courses.find(c => c.id === courseId);
+    if (selectedCourse) {
+      // Auto-populate level from course
+      form.setValue('level', selectedCourse.level);
+    }
+    form.setValue('courseId', courseId);
+  };
 
   // ========================================
   // DATA LOADING
@@ -132,11 +150,29 @@ export const TimetableEntryForm: React.FC<TimetableEntryFormProps> = ({
     }
   }, [institutionId]);
 
+  // Load venues for the institution
+  const loadVenues = useCallback(async () => {
+    try {
+      setLoadingVenues(true);
+      const response = await venueService.getVenues({
+        institutionId,
+        limit: 1000, // Load all venues for selection
+      });
+      setVenues(response.data);
+    } catch (error) {
+      console.error('Error loading venues:', error);
+      toast.error('Failed to load venues. Please try again.');
+    } finally {
+      setLoadingVenues(false);
+    }
+  }, [institutionId]);
+
   useEffect(() => {
     if (open) {
       loadCourses();
+      loadVenues();
     }
-  }, [open, loadCourses]);
+  }, [open, loadCourses, loadVenues]);
 
   // ========================================
   // FORM HANDLERS
@@ -163,7 +199,7 @@ export const TimetableEntryForm: React.FC<TimetableEntryFormProps> = ({
         startTime: startTime.toISOString(),
         endTime: endTime.toISOString(),
         duration: values.duration,
-        venueId: values.venueId || 1, // Temporary: use a default venue
+        venueId: values.venueId,
         roomIds: [],
         invigilatorIds: [],
         notes: values.notes,
@@ -217,7 +253,7 @@ export const TimetableEntryForm: React.FC<TimetableEntryFormProps> = ({
                 <FormItem>
                   <FormLabel>Course *</FormLabel>
                   <Select
-                    onValueChange={(value) => field.onChange(parseInt(value))}
+                    onValueChange={(value) => handleCourseChange(parseInt(value))}
                     value={field.value?.toString() || ''}
                     disabled={loadingCourses}
                   >
@@ -229,13 +265,13 @@ export const TimetableEntryForm: React.FC<TimetableEntryFormProps> = ({
                     <SelectContent>
                       {courses.map((course) => (
                         <SelectItem key={course.id} value={course.id.toString()}>
-                          {course.code} - {course.name}
+                          {course.code} - {course.name} (Level {course.level})
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                   <FormDescription>
-                    Select the course for this exam
+                    Select the course for this exam. Level will be auto-filled.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -340,14 +376,14 @@ export const TimetableEntryForm: React.FC<TimetableEntryFormProps> = ({
                 name="level"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Level (Optional)</FormLabel>
+                    <FormLabel>Level</FormLabel>
                     <Select
                       onValueChange={(value) => field.onChange(parseInt(value))}
                       value={field.value?.toString() || ''}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select level" />
+                          <SelectValue placeholder="Auto-filled from course" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -358,11 +394,53 @@ export const TimetableEntryForm: React.FC<TimetableEntryFormProps> = ({
                         <SelectItem value="500">500 Level</SelectItem>
                       </SelectContent>
                     </Select>
+                    <FormDescription>
+                      Auto-filled from selected course
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
+
+            {/* Venue */}
+            <FormField
+              control={form.control}
+              name="venueId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Venue *</FormLabel>
+                  <Select
+                    onValueChange={(value) => field.onChange(parseInt(value))}
+                    value={field.value?.toString() || ''}
+                    disabled={loadingVenues}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={loadingVenues ? "Loading venues..." : "Select venue"} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {venues.length === 0 ? (
+                        <div className="px-2 py-4 text-sm text-gray-500 text-center">
+                          No venues available
+                        </div>
+                      ) : (
+                        venues.map((venue) => (
+                          <SelectItem key={venue.id} value={venue.id.toString()}>
+                            {venue.name} - {venue.location} (Capacity: {venue.capacity})
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    Select the examination venue
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             {/* Notes */}
             <FormField

@@ -3,6 +3,32 @@
 ## Overview
 Successfully implemented entry management functionality for exam timetables, allowing users to add, edit, and delete individual exam entries both manually and via bulk upload.
 
+## Recent Bug Fixes (November 3, 2025)
+
+### Issue: 400 Bad Request on Entry Creation
+**Problem:** Backend validation was too strict, requiring `programIds` and `roomIds` arrays to be non-empty, but frontend was sending empty arrays.
+
+**Backend Fix:**
+- **File:** `backend/src/controllers/examTimetableController.ts`
+- **Change:** Modified validation in `createTimetableEntry()`:
+  - Removed requirement for `programIds` to be non-empty
+  - Removed requirement for `roomIds` to be non-empty
+  - Made arrays optional but initialized to empty arrays if not provided
+  - Only required fields now: `courseId`, `examDate`, `startTime`, `endTime`, `duration`, `venueId`
+
+**Frontend Enhancement:**
+- **File:** `frontend/src/components/exams/TimetableEntryForm.tsx`
+- **Feature:** Auto-populate level from selected course
+  - Added `handleCourseChange()` handler
+  - When course is selected, automatically fills the level field from course data
+  - Updated course dropdown to show level: `{code} - {name} (Level {level})`
+  - Updated level field placeholder: "Auto-filled from course"
+  - Added description: "Auto-filled from selected course"
+
+**Result:** ✅ Entry creation now works successfully. Level is automatically populated when user selects a course.
+
+---
+
 ## Changes Made
 
 ### 1. New Components Created
