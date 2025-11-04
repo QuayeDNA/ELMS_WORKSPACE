@@ -1,8 +1,9 @@
 import express from 'express';
 import multer from 'multer';
-import { authenticate } from '../middleware/auth';
+import { authenticateToken } from '../middleware/auth';
 import {
   downloadTemplate,
+  validateBulkUpload,
   uploadBulkEntries,
 } from '../controllers/bulkUploadController';
 
@@ -36,15 +37,22 @@ const upload = multer({
 // Download template for a specific timetable
 router.get(
   '/timetables/:timetableId/bulk-upload/template',
-  authenticate,
+  authenticateToken,
   downloadTemplate
 );
 
-// Upload and process bulk entries
+// Validate bulk upload file (doesn't create entries)
+router.post(
+  '/timetables/:timetableId/bulk-upload/validate',
+  authenticateToken,
+  upload.single('file'),
+  validateBulkUpload
+);
+
+// Upload and process bulk entries (from pre-validated data)
 router.post(
   '/timetables/:timetableId/bulk-upload',
-  authenticate,
-  upload.single('file'),
+  authenticateToken,
   uploadBulkEntries
 );
 

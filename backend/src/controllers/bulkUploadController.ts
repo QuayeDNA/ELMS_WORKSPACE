@@ -2,8 +2,9 @@ import { Request, Response } from 'express';
 import { JwtPayload } from '../types/auth';
 import {
   generateBulkUploadTemplate,
-  parseBulkUploadFile,
-  createBulkEntries,
+  parseAndValidateBulkUpload,
+  createBulkEntriesFromValidated,
+  ValidatedEntry,
 } from '../services/bulkUploadService';
 
 // Extend Express Request type
@@ -59,7 +60,48 @@ export const downloadTemplate = async (
 };
 
 // ========================================
-// UPLOAD AND PROCESS FILE
+// VALIDATE FILE (WITHOUT CREATING ENTRIES)
+// ========================================
+
+export const validateBulkUpload = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { timetableId } = req.params;
+    const institutionId = req.user?.institutionId;
+
+    if (!institutionId) {
+      res.status(403).json({ message: 'Institution ID not found' });
+      return;
+    }
+
+    // Check if file was uploaded
+    const file = (req as any).file;
+    if (!file) {
+      res.status(400).json({ message: 'No file uploaded' });
+      return;
+    }
+
+    // Parse and validate the file (doesn't create entries)
+    const validationResult = await parseAndValidateBulkUpload(
+      file.buffer,
+      parseInt(timetableId),
+      institutionId
+    );
+
+    // Return validation results to frontend
+    res.status(200).json(validationResult);
+  } catch (error: any) {
+    console.error('Error validating bulk upload:', error);
+    res.status(500).json({
+      message: error.message || 'Failed to validate file',
+    });
+  }
+};
+
+// ========================================
+// CREATE ENTRIES FROM VALIDATED DATA
 // ========================================
 
 export const uploadBulkEntries = async (
@@ -81,30 +123,18 @@ export const uploadBulkEntries = async (
       return;
     }
 
-    // Check if file was uploaded
-    const file = (req as any).file;
-    if (!file) {
-      res.status(400).json({ message: 'No file uploaded' });
+    // Expect validated entries in request body
+    const { entries } = req.body as { entries: ValidatedEntry[] };
+
+    if (!entries || !Array.isArray(entries) || entries.length === 0) {
+      res.status(400).json({ message: 'No entries provided' });
       return;
     }
 
-    // Parse the file
-    const entries = await parseBulkUploadFile(
-      file.buffer,
-      parseInt(timetableId),
-      institutionId
-    );
-
-    if (entries.length === 0) {
-      res.status(400).json({ message: 'No valid entries found in file' });
-      return;
-    }
-
-    // Create entries
-    const result = await createBulkEntries(
+    // Create entries from pre-validated data
+    const result = await createBulkEntriesFromValidated(
       entries,
       parseInt(timetableId),
-      institutionId,
       userId
     );
 

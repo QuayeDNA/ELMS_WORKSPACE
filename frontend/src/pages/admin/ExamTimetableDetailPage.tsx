@@ -693,7 +693,12 @@ export default function ExamTimetableDetailPage() {
                 onBulkUpload={handleBulkUpload}
                 onEditEntry={handleEditEntry}
                 onDeleteEntry={handleDeleteEntry}
-                canEdit={timetable?.status === 'DRAFT' && user?.role !== 'STUDENT'}
+                canEdit={
+                  (timetable?.status === 'DRAFT' ||
+                   timetable?.status === 'PENDING_APPROVAL' ||
+                   timetable?.status === 'APPROVED') &&
+                  user?.role !== 'STUDENT'
+                }
               />
             </CardContent>
           </Card>

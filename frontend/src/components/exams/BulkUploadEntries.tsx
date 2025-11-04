@@ -11,7 +11,13 @@ import {
 } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
-import { examTimetableService, BulkUploadResult } from '@/services/examTimetable.service';
+import {
+  examTimetableService,
+  BulkUploadResult,
+  BulkUploadValidationResult,
+  ValidatedEntry,
+} from '@/services/examTimetable.service';
+import { BulkUploadValidationViewer } from './BulkUploadValidationViewer';
 
 // ========================================
 // TYPES
@@ -37,8 +43,13 @@ export const BulkUploadEntries: React.FC<BulkUploadEntriesProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [validating, setValidating] = useState(false);
+  const [validationResult, setValidationResult] = useState<BulkUploadValidationResult | null>(
+    null
+  );
   const [uploadResult, setUploadResult] = useState<BulkUploadResult | null>(null);
   const [downloadingTemplate, setDownloadingTemplate] = useState(false);
+  const [showValidationView, setShowValidationView] = useState(false);
 
   // ========================================
   // FILE HANDLING
@@ -63,25 +74,51 @@ export const BulkUploadEntries: React.FC<BulkUploadEntriesProps> = ({
     }
   };
 
-  const handleUpload = async () => {
+  // Validate the uploaded file
+  const handleValidate = async () => {
     if (!selectedFile) {
-      toast.error('Please select a file to upload');
+      toast.error('Please select a file to validate');
       return;
     }
 
     try {
-      setUploading(true);
+      setValidating(true);
+      setValidationResult(null);
       setUploadResult(null);
 
-      // Upload the file
-      const response = await examTimetableService.uploadBulkEntries(timetableId, selectedFile);
+      // Call validation endpoint
+      const result = await examTimetableService.validateBulkUpload(timetableId, selectedFile);
+
+      setValidationResult(result);
+      setShowValidationView(true);
+
+      toast.success(
+        `Validated ${result.summary.totalRows} rows: ${result.summary.validRows} valid, ${result.summary.invalidRows} invalid`
+      );
+    } catch (error: unknown) {
+      console.error('Error validating file:', error);
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to validate file. Please try again.'
+      );
+    } finally {
+      setValidating(false);
+    }
+  };
+
+  // Submit validated entries
+  const handleSubmitValidated = async (entries: ValidatedEntry[]) => {
+    try {
+      setUploading(true);
+
+      // Submit the validated entries
+      const response = await examTimetableService.submitValidatedEntries(timetableId, entries);
 
       setUploadResult(response.result);
 
       // Show results
       if (response.result.successCount > 0) {
         toast.success(
-          `Successfully uploaded ${response.result.successCount} of ${response.result.totalRows} entries`
+          `Successfully created ${response.result.successCount} of ${response.result.totalRows} entries`
         );
       }
 
@@ -95,11 +132,14 @@ export const BulkUploadEntries: React.FC<BulkUploadEntriesProps> = ({
       if (response.result.failureCount === 0) {
         onUploadComplete();
         setTimeout(() => handleClose(), 1500);
+      } else {
+        // Go back to validation view to show errors
+        setShowValidationView(false);
       }
     } catch (error: unknown) {
-      console.error('Error uploading file:', error);
+      console.error('Error submitting entries:', error);
       toast.error(
-        error instanceof Error ? error.message : 'Failed to upload entries. Please try again.'
+        error instanceof Error ? error.message : 'Failed to submit entries. Please try again.'
       );
     } finally {
       setUploading(false);
@@ -134,16 +174,39 @@ export const BulkUploadEntries: React.FC<BulkUploadEntriesProps> = ({
 
   const handleClose = () => {
     setSelectedFile(null);
+    setValidationResult(null);
     setUploadResult(null);
+    setShowValidationView(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
     onOpenChange(false);
   };
 
+  const handleCancelValidation = () => {
+    setShowValidationView(false);
+    setValidationResult(null);
+  };
+
   // ========================================
   // RENDER
   // ========================================
+
+  // Show validation viewer if we have validation results
+  if (showValidationView && validationResult) {
+    return (
+      <Dialog open={open} onOpenChange={handleClose}>
+        <DialogContent className="max-w-7xl max-h-[90vh]">
+          <BulkUploadValidationViewer
+            entries={validationResult.entries}
+            onSubmit={handleSubmitValidated}
+            onCancel={handleCancelValidation}
+            isSubmitting={uploading}
+          />
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -151,7 +214,8 @@ export const BulkUploadEntries: React.FC<BulkUploadEntriesProps> = ({
         <DialogHeader>
           <DialogTitle>Bulk Upload Exam Entries</DialogTitle>
           <DialogDescription>
-            Upload a CSV or Excel file to add multiple exam entries at once
+            Upload an Excel file to add multiple exam entries at once. The file will be validated
+            before creating entries.
           </DialogDescription>
         </DialogHeader>
 
@@ -165,10 +229,10 @@ export const BulkUploadEntries: React.FC<BulkUploadEntriesProps> = ({
               disabled={downloadingTemplate}
             >
               <Download className="h-4 w-4" />
-              {downloadingTemplate ? 'Downloading...' : 'Download Dynamic Template'}
+              {downloadingTemplate ? 'Downloading...' : 'Download Excel Template'}
             </Button>
             <p className="text-sm text-muted-foreground mt-2">
-              Download an Excel template with course and venue dropdowns pre-filled from your institution's data
+              Download a simple Excel template with sample data and instructions
             </p>
           </div>
 
@@ -223,14 +287,14 @@ export const BulkUploadEntries: React.FC<BulkUploadEntriesProps> = ({
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription className="text-sm">
-              <strong>Template Features:</strong>
-              <ul className="list-disc list-inside mt-1 space-y-1">
-                <li>Dropdown menus for Course Codes (from your institution)</li>
-                <li>Dropdown menus for Venue Codes (from your institution)</li>
-                <li>Auto-fill for Course Names and Venue Names</li>
-                <li>Built-in validation and instructions</li>
-                <li>Sample data to guide you</li>
-              </ul>
+              <strong>How it works:</strong>
+              <ol className="list-decimal list-inside mt-1 space-y-1">
+                <li>Download the Excel template with sample data</li>
+                <li>Fill in your exam entry data manually</li>
+                <li>Upload the file to validate the data</li>
+                <li>Review and edit any errors in the validation viewer</li>
+                <li>Submit when all entries are valid</li>
+              </ol>
             </AlertDescription>
           </Alert>
 
@@ -270,11 +334,11 @@ export const BulkUploadEntries: React.FC<BulkUploadEntriesProps> = ({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose} disabled={uploading}>
+          <Button variant="outline" onClick={handleClose} disabled={validating || uploading}>
             Cancel
           </Button>
-          <Button onClick={handleUpload} disabled={!selectedFile || uploading}>
-            {uploading ? 'Uploading...' : 'Upload Entries'}
+          <Button onClick={handleValidate} disabled={!selectedFile || validating || uploading}>
+            {validating ? 'Validating...' : 'Validate & Review'}
           </Button>
         </DialogFooter>
       </DialogContent>

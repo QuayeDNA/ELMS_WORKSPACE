@@ -5,6 +5,45 @@ import { API_ENDPOINTS } from '@/utils/constants';
 // TYPES
 // ========================================
 
+export interface ValidationError {
+  field: string;
+  message: string;
+  severity: 'error' | 'warning';
+}
+
+export interface ValidatedEntry {
+  rowNumber: number;
+  courseCode: string;
+  examDate: string;
+  startTime: string;
+  duration: number;
+  venueName: string;
+  level?: number;
+  notes?: string;
+  specialRequirements?: string;
+  
+  // Resolved values (populated after validation)
+  courseId?: number;
+  courseName?: string;
+  venueId?: number;
+  venueLocation?: string;
+  
+  // Validation results
+  errors: ValidationError[];
+  warnings: ValidationError[];
+  isValid: boolean;
+}
+
+export interface BulkUploadValidationResult {
+  entries: ValidatedEntry[];
+  summary: {
+    totalRows: number;
+    validRows: number;
+    invalidRows: number;
+    rowsWithWarnings: number;
+  };
+}
+
 export interface BulkUploadResult {
   success: boolean;
   totalRows: number;
@@ -529,6 +568,59 @@ export const examTimetableService = {
     }
 
     return await response.blob();
+  },
+
+  /**
+   * Validate bulk upload file (doesn't create entries)
+   */
+  async validateBulkUpload(timetableId: number, file: File): Promise<BulkUploadValidationResult> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(
+      `${import.meta.env.VITE_API_BASE_URL}/api/bulk-upload/timetables/${timetableId}/bulk-upload/validate`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        },
+        body: formData,
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to validate file');
+    }
+
+    return await response.json() as BulkUploadValidationResult;
+  },
+
+  /**
+   * Submit validated entries to create exam timetable entries
+   */
+  async submitValidatedEntries(timetableId: number, entries: ValidatedEntry[]) {
+    const response = await fetch(
+      `${import.meta.env.VITE_API_BASE_URL}/api/bulk-upload/timetables/${timetableId}/bulk-upload`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ entries }),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to submit entries');
+    }
+
+    return await response.json() as {
+      message: string;
+      result: BulkUploadResult;
+    };
   },
 
   /**

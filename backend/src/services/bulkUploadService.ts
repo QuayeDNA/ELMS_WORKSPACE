@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -8,14 +8,41 @@ const prisma = new PrismaClient();
 // ========================================
 
 export interface BulkUploadEntry {
+  rowNumber: number;
   courseCode: string;
   examDate: string;
   startTime: string;
   duration: number;
-  venueCode: string;
+  venueName: string;
   level?: string;
   notes?: string;
   specialRequirements?: string;
+}
+
+export interface ValidationError {
+  field: string;
+  message: string;
+  severity: 'error' | 'warning';
+}
+
+export interface ValidatedEntry extends BulkUploadEntry {
+  isValid: boolean;
+  errors: ValidationError[];
+  warnings: ValidationError[];
+  // Resolved data
+  courseId?: number;
+  courseName?: string;
+  venueId?: number;
+  venueLocation?: string;
+  venueCapacity?: number;
+}
+
+export interface BulkUploadValidationResult {
+  entries: ValidatedEntry[];
+  totalRows: number;
+  validCount: number;
+  invalidCount: number;
+  warningCount: number;
 }
 
 export interface BulkUploadResult {
@@ -36,15 +63,15 @@ export interface BulkUploadResult {
 // ========================================
 
 /**
- * Generate a dynamic Excel template with data validation
- * Includes reference sheets for courses, venues, etc.
+ * Generate a simple Excel template (no formulas, no validation)
+ * Users fill it manually, validation happens in the frontend
  */
 export const generateBulkUploadTemplate = async (
   timetableId: number,
   institutionId: number
 ): Promise<Buffer> => {
   try {
-    // Fetch reference data
+    // Fetch timetable info for reference
     const timetable = await prisma.examTimetable.findUnique({
       where: { id: timetableId },
       include: { academicPeriod: true },
@@ -54,226 +81,158 @@ export const generateBulkUploadTemplate = async (
       throw new Error('Timetable not found');
     }
 
-    // Fetch courses for the institution
-    const courses = await prisma.course.findMany({
-      where: { institutionId },
-      select: {
-        id: true,
-        courseCode: true,
-        courseName: true,
-        level: true,
-      },
-      orderBy: { courseCode: 'asc' },
+    // Create simple workbook
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'ELMS System';
+    workbook.created = new Date();
+    workbook.modified = new Date();
+
+    // ========================================
+    // MAIN SHEET - Simple Entry Form
+    // ========================================
+    const mainSheet = workbook.addWorksheet('Exam Entries');
+
+    // Define columns
+    mainSheet.columns = [
+      { header: 'Course Code', key: 'courseCode', width: 15 },
+      { header: 'Exam Date', key: 'examDate', width: 15 },
+      { header: 'Start Time', key: 'startTime', width: 12 },
+      { header: 'Duration (mins)', key: 'duration', width: 15 },
+      { header: 'Venue Name', key: 'venueName', width: 20 },
+      { header: 'Level', key: 'level', width: 10 },
+      { header: 'Notes', key: 'notes', width: 30 },
+      { header: 'Special Requirements', key: 'specialReq', width: 30 },
+    ];
+
+    // Style header row
+    const headerRow = mainSheet.getRow(1);
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF4472C4' },
+    };
+    headerRow.height = 25;
+    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    // Add sample rows to show format
+    mainSheet.addRow({
+      courseCode: 'CSC101',
+      examDate: '2024-05-15',
+      startTime: '09:00',
+      duration: 180,
+      venueName: 'Main Hall A',
+      level: 100,
+      notes: 'First semester final exam',
+      specialReq: 'Calculator required',
     });
 
-    // Fetch venues for the institution
-    const venues = await prisma.venue.findMany({
-      where: { institutionId },
-      select: {
-        id: true,
-        venueCode: true,
-        venueName: true,
-        capacity: true,
-      },
-      orderBy: { venueCode: 'asc' },
+    mainSheet.addRow({
+      courseCode: 'MAT201',
+      examDate: '2024-05-16',
+      startTime: '14:00',
+      duration: 120,
+      venueName: 'Science Block Room 204',
+      level: 200,
+      notes: '',
+      specialReq: 'Formula sheet allowed',
     });
 
-    // Create workbook
-    const workbook = XLSX.utils.book_new();
+    mainSheet.addRow({
+      courseCode: 'ENG301',
+      examDate: '2024-05-17',
+      startTime: '09:00',
+      duration: 150,
+      venueName: 'Arts Building Hall',
+      level: 300,
+      notes: 'Essay questions only',
+      specialReq: '',
+    });
 
-    // ========================================
-    // MAIN SHEET - Entry Form
-    // ========================================
-    const mainData = [
-      [
-        'Course Code *',
-        'Course Name (auto)',
-        'Exam Date *',
-        'Start Time *',
-        'Duration (mins) *',
-        'Venue Code *',
-        'Venue Name (auto)',
-        'Level',
-        'Notes',
-        'Special Requirements',
-      ],
-      [
-        'CSC101',
-        '(Select course)',
-        timetable.startDate.toISOString().split('T')[0],
-        '09:00',
-        '180',
-        'HALL-A',
-        '(Select venue)',
-        '100',
-        'First semester exam',
-        'Calculator required',
-      ],
-      [
-        'CSC201',
-        '(Select course)',
-        timetable.startDate.toISOString().split('T')[0],
-        '14:00',
-        '120',
-        'HALL-B',
-        '(Select venue)',
-        '200',
-        '',
-        '',
-      ],
-    ];
-
-    const mainSheet = XLSX.utils.aoa_to_sheet(mainData);
-
-    // Set column widths
-    mainSheet['!cols'] = [
-      { wch: 15 }, // Course Code
-      { wch: 30 }, // Course Name
-      { wch: 12 }, // Exam Date
-      { wch: 12 }, // Start Time
-      { wch: 15 }, // Duration
-      { wch: 15 }, // Venue Code
-      { wch: 30 }, // Venue Name
-      { wch: 10 }, // Level
-      { wch: 25 }, // Notes
-      { wch: 25 }, // Special Requirements
-    ];
-
-    // Add data validation for dropdowns
-    const dataValidations: any[] = [];
-
-    // Course Code dropdown validation (column A, rows 2-1000)
-    if (courses.length > 0) {
-      dataValidations.push({
-        sqref: 'A2:A1000',
-        type: 'list',
-        formula1: `Courses!$A$2:$A$${courses.length + 1}`,
-        showErrorMessage: true,
-        errorTitle: 'Invalid Course',
-        error: 'Please select a course from the dropdown list',
-      });
+    // Add some empty rows for users to fill
+    for (let i = 0; i < 20; i++) {
+      mainSheet.addRow({});
     }
-
-    // Venue Code dropdown validation (column F, rows 2-1000)
-    if (venues.length > 0) {
-      dataValidations.push({
-        sqref: 'F2:F1000',
-        type: 'list',
-        formula1: `Venues!$A$2:$A$${venues.length + 1}`,
-        showErrorMessage: true,
-        errorTitle: 'Invalid Venue',
-        error: 'Please select a venue from the dropdown list',
-      });
-    }
-
-    // Add formulas for auto-fill columns
-    // Course Name formula (column B) - VLOOKUP to Courses sheet
-    if (courses.length > 0) {
-      for (let row = 2; row <= 1000; row++) {
-        const cellRef = XLSX.utils.encode_cell({ r: row - 1, c: 1 });
-        mainSheet[cellRef] = {
-          f: `IF(A${row}="","",IFERROR(VLOOKUP(A${row},Courses!$A$2:$C$${courses.length + 1},2,FALSE),""))`,
-          t: 's',
-        };
-      }
-    }
-
-    // Venue Name formula (column G) - VLOOKUP to Venues sheet
-    if (venues.length > 0) {
-      for (let row = 2; row <= 1000; row++) {
-        const cellRef = XLSX.utils.encode_cell({ r: row - 1, c: 6 });
-        mainSheet[cellRef] = {
-          f: `IF(F${row}="","",IFERROR(VLOOKUP(F${row},Venues!$A$2:$C$${venues.length + 1},2,FALSE),""))`,
-          t: 's',
-        };
-      }
-    }
-
-    mainSheet['!dataValidation'] = dataValidations;
-
-    XLSX.utils.book_append_sheet(workbook, mainSheet, 'Exam Entries');
-
-    // ========================================
-    // COURSES REFERENCE SHEET
-    // ========================================
-    const coursesData = [
-      ['Course Code', 'Course Name', 'Level', 'Course ID'],
-      ...courses.map((c) => [c.courseCode, c.courseName, c.level || '', c.id]),
-    ];
-
-    const coursesSheet = XLSX.utils.aoa_to_sheet(coursesData);
-    coursesSheet['!cols'] = [
-      { wch: 15 },
-      { wch: 40 },
-      { wch: 10 },
-      { wch: 10 },
-    ];
-
-    XLSX.utils.book_append_sheet(workbook, coursesSheet, 'Courses');
-
-    // ========================================
-    // VENUES REFERENCE SHEET
-    // ========================================
-    const venuesData = [
-      ['Venue Code', 'Venue Name', 'Capacity', 'Venue ID'],
-      ...venues.map((v) => [v.venueCode, v.venueName, v.capacity, v.id]),
-    ];
-
-    const venuesSheet = XLSX.utils.aoa_to_sheet(venuesData);
-    venuesSheet['!cols'] = [
-      { wch: 15 },
-      { wch: 30 },
-      { wch: 12 },
-      { wch: 10 },
-    ];
-
-    XLSX.utils.book_append_sheet(workbook, venuesSheet, 'Venues');
 
     // ========================================
     // INSTRUCTIONS SHEET
     // ========================================
-    const instructionsData = [
-      ['BULK UPLOAD INSTRUCTIONS'],
-      [''],
-      ['1. Fill out the "Exam Entries" sheet with your exam data'],
-      ['2. Use the dropdowns for Course Code and Venue Code (data from your institution)'],
-      ['3. Course Name and Venue Name will auto-fill based on your selection'],
-      ['4. Required fields are marked with * in the header'],
-      ['5. Date format: YYYY-MM-DD (e.g., 2024-05-15)'],
-      ['6. Time format: HH:MM (24-hour, e.g., 09:00, 14:30)'],
-      ['7. Duration should be in minutes (e.g., 120 for 2 hours)'],
-      ['8. Delete the sample rows before uploading'],
-      ['9. Save the file and upload it back to the system'],
-      [''],
-      ['FIELD DESCRIPTIONS:'],
-      ['- Course Code: Select from dropdown (required)'],
-      ['- Exam Date: Must be within timetable date range (required)'],
-      ['- Start Time: Exam start time in 24-hour format (required)'],
-      ['- Duration: Exam duration in minutes, min: 30, max: 480 (required)'],
-      ['- Venue Code: Select from dropdown (required)'],
-      ['- Level: Student level (optional)'],
-      ['- Notes: Any additional notes (optional)'],
-      ['- Special Requirements: E.g., calculator, formula sheet (optional)'],
-      [''],
-      [`TIMETABLE INFO:`],
-      [`Title: ${timetable.title}`],
-      [`Period: ${timetable.startDate.toISOString().split('T')[0]} to ${timetable.endDate.toISOString().split('T')[0]}`],
-      [`Default Duration: ${timetable.defaultExamDuration} minutes`],
+    const instructionsSheet = workbook.addWorksheet('Instructions');
+    instructionsSheet.columns = [{ header: '', key: 'text', width: 100 }];
+
+    const instructions = [
+      { text: 'BULK UPLOAD INSTRUCTIONS', font: { bold: true, size: 16, color: { argb: 'FF4472C4' } } },
+      { text: '' },
+      { text: 'HOW TO USE THIS TEMPLATE:', font: { bold: true, size: 12 } },
+      { text: '1. Fill out the "Exam Entries" sheet with your exam data' },
+      { text: '2. Delete the 3 sample rows (rows 2-4) before uploading' },
+      { text: '3. Upload the file - the system will validate all entries' },
+      { text: '4. Review and fix any errors in the validation screen' },
+      { text: '5. Once all errors are resolved, submit the entries' },
+      { text: '' },
+      { text: 'FIELD DESCRIPTIONS:', font: { bold: true, size: 12 } },
+      { text: '' },
+      { text: 'Course Code (Required)', font: { bold: true } },
+      { text: '  - The course code as registered in your institution' },
+      { text: '  - Example: CSC101, MAT201, ENG301' },
+      { text: '  - System will verify the course exists' },
+      { text: '' },
+      { text: 'Exam Date (Required)', font: { bold: true } },
+      { text: '  - Format: YYYY-MM-DD (e.g., 2024-05-15)' },
+      { text: `  - Must be between ${timetable.startDate.toISOString().split('T')[0]} and ${timetable.endDate.toISOString().split('T')[0]}` },
+      { text: '  - System will check for date conflicts' },
+      { text: '' },
+      { text: 'Start Time (Required)', font: { bold: true } },
+      { text: '  - Format: HH:MM in 24-hour format (e.g., 09:00, 14:30)' },
+      { text: '  - System will check for time conflicts' },
+      { text: '' },
+      { text: 'Duration (Required)', font: { bold: true } },
+      { text: '  - Duration in minutes (e.g., 120 for 2 hours)' },
+      { text: '  - Minimum: 30 minutes, Maximum: 480 minutes (8 hours)' },
+      { text: '' },
+      { text: 'Venue Name (Required)', font: { bold: true } },
+      { text: '  - The exact name of the venue as registered in your institution' },
+      { text: '  - Examples: Main Hall A, Science Block Room 204, Arts Building Hall' },
+      { text: '  - System will verify the venue exists and check capacity' },
+      { text: '' },
+      { text: 'Level (Optional)', font: { bold: true } },
+      { text: '  - Student level: 100, 200, 300, 400, etc.' },
+      { text: '' },
+      { text: 'Notes (Optional)', font: { bold: true } },
+      { text: '  - Any additional information about the exam' },
+      { text: '' },
+      { text: 'Special Requirements (Optional)', font: { bold: true } },
+      { text: '  - Special materials or conditions needed' },
+      { text: '  - Examples: Calculator required, Formula sheet allowed, Open book' },
+      { text: '' },
+      { text: 'VALIDATION RULES:', font: { bold: true, size: 12 } },
+      { text: '' },
+      { text: 'The system will check for:', font: { bold: true } },
+      { text: '✓ Course exists in your institution' },
+      { text: '✓ Venue exists in your institution' },
+      { text: '✓ Date is within timetable range' },
+      { text: '✓ Time format is valid' },
+      { text: '✓ Duration is within allowed range' },
+      { text: '✓ No scheduling conflicts (same course, venue, or time)' },
+      { text: '✓ Venue capacity is sufficient' },
+      { text: '' },
+      { text: 'TIMETABLE INFORMATION:', font: { bold: true, size: 12 } },
+      { text: '' },
+      { text: `Title: ${timetable.title}`, font: { bold: true } },
+      { text: `Period: ${timetable.startDate.toISOString().split('T')[0]} to ${timetable.endDate.toISOString().split('T')[0]}` },
+      { text: `Default Duration: ${timetable.defaultExamDuration} minutes` },
     ];
 
-    const instructionsSheet = XLSX.utils.aoa_to_sheet(instructionsData);
-    instructionsSheet['!cols'] = [{ wch: 80 }];
-
-    XLSX.utils.book_append_sheet(workbook, instructionsSheet, 'Instructions');
-
-    // Generate buffer
-    const buffer = XLSX.write(workbook, {
-      type: 'buffer',
-      bookType: 'xlsx',
-      cellStyles: true,
+    instructions.forEach((instruction, index) => {
+      const row = instructionsSheet.addRow({ text: instruction.text });
+      if (instruction.font) {
+        row.getCell(1).font = instruction.font;
+      }
     });
 
-    return buffer;
+    // Generate buffer
+    const buffer = await workbook.xlsx.writeBuffer();
+    return Buffer.from(buffer);
   } catch (error) {
     console.error('Error generating template:', error);
     throw new Error('Failed to generate Excel template');
@@ -285,63 +244,267 @@ export const generateBulkUploadTemplate = async (
 // ========================================
 
 /**
- * Parse uploaded Excel file and validate entries
+ * Parse and validate uploaded Excel file
+ * Returns detailed validation results for frontend display
  */
-export const parseBulkUploadFile = async (
+export const parseAndValidateBulkUpload = async (
   fileBuffer: Buffer,
   timetableId: number,
   institutionId: number
-): Promise<BulkUploadEntry[]> => {
+): Promise<BulkUploadValidationResult> => {
   try {
-    const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(fileBuffer as any);
 
     // Read the main sheet
-    const sheetName = 'Exam Entries';
-    const worksheet = workbook.Sheets[sheetName];
+    const worksheet = workbook.getWorksheet('Exam Entries');
 
     if (!worksheet) {
       throw new Error('Invalid file format: "Exam Entries" sheet not found');
     }
 
-    // Convert to JSON
-    const rawData: any[] = XLSX.utils.sheet_to_json(worksheet, {
-      raw: false,
-      defval: '',
+    // Fetch timetable for date validation
+    const timetable = await prisma.examTimetable.findUnique({
+      where: { id: timetableId },
     });
 
-    if (rawData.length === 0) {
-      throw new Error('No data found in the file');
+    if (!timetable) {
+      throw new Error('Timetable not found');
     }
 
-    // Map and validate entries
-    const entries: BulkUploadEntry[] = rawData.map((row, index) => {
-      const entry: BulkUploadEntry = {
-        courseCode: row['Course Code *']?.toString().trim() || '',
-        examDate: row['Exam Date *']?.toString().trim() || '',
-        startTime: row['Start Time *']?.toString().trim() || '',
-        duration: parseInt(row['Duration (mins) *']?.toString() || '0', 10),
-        venueCode: row['Venue Code *']?.toString().trim() || '',
-        level: row['Level']?.toString().trim() || undefined,
-        notes: row['Notes']?.toString().trim() || undefined,
-        specialRequirements:
-          row['Special Requirements']?.toString().trim() || undefined,
-      };
-
-      return entry;
+    // Fetch all courses for the institution
+    const courses = await prisma.course.findMany({
+      where: {
+        department: {
+          faculty: {
+            institutionId,
+          },
+        },
+      },
+      select: {
+        id: true,
+        code: true,
+        name: true,
+      },
     });
 
-    // Filter out empty rows
-    const validEntries = entries.filter(
-      (entry) =>
-        entry.courseCode ||
-        entry.examDate ||
-        entry.startTime ||
-        entry.venueCode
-    );
+    // Fetch all venues for the institution
+    const venues = await prisma.venue.findMany({
+      where: { institutionId },
+      select: {
+        id: true,
+        name: true,
+        location: true,
+        capacity: true,
+      },
+    });
 
-    return validEntries;
+    // Create lookup maps
+    const courseMap = new Map(courses.map((c) => [c.code.toLowerCase(), c]));
+    const venueMap = new Map(venues.map((v) => [v.name.toLowerCase(), v]));
+
+    const validatedEntries: ValidatedEntry[] = [];
+    let rowNumber = 1; // Start from 1 (header is row 1, data starts at row 2)
+
+    // Parse all rows
+    worksheet.eachRow((row, excelRowNumber) => {
+      if (excelRowNumber === 1) return; // Skip header
+      rowNumber++;
+
+      const courseCode = row.getCell(1).value?.toString().trim() || '';
+      const examDate = row.getCell(2).value?.toString().trim() || '';
+      const startTime = row.getCell(3).value?.toString().trim() || '';
+      const durationStr = row.getCell(4).value?.toString().trim() || '';
+      const venueName = row.getCell(5).value?.toString().trim() || '';
+      const level = row.getCell(6).value?.toString().trim() || undefined;
+      const notes = row.getCell(7).value?.toString().trim() || undefined;
+      const specialRequirements = row.getCell(8).value?.toString().trim() || undefined;
+
+      // Skip completely empty rows
+      if (!courseCode && !examDate && !startTime && !venueName) {
+        return;
+      }
+
+      const entry: ValidatedEntry = {
+        rowNumber,
+        courseCode,
+        examDate,
+        startTime,
+        duration: parseInt(durationStr, 10) || 0,
+        venueName,
+        level,
+        notes,
+        specialRequirements,
+        isValid: true,
+        errors: [],
+        warnings: [],
+      };
+
+      // Validate Course Code
+      if (!courseCode) {
+        entry.errors.push({
+          field: 'courseCode',
+          message: 'Course code is required',
+          severity: 'error',
+        });
+        entry.isValid = false;
+      } else {
+        const course = courseMap.get(courseCode.toLowerCase());
+        if (!course) {
+          entry.errors.push({
+            field: 'courseCode',
+            message: `Course "${courseCode}" not found in your institution`,
+            severity: 'error',
+          });
+          entry.isValid = false;
+        } else {
+          entry.courseId = course.id;
+          entry.courseName = course.name;
+        }
+      }
+
+      // Validate Exam Date
+      if (!examDate) {
+        entry.errors.push({
+          field: 'examDate',
+          message: 'Exam date is required',
+          severity: 'error',
+        });
+        entry.isValid = false;
+      } else {
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(examDate)) {
+          entry.errors.push({
+            field: 'examDate',
+            message: 'Invalid date format. Use YYYY-MM-DD',
+            severity: 'error',
+          });
+          entry.isValid = false;
+        } else {
+          const examDateObj = new Date(examDate);
+          const startDate = new Date(timetable.startDate);
+          const endDate = new Date(timetable.endDate);
+
+          if (isNaN(examDateObj.getTime())) {
+            entry.errors.push({
+              field: 'examDate',
+              message: 'Invalid date',
+              severity: 'error',
+            });
+            entry.isValid = false;
+          } else if (examDateObj < startDate || examDateObj > endDate) {
+            entry.errors.push({
+              field: 'examDate',
+              message: `Date must be between ${timetable.startDate.toISOString().split('T')[0]} and ${timetable.endDate.toISOString().split('T')[0]}`,
+              severity: 'error',
+            });
+            entry.isValid = false;
+          }
+        }
+      }
+
+      // Validate Start Time
+      if (!startTime) {
+        entry.errors.push({
+          field: 'startTime',
+          message: 'Start time is required',
+          severity: 'error',
+        });
+        entry.isValid = false;
+      } else {
+        const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
+        if (!timeRegex.test(startTime)) {
+          entry.errors.push({
+            field: 'startTime',
+            message: 'Invalid time format. Use HH:MM (24-hour format)',
+            severity: 'error',
+          });
+          entry.isValid = false;
+        }
+      }
+
+      // Validate Duration
+      if (!entry.duration || entry.duration === 0) {
+        entry.errors.push({
+          field: 'duration',
+          message: 'Duration is required',
+          severity: 'error',
+        });
+        entry.isValid = false;
+      } else if (entry.duration < 30) {
+        entry.errors.push({
+          field: 'duration',
+          message: 'Duration must be at least 30 minutes',
+          severity: 'error',
+        });
+        entry.isValid = false;
+      } else if (entry.duration > 480) {
+        entry.errors.push({
+          field: 'duration',
+          message: 'Duration cannot exceed 480 minutes (8 hours)',
+          severity: 'error',
+        });
+        entry.isValid = false;
+      } else if (entry.duration > 240) {
+        entry.warnings.push({
+          field: 'duration',
+          message: 'Duration exceeds 4 hours - please verify',
+          severity: 'warning',
+        });
+      }
+
+      // Validate Venue Name
+      if (!venueName) {
+        entry.errors.push({
+          field: 'venueName',
+          message: 'Venue name is required',
+          severity: 'error',
+        });
+        entry.isValid = false;
+      } else {
+        const venue = venueMap.get(venueName.toLowerCase());
+        if (!venue) {
+          entry.errors.push({
+            field: 'venueName',
+            message: `Venue "${venueName}" not found in your institution`,
+            severity: 'error',
+          });
+          entry.isValid = false;
+        } else {
+          entry.venueId = venue.id;
+          entry.venueLocation = venue.location;
+          entry.venueCapacity = venue.capacity;
+        }
+      }
+
+      // Validate Level (optional)
+      if (level) {
+        const levelNum = parseInt(level, 10);
+        if (isNaN(levelNum) || levelNum < 100 || levelNum > 900) {
+          entry.warnings.push({
+            field: 'level',
+            message: 'Level should be 100, 200, 300, etc.',
+            severity: 'warning',
+          });
+        }
+      }
+
+      validatedEntries.push(entry);
+    });
+
+    const validCount = validatedEntries.filter((e) => e.isValid).length;
+    const invalidCount = validatedEntries.filter((e) => !e.isValid).length;
+    const warningCount = validatedEntries.filter((e) => e.warnings.length > 0).length;
+
+    return {
+      entries: validatedEntries,
+      totalRows: validatedEntries.length,
+      validCount,
+      invalidCount,
+      warningCount,
+    };
   } catch (error) {
-    console.error('Error parsing file:', error);
+    console.error('Error parsing and validating file:', error);
     throw new Error('Failed to parse Excel file');
   }
 };
@@ -351,12 +514,12 @@ export const parseBulkUploadFile = async (
 // ========================================
 
 /**
- * Create exam entries in bulk with validation
+ * Create exam entries from validated data
+ * Expects entries that have already been validated in the frontend
  */
-export const createBulkEntries = async (
-  entries: BulkUploadEntry[],
+export const createBulkEntriesFromValidated = async (
+  validatedEntries: ValidatedEntry[],
   timetableId: number,
-  institutionId: number,
   userId: number
 ): Promise<BulkUploadResult> => {
   const errors: BulkUploadResult['errors'] = [];
@@ -365,181 +528,62 @@ export const createBulkEntries = async (
   let failureCount = 0;
 
   try {
-    // Validate timetable exists
-    const timetable = await prisma.examTimetable.findUnique({
-      where: { id: timetableId },
-    });
+    // Filter only valid entries
+    const entriesToCreate = validatedEntries.filter((e) => e.isValid);
 
-    if (!timetable) {
-      throw new Error('Timetable not found');
+    if (entriesToCreate.length === 0) {
+      return {
+        success: false,
+        totalRows: validatedEntries.length,
+        successCount: 0,
+        failureCount: validatedEntries.length,
+        errors: [{ row: 0, message: 'No valid entries to create' }],
+        createdEntries: [],
+      };
     }
 
-    // Fetch all courses and venues for validation
-    const courses = await prisma.course.findMany({
-      where: { institutionId },
-      select: { id: true, courseCode: true },
-    });
-
-    const venues = await prisma.venue.findMany({
-      where: { institutionId },
-      select: { id: true, venueCode: true },
-    });
-
-    const courseMap = new Map(courses.map((c) => [c.courseCode, c.id]));
-    const venueMap = new Map(venues.map((v) => [v.venueCode, v.id]));
-
-    // Process each entry
-    for (let i = 0; i < entries.length; i++) {
-      const entry = entries[i];
-      const rowNumber = i + 2; // +2 because Excel is 1-indexed and row 1 is header
-
+    // Create entries in transaction
+    for (const entry of entriesToCreate) {
       try {
-        // Validate required fields
-        if (!entry.courseCode) {
-          errors.push({
-            row: rowNumber,
-            field: 'courseCode',
-            message: 'Course code is required',
-          });
-          failureCount++;
-          continue;
-        }
-
-        if (!entry.examDate) {
-          errors.push({
-            row: rowNumber,
-            field: 'examDate',
-            message: 'Exam date is required',
-          });
-          failureCount++;
-          continue;
-        }
-
-        if (!entry.startTime) {
-          errors.push({
-            row: rowNumber,
-            field: 'startTime',
-            message: 'Start time is required',
-          });
-          failureCount++;
-          continue;
-        }
-
-        if (!entry.duration || entry.duration < 30 || entry.duration > 480) {
-          errors.push({
-            row: rowNumber,
-            field: 'duration',
-            message: 'Duration must be between 30 and 480 minutes',
-          });
-          failureCount++;
-          continue;
-        }
-
-        if (!entry.venueCode) {
-          errors.push({
-            row: rowNumber,
-            field: 'venueCode',
-            message: 'Venue code is required',
-          });
-          failureCount++;
-          continue;
-        }
-
-        // Validate course exists
-        const courseId = courseMap.get(entry.courseCode);
-        if (!courseId) {
-          errors.push({
-            row: rowNumber,
-            field: 'courseCode',
-            message: `Course "${entry.courseCode}" not found`,
-          });
-          failureCount++;
-          continue;
-        }
-
-        // Validate venue exists
-        const venueId = venueMap.get(entry.venueCode);
-        if (!venueId) {
-          errors.push({
-            row: rowNumber,
-            field: 'venueCode',
-            message: `Venue "${entry.venueCode}" not found`,
-          });
-          failureCount++;
-          continue;
-        }
-
-        // Validate date format and range
+        // Parse date and time
         const examDate = new Date(entry.examDate);
-        if (isNaN(examDate.getTime())) {
-          errors.push({
-            row: rowNumber,
-            field: 'examDate',
-            message: 'Invalid date format. Use YYYY-MM-DD',
-          });
-          failureCount++;
-          continue;
-        }
-
-        if (
-          examDate < timetable.startDate ||
-          examDate > timetable.endDate
-        ) {
-          errors.push({
-            row: rowNumber,
-            field: 'examDate',
-            message: `Date must be within timetable range (${timetable.startDate.toISOString().split('T')[0]} to ${timetable.endDate.toISOString().split('T')[0]})`,
-          });
-          failureCount++;
-          continue;
-        }
-
-        // Validate time format
-        const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
-        if (!timeRegex.test(entry.startTime)) {
-          errors.push({
-            row: rowNumber,
-            field: 'startTime',
-            message: 'Invalid time format. Use HH:MM (24-hour)',
-          });
-          failureCount++;
-          continue;
-        }
-
-        // Create exam entry
         const [hours, minutes] = entry.startTime.split(':').map(Number);
+
         const startDateTime = new Date(examDate);
         startDateTime.setHours(hours, minutes, 0, 0);
 
         const endDateTime = new Date(startDateTime);
         endDateTime.setMinutes(endDateTime.getMinutes() + entry.duration);
 
-        const timetableEntry = await prisma.timetableEntry.create({
+        // Create the entry
+        const timetableEntry = await prisma.examTimetableEntry.create({
           data: {
             timetableId,
-            courseId,
+            courseId: entry.courseId!,
             examDate: examDate,
             startTime: startDateTime,
             endTime: endDateTime,
             duration: entry.duration,
-            venueId,
+            venueId: entry.venueId!,
             status: 'SCHEDULED',
-            level: entry.level,
+            level: entry.level ? parseInt(entry.level, 10) : null,
             notes: entry.notes,
             specialRequirements: entry.specialRequirements,
-            createdBy: userId,
+            programIds: '[]',
+            roomIds: '[]',
+            invigilatorIds: '[]',
           },
           include: {
             course: {
               select: {
-                courseCode: true,
-                courseName: true,
+                code: true,
+                name: true,
               },
             },
             venue: {
               select: {
-                venueCode: true,
-                venueName: true,
+                name: true,
+                location: true,
               },
             },
           },
@@ -548,8 +592,9 @@ export const createBulkEntries = async (
         createdEntries.push(timetableEntry);
         successCount++;
       } catch (error: any) {
+        console.error(`Error creating entry at row ${entry.rowNumber}:`, error);
         errors.push({
-          row: rowNumber,
+          row: entry.rowNumber,
           message: error.message || 'Failed to create entry',
         });
         failureCount++;
@@ -558,7 +603,7 @@ export const createBulkEntries = async (
 
     return {
       success: successCount > 0,
-      totalRows: entries.length,
+      totalRows: validatedEntries.length,
       successCount,
       failureCount,
       errors,
@@ -566,6 +611,6 @@ export const createBulkEntries = async (
     };
   } catch (error: any) {
     console.error('Error in bulk creation:', error);
-    throw new Error(error.message || 'Failed to process bulk upload');
+    throw new Error('Failed to create bulk entries');
   }
 };
