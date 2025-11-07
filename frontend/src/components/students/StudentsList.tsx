@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -222,7 +222,7 @@ export const StudentsList: React.FC<StudentsListProps> = ({ initialFilters = {} 
       {/* Sort Controls */}
       <div className="flex items-center gap-4">
         <span className="text-sm text-gray-600">Sort by:</span>
-        <Select 
+        <Select
           value={filters.sortBy || 'createdAt'}
           onValueChange={(value) => handleSortChange(value, filters.sortOrder || 'desc')}
         >
@@ -238,7 +238,7 @@ export const StudentsList: React.FC<StudentsListProps> = ({ initialFilters = {} 
             <SelectItem value="cgpa">CGPA</SelectItem>
           </SelectContent>
         </Select>
-        <Select 
+        <Select
           value={filters.sortOrder || 'desc'}
           onValueChange={(value) => handleSortChange(filters.sortBy || 'createdAt', value as 'asc' | 'desc')}
         >
@@ -294,7 +294,7 @@ export const StudentsList: React.FC<StudentsListProps> = ({ initialFilters = {} 
                   </Badge>
                 </div>
               </CardHeader>
-              
+
               <CardContent className="space-y-2">
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
@@ -314,15 +314,15 @@ export const StudentsList: React.FC<StudentsListProps> = ({ initialFilters = {} 
                     <p className="font-medium">{student.academicStatus.replace('_', ' ')}</p>
                   </div>
                 </div>
-                
+
                 <div className="pt-3 border-t">
                   <p className="text-xs text-gray-600 truncate">{student.user.email}</p>
                 </div>
 
                 <div className="flex gap-2 pt-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     className="flex-1"
                     onClick={() => handleViewStudent(student)}
                   >
@@ -330,9 +330,9 @@ export const StudentsList: React.FC<StudentsListProps> = ({ initialFilters = {} 
                     View
                   </Button>
                   {permissions.canUpdate && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       className="flex-1"
                       onClick={() => handleEditStudent(student)}
                     >
@@ -341,8 +341,8 @@ export const StudentsList: React.FC<StudentsListProps> = ({ initialFilters = {} 
                     </Button>
                   )}
                   {permissions.canDelete && (
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
                       onClick={() => handleDeleteStudent(student)}
                     >
@@ -361,7 +361,7 @@ export const StudentsList: React.FC<StudentsListProps> = ({ initialFilters = {} 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-600">Items per page:</span>
-            <Select 
+            <Select
               value={String(filters.limit || 10)}
               onValueChange={(value) => handleLimitChange(Number(value))}
             >
@@ -376,7 +376,7 @@ export const StudentsList: React.FC<StudentsListProps> = ({ initialFilters = {} 
               </SelectContent>
             </Select>
           </div>
-          
+
           <div className="flex items-center gap-2">
             <Button
               variant="outline"

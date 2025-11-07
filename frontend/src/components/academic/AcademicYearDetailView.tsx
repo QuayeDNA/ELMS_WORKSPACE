@@ -3,7 +3,7 @@ import { Plus, Calendar, Edit, Trash2, Check, Clock, ChevronDown, ChevronUp } fr
 import { useApiRequest } from '@/hooks/useApiRequest';
 import { academicService } from '@/services/academic.service';
 import { Semester } from '@/types/academic';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {

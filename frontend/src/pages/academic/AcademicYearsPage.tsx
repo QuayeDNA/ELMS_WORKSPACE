@@ -236,17 +236,12 @@ export const AcademicYearsPage: React.FC = () => {
                           {new Date(year.endDate).toLocaleDateString()}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between text-sm">
+                      <div className="space-y-1">
                         <span className="text-muted-foreground">Semesters</span>
                         <Badge variant="secondary">
                           {year.semesters?.length || 0}
                         </Badge>
                       </div>
-                      {year.description && (
-                        <p className="text-xs text-muted-foreground line-clamp-2 mt-2">
-                          {year.description}
-                        </p>
-                      )}
                     </div>
                   </CardContent>
                 </Card>

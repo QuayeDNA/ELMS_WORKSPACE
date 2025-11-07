@@ -694,7 +694,7 @@ Update `frontend/src/pages/dashboard/SuperAdminDashboard.tsx`:
 import { Card, CardContent } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
 import { ActionCard } from '@/components/ui/action-card';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/auth.store';
 import {
   Building,
@@ -941,7 +941,7 @@ Create `shared-design-tokens.json` (in root):
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { RoleBadge } from '@/components/ui/role-badge';
 import { StatusBadge } from '@/components/ui/status-badge';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Edit, Trash2 } from 'lucide-react';
 
 interface User {
@@ -996,7 +996,7 @@ export function UserTable({ users }: { users: User[] }) {
 ```tsx
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/status-badge';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Building, Users, MapPin, Eye } from 'lucide-react';
 
 interface InstitutionCardProps {

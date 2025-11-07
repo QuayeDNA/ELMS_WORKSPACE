@@ -18,8 +18,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { Button } from '@/components/ui/Button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
@@ -50,13 +50,10 @@ import {
   ExamTimetableEntry,
   ExamTimetableStatus,
   TimetableApprovalStatus,
-  CreateTimetableEntryData,
   UpdateTimetableData,
 } from '@/services/examTimetable.service';
 import { useAuthStore } from '@/stores/auth.store';
-import { TimetableEntryList } from '@/components/exams/TimetableEntryList';
-import { TimetableEntryForm } from '@/components/exams/TimetableEntryForm';
-import { BulkUploadEntries } from '@/components/exams/BulkUploadEntries';
+import ExamEntryExcelView, { ExamEntryRow } from '@/components/exams/ExamEntryExcelView';
 import { TimetableEditDialog } from '@/components/exams/TimetableEditDialog';
 
 export default function ExamTimetableDetailPage() {
@@ -69,13 +66,31 @@ export default function ExamTimetableDetailPage() {
 
   // Entry management state
   const [entries, setEntries] = useState<ExamTimetableEntry[]>([]);
-  const [entriesLoading, setEntriesLoading] = useState(false);
-  const [entryFormOpen, setEntryFormOpen] = useState(false);
-  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
-  const [selectedEntry, setSelectedEntry] = useState<ExamTimetableEntry | null>(null);
   const [deleteEntryDialogOpen, setDeleteEntryDialogOpen] = useState(false);
   const [entryToDelete, setEntryToDelete] = useState<ExamTimetableEntry | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  // Transform entries to ExamEntryRow format for the spreadsheet component
+  const transformedEntries: ExamEntryRow[] = entries.map(entry => ({
+    id: entry.id.toString(),
+    courseCode: entry.course?.code || '',
+    courseId: entry.courseId,
+    courseName: entry.course?.name || '',
+    examDate: entry.examDate,
+    startTime: entry.startTime,
+    duration: entry.duration,
+    venueName: entry.venue?.name || '',
+    venueId: entry.venueId,
+    venueLocation: entry.venue?.location || '',
+    venueCapacity: entry.venue?.capacity,
+    level: entry.level?.toString() || '',
+    notes: entry.notes || '',
+    specialRequirements: entry.specialRequirements || '',
+    isNew: false,
+    isValid: true,
+    errors: [],
+    warnings: [],
+  }));
 
   // Approval state
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
@@ -114,7 +129,6 @@ export default function ExamTimetableDetailPage() {
     if (!id) return;
 
     try {
-      setEntriesLoading(true);
       const response = await examTimetableService.getTimetableEntries(parseInt(id));
 
       if (response.success && Array.isArray(response.data)) {
@@ -123,25 +137,7 @@ export default function ExamTimetableDetailPage() {
     } catch (error) {
       console.error('Error fetching entries:', error);
       toast.error('Failed to load timetable entries');
-    } finally {
-      setEntriesLoading(false);
     }
-  };
-
-  // Entry management handlers
-  const handleAddEntry = () => {
-    setSelectedEntry(null);
-    setEntryFormOpen(true);
-  };
-
-  const handleEditEntry = (entry: ExamTimetableEntry) => {
-    setSelectedEntry(entry);
-    setEntryFormOpen(true);
-  };
-
-  const handleDeleteEntry = (entry: ExamTimetableEntry) => {
-    setEntryToDelete(entry);
-    setDeleteEntryDialogOpen(true);
   };
 
   const confirmDeleteEntry = async () => {
@@ -164,28 +160,83 @@ export default function ExamTimetableDetailPage() {
     }
   };
 
-  const handleEntrySubmit = async (data: CreateTimetableEntryData) => {
+  const handleSpreadsheetSave = async (rows: ExamEntryRow[]) => {
     if (!timetable?.id) return;
 
-    if (selectedEntry) {
-      // Update existing entry
-      await examTimetableService.updateTimetableEntry(timetable.id, selectedEntry.id, data);
-    } else {
-      // Create new entry
-      await examTimetableService.createTimetableEntry(timetable.id, data);
+    try {
+      const results = { success: 0, failed: 0, errors: [] as string[] };
+
+      // Process each entry
+      for (const row of rows) {
+        try {
+          // Skip invalid entries
+          if (!row.isValid || !row.courseId || !row.examDate || !row.startTime || !row.venueId) {
+            results.failed++;
+            results.errors.push(`Invalid entry for ${row.courseCode || 'Unknown course'}`);
+            continue;
+          }
+
+          const entryData = {
+            courseId: row.courseId,
+            programIds: [], // Default, can be enhanced later
+            level: row.level ? parseInt(row.level) : undefined,
+            examDate: row.examDate,
+            startTime: row.startTime,
+            endTime: row.startTime, // TODO: Calculate end time from start time + duration
+            duration: row.duration,
+            venueId: row.venueId,
+            roomIds: [], // Default, can be enhanced later
+            invigilatorIds: [], // Default, can be enhanced later
+            notes: row.notes,
+            specialRequirements: row.specialRequirements,
+          };
+
+          // Check if this is a new entry or an existing one
+          // New entries have IDs starting with 'new-' or are marked as isNew
+          const isNewEntry = row.isNew || row.id.startsWith('new-') || row.id.startsWith('bulk-');
+
+          if (!isNewEntry) {
+            // Find the existing entry in our state to get the numeric ID
+            const existingEntry = entries.find(e => e.id.toString() === row.id);
+            if (existingEntry) {
+              // Update existing entry
+              await examTimetableService.updateTimetableEntry(timetable.id, existingEntry.id, entryData);
+            } else {
+              // Create new entry (in case we couldn't match)
+              await examTimetableService.createTimetableEntry(timetable.id, entryData);
+            }
+          } else {
+            // Create new entry
+            await examTimetableService.createTimetableEntry(timetable.id, entryData);
+          }
+
+          results.success++;
+        } catch (error) {
+          results.failed++;
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          results.errors.push(`Failed to save ${row.courseCode || 'Unknown course'}: ${errorMessage}`);
+        }
+      }
+
+      // Show results
+      if (results.success > 0) {
+        toast.success(`Successfully saved ${results.success} entries`);
+      }
+      if (results.failed > 0) {
+        toast.warning(`${results.failed} entries failed to save`);
+        if (results.errors.length > 0) {
+          console.error('Save errors:', results.errors);
+        }
+      }
+
+      // Refresh data
+      await fetchEntries();
+      await fetchTimetable();
+    } catch (error) {
+      console.error('Error saving entries:', error);
+      toast.error('Failed to save entries');
+      throw error;
     }
-
-    await fetchEntries();
-    await fetchTimetable(); // Refresh to update totalExams count
-  };
-
-  const handleBulkUpload = () => {
-    setUploadDialogOpen(true);
-  };
-
-  const handleUploadComplete = async () => {
-    await fetchEntries();
-    await fetchTimetable();
   };
 
   const handlePublish = async () => {
@@ -683,23 +734,21 @@ export default function ExamTimetableDetailPage() {
           <Card>
             <CardHeader>
               <CardTitle>Exam Entries</CardTitle>
-              <CardDescription>All scheduled exams in this timetable</CardDescription>
+              <CardDescription>
+                Manage exam entries using the spreadsheet interface below
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <TimetableEntryList
-                entries={entries}
-                loading={entriesLoading}
-                onAddEntry={handleAddEntry}
-                onBulkUpload={handleBulkUpload}
-                onEditEntry={handleEditEntry}
-                onDeleteEntry={handleDeleteEntry}
-                canEdit={
-                  (timetable?.status === 'DRAFT' ||
-                   timetable?.status === 'PENDING_APPROVAL' ||
-                   timetable?.status === 'APPROVED') &&
-                  user?.role !== 'STUDENT'
-                }
-              />
+              {timetable && (
+                <ExamEntryExcelView
+                  timetableId={id!}
+                  entries={transformedEntries}
+                  onSave={handleSpreadsheetSave}
+                  institutionId={timetable.institutionId?.toString()}
+                  startDate={timetable.startDate}
+                  endDate={timetable.endDate}
+                />
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -782,31 +831,6 @@ export default function ExamTimetableDetailPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Entry Form Dialog */}
-      {timetable && (
-        <TimetableEntryForm
-          open={entryFormOpen}
-          onOpenChange={setEntryFormOpen}
-          timetableId={timetable.id}
-          timetableStartDate={new Date(timetable.startDate)}
-          timetableEndDate={new Date(timetable.endDate)}
-          defaultDuration={timetable.defaultExamDuration}
-          institutionId={timetable.institutionId}
-          entry={selectedEntry}
-          onSubmit={handleEntrySubmit}
-        />
-      )}
-
-      {/* Bulk Upload Dialog */}
-      {timetable && (
-        <BulkUploadEntries
-          open={uploadDialogOpen}
-          onOpenChange={setUploadDialogOpen}
-          timetableId={timetable.id}
-          onUploadComplete={handleUploadComplete}
-        />
-      )}
 
       {/* Reject Timetable Dialog */}
       <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>

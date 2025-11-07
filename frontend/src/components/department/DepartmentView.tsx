@@ -3,7 +3,7 @@ import { Department } from '@/types/department';
 import { DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 
 interface DepartmentViewProps {
   department: Department;
@@ -39,21 +39,21 @@ const DepartmentView: React.FC<DepartmentViewProps> = ({ department, onClose }) 
                 <p>{department.faculty?.name || 'Not assigned'}</p>
               </div>
             </div>
-            
+
             {department.description && (
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Description</label>
                 <p>{department.description}</p>
               </div>
             )}
-            
+
             {department.hod && (
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Head of Department</label>
                 <p>{`${department.hod.firstName} ${department.hod.lastName}`}</p>
               </div>
             )}
-            
+
             {department.officeLocation && (
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Office Location</label>

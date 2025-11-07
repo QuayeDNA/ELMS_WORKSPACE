@@ -11,6 +11,9 @@ router.use(authenticateToken);
 // TIMETABLE ENTRY ROUTES (standalone, not nested)
 // ========================================
 
+// Batch create entries (replaces bulk upload)
+router.post("/batch", examTimetableController.batchCreateEntries);
+
 // Get single entry by ID
 router.get("/:id", examTimetableController.getTimetableEntryById);
 

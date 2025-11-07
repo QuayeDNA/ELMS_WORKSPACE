@@ -39,7 +39,6 @@ const FormField = <
 
   return (
     <FormFieldContext.Provider value={value}>
-      {/* @ts-expect-error - Controller component type issue with React 18 */}
       <Controller {...props} />
     </FormFieldContext.Provider>
   );

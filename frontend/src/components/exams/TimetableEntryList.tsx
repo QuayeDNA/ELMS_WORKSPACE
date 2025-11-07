@@ -1,6 +1,6 @@
 import { format } from 'date-fns';
 import { Plus, Upload, MoreVertical, Edit, Trash2, Calendar } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import {
   Table,
   TableBody,

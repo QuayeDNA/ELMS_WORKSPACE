@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Student } from '@/types/student';
 import { Edit, Trash2, Mail, Phone, Calendar, GraduationCap, User } from 'lucide-react';
 
@@ -150,7 +150,7 @@ export const StudentDetails: React.FC<StudentDetailsProps> = ({
                 </div>
               )}
             </div>
-            
+
             {student.user.address && (
               <div>
                 <span className="text-sm font-medium text-gray-600">Address</span>
@@ -175,7 +175,7 @@ export const StudentDetails: React.FC<StudentDetailsProps> = ({
                 {student.user.email}
               </a>
             </div>
-            
+
             {student.user.phone && (
               <div className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-gray-500" />
@@ -266,19 +266,19 @@ export const StudentDetails: React.FC<StudentDetailsProps> = ({
               <p className="text-sm font-semibold">{student.program?.name}</p>
               <p className="text-xs text-gray-500">{student.program?.code} • {student.program?.degree}</p>
             </div>
-            
+
             <div>
               <span className="text-sm font-medium text-gray-600">Department</span>
               <p className="text-sm">{student.program?.department.name}</p>
               <p className="text-xs text-gray-500">{student.program?.department.code}</p>
             </div>
-            
+
             <div>
               <span className="text-sm font-medium text-gray-600">Faculty</span>
               <p className="text-sm">{student.program?.department.faculty.name}</p>
               <p className="text-xs text-gray-500">{student.program?.department.faculty.code}</p>
             </div>
-            
+
             <div>
               <span className="text-sm font-medium text-gray-600">Institution</span>
               <p className="text-sm">{student.program?.department.faculty.institution.name}</p>
@@ -301,14 +301,14 @@ export const StudentDetails: React.FC<StudentDetailsProps> = ({
                 <span className="text-sm font-medium text-gray-600">Enrollment Date</span>
                 <p className="text-sm">{formatDate(student.enrollmentDate)}</p>
               </div>
-              
+
               {student.graduationDate && (
                 <div>
                   <span className="text-sm font-medium text-gray-600">Expected Graduation</span>
                   <p className="text-sm">{formatDate(student.graduationDate)}</p>
                 </div>
               )}
-              
+
               <div>
                 <span className="text-sm font-medium text-gray-600">Last Updated</span>
                 <p className="text-sm">{formatDate(student.updatedAt)}</p>

@@ -5,7 +5,7 @@
  */
 
 import { useState } from 'react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -507,7 +507,7 @@ import { UserRole } from '@/types/auth';
                 value="1,234"
                 description="from last month"
                 icon={Users}
-                trend={{ value: 12, isPositive: true }}
+                trend={{ value: 12, label: "increase" }}
               />
               <StatCard
                 title="Active Courses"
@@ -519,7 +519,7 @@ import { UserRole } from '@/types/auth';
                 title="Completion Rate"
                 value="98.5%"
                 icon={TrendingUp}
-                trend={{ value: 2.3, isPositive: true }}
+                trend={{ value: 2.3, label: "improvement" }}
               />
             </div>
           </ComponentSection>
@@ -557,7 +557,7 @@ import { Users } from 'lucide-react';
                 description="Create and manage exam timetables"
                 icon={Calendar}
                 onClick={() => alert('Navigate to exams')}
-                badge={<Badge variant="destructive">3 Pending</Badge>}
+                badge="3 Pending"
               />
               <ActionCard
                 title="Course Management"

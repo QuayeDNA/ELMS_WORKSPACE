@@ -29,7 +29,6 @@ import academicHistoryRoutes from "./routes/academicHistoryRoutes";
 import examTimetableRoutes from "./routes/examTimetableRoutes";
 import timetableEntryRoutes from "./routes/timetableEntryRoutes";
 import timetableConflictRoutes from "./routes/timetableConflictRoutes";
-import bulkUploadRoutes from "./routes/bulkUploadRoutes";
 
 // Load environment variables
 dotenv.config();
@@ -255,9 +254,6 @@ app.use("/api/exams", examRoutes);
 app.use("/api/timetables", examTimetableRoutes);
 app.use("/api/timetable-entries", timetableEntryRoutes);
 app.use("/api/timetable-conflicts", timetableConflictRoutes);
-
-// Bulk upload routes
-app.use("/api/bulk-upload", bulkUploadRoutes);
 
 // Incident routes
 app.use("/api/incidents", incidentRoutes);

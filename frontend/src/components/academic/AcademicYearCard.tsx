@@ -3,7 +3,7 @@ import { Calendar, Clock, CheckCircle2, AlertCircle, MoreVertical, Edit, Trash2,
 import { AcademicYear } from '@/types/academic';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,

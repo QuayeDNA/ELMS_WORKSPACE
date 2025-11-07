@@ -1,6 +1,6 @@
 import { Building2, MapPin, Phone, Mail, Globe, Calendar, Settings, Eye, Edit, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   DropdownMenu,
@@ -31,7 +31,7 @@ interface InstitutionCardProps {
 const getStatusBadge = (status: InstitutionStatus) => {
   const config = INSTITUTION_STATUS_CONFIG[status];
   return (
-    <Badge 
+    <Badge
       variant={config.variant as "default" | "secondary" | "destructive" | "outline"}
       className={`${config.className} text-xs`}
     >
@@ -64,7 +64,7 @@ export const InstitutionCard = ({
 }: InstitutionCardProps) => {
   const handleAction = (action: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     switch (action) {
       case 'view':
         onView?.(institution);
@@ -121,7 +121,7 @@ export const InstitutionCard = ({
                     </DropdownMenuItem>
                   )}
                   {onDelete && (
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={(e) => handleAction('delete', e)}
                       className="text-red-600"
                     >
@@ -135,11 +135,11 @@ export const InstitutionCard = ({
           </div>
         </div>
       </CardHeader>
-      
+
       <CardContent className="pt-0">
         <div className="space-y-2">
           <p className="text-sm text-gray-700 line-clamp-2">{institution.description}</p>
-          
+
           <div className="flex items-center gap-4 text-xs text-gray-500">
             {institution.city && (
               <div className="flex items-center gap-1">
@@ -201,7 +201,7 @@ export const InstitutionCard = ({
                     </DropdownMenuItem>
                   )}
                   {onDelete && (
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={(e) => handleAction('delete', e)}
                       className="text-red-600"
                     >
@@ -215,14 +215,14 @@ export const InstitutionCard = ({
           </div>
         </div>
       </CardHeader>
-      
+
       <CardContent>
         <div className="space-y-4">
           {/* Description */}
           {institution.description && (
             <p className="text-gray-700 text-sm leading-relaxed">{institution.description}</p>
           )}
-          
+
           {/* Location */}
           {(institution.address || institution.city || institution.state || institution.country) && (
             <div className="flex items-start gap-2">
@@ -237,13 +237,13 @@ export const InstitutionCard = ({
               </div>
             </div>
           )}
-          
+
           {/* Contact Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {institution.contactEmail && (
               <div className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-gray-400" />
-                <a 
+                <a
                   href={`mailto:${institution.contactEmail}`}
                   className="text-sm text-blue-600 hover:underline"
                   onClick={(e) => e.stopPropagation()}
@@ -252,11 +252,11 @@ export const InstitutionCard = ({
                 </a>
               </div>
             )}
-            
+
             {institution.contactPhone && (
               <div className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-gray-400" />
-                <a 
+                <a
                   href={`tel:${institution.contactPhone}`}
                   className="text-sm text-gray-600 hover:text-blue-600"
                   onClick={(e) => e.stopPropagation()}
@@ -265,11 +265,11 @@ export const InstitutionCard = ({
                 </a>
               </div>
             )}
-            
+
             {institution.website && (
               <div className="flex items-center gap-2 md:col-span-2">
                 <Globe className="h-4 w-4 text-gray-400" />
-                <a 
+                <a
                   href={institution.website}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -281,7 +281,7 @@ export const InstitutionCard = ({
               </div>
             )}
           </div>
-          
+
           {/* Additional Information */}
           <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t">
             <div className="flex items-center gap-4">
@@ -298,14 +298,14 @@ export const InstitutionCard = ({
           </div>
         </div>
       </CardContent>
-      
+
       {showActions && (onView || onEdit) && (
         <CardFooter className="pt-0">
           <div className="flex gap-2 w-full">
             {onView && (
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={(e) => handleAction('view', e)}
                 className="flex-1"
               >
@@ -314,9 +314,9 @@ export const InstitutionCard = ({
               </Button>
             )}
             {onEdit && (
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={(e) => handleAction('edit', e)}
                 className="flex-1"
               >

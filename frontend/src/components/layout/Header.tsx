@@ -1,4 +1,4 @@
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/auth.store';
 import { RoleBadge } from '@/components/ui/role-badge';
 import {

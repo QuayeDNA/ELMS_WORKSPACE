@@ -2,7 +2,7 @@ import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -24,6 +24,27 @@ import {
   DepartmentDetails,
 } from "@/types/shared/department";
 import { Program } from "@/types/shared/program";
+
+// Import DepartmentCourse type from the component
+interface DepartmentCourse {
+  id: number;
+  name: string;
+  code: string;
+  level: number;
+  courseType: string;
+  creditHours: number;
+  isActive: boolean;
+  programCourses?: {
+    program: {
+      id: number;
+      name: string;
+      code: string;
+    };
+    level: number;
+    semester: number;
+    isRequired: boolean;
+  }[];
+}
 
 const DepartmentDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -73,7 +94,7 @@ const DepartmentDetailsPage: React.FC = () => {
 
   const department = departmentResponse?.data;
   const programs = programsResponse?.data?.programs || [];
-  const courses = coursesResponse?.data || [];
+  const courses = (coursesResponse?.data || []) as DepartmentCourse[];
   const instructors = instructorsResponse?.data?.instructors || [];
   const students = studentsResponse?.data?.students || [];
 

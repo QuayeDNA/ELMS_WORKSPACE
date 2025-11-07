@@ -1,9 +1,9 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/auth.store';
-import { 
-  Building, 
-  Users, 
+import {
+  Building,
+  Users,
   Settings,
   BarChart3,
   LogOut,

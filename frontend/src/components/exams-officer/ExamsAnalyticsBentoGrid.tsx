@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, ClipboardList, Users, BarChart } from 'lucide-react';
+import { TrendingUp, BarChart } from 'lucide-react';
 
 export function ExamsAnalyticsBentoGrid() {
 	return (

@@ -68,5 +68,9 @@
   "license": "MIT",
   "dependencies": {
     "electron": "38.1.2"
+  },
+  "overrides": {
+    "@types/react": "18.2.64",
+    "@types/react-dom": "18.2.21"
   }
 }

@@ -1,5 +1,5 @@
 import { MoreHorizontal, Edit, Trash2, Users, MapPin, Mail, Phone, Eye, CheckCircle, XCircle } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import {
@@ -50,8 +50,8 @@ const StatusBadge = ({ status }: { status: InstitutionStatus }) => {
   };
 
   return (
-    <Badge 
-      variant="outline" 
+    <Badge
+      variant="outline"
       className={colorMap[statusOption?.color || 'gray']}
     >
       {statusOption?.label || status}
@@ -76,11 +76,11 @@ const TypeBadge = ({ type }: { type: InstitutionType }) => {
   );
 };
 
-const TableActionMenu = ({ 
-  institution, 
-  onEdit, 
-  onDelete, 
-  onView, 
+const TableActionMenu = ({
+  institution,
+  onEdit,
+  onDelete,
+  onView,
   onManageAdmins,
   onActivate,
   onDeactivate,
@@ -121,7 +121,7 @@ const TableActionMenu = ({
             {isActionLoading ? 'Deactivating...' : 'Deactivate'}
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem 
+        <DropdownMenuItem
           onClick={() => onDelete(institution)}
           className="text-red-600 focus:text-red-600"
           disabled={isActionLoading}
@@ -279,9 +279,9 @@ export const InstitutionTable = ({
               <td className="px-4 py-3">
                 <div className="flex items-center text-sm text-gray-600">
                   <MapPin className="h-3 w-3 mr-1" />
-                  {institution.city ? 
-                    institution.state ? 
-                      `${institution.city}, ${institution.state}` : 
+                  {institution.city ?
+                    institution.state ?
+                      `${institution.city}, ${institution.state}` :
                       institution.city :
                     'Not specified'
                   }

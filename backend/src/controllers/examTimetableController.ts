@@ -720,4 +720,100 @@ export const examTimetableController = {
       });
     }
   },
+
+  /**
+   * POST /api/timetable-entries/batch
+   * Batch create multiple exam timetable entries
+   */
+  async batchCreateEntries(req: Request, res: Response) {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: "Authentication required",
+        });
+      }
+
+      const { timetableId, entries } = req.body;
+
+      if (!timetableId) {
+        return res.status(400).json({
+          success: false,
+          message: "Timetable ID is required",
+        });
+      }
+
+      if (!Array.isArray(entries) || entries.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Entries array is required and must not be empty",
+        });
+      }
+
+      // Create entries in batch
+      const createdEntries = [];
+      const errors = [];
+
+      for (let i = 0; i < entries.length; i++) {
+        try {
+          const entry = entries[i];
+          const entryData: CreateTimetableEntryData = {
+            timetableId,
+            courseId: entry.courseId,
+            programIds: entry.programIds || [],
+            level: entry.level,
+            examDate: entry.examDate,
+            startTime: entry.startTime,
+            endTime: entry.endTime || calculateEndTime(entry.startTime, entry.duration),
+            duration: entry.duration,
+            venueId: entry.venueId,
+            roomIds: entry.roomIds || [],
+            invigilatorIds: entry.invigilatorIds || [],
+            chiefInvigilatorId: entry.chiefInvigilatorId,
+            notes: entry.notes,
+            specialRequirements: entry.specialRequirements,
+          };
+
+          const created = await examTimetableService.createTimetableEntry(entryData);
+          createdEntries.push(created);
+        } catch (error) {
+          errors.push({
+            index: i,
+            entry: entries[i],
+            error: error instanceof Error ? error.message : "Unknown error",
+          });
+        }
+      }
+
+      res.status(errors.length > 0 ? 207 : 201).json({
+        success: createdEntries.length > 0,
+        message: `Created ${createdEntries.length} out of ${entries.length} entries`,
+        data: {
+          created: createdEntries,
+          failed: errors,
+          summary: {
+            total: entries.length,
+            succeeded: createdEntries.length,
+            failed: errors.length,
+          },
+        },
+      });
+    } catch (error) {
+      console.error("Error batch creating entries:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to batch create entries",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  },
 };
+
+// Helper function to calculate end time
+function calculateEndTime(startTime: string | Date, durationMinutes: number): string | Date {
+  const start = new Date(startTime);
+  const end = new Date(start.getTime() + durationMinutes * 60000);
+  return end;
+}
+

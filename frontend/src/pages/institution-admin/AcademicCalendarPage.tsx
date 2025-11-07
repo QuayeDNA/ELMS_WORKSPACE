@@ -3,7 +3,7 @@ import { Plus, Calendar, Grid3x3, Table2, RefreshCw } from 'lucide-react';
 import { useApiRequest } from '@/hooks/useApiRequest';
 import { academicService } from '@/services/academic.service';
 import { AcademicYear } from '@/types/academic';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';

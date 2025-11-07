@@ -1,5 +1,5 @@
 import { Search, Filter, X } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -94,7 +94,7 @@ export const InstitutionFiltersComponent = ({
             disabled={loading}
           />
         </div>
-        
+
         <div className="flex gap-2">
           {activeFiltersCount > 0 && (
             <Button
@@ -210,7 +210,7 @@ export const InstitutionFiltersComponent = ({
             <Filter className="h-3 w-3 mr-1" />
             Active filters:
           </span>
-          
+
           {filters.search && (
             <Badge variant="secondary" className="flex items-center gap-1">
               Search: "{filters.search}"
@@ -222,7 +222,7 @@ export const InstitutionFiltersComponent = ({
               </button>
             </Badge>
           )}
-          
+
           {filters.type !== 'ALL' && (
             <Badge variant="secondary" className="flex items-center gap-1">
               Type: {INSTITUTION_TYPE_OPTIONS.find(t => t.value === filters.type)?.label}
@@ -234,7 +234,7 @@ export const InstitutionFiltersComponent = ({
               </button>
             </Badge>
           )}
-          
+
           {filters.status !== 'ALL' && (
             <Badge variant="secondary" className="flex items-center gap-1">
               Status: {INSTITUTION_STATUS_OPTIONS.find(s => s.value === filters.status)?.label}
@@ -246,7 +246,7 @@ export const InstitutionFiltersComponent = ({
               </button>
             </Badge>
           )}
-          
+
           {filters.sortBy !== DEFAULT_INSTITUTION_FILTERS.sortBy && (
             <Badge variant="secondary" className="flex items-center gap-1">
               Sort: {filters.sortBy}
@@ -258,7 +258,7 @@ export const InstitutionFiltersComponent = ({
               </button>
             </Badge>
           )}
-          
+
           {filters.sortOrder !== DEFAULT_INSTITUTION_FILTERS.sortOrder && (
             <Badge variant="secondary" className="flex items-center gap-1">
               Order: {filters.sortOrder}

@@ -1,6 +1,6 @@
 import { Calendar, MoreVertical, Edit, Trash2, Check, Eye } from 'lucide-react';
 import { AcademicYear } from '@/types/academic';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,

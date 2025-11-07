@@ -2,7 +2,7 @@ import { Outlet } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { PanelLeftClose, PanelLeftOpen, Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 

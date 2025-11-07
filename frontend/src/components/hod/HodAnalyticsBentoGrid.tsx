@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, BarChart, Users, BookOpen } from 'lucide-react';
+import { TrendingUp, BarChart, Users } from 'lucide-react';
 
 export function HodAnalyticsBentoGrid() {
 	return (

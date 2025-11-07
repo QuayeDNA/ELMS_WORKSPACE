@@ -20,7 +20,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import { venueService } from "@/services/venue.service";
 import { Room } from "@/types/venue";
 import { Loader2 } from "lucide-react";

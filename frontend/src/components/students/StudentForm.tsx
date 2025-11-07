@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,8 +11,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { 
-  Student, 
+import {
+  Student,
   CreateStudentRequest,
   UpdateStudentRequest
 } from '@/types/student';
@@ -43,7 +43,7 @@ export const StudentForm: React.FC<StudentFormProps> = ({
     gender: '',
     nationality: '',
     address: '',
-    
+
     // Profile fields
     studentId: '',
     indexNumber: '',
@@ -133,7 +133,7 @@ export const StudentForm: React.FC<StudentFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }

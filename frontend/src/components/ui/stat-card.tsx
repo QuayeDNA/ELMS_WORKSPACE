@@ -21,7 +21,6 @@ export function StatCard({
   description,
   icon: Icon,
   trend,
-  variant = 'default',
   className,
 }: StatCardProps) {
   const isPositiveTrend = trend && trend.value > 0;
