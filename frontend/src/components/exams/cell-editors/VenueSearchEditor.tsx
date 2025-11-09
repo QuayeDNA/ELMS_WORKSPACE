@@ -6,8 +6,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { venueService } from '@/services/venue.service';
 import { Venue } from '@/types/venue';
 import { Loader2, MapPin } from 'lucide-react';
+import { ExamEntryRow } from '../ExamEntryExcelView';
 
-export interface VenueSearchEditorProps extends RenderEditCellProps<any> {
+export interface VenueSearchEditorProps extends RenderEditCellProps<ExamEntryRow> {
   institutionId: number | string;
 }
 
@@ -15,7 +16,6 @@ export const VenueSearchEditor = (props: VenueSearchEditorProps) => {
   const [displayValue, setDisplayValue] = useState<string>('');
   const [venues, setVenues] = useState<Venue[]>([]);
   const [loading, setLoading] = useState(false);
-  const [isOpen, setIsOpen] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Convert institutionId to number
@@ -103,21 +103,19 @@ export const VenueSearchEditor = (props: VenueSearchEditorProps) => {
   };
 
   const handleSelect = (venue: Venue) => {
-    setDisplayValue(venue.name);
-    setIsOpen(false);
     // Update all venue-related fields in the row
-    props.onRowChange({
+    const updatedRow = {
       ...props.row,
       venueId: venue.id,
       venueName: venue.name,
       venueLocation: venue.location,
       venueCapacity: venue.capacity,
-    });
-    props.onClose(true);
+    };
+    props.onRowChange(updatedRow, true);
   };
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
+    <Popover defaultOpen>
       <PopoverTrigger asChild>
         <Input
           ref={inputRef}

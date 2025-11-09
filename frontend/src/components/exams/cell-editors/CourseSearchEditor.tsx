@@ -6,8 +6,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { courseService } from '@/services/course.service';
 import { Course } from '@/types/course';
 import { Loader2 } from 'lucide-react';
+import { ExamEntryRow } from '../ExamEntryExcelView';
 
-export interface CourseSearchEditorProps extends RenderEditCellProps<any> {
+export interface CourseSearchEditorProps extends RenderEditCellProps<ExamEntryRow> {
   institutionId: number | string;
 }
 
@@ -15,7 +16,6 @@ export const CourseSearchEditor = (props: CourseSearchEditorProps) => {
   const [displayValue, setDisplayValue] = useState<string>('');
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(false);
-  const [isOpen, setIsOpen] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Convert institutionId to number
@@ -104,21 +104,19 @@ export const CourseSearchEditor = (props: CourseSearchEditorProps) => {
   };
 
   const handleSelect = (course: Course) => {
-    setDisplayValue(`${course.code} - ${course.name}`);
-    setIsOpen(false);
     // Update all course-related fields in the row
-    props.onRowChange({
+    const updatedRow = {
       ...props.row,
       courseId: course.id,
       courseCode: course.code,
       courseName: course.name,
-      level: course.level,
-    });
-    props.onClose(true);
+      level: course.level.toString(),
+    };
+    props.onRowChange(updatedRow, true);
   };
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
+    <Popover defaultOpen>
       <PopoverTrigger asChild>
         <Input
           ref={inputRef}

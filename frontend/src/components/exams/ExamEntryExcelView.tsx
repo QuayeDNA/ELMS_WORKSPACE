@@ -27,6 +27,9 @@ import { VenueSearchEditor } from './cell-editors/VenueSearchEditor';
 // Import service and types
 import { examTimetableService, BulkUploadValidationResult } from '@/services/examTimetable.service';
 
+// Import time utilities
+import { formatTimeToAMPM } from '@/utils/timeUtils';
+
 // Type definitions
 export interface ExamEntryRow {
   id: string;
@@ -423,7 +426,9 @@ export default function ExamEntryExcelView({
         renderCell: ({ row }: { row: ExamEntryRow }) => (
           <div className="flex items-center gap-2 h-full px-2">
             <Clock className="w-4 h-4 text-gray-400 shrink-0" />
-            <span className="font-mono text-sm">{row.startTime || '-'}</span>
+            <span className="font-mono text-sm">
+              {row.startTime ? formatTimeToAMPM(row.startTime) : '-'}
+            </span>
           </div>
         ),
       },
@@ -535,9 +540,9 @@ export default function ExamEntryExcelView({
   }, [rowData]);
 
   return (
-    <div className="p-6 space-y-4 bg-gray-50 min-h-screen">
+    <div className="space-y-4 min-h-screen">
       {/* Header */}
-      <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
+      <div className="bg-white rounded-lg shadow-sm p-4 border b order-gray-200">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-lg font-semibold text-gray-900">Exam Entries</h3>

@@ -55,6 +55,7 @@ import {
 import { useAuthStore } from '@/stores/auth.store';
 import ExamEntryExcelView, { ExamEntryRow } from '@/components/exams/ExamEntryExcelView';
 import { TimetableEditDialog } from '@/components/exams/TimetableEditDialog';
+import { extractTimeFromISO, combineDateTime, calculateEndTime } from '@/utils/timeUtils';
 
 export default function ExamTimetableDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -77,7 +78,7 @@ export default function ExamTimetableDetailPage() {
     courseId: entry.courseId,
     courseName: entry.course?.name || '',
     examDate: entry.examDate,
-    startTime: entry.startTime,
+    startTime: extractTimeFromISO(entry.startTime), // Extract time from ISO datetime
     duration: entry.duration,
     venueName: entry.venue?.name || '',
     venueId: entry.venueId,
@@ -176,13 +177,18 @@ export default function ExamTimetableDetailPage() {
             continue;
           }
 
+          // Combine date and time into ISO datetime strings
+          const startTimeISO = combineDateTime(row.examDate, row.startTime);
+          const endTime = calculateEndTime(row.startTime, row.duration);
+          const endTimeISO = combineDateTime(row.examDate, endTime);
+
           const entryData = {
             courseId: row.courseId,
             programIds: [], // Default, can be enhanced later
             level: row.level ? parseInt(row.level) : undefined,
             examDate: row.examDate,
-            startTime: row.startTime,
-            endTime: row.startTime, // TODO: Calculate end time from start time + duration
+            startTime: startTimeISO,
+            endTime: endTimeISO,
             duration: row.duration,
             venueId: row.venueId,
             roomIds: [], // Default, can be enhanced later

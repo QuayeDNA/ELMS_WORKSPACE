@@ -3,17 +3,17 @@ import { RenderEditCellProps } from 'react-data-grid';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
+import { ExamEntryRow } from '../ExamEntryExcelView';
 
-export interface DatePickerEditorProps extends RenderEditCellProps<any> {
+export interface DatePickerEditorProps extends RenderEditCellProps<ExamEntryRow> {
   minDate?: Date;
   maxDate?: Date;
 }
 
 export const DatePickerEditor = (props: DatePickerEditorProps) => {
   const [value, setValue] = useState<Date | undefined>(
-    props.row[props.column.key] ? new Date(props.row[props.column.key]) : undefined
+    props.row[props.column.key] ? new Date(props.row[props.column.key] as string) : undefined
   );
-  const [isOpen, setIsOpen] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -25,17 +25,16 @@ export const DatePickerEditor = (props: DatePickerEditorProps) => {
 
   const handleSelect = (date: Date | undefined) => {
     setValue(date);
-    setIsOpen(false);
     // Update the row with the new value
-    props.onRowChange({
+    const updatedRow = {
       ...props.row,
       [props.column.key]: date ? format(date, 'yyyy-MM-dd') : ''
-    });
-    props.onClose(true);
+    };
+    props.onRowChange(updatedRow, true);
   };
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
+    <Popover defaultOpen>
       <PopoverTrigger asChild>
         <input
           ref={inputRef}
