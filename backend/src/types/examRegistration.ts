@@ -44,6 +44,7 @@ export interface CreateExamRegistrationData {
   courseId: number;
   seatNumber?: string;
   notes?: string;
+  studentQRCode: string;
 }
 
 export interface UpdateExamRegistrationData {
@@ -103,4 +104,28 @@ export interface ActiveExamInfo {
   venueName: string;
   canSubmit: boolean;
   isWithinTime: boolean;
+}
+
+export interface StudentAttendanceData {
+  registrationId: number;
+  studentId: number;
+  examEntryId: number;
+  isPresent: boolean;
+  arrivedAt?: Date;
+  markedBy: number;
+  seatNumber?: string;
+  notes?: string;
+}
+
+export interface RegistrationStatistics {
+  totalRegistered: number;
+  present: number;
+  totalPresent: number; // Alias for present
+  absent: number;
+  scriptsSubmitted: number;
+  totalSubmitted: number; // Alias for scriptsSubmitted
+  scriptsPending: number;
+  totalPending: number; // Alias for scriptsPending
+  attendanceRate: number;
+  submissionRate: number;
 }

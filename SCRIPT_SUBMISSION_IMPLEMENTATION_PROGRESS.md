@@ -20,23 +20,24 @@
 - [x] Created `batchScript.ts` types
 - [x] Created `scriptSubmission.ts` types
 
-## 🔄 IN PROGRESS (Phase 2 - Backend Implementation)
+## ✅ COMPLETED (Phase 2 - Backend Implementation)
 
-### Services to Create
-- [ ] `examRegistrationService.ts` - Student exam registration logic
-- [ ] `batchScriptService.ts` - Batch script management
-- [ ] `scriptSubmissionService.ts` - Script submission flow
-- [ ] `qrCodeService.ts` - QR code generation & verification
+### Services ✓
+- [x] `qrCodeService.ts` - QR code generation & verification
+- [x] `examRegistrationService.ts` - Student exam registration logic
+- [x] `batchScriptService.ts` - Batch script management
+- [x] `scriptSubmissionService.ts` - Script submission flow
 
-### Controllers to Create
-- [ ] `examRegistrationController.ts`
-- [ ] `batchScriptController.ts`
-- [ ] `scriptSubmissionController.ts`
+### Controllers ✓
+- [x] `examRegistrationController.ts`
+- [x] `batchScriptController.ts`
+- [x] `scriptSubmissionController.ts`
 
-### Routes to Create
-- [ ] `examRegistrationRoutes.ts`
-- [ ] `batchScriptRoutes.ts`
-- [ ] `scriptSubmissionRoutes.ts`
+### Routes ✓
+- [x] `examRegistrationRoutes.ts`
+- [x] `batchScriptRoutes.ts`
+- [x] `scriptSubmissionRoutes.ts`
+- [x] Routes registered in `server.ts`
 
 ## 📋 TODO (Phase 3 - Frontend Implementation)
 

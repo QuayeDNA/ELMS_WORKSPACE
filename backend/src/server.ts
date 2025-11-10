@@ -29,6 +29,9 @@ import academicHistoryRoutes from "./routes/academicHistoryRoutes";
 import examTimetableRoutes from "./routes/examTimetableRoutes";
 import timetableEntryRoutes from "./routes/timetableEntryRoutes";
 import timetableConflictRoutes from "./routes/timetableConflictRoutes";
+import examRegistrationRoutes from "./routes/examRegistrationRoutes";
+import batchScriptRoutes from "./routes/batchScriptRoutes";
+import scriptSubmissionRoutes from "./routes/scriptSubmissionRoutes";
 
 // Load environment variables
 dotenv.config();
@@ -150,6 +153,9 @@ app.get("/api", (req, res) => {
       timetables: "/api/timetables",
       "timetable-entries": "/api/timetable-entries",
       "timetable-conflicts": "/api/timetable-conflicts",
+      "exam-registrations": "/api/exam-registrations",
+      "batch-scripts": "/api/batch-scripts",
+      "script-submissions": "/api/script-submissions",
       incidents: "/api/incidents",
       venues: "/api/venues"
     },
@@ -254,6 +260,11 @@ app.use("/api/exams", examRoutes);
 app.use("/api/timetables", examTimetableRoutes);
 app.use("/api/timetable-entries", timetableEntryRoutes);
 app.use("/api/timetable-conflicts", timetableConflictRoutes);
+
+// Script submission routes (Phase 4 - Script Management)
+app.use("/api/exam-registrations", examRegistrationRoutes);
+app.use("/api/batch-scripts", batchScriptRoutes);
+app.use("/api/script-submissions", scriptSubmissionRoutes);
 
 // Incident routes
 app.use("/api/incidents", incidentRoutes);

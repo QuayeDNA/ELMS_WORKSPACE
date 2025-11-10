@@ -124,3 +124,15 @@ export interface SealBatchData {
   verifiedBy: number;
   notes?: string;
 }
+
+export interface BatchSubmissionStats {
+  batchId: number;
+  totalRegistered: number;
+  scriptsSubmitted: number;
+  scriptsCollected: number;
+  scriptsGraded: number;
+  pending: number;
+  submissionRate: number;
+  gradingProgress: number;
+  status: string;
+}

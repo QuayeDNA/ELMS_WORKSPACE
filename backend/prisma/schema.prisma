@@ -8,68 +8,69 @@ datasource db {
 }
 
 model User {
-  id                     Int                      @id @default(autoincrement())
-  email                  String                   @unique
-  password               String
-  firstName              String
-  lastName               String
-  middleName             String?
-  title                  String?
-  role                   UserRole
-  status                 UserStatus               @default(PENDING_VERIFICATION)
-  lastLogin              DateTime?
-  emailVerified          Boolean                  @default(false)
-  twoFactorEnabled       Boolean                  @default(false)
-  phone                  String?
-  dateOfBirth            DateTime?
-  gender                 String?
-  nationality            String?
-  address                String?
-  createdAt              DateTime                 @default(now())
-  updatedAt              DateTime                 @updatedAt
-  institutionId          Int?
-  facultyId              Int?
-  departmentId           Int?
-  calendarImports        AcademicCalendarImport[]
-  academicPeriodsCreated AcademicPeriod[]
-  adminProfiles          AdminProfile?
-  auditLogs              AuditLog[]
-  courseLecturers        CourseLecturer[]
-  courseOfferings        CourseOffering[]
-  registrationsAdvised   CourseRegistration[]     @relation("RegistrationAdvisors")
-  registrationsApproved  CourseRegistration[]     @relation("RegistrationApprovers")
-  courseRegistrations    CourseRegistration[]     @relation("StudentRegistrations")
-  departmentsAsHOD       Department[]             @relation("DepartmentHOD")
-  enrollments            Enrollment[]
-  examOfficerProfiles    ExamOfficerProfile?
-  timetablesApproved     ExamTimetable[]          @relation("TimetableApprover")
-  timetablesCreated      ExamTimetable[]          @relation("TimetableCreator")
-  timetablesPublished    ExamTimetable[]          @relation("TimetablePublisher")
-  facultiesAsDean        Faculty[]                @relation("FacultyDean")
-  facultyProfiles        FacultyAdminProfile?
-  incidentsAssigned      Incident[]               @relation("AssignedTo")
-  incidentsReported      Incident[]               @relation("ReportedBy")
-  invigilatorProfiles    InvigilatorProfile?
-  lecturerDepartments    LecturerDepartment[]
-  lecturerProfiles       LecturerProfile?
-  scriptHandlerProfiles  ScriptHandlerProfile?
-  movementsTo            ScriptMovement[]         @relation("MovementTo")
-  examRegistrations      ExamRegistration[]       @relation("StudentExamRegistrations")
-  attendanceMarked       ExamRegistration[]       @relation("AttendanceMarkers")
-  batchScriptsAssigned   BatchScript[]            @relation("BatchScriptsAssigned")
-  batchScriptsSealed     BatchScript[]            @relation("BatchScriptsSealed")
-  scriptsHolding         Script[]                 @relation("ScriptsHolding")
-  scriptsGraded          Script[]                 @relation("ScriptsGraded")
-  academicHistory        StudentAcademicHistory?  @relation("StudentAcademicHistory")
-  assessmentsGraded      StudentAssessment[]      @relation("GradedBy")
-  studentAssessments     StudentAssessment[]
-  studentProfiles        StudentProfile?
-  semesterRecords        StudentSemesterRecord[]  @relation("StudentSemesterRecords")
-  conflictsResolved      TimetableConflict[]
-  timetableImports       TimetableImport[]
-  department             Department?              @relation(fields: [departmentId], references: [id])
-  faculty                Faculty?                 @relation(fields: [facultyId], references: [id])
-  institution            Institution?             @relation(fields: [institutionId], references: [id])
+  id                                                        Int                      @id @default(autoincrement())
+  email                                                     String                   @unique
+  password                                                  String
+  firstName                                                 String
+  lastName                                                  String
+  middleName                                                String?
+  title                                                     String?
+  role                                                      UserRole
+  status                                                    UserStatus               @default(PENDING_VERIFICATION)
+  lastLogin                                                 DateTime?
+  emailVerified                                             Boolean                  @default(false)
+  twoFactorEnabled                                          Boolean                  @default(false)
+  phone                                                     String?
+  dateOfBirth                                               DateTime?
+  gender                                                    String?
+  nationality                                               String?
+  address                                                   String?
+  createdAt                                                 DateTime                 @default(now())
+  updatedAt                                                 DateTime                 @updatedAt
+  institutionId                                             Int?
+  facultyId                                                 Int?
+  departmentId                                              Int?
+  calendarImports                                           AcademicCalendarImport[]
+  academicPeriodsCreated                                    AcademicPeriod[]
+  adminProfiles                                             AdminProfile?
+  auditLogs                                                 AuditLog[]
+  batchScriptsAssigned                                      BatchScript[]            @relation("BatchScriptsAssigned")
+  batchScriptsSealed                                        BatchScript[]            @relation("BatchScriptsSealed")
+  courseLecturers                                           CourseLecturer[]
+  courseOfferings                                           CourseOffering[]
+  registrationsAdvised                                      CourseRegistration[]     @relation("RegistrationAdvisors")
+  registrationsApproved                                     CourseRegistration[]     @relation("RegistrationApprovers")
+  courseRegistrations                                       CourseRegistration[]     @relation("StudentRegistrations")
+  departmentsAsHOD                                          Department[]             @relation("DepartmentHOD")
+  enrollments                                               Enrollment[]
+  examOfficerProfiles                                       ExamOfficerProfile?
+  attendanceMarked                                          ExamRegistration[]       @relation("AttendanceMarkers")
+  examRegistrations                                         ExamRegistration[]       @relation("StudentExamRegistrations")
+  scriptsSubmittedTo                                        ExamRegistration[]       @relation("ScriptSubmittedTo")
+  timetablesApproved                                        ExamTimetable[]          @relation("TimetableApprover")
+  timetablesCreated                                         ExamTimetable[]          @relation("TimetableCreator")
+  timetablesPublished                                       ExamTimetable[]          @relation("TimetablePublisher")
+  facultiesAsDean                                           Faculty[]                @relation("FacultyDean")
+  facultyProfiles                                           FacultyAdminProfile?
+  incidentsAssigned                                         Incident[]               @relation("AssignedTo")
+  incidentsReported                                         Incident[]               @relation("ReportedBy")
+  invigilatorProfiles                                       InvigilatorProfile?
+  lecturerDepartments                                       LecturerDepartment[]
+  lecturerProfiles                                          LecturerProfile?
+  scriptHandlerProfiles                                     ScriptHandlerProfile?
+  movementsTo                                               ScriptMovement[]         @relation("MovementTo")
+  scriptsHolding                                            Script[]                 @relation("ScriptsHolding")
+  scriptsGraded                                             Script[]                 @relation("ScriptsGraded")
+  academicHistory                                           StudentAcademicHistory?  @relation("StudentAcademicHistory")
+  assessmentsGraded                                         StudentAssessment[]      @relation("GradedBy")
+  studentAssessments                                        StudentAssessment[]
+  studentProfiles                                           StudentProfile?
+  semesterRecords                                           StudentSemesterRecord[]  @relation("StudentSemesterRecords")
+  conflictsResolved                                         TimetableConflict[]
+  timetableImports                                          TimetableImport[]
+  department                                                Department?              @relation(fields: [departmentId], references: [id])
+  faculty                                                   Faculty?                 @relation(fields: [facultyId], references: [id])
+  institution                                               Institution?             @relation(fields: [institutionId], references: [id])
 
   @@index([institutionId, role])
   @@index([facultyId, role])
@@ -313,13 +314,13 @@ model Course {
   isActive          Boolean              @default(true)
   createdAt         DateTime             @default(now())
   updatedAt         DateTime             @updatedAt
+  batchScripts      BatchScript[]
   courseOfferings   CourseOffering[]
   department        Department           @relation(fields: [departmentId], references: [id])
   enrollments       Enrollment[]
   timetableEntries  ExamTimetableEntry[]
   exams             Exam[]
   programCourses    ProgramCourse[]
-  batchScripts      BatchScript[]
 
   @@map("courses")
 }
@@ -777,14 +778,14 @@ model ExamTimetableEntry {
   conflictDetails     String?
   createdAt           DateTime                 @default(now())
   updatedAt           DateTime                 @updatedAt
+  batchScripts        BatchScript[]
+  examRegistrations   ExamRegistration[]
   course              Course                   @relation(fields: [courseId], references: [id])
   exam                Exam?                    @relation(fields: [examId], references: [id])
   timetable           ExamTimetable            @relation(fields: [timetableId], references: [id], onDelete: Cascade)
   venue               Venue                    @relation(fields: [venueId], references: [id])
   conflictsAsEntry1   TimetableConflict[]      @relation("ConflictEntry1")
   conflictsAsEntry2   TimetableConflict[]      @relation("ConflictEntry2")
-  examRegistrations   ExamRegistration[]
-  batchScripts        BatchScript[]
 
   @@index([timetableId, examDate])
   @@index([courseId])
@@ -881,26 +882,27 @@ model Room {
 }
 
 model Script {
-  id              Int              @id @default(autoincrement())
-  qrCode          String           @unique
-  studentId       String
-  examId          Int
-  batchScriptId   Int?
-  currentHolderId Int?
-  gradedById      Int?
-  status          ScriptStatus     @default(GENERATED)
-  score           Float?
-  maxScore        Float?
-  gradedAt        DateTime?
-  notes           String?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  incidents       Incident[]
-  movements       ScriptMovement[]
-  Exam            Exam             @relation(fields: [examId], references: [id])
-  batchScript     BatchScript?     @relation(fields: [batchScriptId], references: [id])
-  currentHolder   User?            @relation("ScriptsHolding", fields: [currentHolderId], references: [id])
-  gradedBy        User?            @relation("ScriptsGraded", fields: [gradedById], references: [id])
+  id                 Int                @id @default(autoincrement())
+  qrCode             String             @unique
+  studentId          String
+  examId             Int
+  status             ScriptStatus       @default(GENERATED)
+  notes              String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  batchScriptId      Int?
+  currentHolderId    Int?
+  gradedById         Int?
+  score              Float?
+  maxScore           Float?
+  gradedAt           DateTime?
+  exam_registrations ExamRegistration[]
+  incidents          Incident[]
+  movements          ScriptMovement[]
+  batchScript        BatchScript?       @relation(fields: [batchScriptId], references: [id])
+  currentHolder      User?              @relation("ScriptsHolding", fields: [currentHolderId], references: [id])
+  Exam               Exam               @relation(fields: [examId], references: [id])
+  gradedBy           User?              @relation("ScriptsGraded", fields: [gradedById], references: [id])
 
   @@index([examId, status])
   @@index([batchScriptId])
@@ -911,15 +913,15 @@ model Script {
 model ScriptMovement {
   id            Int          @id @default(autoincrement())
   scriptId      Int
-  batchScriptId Int?
   type          MovementType
   fromUserId    Int?
   toUserId      Int?
   location      String?
   notes         String?
   timestamp     DateTime     @default(now())
-  script        Script       @relation(fields: [scriptId], references: [id])
+  batchScriptId Int?
   batchScript   BatchScript? @relation(fields: [batchScriptId], references: [id])
+  script        Script       @relation(fields: [scriptId], references: [id])
   toUser        User?        @relation("MovementTo", fields: [toUserId], references: [id])
 
   @@index([batchScriptId])
@@ -941,13 +943,20 @@ model ExamRegistration {
   notes              String?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
-  student            User               @relation("StudentExamRegistrations", fields: [studentId], references: [id])
-  examEntry          ExamTimetableEntry @relation(fields: [examEntryId], references: [id])
+  submittedTo        Int?               @map("submitted_to")
+  batchScriptId      Int?               @map("batch_script_id")
+  scriptId           Int?               @map("script_id")
   markedBy           User?              @relation("AttendanceMarkers", fields: [attendanceMarkedBy], references: [id])
+  examEntry          ExamTimetableEntry @relation(fields: [examEntryId], references: [id])
+  student            User               @relation("StudentExamRegistrations", fields: [studentId], references: [id])
+  batchScript        BatchScript?       @relation(fields: [batchScriptId], references: [id], onUpdate: NoAction, map: "fk_exam_registrations_batch_script")
+  script             Script?            @relation(fields: [scriptId], references: [id], onUpdate: NoAction, map: "fk_exam_registrations_script")
+  submittedToUser    User?              @relation("ScriptSubmittedTo", fields: [submittedTo], references: [id], onUpdate: NoAction, map: "fk_exam_registrations_submitted_to")
 
   @@unique([studentId, examEntryId])
   @@index([examEntryId, scriptSubmitted])
   @@index([studentId])
+  @@index([batchScriptId], map: "idx_exam_registrations_batch_script_id")
   @@map("exam_registrations")
 }
 
@@ -969,12 +978,13 @@ model BatchScript {
   notes              String?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
-  examEntry          ExamTimetableEntry @relation(fields: [examEntryId], references: [id])
-  course             Course             @relation(fields: [courseId], references: [id])
   assignedLecturer   User?              @relation("BatchScriptsAssigned", fields: [assignedLecturerId], references: [id])
+  course             Course             @relation(fields: [courseId], references: [id])
+  examEntry          ExamTimetableEntry @relation(fields: [examEntryId], references: [id])
   sealedByUser       User?              @relation("BatchScriptsSealed", fields: [sealedBy], references: [id])
-  scripts            Script[]
+  exam_registrations ExamRegistration[]
   movements          ScriptMovement[]
+  scripts            Script[]
 
   @@unique([examEntryId, courseId])
   @@index([courseId, status])
@@ -1223,7 +1233,6 @@ enum ScriptStatus {
   GRADING_IN_PROGRESS
   GRADED
   RETURNED
-  ARCHIVED
 }
 
 enum MovementType {
@@ -1231,14 +1240,13 @@ enum MovementType {
   DISTRIBUTED_TO_VENUE
   COLLECTED_FROM_STUDENT
   VERIFIED_BY_INVIGILATOR
-  BATCH_SEALED
-  BATCH_TRANSFERRED
   SCANNED_BY_HANDLER
   DISPATCHED_TO_GRADER
   RECEIVED_BY_GRADER
-  GRADING_STARTED
   GRADED
   RETURNED_TO_REGISTRY
+  BATCH_SEALED
+  BATCH_TRANSFERRED
 }
 
 enum IncidentType {

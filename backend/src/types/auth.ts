@@ -132,6 +132,7 @@ export interface AuthResponse {
 }
 
 export interface JwtPayload {
+  id: number; // User ID for backward compatibility (same as userId)
   userId: number;
   email: string;
   role: UserRole;
