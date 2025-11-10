@@ -648,7 +648,7 @@ export class RegistrationService {
     }
 
     // Get student's program ID from student profiles
-    const studentProgramId = student.studentProfiles?.[0]?.programId;
+    const studentProgramId = student.studentProfiles?.programId;
 
     // Check prerequisites (only if student has a program)
     const programCourse = studentProgramId ? await prisma.programCourse.findFirst({

@@ -312,11 +312,16 @@ export class ExamRegistrationService {
       const pending = total - submitted;
       const submissionRate = total > 0 ? (submitted / total) * 100 : 0;
       const attendanceRate = total > 0 ? (present / total) * 100 : 0;
+      const absent = total - present;
 
       return {
         totalRegistered: total,
+        present,
         totalPresent: present,
+        absent,
+        scriptsSubmitted: submitted,
         totalSubmitted: submitted,
+        scriptsPending: pending,
         totalPending: pending,
         submissionRate: Math.round(submissionRate * 100) / 100,
         attendanceRate: Math.round(attendanceRate * 100) / 100

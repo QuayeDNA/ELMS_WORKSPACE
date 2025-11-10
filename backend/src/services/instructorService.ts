@@ -579,7 +579,7 @@ export const instructorService = {
       prisma.user.groupBy({
         by: ["departmentId"],
         where: {
-          lecturerProfiles: { some: {} },
+          lecturerProfiles: { isNot: null },
           ...(departmentId ? { departmentId } : {}),
           ...(facultyId ? { facultyId } : {}),
           ...(institutionId ? { institutionId } : {}),

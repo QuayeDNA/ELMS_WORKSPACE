@@ -57,11 +57,11 @@ export interface CourseRegistrationWithRelations {
     firstName: string;
     lastName: string;
     email: string;
-    studentProfiles: Array<{
+    studentProfiles: {
       studentId: string;
       level: number;
       programId: number | null;
-    }>;
+    } | null;
   };
   semester?: {
     id: number;
@@ -257,10 +257,10 @@ export interface StudentSemesterRecordWithRelations {
     firstName: string;
     lastName: string;
     email: string;
-    studentProfiles: Array<{
+    studentProfiles: {
       studentId: number;
       level: number;
-    }>;
+    } | null;
   };
   semester?: {
     id: number;
@@ -302,7 +302,7 @@ export interface StudentAcademicHistoryWithRelations {
     firstName: string;
     lastName: string;
     email: string;
-    studentProfiles: Array<{
+    studentProfiles: {
       studentId: number;
       level: number;
       programId: number | null;
@@ -311,7 +311,7 @@ export interface StudentAcademicHistoryWithRelations {
         name: string;
         code: string;
       };
-    }>;
+    } | null;
   };
 }
 

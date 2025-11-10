@@ -70,10 +70,8 @@ export class StudentAcademicHistoryService {
             lastName: true,
             email: true,
             studentProfiles: {
-              select: {
-                studentId: true,
-                level: true,
-                programId: true
+              include: {
+                program: true
               }
             }
           }
@@ -96,10 +94,7 @@ export class StudentAcademicHistoryService {
             lastName: true,
             email: true,
             studentProfiles: {
-              select: {
-                studentId: true,
-                level: true,
-                programId: true,
+              include: {
                 program: {
                   select: {
                     id: true,
@@ -308,7 +303,7 @@ export class StudentAcademicHistoryService {
     const history = await this.getAcademicHistory(studentId);
 
     // Get program requirements
-    const studentProfile = history.student.studentProfiles[0];
+    const studentProfile = history.student.studentProfiles as any;
     if (!studentProfile || !studentProfile.program) {
       throw new Error('Student program information not found');
     }
@@ -490,8 +485,8 @@ export class StudentAcademicHistoryService {
         id: summary.history.student.id,
         name: `${summary.history.student.firstName} ${summary.history.student.lastName}`,
         email: summary.history.student.email,
-        studentId: summary.history.student.studentProfiles[0]?.studentId,
-        program: summary.history.student.studentProfiles[0]?.program?.name
+        studentId: (summary.history.student.studentProfiles as any)?.studentId || '',
+        program: (summary.history.student.studentProfiles as any)?.program?.name || 'N/A'
       },
       academicInfo: {
         admissionYear: summary.history.admissionYear,

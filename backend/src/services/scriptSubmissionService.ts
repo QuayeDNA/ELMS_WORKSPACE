@@ -25,7 +25,7 @@ export class ScriptSubmissionService {
       }
 
       const { studentId: qrStudentId, examEntryId, courseId } = qrValidation.data;
-      const studentId = qrStudentId || data.studentId;
+      const studentId = qrStudentId;
 
       if (!studentId) {
         throw new Error('Student ID is required');
@@ -202,7 +202,7 @@ export class ScriptSubmissionService {
         }
       });
 
-      if (!student || !student.studentProfiles || student.studentProfiles.length === 0) {
+      if (!student || !student.studentProfiles) {
         return {
           success: false,
           studentInfo: {} as any,
@@ -212,7 +212,7 @@ export class ScriptSubmissionService {
         };
       }
 
-      const studentProfile = student.studentProfiles[0]; // Get first profile
+      const studentProfile = student.studentProfiles;
 
       // Get active exams for this student
       const activeExams = await ExamRegistrationService.getActiveExamsForStudent(studentId!);
@@ -225,9 +225,9 @@ export class ScriptSubmissionService {
           studentId: student.id,
           firstName: student.firstName,
           lastName: student.lastName,
-          indexNumber: studentProfile.indexNumber || '',
-          programId: studentProfile.programId || 0,
-          level: studentProfile.level
+          indexNumber: (studentProfile as any).indexNumber || '',
+          programId: (studentProfile as any).programId || 0,
+          level: (studentProfile as any).level
         },
         activeExams,
         canSubmit,
@@ -261,7 +261,7 @@ export class ScriptSubmissionService {
       await prisma.scriptMovement.create({
         data: {
           scriptId: script.id,
-          batchScriptId: script.batchScriptId || undefined,
+          batchScriptId: (script as any).batchScriptId || undefined,
           type: 'VERIFIED_BY_INVIGILATOR',
           toUserId: verifiedBy,
           location: 'Verification Area',

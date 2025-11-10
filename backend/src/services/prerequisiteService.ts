@@ -61,7 +61,7 @@ export class PrerequisiteService {
     }
 
     // Get program ID from student profiles (first profile)
-    const studentProfile = student.studentProfiles?.[0];
+    const studentProfile = student.studentProfiles;
     const effectiveProgramId = programId || studentProfile?.programId;
 
     if (!effectiveProgramId) {

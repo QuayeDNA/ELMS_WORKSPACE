@@ -282,17 +282,7 @@ export class UserService {
     try {
       // Check if user exists
       const user = await prisma.user.findUnique({
-        where: { id },
-        include: {
-          _count: {
-            select: {
-              adminProfiles: true,
-              facultyProfiles: true,
-              lecturerProfiles: true,
-              studentProfiles: true
-            }
-          }
-        }
+        where: { id }
       });
 
       if (!user) {
