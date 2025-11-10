@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,31 +7,1043 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ========================================
-// CORE USER MANAGEMENT & AUTHENTICATION
-// ========================================
+model User {
+  id                     Int                      @id @default(autoincrement())
+  email                  String                   @unique
+  password               String
+  firstName              String
+  lastName               String
+  middleName             String?
+  title                  String?
+  role                   UserRole
+  status                 UserStatus               @default(PENDING_VERIFICATION)
+  lastLogin              DateTime?
+  emailVerified          Boolean                  @default(false)
+  twoFactorEnabled       Boolean                  @default(false)
+  phone                  String?
+  dateOfBirth            DateTime?
+  gender                 String?
+  nationality            String?
+  address                String?
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+  institutionId          Int?
+  facultyId              Int?
+  departmentId           Int?
+  calendarImports        AcademicCalendarImport[]
+  academicPeriodsCreated AcademicPeriod[]
+  adminProfiles          AdminProfile?
+  auditLogs              AuditLog[]
+  courseLecturers        CourseLecturer[]
+  courseOfferings        CourseOffering[]
+  registrationsAdvised   CourseRegistration[]     @relation("RegistrationAdvisors")
+  registrationsApproved  CourseRegistration[]     @relation("RegistrationApprovers")
+  courseRegistrations    CourseRegistration[]     @relation("StudentRegistrations")
+  departmentsAsHOD       Department[]             @relation("DepartmentHOD")
+  enrollments            Enrollment[]
+  examOfficerProfiles    ExamOfficerProfile?
+  timetablesApproved     ExamTimetable[]          @relation("TimetableApprover")
+  timetablesCreated      ExamTimetable[]          @relation("TimetableCreator")
+  timetablesPublished    ExamTimetable[]          @relation("TimetablePublisher")
+  facultiesAsDean        Faculty[]                @relation("FacultyDean")
+  facultyProfiles        FacultyAdminProfile?
+  incidentsAssigned      Incident[]               @relation("AssignedTo")
+  incidentsReported      Incident[]               @relation("ReportedBy")
+  invigilatorProfiles    InvigilatorProfile?
+  lecturerDepartments    LecturerDepartment[]
+  lecturerProfiles       LecturerProfile?
+  scriptHandlerProfiles  ScriptHandlerProfile?
+  movementsTo            ScriptMovement[]         @relation("MovementTo")
+  examRegistrations      ExamRegistration[]       @relation("StudentExamRegistrations")
+  attendanceMarked       ExamRegistration[]       @relation("AttendanceMarkers")
+  batchScriptsAssigned   BatchScript[]            @relation("BatchScriptsAssigned")
+  batchScriptsSealed     BatchScript[]            @relation("BatchScriptsSealed")
+  scriptsHolding         Script[]                 @relation("ScriptsHolding")
+  scriptsGraded          Script[]                 @relation("ScriptsGraded")
+  academicHistory        StudentAcademicHistory?  @relation("StudentAcademicHistory")
+  assessmentsGraded      StudentAssessment[]      @relation("GradedBy")
+  studentAssessments     StudentAssessment[]
+  studentProfiles        StudentProfile?
+  semesterRecords        StudentSemesterRecord[]  @relation("StudentSemesterRecords")
+  conflictsResolved      TimetableConflict[]
+  timetableImports       TimetableImport[]
+  department             Department?              @relation(fields: [departmentId], references: [id])
+  faculty                Faculty?                 @relation(fields: [facultyId], references: [id])
+  institution            Institution?             @relation(fields: [institutionId], references: [id])
+
+  @@index([institutionId, role])
+  @@index([facultyId, role])
+  @@index([email, status])
+  @@map("users")
+}
+
+model AdminProfile {
+  id                 Int     @id @default(autoincrement())
+  userId             Int     @unique
+  permissions        Json
+  canManageFaculties Boolean @default(true)
+  canManageUsers     Boolean @default(true)
+  canViewAnalytics   Boolean @default(true)
+  user               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("admin_profiles")
+}
+
+model FacultyAdminProfile {
+  id                   Int     @id @default(autoincrement())
+  userId               Int     @unique
+  permissions          Json
+  canManageDepartments Boolean @default(true)
+  canCreateExams       Boolean @default(true)
+  canManageOfficers    Boolean @default(true)
+  canViewFacultyData   Boolean @default(true)
+  user                 User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("faculty_admin_profiles")
+}
+
+model ExamOfficerProfile {
+  id                    Int     @id @default(autoincrement())
+  userId                Int     @unique
+  permissions           Json
+  canScheduleExams      Boolean @default(true)
+  canManageIncidents    Boolean @default(true)
+  canAssignInvigilators Boolean @default(true)
+  canManageVenues       Boolean @default(true)
+  user                  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("exam_officer_profiles")
+}
+
+model ScriptHandlerProfile {
+  id                 Int     @id @default(autoincrement())
+  userId             Int     @unique
+  permissions        Json
+  canReceiveScripts  Boolean @default(true)
+  canDispatchScripts Boolean @default(true)
+  canScanQrCodes     Boolean @default(true)
+  canReportIncidents Boolean @default(true)
+  user               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("script_handler_profiles")
+}
+
+model InvigilatorProfile {
+  id                 Int     @id @default(autoincrement())
+  userId             Int     @unique
+  permissions        Json
+  canConductExams    Boolean @default(true)
+  canReportIncidents Boolean @default(true)
+  canManageScripts   Boolean @default(true)
+  user               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("invigilator_profiles")
+}
+
+model LecturerProfile {
+  id                   Int                @id @default(autoincrement())
+  userId               Int                @unique
+  staffId              String             @unique
+  academicRank         AcademicRankLevel?
+  employmentType       EmploymentType     @default(FULL_TIME)
+  employmentStatus     EmploymentStatus   @default(ACTIVE)
+  hireDate             DateTime?
+  highestQualification String?
+  specialization       String?
+  researchInterests    String?
+  officeLocation       String?
+  officeHours          String?
+  biography            String?
+  profileImageUrl      String?
+  permissions          Json
+  canCreateExams       Boolean            @default(true)
+  canGradeScripts      Boolean            @default(true)
+  canViewResults       Boolean            @default(true)
+  canTeachCourses      Boolean            @default(true)
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("lecturer_profiles")
+}
+
+model StudentProfile {
+  id                 Int              @id @default(autoincrement())
+  userId             Int              @unique
+  studentId          String           @unique
+  indexNumber        String?          @unique
+  level              Int
+  semester           Int              @default(1)
+  academicYear       String?
+  programId          Int?
+  admissionDate      DateTime?
+  expectedGraduation DateTime?
+  enrollmentStatus   EnrollmentStatus @default(ACTIVE)
+  academicStatus     AcademicStatus   @default(GOOD_STANDING)
+  guardianName       String?
+  guardianPhone      String?
+  guardianEmail      String?
+  emergencyContact   String?
+  program            Program?         @relation(fields: [programId], references: [id])
+  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("student_profiles")
+}
+
+model Institution {
+  id              Int                      @id @default(autoincrement())
+  name            String
+  code            String                   @unique
+  type            String                   @default("UNIVERSITY")
+  status          String                   @default("ACTIVE")
+  establishedYear Int?
+  address         String?
+  city            String?
+  state           String?
+  country         String?
+  contactEmail    String?
+  contactPhone    String?
+  website         String?
+  description     String?
+  logoUrl         String?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  calendarImports AcademicCalendarImport[]
+  academicYears   AcademicYear[]
+  examTimetables  ExamTimetable[]
+  faculties       Faculty[]
+  users           User[]
+  venues          Venue[]
+
+  @@map("institutions")
+}
+
+model Faculty {
+  id              Int             @id @default(autoincrement())
+  name            String
+  code            String
+  description     String?
+  establishedYear Int?
+  institutionId   Int
+  deanId          Int?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  departments     Department[]
+  examTimetables  ExamTimetable[]
+  exams           Exam[]
+  dean            User?           @relation("FacultyDean", fields: [deanId], references: [id])
+  institution     Institution     @relation(fields: [institutionId], references: [id])
+  users           User[]
+
+  @@unique([institutionId, code])
+  @@map("faculties")
+}
+
+model Department {
+  id                  Int                  @id @default(autoincrement())
+  name                String
+  code                String
+  type                String               @default("department")
+  description         String?
+  officeLocation      String?
+  contactInfo         String?
+  facultyId           Int
+  hodId               Int?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  courses             Course[]
+  faculty             Faculty              @relation(fields: [facultyId], references: [id])
+  hod                 User?                @relation("DepartmentHOD", fields: [hodId], references: [id])
+  lecturerDepartments LecturerDepartment[]
+  programs            Program[]
+  users               User[]
+
+  @@unique([facultyId, code])
+  @@map("departments")
+}
+
+model Program {
+  id                    Int              @id @default(autoincrement())
+  name                  String
+  code                  String
+  type                  ProgramType
+  level                 ProgramLevel
+  durationYears         Float
+  creditHours           Int?
+  description           String?
+  admissionRequirements String?
+  isActive              Boolean          @default(true)
+  departmentId          Int
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  programCourses        ProgramCourse[]
+  department            Department       @relation(fields: [departmentId], references: [id])
+  students              StudentProfile[]
+
+  @@unique([departmentId, code])
+  @@map("programs")
+}
+
+model ProgramPrefix {
+  id          Int         @id @default(autoincrement())
+  programType ProgramType @unique
+  prefix      String
+  description String?
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@map("program_prefixes")
+}
+
+model Course {
+  id                Int                  @id @default(autoincrement())
+  name              String
+  code              String               @unique
+  description       String?
+  creditHours       Int                  @default(3)
+  contactHours      Int?
+  level             Int
+  courseType        CourseType           @default(CORE)
+  prerequisites     String?
+  corequisites      String?
+  learningOutcomes  String?
+  syllabus          String?
+  assessmentMethods String?
+  recommendedBooks  String?
+  departmentId      Int
+  isActive          Boolean              @default(true)
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  courseOfferings   CourseOffering[]
+  department        Department           @relation(fields: [departmentId], references: [id])
+  enrollments       Enrollment[]
+  timetableEntries  ExamTimetableEntry[]
+  exams             Exam[]
+  programCourses    ProgramCourse[]
+  batchScripts      BatchScript[]
+
+  @@map("courses")
+}
+
+model ProgramCourse {
+  id                    Int      @id @default(autoincrement())
+  programId             Int
+  courseId              Int
+  level                 Int
+  semester              Int
+  isRequired            Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  isCore                Boolean  @default(true)
+  offeredInSemester1    Boolean  @default(true)
+  offeredInSemester2    Boolean  @default(false)
+  prerequisiteCourseIds String?
+  updatedAt             DateTime @updatedAt
+  yearInProgram         Int      @default(1)
+  course                Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  program               Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@unique([programId, courseId, level, semester])
+  @@map("program_courses")
+}
+
+model AcademicYear {
+  id             Int             @id @default(autoincrement())
+  yearCode       String          @unique
+  startDate      DateTime
+  endDate        DateTime
+  isCurrent      Boolean         @default(false)
+  institutionId  Int
+  createdAt      DateTime        @default(now())
+  institution    Institution     @relation(fields: [institutionId], references: [id])
+  examTimetables ExamTimetable[]
+  semesters      Semester[]
+
+  @@map("academic_years")
+}
+
+model Semester {
+  id                  Int                     @id @default(autoincrement())
+  academicYearId      Int
+  semesterNumber      Int
+  name                String
+  startDate           DateTime
+  endDate             DateTime
+  isCurrent           Boolean                 @default(false)
+  createdAt           DateTime                @default(now())
+  academicPeriod      AcademicPeriod?
+  courseOfferings     CourseOffering[]
+  courseRegistrations CourseRegistration[]
+  enrollments         Enrollment[]
+  examTimetables      ExamTimetable[]
+  academicYear        AcademicYear            @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  semesterRecords     StudentSemesterRecord[]
+
+  @@unique([academicYearId, semesterNumber])
+  @@map("semesters")
+}
+
+model AcademicPeriod {
+  id                    Int             @id @default(autoincrement())
+  semesterId            Int             @unique
+  registrationStartDate DateTime
+  registrationEndDate   DateTime
+  addDropStartDate      DateTime?
+  addDropEndDate        DateTime?
+  lectureStartDate      DateTime
+  lectureEndDate        DateTime
+  examStartDate         DateTime
+  examEndDate           DateTime
+  resultsReleaseDate    DateTime?
+  maxCreditsPerStudent  Int             @default(24)
+  minCreditsPerStudent  Int             @default(12)
+  lateRegistrationFee   Float?
+  isActive              Boolean         @default(true)
+  isRegistrationOpen    Boolean         @default(false)
+  isAddDropOpen         Boolean         @default(false)
+  notes                 String?
+  createdBy             Int?
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  creator               User?           @relation(fields: [createdBy], references: [id])
+  semester              Semester        @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  examTimetables        ExamTimetable[]
+
+  @@map("academic_periods")
+}
+
+model AcademicCalendarImport {
+  id               Int                  @id @default(autoincrement())
+  institutionId    Int
+  fileName         String
+  fileUrl          String?
+  fileType         CalendarFileType
+  fileSize         Int?
+  status           CalendarImportStatus @default(PENDING)
+  recordsTotal     Int                  @default(0)
+  recordsImported  Int                  @default(0)
+  recordsFailed    Int                  @default(0)
+  errorLog         String?
+  validationErrors String?
+  importMapping    String?
+  importOptions    String?
+  importedBy       Int
+  importedAt       DateTime             @default(now())
+  completedAt      DateTime?
+  importer         User                 @relation(fields: [importedBy], references: [id])
+  institution      Institution          @relation(fields: [institutionId], references: [id])
+
+  @@map("academic_calendar_imports")
+}
+
+model CourseOffering {
+  id                Int                @id @default(autoincrement())
+  courseId          Int
+  semesterId        Int
+  primaryLecturerId Int?
+  maxEnrollment     Int?
+  currentEnrollment Int                @default(0)
+  classroom         String?
+  schedule          String?
+  status            String             @default("active")
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  assessments       Assessment[]
+  courseLecturers   CourseLecturer[]
+  course            Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  primaryLecturer   User?              @relation(fields: [primaryLecturerId], references: [id])
+  semester          Semester           @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  enrollments       Enrollment[]
+  registeredCourses RegisteredCourse[]
+
+  @@unique([courseId, semesterId])
+  @@map("course_offerings")
+}
+
+model CourseLecturer {
+  id               Int            @id @default(autoincrement())
+  courseOfferingId Int
+  lecturerId       Int
+  role             String         @default("instructor")
+  createdAt        DateTime       @default(now())
+  courseOffering   CourseOffering @relation(fields: [courseOfferingId], references: [id], onDelete: Cascade)
+  lecturer         User           @relation(fields: [lecturerId], references: [id], onDelete: Cascade)
+
+  @@unique([courseOfferingId, lecturerId])
+  @@map("course_lecturers")
+}
+
+model LecturerDepartment {
+  id           Int        @id @default(autoincrement())
+  lecturerId   Int
+  departmentId Int
+  isPrimary    Boolean    @default(false)
+  role         String?
+  createdAt    DateTime   @default(now())
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  lecturer     User       @relation(fields: [lecturerId], references: [id], onDelete: Cascade)
+
+  @@unique([lecturerId, departmentId])
+  @@map("lecturer_departments")
+}
+
+model Enrollment {
+  id                   Int            @id @default(autoincrement())
+  studentId            Int
+  courseOfferingId     Int
+  enrollmentDate       DateTime       @default(now())
+  status               String         @default("enrolled")
+  grade                String?
+  gradePoints          Float?
+  attendancePercentage Float?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  courseId             Int
+  semesterId           Int
+  course               Course         @relation(fields: [courseId], references: [id])
+  courseOffering       CourseOffering @relation(fields: [courseOfferingId], references: [id], onDelete: Cascade)
+  semester             Semester       @relation(fields: [semesterId], references: [id])
+  student              User           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, courseOfferingId])
+  @@map("enrollments")
+}
+
+model CourseRegistration {
+  id                Int                @id @default(autoincrement())
+  studentId         Int
+  semesterId        Int
+  status            RegistrationStatus @default(DRAFT)
+  totalCredits      Int                @default(0)
+  approvedBy        Int?
+  advisorId         Int?
+  submittedAt       DateTime?
+  approvedAt        DateTime?
+  rejectedAt        DateTime?
+  rejectionReason   String?
+  notes             String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  advisor           User?              @relation("RegistrationAdvisors", fields: [advisorId], references: [id])
+  approver          User?              @relation("RegistrationApprovers", fields: [approvedBy], references: [id])
+  semester          Semester           @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  student           User               @relation("StudentRegistrations", fields: [studentId], references: [id], onDelete: Cascade)
+  registeredCourses RegisteredCourse[]
+
+  @@unique([studentId, semesterId])
+  @@index([studentId, status])
+  @@index([semesterId, status])
+  @@map("course_registrations")
+}
+
+model RegisteredCourse {
+  id                    Int                @id @default(autoincrement())
+  registrationId        Int
+  courseOfferingId      Int
+  registrationType      RegistrationType   @default(REGULAR)
+  prerequisitesMet      Boolean            @default(true)
+  prerequisitesOverride Boolean            @default(false)
+  overrideReason        String?
+  isLocked              Boolean            @default(false)
+  droppedAt             DateTime?
+  dropReason            String?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+  courseOffering        CourseOffering     @relation(fields: [courseOfferingId], references: [id], onDelete: Cascade)
+  registration          CourseRegistration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  @@unique([registrationId, courseOfferingId])
+  @@index([registrationId])
+  @@index([courseOfferingId])
+  @@map("registered_courses")
+}
+
+model StudentSemesterRecord {
+  id                 Int              @id @default(autoincrement())
+  studentId          Int
+  semesterId         Int
+  coursesRegistered  Int              @default(0)
+  coursesCompleted   Int              @default(0)
+  coursesFailed      Int              @default(0)
+  coursesDropped     Int              @default(0)
+  coursesInProgress  Int              @default(0)
+  creditsAttempted   Int              @default(0)
+  creditsEarned      Int              @default(0)
+  semesterGPA        Float?
+  cumulativeGPA      Float?
+  totalGradePoints   Float            @default(0)
+  totalCreditsEarned Int              @default(0)
+  academicStanding   AcademicStanding @default(GOOD_STANDING)
+  isOnProbation      Boolean          @default(false)
+  probationCount     Int              @default(0)
+  remarksFromAdvisor String?
+  isFinalized        Boolean          @default(false)
+  finalizedAt        DateTime?
+  finalizedBy        Int?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  semester           Semester         @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  student            User             @relation("StudentSemesterRecords", fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, semesterId])
+  @@index([studentId])
+  @@index([semesterId])
+  @@map("student_semester_records")
+}
+
+model StudentAcademicHistory {
+  id                      Int              @id @default(autoincrement())
+  studentId               Int              @unique
+  admissionYear           String
+  admissionSemester       Int              @default(1)
+  expectedGraduationYear  String?
+  currentLevel            Int              @default(100)
+  currentSemester         Int              @default(1)
+  totalSemestersCompleted Int              @default(0)
+  cumulativeGPA           Float?
+  overallCreditsEarned    Int              @default(0)
+  overallCreditsAttempted Int              @default(0)
+  currentStatus           AcademicStanding @default(GOOD_STANDING)
+  hasGraduated            Boolean          @default(false)
+  graduationDate          DateTime?
+  levelProgressionHistory String?
+  probationHistory        String?
+  awardsAndHonors         String?
+  lastUpdated             DateTime         @updatedAt
+  createdAt               DateTime         @default(now())
+  student                 User             @relation("StudentAcademicHistory", fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@map("student_academic_history")
+}
+
+model AssessmentType {
+  id            Int          @id @default(autoincrement())
+  name          String       @unique
+  description   String?
+  defaultWeight Float?
+  assessments   Assessment[]
+
+  @@map("assessment_types")
+}
+
+model Assessment {
+  id                 Int                 @id @default(autoincrement())
+  courseOfferingId   Int
+  assessmentTypeId   Int
+  title              String
+  description        String?
+  totalMarks         Float
+  weightPercentage   Float
+  dueDate            DateTime?
+  instructions       String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  assessmentType     AssessmentType      @relation(fields: [assessmentTypeId], references: [id])
+  courseOffering     CourseOffering      @relation(fields: [courseOfferingId], references: [id], onDelete: Cascade)
+  studentAssessments StudentAssessment[]
+
+  @@map("assessments")
+}
+
+model StudentAssessment {
+  id           Int        @id @default(autoincrement())
+  assessmentId Int
+  studentId    Int
+  score        Float?
+  submittedAt  DateTime?
+  gradedAt     DateTime?
+  gradedById   Int?
+  feedback     String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  gradedBy     User?      @relation("GradedBy", fields: [gradedById], references: [id])
+  student      User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([assessmentId, studentId])
+  @@map("student_assessments")
+}
+
+model Exam {
+  id                  Int                  @id @default(autoincrement())
+  title               String
+  courseId            Int
+  facultyId           Int
+  examDate            DateTime
+  startTime           DateTime
+  endTime             DateTime
+  duration            Int
+  venueId             Int?
+  roomId              Int?
+  status              ExamStatus           @default(PLANNED)
+  instructions        String?
+  specialRequirements String?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  createdBy           Int
+  examSessions        ExamSession[]
+  timetableEntries    ExamTimetableEntry[]
+  course              Course               @relation(fields: [courseId], references: [id])
+  faculty             Faculty              @relation(fields: [facultyId], references: [id])
+  room                Room?                @relation(fields: [roomId], references: [id])
+  venue               Venue?               @relation(fields: [venueId], references: [id])
+  incidents           Incident[]
+  scripts             Script[]
+
+  @@map("exams")
+}
+
+model ExamSession {
+  id              Int       @id @default(autoincrement())
+  examId          Int
+  sessionDate     DateTime
+  startTime       DateTime
+  endTime         DateTime
+  actualStartTime DateTime?
+  actualEndTime   DateTime?
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  exam            Exam      @relation(fields: [examId], references: [id])
+
+  @@map("exam_sessions")
+}
+
+model ExamTimetable {
+  id                   Int                     @id @default(autoincrement())
+  title                String
+  description          String?
+  academicYearId       Int
+  semesterId           Int
+  academicPeriodId     Int?
+  institutionId        Int
+  facultyId            Int?
+  startDate            DateTime
+  endDate              DateTime
+  status               ExamTimetableStatus     @default(DRAFT)
+  isPublished          Boolean                 @default(false)
+  publishedAt          DateTime?
+  publishedBy          Int?
+  approvalStatus       TimetableApprovalStatus @default(NOT_SUBMITTED)
+  approvedBy           Int?
+  approvedAt           DateTime?
+  rejectionReason      String?
+  allowOverlaps        Boolean                 @default(false)
+  autoResolveConflicts Boolean                 @default(true)
+  defaultExamDuration  Int                     @default(180)
+  totalExams           Int                     @default(0)
+  totalConflicts       Int                     @default(0)
+  venuesUtilization    Float?
+  createdBy            Int
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+  entries              ExamTimetableEntry[]
+  academicPeriod       AcademicPeriod?         @relation(fields: [academicPeriodId], references: [id])
+  academicYear         AcademicYear            @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  approver             User?                   @relation("TimetableApprover", fields: [approvedBy], references: [id])
+  creator              User                    @relation("TimetableCreator", fields: [createdBy], references: [id])
+  faculty              Faculty?                @relation(fields: [facultyId], references: [id])
+  institution          Institution             @relation(fields: [institutionId], references: [id])
+  publisher            User?                   @relation("TimetablePublisher", fields: [publishedBy], references: [id])
+  semester             Semester                @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  conflicts            TimetableConflict[]
+  imports              TimetableImport[]
+
+  @@index([institutionId, academicYearId, semesterId])
+  @@index([status, isPublished])
+  @@map("exam_timetables")
+}
+
+model ExamTimetableEntry {
+  id                  Int                      @id @default(autoincrement())
+  timetableId         Int
+  examId              Int?
+  courseId            Int
+  programIds          String
+  level               Int?
+  studentCount        Int?
+  examDate            DateTime
+  startTime           DateTime
+  endTime             DateTime
+  duration            Int
+  venueId             Int
+  roomIds             String
+  seatingCapacity     Int?
+  invigilatorIds      String
+  chiefInvigilatorId  Int?
+  status              ExamTimetableEntryStatus @default(DRAFT)
+  notes               String?
+  specialRequirements String?
+  hasConflicts        Boolean                  @default(false)
+  conflictDetails     String?
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+  course              Course                   @relation(fields: [courseId], references: [id])
+  exam                Exam?                    @relation(fields: [examId], references: [id])
+  timetable           ExamTimetable            @relation(fields: [timetableId], references: [id], onDelete: Cascade)
+  venue               Venue                    @relation(fields: [venueId], references: [id])
+  conflictsAsEntry1   TimetableConflict[]      @relation("ConflictEntry1")
+  conflictsAsEntry2   TimetableConflict[]      @relation("ConflictEntry2")
+  examRegistrations   ExamRegistration[]
+  batchScripts        BatchScript[]
+
+  @@index([timetableId, examDate])
+  @@index([courseId])
+  @@index([venueId, examDate, startTime])
+  @@index([status, hasConflicts])
+  @@map("exam_timetable_entries")
+}
+
+model TimetableConflict {
+  id                  String             @id @default(uuid())
+  timetableId         Int
+  type                ConflictType
+  severity            ConflictSeverity   @default(MEDIUM)
+  entry1Id            Int
+  entry2Id            Int
+  additionalEntryIds  String?
+  description         String
+  affectedStudents    Int?
+  affectedPrograms    String?
+  canAutoResolve      Boolean            @default(false)
+  suggestedResolution String?
+  isResolved          Boolean            @default(false)
+  resolvedAt          DateTime?
+  resolvedBy          Int?
+  detectedAt          DateTime           @default(now())
+  entry1              ExamTimetableEntry @relation("ConflictEntry1", fields: [entry1Id], references: [id], onDelete: Cascade)
+  entry2              ExamTimetableEntry @relation("ConflictEntry2", fields: [entry2Id], references: [id], onDelete: Cascade)
+  resolver            User?              @relation(fields: [resolvedBy], references: [id])
+  timetable           ExamTimetable      @relation(fields: [timetableId], references: [id], onDelete: Cascade)
+
+  @@index([timetableId, isResolved])
+  @@index([type, severity])
+  @@map("timetable_conflicts")
+}
+
+model TimetableImport {
+  id               Int                   @id @default(autoincrement())
+  timetableId      Int?
+  fileName         String
+  fileUrl          String?
+  fileType         TimetableFileType
+  fileSize         Int?
+  status           TimetableImportStatus @default(PENDING)
+  totalRecords     Int                   @default(0)
+  importedRecords  Int                   @default(0)
+  failedRecords    Int                   @default(0)
+  skippedRecords   Int                   @default(0)
+  errors           String?
+  warnings         String?
+  importMapping    String?
+  importOptions    String?
+  validationPassed Boolean               @default(false)
+  validationErrors String?
+  previewData      String?
+  importedBy       Int
+  importedAt       DateTime              @default(now())
+  completedAt      DateTime?
+  importer         User                  @relation(fields: [importedBy], references: [id])
+  timetable        ExamTimetable?        @relation(fields: [timetableId], references: [id])
+
+  @@index([timetableId, status])
+  @@index([importedBy, importedAt])
+  @@map("timetable_imports")
+}
+
+model Venue {
+  id               Int                  @id @default(autoincrement())
+  name             String
+  location         String
+  capacity         Int
+  institutionId    Int
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  timetableEntries ExamTimetableEntry[]
+  exams            Exam[]
+  rooms            Room[]
+  institution      Institution          @relation(fields: [institutionId], references: [id])
+
+  @@map("venues")
+}
+
+model Room {
+  id        Int      @id @default(autoincrement())
+  name      String
+  capacity  Int
+  venueId   Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  exams     Exam[]
+  venue     Venue    @relation(fields: [venueId], references: [id])
+
+  @@unique([venueId, name])
+  @@map("rooms")
+}
+
+model Script {
+  id              Int              @id @default(autoincrement())
+  qrCode          String           @unique
+  studentId       String
+  examId          Int
+  batchScriptId   Int?
+  currentHolderId Int?
+  gradedById      Int?
+  status          ScriptStatus     @default(GENERATED)
+  score           Float?
+  maxScore        Float?
+  gradedAt        DateTime?
+  notes           String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  incidents       Incident[]
+  movements       ScriptMovement[]
+  Exam            Exam             @relation(fields: [examId], references: [id])
+  batchScript     BatchScript?     @relation(fields: [batchScriptId], references: [id])
+  currentHolder   User?            @relation("ScriptsHolding", fields: [currentHolderId], references: [id])
+  gradedBy        User?            @relation("ScriptsGraded", fields: [gradedById], references: [id])
+
+  @@index([examId, status])
+  @@index([batchScriptId])
+  @@index([currentHolderId])
+  @@map("scripts")
+}
+
+model ScriptMovement {
+  id            Int          @id @default(autoincrement())
+  scriptId      Int
+  batchScriptId Int?
+  type          MovementType
+  fromUserId    Int?
+  toUserId      Int?
+  location      String?
+  notes         String?
+  timestamp     DateTime     @default(now())
+  script        Script       @relation(fields: [scriptId], references: [id])
+  batchScript   BatchScript? @relation(fields: [batchScriptId], references: [id])
+  toUser        User?        @relation("MovementTo", fields: [toUserId], references: [id])
+
+  @@index([batchScriptId])
+  @@map("script_movements")
+}
+
+model ExamRegistration {
+  id                 Int                @id @default(autoincrement())
+  studentId          Int
+  examEntryId        Int
+  studentQRCode      String             @unique
+  isPresent          Boolean            @default(false)
+  attendanceMarkedAt DateTime?
+  attendanceMarkedBy Int?
+  scriptSubmitted    Boolean            @default(false)
+  scriptSubmittedAt  DateTime?
+  seatNumber         String?
+  specialArrangement String?
+  notes              String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  student            User               @relation("StudentExamRegistrations", fields: [studentId], references: [id])
+  examEntry          ExamTimetableEntry @relation(fields: [examEntryId], references: [id])
+  markedBy           User?              @relation("AttendanceMarkers", fields: [attendanceMarkedBy], references: [id])
+
+  @@unique([studentId, examEntryId])
+  @@index([examEntryId, scriptSubmitted])
+  @@index([studentId])
+  @@map("exam_registrations")
+}
+
+model BatchScript {
+  id                 Int                @id @default(autoincrement())
+  examEntryId        Int
+  courseId           Int
+  batchQRCode        String             @unique
+  status             BatchScriptStatus  @default(PENDING)
+  totalRegistered    Int                @default(0)
+  scriptsSubmitted   Int                @default(0)
+  scriptsCollected   Int                @default(0)
+  scriptsGraded      Int                @default(0)
+  assignedLecturerId Int?
+  sealedAt           DateTime?
+  sealedBy           Int?
+  deliveredAt        DateTime?
+  completedAt        DateTime?
+  notes              String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  examEntry          ExamTimetableEntry @relation(fields: [examEntryId], references: [id])
+  course             Course             @relation(fields: [courseId], references: [id])
+  assignedLecturer   User?              @relation("BatchScriptsAssigned", fields: [assignedLecturerId], references: [id])
+  sealedByUser       User?              @relation("BatchScriptsSealed", fields: [sealedBy], references: [id])
+  scripts            Script[]
+  movements          ScriptMovement[]
+
+  @@unique([examEntryId, courseId])
+  @@index([courseId, status])
+  @@index([assignedLecturerId])
+  @@map("batch_scripts")
+}
+
+model Incident {
+  id           Int              @id @default(autoincrement())
+  type         IncidentType
+  severity     IncidentSeverity @default(MEDIUM)
+  status       IncidentStatus   @default(REPORTED)
+  title        String
+  description  String
+  examId       Int?
+  scriptId     Int?
+  reportedById Int
+  assignedToId Int?
+  resolution   String?
+  resolvedAt   DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  assignedTo   User?            @relation("AssignedTo", fields: [assignedToId], references: [id])
+  exam         Exam?            @relation(fields: [examId], references: [id])
+  reportedBy   User             @relation("ReportedBy", fields: [reportedById], references: [id])
+  script       Script?          @relation(fields: [scriptId], references: [id])
+
+  @@index([examId, status])
+  @@map("incidents")
+}
+
+model AuditLog {
+  id        Int        @id @default(autoincrement())
+  userId    Int
+  action    ActionType
+  entity    String
+  entityId  String?
+  oldValues Json?
+  newValues Json?
+  ipAddress String?
+  userAgent String?
+  timestamp DateTime   @default(now())
+  user      User       @relation(fields: [userId], references: [id])
+
+  @@index([userId, timestamp])
+  @@map("audit_logs")
+}
 
 enum UserRole {
-  SUPER_ADMIN      // System-wide control, manages all institutions
-  ADMIN            // Institution-level admin, manages faculty admins
-  FACULTY_ADMIN    // Faculty-level admin, manages departments, exams, officers
-  DEAN             // Faculty dean
-  HOD              // Head of Department
-  EXAMS_OFFICER    // Handles exam logistics, incidents, scheduling
-  SCRIPT_HANDLER   // Manages script transit and handling
-  INVIGILATOR      // Conducts exams, reports incidents
-  LECTURER         // Creates exams, grades scripts, teaches courses
-  STUDENT          // Takes exams, enrolled in courses
+  SUPER_ADMIN
+  ADMIN
+  FACULTY_ADMIN
+  DEAN
+  HOD
+  EXAMS_OFFICER
+  SCRIPT_HANDLER
+  INVIGILATOR
+  LECTURER
+  STUDENT
 }
 
 enum AcademicRankLevel {
-  GRADUATE_ASSISTANT     // 1
-  ASSISTANT_LECTURER     // 2
-  LECTURER              // 3
-  SENIOR_LECTURER       // 4
-  PRINCIPAL_LECTURER    // 5
-  ASSOCIATE_PROFESSOR   // 6
-  PROFESSOR            // 7
+  GRADUATE_ASSISTANT
+  ASSISTANT_LECTURER
+  LECTURER
+  SENIOR_LECTURER
+  PRINCIPAL_LECTURER
+  ASSOCIATE_PROFESSOR
+  PROFESSOR
 }
 
 enum ProgramType {
@@ -92,511 +1101,6 @@ enum UserStatus {
   PENDING_VERIFICATION
 }
 
-model User {
-  id              Int       @id @default(autoincrement())
-  email           String    @unique
-  password        String
-  firstName       String
-  lastName        String
-  middleName      String?
-  title           String?   // 'Mr', 'Mrs', 'Dr', 'Prof'
-  role            UserRole
-  status          UserStatus @default(PENDING_VERIFICATION)
-  lastLogin       DateTime?
-  emailVerified   Boolean   @default(false)
-  twoFactorEnabled Boolean  @default(false)
-
-  // Personal information
-  phone           String?
-  dateOfBirth     DateTime?
-  gender          String?
-  nationality     String?
-  address         String?
-
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  // Institutional relationships
-  institutionId   Int?
-  institution     Institution? @relation(fields: [institutionId], references: [id])
-
-  facultyId       Int?
-  faculty         Faculty?     @relation(fields: [facultyId], references: [id])
-
-  departmentId    Int?
-  department      Department?  @relation(fields: [departmentId], references: [id])
-
-  // Role-specific relationships
-  adminProfiles     AdminProfile[]
-  facultyProfiles   FacultyAdminProfile[]
-  examOfficerProfiles ExamOfficerProfile[]
-  scriptHandlerProfiles ScriptHandlerProfile[]
-  invigilatorProfiles InvigilatorProfile[]
-  lecturerProfiles    LecturerProfile[]
-  studentProfiles     StudentProfile[]
-
-  // Academic relationships (for lecturers)
-  lecturerDepartments LecturerDepartment[]
-  courseOfferings     CourseOffering[]
-  courseLecturers     CourseLecturer[]
-
-  // Student relationships
-  enrollments         Enrollment[]
-  studentAssessments  StudentAssessment[]
-
-  // Faculty leadership
-  facultiesAsDean     Faculty[] @relation("FacultyDean")
-  departmentsAsHOD    Department[] @relation("DepartmentHOD")
-
-  // Activity tracking
-  auditLogs       AuditLog[]
-  incidentsReported Incident[] @relation("ReportedBy")
-  incidentsAssigned Incident[] @relation("AssignedTo")
-  scriptMovements   ScriptMovement[]
-  assessmentsGraded StudentAssessment[] @relation("GradedBy")
-
-  // Academic calendar management
-  academicPeriodsCreated AcademicPeriod[]
-  calendarImports        AcademicCalendarImport[]
-
-  // Exam timetable management
-  timetablesCreated      ExamTimetable[]      @relation("TimetableCreator")
-  timetablesPublished    ExamTimetable[]      @relation("TimetablePublisher")
-  timetablesApproved     ExamTimetable[]      @relation("TimetableApprover")
-  timetableImports       TimetableImport[]
-  conflictsResolved      TimetableConflict[]
-
-  // Course registration (PHASE 2)
-  courseRegistrations    CourseRegistration[] @relation("StudentRegistrations")
-  registrationsApproved  CourseRegistration[] @relation("RegistrationApprovers")
-  registrationsAdvised   CourseRegistration[] @relation("RegistrationAdvisors")
-
-  // Academic records (PHASE 3)
-  semesterRecords        StudentSemesterRecord[] @relation("StudentSemesterRecords")
-  academicHistory        StudentAcademicHistory? @relation("StudentAcademicHistory")
-
-  // Indexes for performance
-  @@index([institutionId, role])
-  @@index([facultyId, role])
-  @@index([email, status])
-  @@map("users")
-}
-
-// ========================================
-// ROLE-SPECIFIC PROFILES
-// ========================================
-
-model AdminProfile {
-  id          Int     @id @default(autoincrement())
-  userId      Int     @unique
-  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  permissions Json    // Flexible permissions object
-  canManageFaculties Boolean @default(true)
-  canManageUsers     Boolean @default(true)
-  canViewAnalytics   Boolean @default(true)
-
-  @@map("admin_profiles")
-}
-
-model FacultyAdminProfile {
-  id          Int     @id @default(autoincrement())
-  userId      Int     @unique
-  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  permissions Json    // Faculty-specific permissions
-  canManageDepartments Boolean @default(true)
-  canCreateExams      Boolean @default(true)
-  canManageOfficers   Boolean @default(true)
-  canViewFacultyData  Boolean @default(true)
-
-  @@map("faculty_admin_profiles")
-}
-
-model ExamOfficerProfile {
-  id          Int     @id @default(autoincrement())
-  userId      Int     @unique
-  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  permissions Json    // Exam-specific permissions
-  canScheduleExams    Boolean @default(true)
-  canManageIncidents  Boolean @default(true)
-  canAssignInvigilators Boolean @default(true)
-  canManageVenues     Boolean @default(true)
-
-  @@map("exam_officer_profiles")
-}
-
-model ScriptHandlerProfile {
-  id          Int     @id @default(autoincrement())
-  userId      Int     @unique
-  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  permissions Json    // Script handling permissions
-  canReceiveScripts   Boolean @default(true)
-  canDispatchScripts  Boolean @default(true)
-  canScanQrCodes     Boolean @default(true)
-  canReportIncidents Boolean @default(true)
-
-  @@map("script_handler_profiles")
-}
-
-model InvigilatorProfile {
-  id          Int     @id @default(autoincrement())
-  userId      Int     @unique
-  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  permissions Json    // Invigilator permissions
-  canConductExams     Boolean @default(true)
-  canReportIncidents  Boolean @default(true)
-  canManageScripts    Boolean @default(true)
-
-  @@map("invigilator_profiles")
-}
-
-model LecturerProfile {
-  id          Int     @id @default(autoincrement())
-  userId      Int     @unique
-  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Academic staff details
-  staffId     String  @unique
-  academicRank AcademicRankLevel?
-  employmentType EmploymentType @default(FULL_TIME)
-  employmentStatus EmploymentStatus @default(ACTIVE)
-  hireDate    DateTime?
-
-  // Academic qualifications
-  highestQualification String?
-  specialization      String?
-  researchInterests   String?
-
-  // Contact and office info
-  officeLocation      String?
-  officeHours        String?
-  biography          String?
-  profileImageUrl    String?
-
-  permissions Json    // Lecturer permissions
-  canCreateExams      Boolean @default(true)
-  canGradeScripts     Boolean @default(true)
-  canViewResults      Boolean @default(true)
-  canTeachCourses     Boolean @default(true)
-
-  @@map("lecturer_profiles")
-}
-
-model StudentProfile {
-  id          Int     @id @default(autoincrement())
-  userId      Int     @unique
-  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Student academic details
-  studentId   String  @unique // Student registration number
-  indexNumber String? @unique
-  level       Int     // 100, 200, 300, 400
-  semester    Int     @default(1)
-  academicYear String? // e.g., '2023/2024'
-
-  // Program enrollment
-  programId   Int?
-  program     Program? @relation(fields: [programId], references: [id])
-  admissionDate DateTime?
-  expectedGraduation DateTime?
-
-  // Status
-  enrollmentStatus EnrollmentStatus @default(ACTIVE)
-  academicStatus   AcademicStatus @default(GOOD_STANDING)
-
-  // Guardian/Emergency contact
-  guardianName    String?
-  guardianPhone   String?
-  guardianEmail   String?
-  emergencyContact String? // JSON string
-
-  @@map("student_profiles")
-}
-
-// ========================================
-// INSTITUTIONAL STRUCTURE
-// ========================================
-
-model Institution {
-  id          Int       @id @default(autoincrement())
-  name        String
-  code        String    @unique
-  type        String    @default("UNIVERSITY") // 'UNIVERSITY', 'POLYTECHNIC', 'COLLEGE', 'OTHER'
-  status      String    @default("ACTIVE") // 'ACTIVE', 'INACTIVE', 'PENDING', 'SUSPENDED'
-  establishedYear Int?
-  address     String?
-  city        String?
-  state       String?
-  country     String?
-  contactEmail String?
-  contactPhone String?
-  website     String?
-  description String?
-  logoUrl     String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  users       User[]
-  faculties   Faculty[]
-  venues      Venue[]
-  academicYears AcademicYear[]
-  calendarImports AcademicCalendarImport[]
-  examTimetables ExamTimetable[]
-
-  @@map("institutions")
-}
-
-model Faculty {
-  id            Int         @id @default(autoincrement())
-  name          String
-  code          String
-  description   String?
-  establishedYear Int?
-
-  institutionId Int
-  institution   Institution @relation(fields: [institutionId], references: [id])
-
-  deanId        Int?
-  dean          User?       @relation("FacultyDean", fields: [deanId], references: [id])
-
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-
-  users         User[]
-  departments   Department[]
-  exams         Exam[]
-  examTimetables ExamTimetable[]
-
-  @@unique([institutionId, code])
-  @@map("faculties")
-}
-
-model Department {
-  id        Int      @id @default(autoincrement())
-  name      String
-  code      String
-  type      String   @default("department") // 'department', 'school', 'institute'
-  description String?
-  officeLocation String?
-  contactInfo    String? // JSON string
-
-  facultyId Int
-  faculty   Faculty  @relation(fields: [facultyId], references: [id])
-
-  hodId     Int?
-  hod       User?    @relation("DepartmentHOD", fields: [hodId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  users     User[]
-  courses   Course[]
-  programs  Program[]
-  lecturerDepartments LecturerDepartment[]
-
-  @@unique([facultyId, code])
-  @@map("departments")
-}
-
-// ========================================
-// ACADEMIC PROGRAMS & COURSES
-// ========================================
-
-model Program {
-  id           Int         @id @default(autoincrement())
-  name         String
-  code         String
-  type         ProgramType
-  level        ProgramLevel
-  durationYears Float       // e.g., 4.0, 1.5
-  creditHours  Int?
-  description  String?
-  admissionRequirements String?
-  isActive     Boolean     @default(true)
-
-  departmentId Int
-  department   Department  @relation(fields: [departmentId], references: [id])
-
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-
-  students     StudentProfile[]
-  programCourses ProgramCourse[]
-
-  @@unique([departmentId, code])
-  @@map("programs")
-}
-
-model ProgramPrefix {
-  id          Int         @id @default(autoincrement())
-  programType ProgramType @unique
-  prefix      String      // e.g., "BSc", "MSc", "PhD", "HND"
-  description String?
-  isActive    Boolean     @default(true)
-
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-
-  @@map("program_prefixes")
-}
-
-model Course {
-  id           Int        @id @default(autoincrement())
-  name         String
-  code         String     @unique
-  description  String?
-  creditHours  Int        @default(3)
-  contactHours Int?
-  level        Int        // 100, 200, 300, 400
-  courseType   CourseType @default(CORE)
-
-  // Prerequisites and corequisites
-  prerequisites String?   // JSON array of course codes
-  corequisites  String?   // JSON array of course codes
-
-  // Course content
-  learningOutcomes    String?
-  syllabus           String?
-  assessmentMethods  String?
-  recommendedBooks   String?
-
-  departmentId Int
-  department   Department @relation(fields: [departmentId], references: [id])
-
-  isActive     Boolean    @default(true)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-
-  exams        Exam[]
-  programCourses ProgramCourse[]
-  courseOfferings CourseOffering[]
-  enrollments     Enrollment[]
-  timetableEntries ExamTimetableEntry[]
-
-  @@map("courses")
-}
-
-// Program curriculum - many-to-many relationship (ENHANCED for Phase 2)
-model ProgramCourse {
-  id         Int     @id @default(autoincrement())
-  programId  Int
-  program    Program @relation(fields: [programId], references: [id], onDelete: Cascade)
-  courseId   Int
-  course     Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  level      Int     // 100, 200, 300, 400
-  semester   Int     // 1 or 2 (preferred semester for offering)
-  yearInProgram Int  @default(1) // Which year of study (1-4)
-  isRequired Boolean @default(true)
-  isCore     Boolean @default(true) // Core vs Elective
-
-  // Prerequisites (JSON array of course IDs)
-  prerequisiteCourseIds String? // JSON array: [1, 2, 3]
-
-  // Offering pattern
-  offeredInSemester1 Boolean @default(true)
-  offeredInSemester2 Boolean @default(false)
-
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  @@unique([programId, courseId, level, semester])
-  @@map("program_courses")
-}
-
-// ========================================
-// ACADEMIC CALENDAR & SCHEDULING
-// ========================================
-
-model AcademicYear {
-  id            Int         @id @default(autoincrement())
-  yearCode      String      @unique // e.g., '2023/2024'
-  startDate     DateTime
-  endDate       DateTime
-  isCurrent     Boolean     @default(false)
-
-  institutionId Int
-  institution   Institution @relation(fields: [institutionId], references: [id])
-
-  createdAt     DateTime    @default(now())
-
-  semesters     Semester[]
-  examTimetables ExamTimetable[]
-
-  @@map("academic_years")
-}
-
-model Semester {
-  id               Int          @id @default(autoincrement())
-  academicYearId   Int
-  academicYear     AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
-
-  semesterNumber   Int          // 1 or 2
-  name             String       // 'First Semester', 'Second Semester'
-  startDate        DateTime
-  endDate          DateTime
-  isCurrent        Boolean      @default(false)
-
-  createdAt        DateTime     @default(now())
-
-  courseOfferings  CourseOffering[]
-  academicPeriod   AcademicPeriod?
-  courseRegistrations CourseRegistration[]
-  semesterRecords  StudentSemesterRecord[]
-  enrollments      Enrollment[]
-  examTimetables   ExamTimetable[]
-
-  @@unique([academicYearId, semesterNumber])
-  @@map("semesters")
-}
-
-// Academic Period - defines registration, teaching, and examination periods
-model AcademicPeriod {
-  id                      Int       @id @default(autoincrement())
-  semesterId              Int       @unique
-  semester                Semester  @relation(fields: [semesterId], references: [id], onDelete: Cascade)
-
-  // Registration period
-  registrationStartDate   DateTime
-  registrationEndDate     DateTime
-
-  // Add/Drop period
-  addDropStartDate        DateTime?
-  addDropEndDate          DateTime?
-
-  // Lecture/Teaching period
-  lectureStartDate        DateTime
-  lectureEndDate          DateTime
-
-  // Examination period
-  examStartDate           DateTime
-  examEndDate             DateTime
-
-  // Results release
-  resultsReleaseDate      DateTime?
-
-  // Configuration
-  maxCreditsPerStudent    Int       @default(24)
-  minCreditsPerStudent    Int       @default(12)
-  lateRegistrationFee     Float?
-
-  // Status
-  isActive                Boolean   @default(true)
-  isRegistrationOpen      Boolean   @default(false)
-  isAddDropOpen           Boolean   @default(false)
-
-  // Metadata
-  notes                   String?
-  createdBy               Int?
-  createdAt               DateTime  @default(now())
-  updatedAt               DateTime  @updatedAt
-
-  creator                 User?     @relation(fields: [createdBy], references: [id])
-  examTimetables          ExamTimetable[]
-
-  @@map("academic_periods")
-}
-
-// Academic Calendar Import - tracks calendar imports from external files
 enum CalendarImportStatus {
   PENDING
   PROCESSING
@@ -611,136 +1115,6 @@ enum CalendarFileType {
   ICAL
   JSON
 }
-
-model AcademicCalendarImport {
-  id                Int                   @id @default(autoincrement())
-  institutionId     Int
-  institution       Institution           @relation(fields: [institutionId], references: [id])
-
-  // File details
-  fileName          String
-  fileUrl           String?
-  fileType          CalendarFileType
-  fileSize          Int?                  // Size in bytes
-
-  // Import metadata
-  status            CalendarImportStatus  @default(PENDING)
-  recordsTotal      Int                   @default(0)
-  recordsImported   Int                   @default(0)
-  recordsFailed     Int                   @default(0)
-
-  // Error tracking
-  errorLog          String?               // JSON array of errors
-  validationErrors  String?               // JSON array of validation issues
-
-  // Import configuration
-  importMapping     String?               // JSON mapping of columns
-  importOptions     String?               // JSON import options
-
-  // Audit
-  importedBy        Int
-  importedAt        DateTime              @default(now())
-  completedAt       DateTime?
-
-  importer          User                  @relation(fields: [importedBy], references: [id])
-
-  @@map("academic_calendar_imports")
-}
-
-// ========================================
-// COURSE OFFERINGS & TEACHING
-// ========================================
-
-model CourseOffering {
-  id               Int        @id @default(autoincrement())
-  courseId         Int
-  course           Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  semesterId       Int
-  semester         Semester   @relation(fields: [semesterId], references: [id], onDelete: Cascade)
-
-  primaryLecturerId Int?
-  primaryLecturer   User?      @relation(fields: [primaryLecturerId], references: [id])
-
-  maxEnrollment    Int?
-  currentEnrollment Int       @default(0)
-  classroom        String?
-  schedule         String?    // JSON string for class times and days
-  status           String     @default("active") // 'active', 'cancelled', 'completed'
-
-  createdAt        DateTime   @default(now())
-  updatedAt        DateTime   @updatedAt
-
-  courseLecturers  CourseLecturer[]
-  enrollments      Enrollment[]
-  assessments      Assessment[]
-  registeredCourses RegisteredCourse[]
-
-  @@unique([courseId, semesterId])
-  @@map("course_offerings")
-}
-
-// Team-taught courses - many-to-many
-model CourseLecturer {
-  id                Int            @id @default(autoincrement())
-  courseOfferingId  Int
-  courseOffering    CourseOffering @relation(fields: [courseOfferingId], references: [id], onDelete: Cascade)
-  lecturerId        Int
-  lecturer          User           @relation(fields: [lecturerId], references: [id], onDelete: Cascade)
-
-  role              String         @default("instructor") // 'instructor', 'coordinator', 'assistant'
-  createdAt         DateTime       @default(now())
-
-  @@unique([courseOfferingId, lecturerId])
-  @@map("course_lecturers")
-}
-
-// Lecturer department affiliations - many-to-many
-model LecturerDepartment {
-  id           Int        @id @default(autoincrement())
-  lecturerId   Int
-  lecturer     User       @relation(fields: [lecturerId], references: [id], onDelete: Cascade)
-  departmentId Int
-  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
-
-  isPrimary    Boolean    @default(false)
-  role         String?    // 'member', 'coordinator', 'assistant_hod'
-  createdAt    DateTime   @default(now())
-
-  @@unique([lecturerId, departmentId])
-  @@map("lecturer_departments")
-}
-
-// ========================================
-// STUDENT ENROLLMENT & ACADEMIC RECORDS
-// ========================================
-
-model Enrollment {
-  id                Int            @id @default(autoincrement())
-  studentId         Int
-  student           User           @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  courseOfferingId  Int
-  courseOffering    CourseOffering @relation(fields: [courseOfferingId], references: [id], onDelete: Cascade)
-  courseId          Int
-  course            Course         @relation(fields: [courseId], references: [id])
-  semesterId        Int
-  semester          Semester       @relation(fields: [semesterId], references: [id])
-
-  enrollmentDate    DateTime       @default(now())
-  status            String         @default("enrolled") // 'enrolled', 'dropped', 'completed', 'deferred'
-  grade             String?        // 'A', 'B+', 'B', 'C+', 'C', 'D+', 'D', 'F'
-  gradePoints       Float?         // 4.0 scale
-  attendancePercentage Float?
-
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
-
-  @@unique([studentId, courseOfferingId])
-  @@map("enrollments")
-}
-
-// ========================================
-// COURSE REGISTRATION SYSTEM (PHASE 2)
-// ========================================
 
 enum RegistrationStatus {
   DRAFT
@@ -758,80 +1132,6 @@ enum RegistrationType {
   MAKE_UP
 }
 
-// Course Registration - tracks student registration per semester
-model CourseRegistration {
-  id                Int                @id @default(autoincrement())
-  studentId         Int
-  student           User               @relation("StudentRegistrations", fields: [studentId], references: [id], onDelete: Cascade)
-  semesterId        Int
-  semester          Semester           @relation(fields: [semesterId], references: [id], onDelete: Cascade)
-
-  // Registration metadata
-  status            RegistrationStatus @default(DRAFT)
-  totalCredits      Int                @default(0)
-
-  // Approval workflow
-  approvedBy        Int?
-  approver          User?              @relation("RegistrationApprovers", fields: [approvedBy], references: [id])
-  advisorId         Int?
-  advisor           User?              @relation("RegistrationAdvisors", fields: [advisorId], references: [id])
-
-  // Timestamps
-  submittedAt       DateTime?
-  approvedAt        DateTime?
-  rejectedAt        DateTime?
-
-  // Rejection reason
-  rejectionReason   String?
-
-  // Metadata
-  notes             String?
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-
-  // Relations
-  registeredCourses RegisteredCourse[]
-
-  @@unique([studentId, semesterId])
-  @@index([studentId, status])
-  @@index([semesterId, status])
-  @@map("course_registrations")
-}
-
-// Registered Course - individual courses within a registration
-model RegisteredCourse {
-  id                Int                @id @default(autoincrement())
-  registrationId    Int
-  registration      CourseRegistration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
-  courseOfferingId  Int
-  courseOffering    CourseOffering     @relation(fields: [courseOfferingId], references: [id], onDelete: Cascade)
-
-  // Registration type
-  registrationType  RegistrationType   @default(REGULAR)
-
-  // Validation
-  prerequisitesMet  Boolean            @default(true)
-  prerequisitesOverride Boolean        @default(false)
-  overrideReason    String?
-
-  // Status
-  isLocked          Boolean            @default(false)
-  droppedAt         DateTime?
-  dropReason        String?
-
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-
-  @@unique([registrationId, courseOfferingId])
-  @@index([registrationId])
-  @@index([courseOfferingId])
-  @@map("registered_courses")
-}
-
-// ========================================
-// GPA & ACADEMIC PROGRESS (PHASE 3)
-// ========================================
-
 enum AcademicStanding {
   GOOD_STANDING
   PROBATION
@@ -839,152 +1139,6 @@ enum AcademicStanding {
   SUSPENDED
   DISMISSED
 }
-
-// Student Semester Record - track GPA and performance per semester
-model StudentSemesterRecord {
-  id                    Int              @id @default(autoincrement())
-  studentId             Int
-  student               User             @relation("StudentSemesterRecords", fields: [studentId], references: [id], onDelete: Cascade)
-  semesterId            Int
-  semester              Semester         @relation(fields: [semesterId], references: [id], onDelete: Cascade)
-
-  // Course statistics
-  coursesRegistered     Int              @default(0)
-  coursesCompleted      Int              @default(0)
-  coursesFailed         Int              @default(0)
-  coursesDropped        Int              @default(0)
-  coursesInProgress     Int              @default(0)
-
-  // Credit statistics
-  creditsAttempted      Int              @default(0)
-  creditsEarned         Int              @default(0)
-
-  // GPA calculations
-  semesterGPA           Float?
-  cumulativeGPA         Float?
-  totalGradePoints      Float            @default(0)
-  totalCreditsEarned    Int              @default(0)
-
-  // Academic standing
-  academicStanding      AcademicStanding @default(GOOD_STANDING)
-  isOnProbation         Boolean          @default(false)
-  probationCount        Int              @default(0)
-
-  // Metadata
-  remarksFromAdvisor    String?
-  isFinalized           Boolean          @default(false)
-  finalizedAt           DateTime?
-  finalizedBy           Int?
-
-  createdAt             DateTime         @default(now())
-  updatedAt             DateTime         @updatedAt
-
-  @@unique([studentId, semesterId])
-  @@index([studentId])
-  @@index([semesterId])
-  @@map("student_semester_records")
-}
-
-// Student Academic History - overall student academic journey
-model StudentAcademicHistory {
-  id                        Int              @id @default(autoincrement())
-  studentId                 Int              @unique
-  student                   User             @relation("StudentAcademicHistory", fields: [studentId], references: [id], onDelete: Cascade)
-
-  // Admission details
-  admissionYear             String
-  admissionSemester         Int              @default(1)
-  expectedGraduationYear    String?
-
-  // Current status
-  currentLevel              Int              @default(100)
-  currentSemester           Int              @default(1)
-  totalSemestersCompleted   Int              @default(0)
-
-  // Overall GPA
-  cumulativeGPA             Float?
-  overallCreditsEarned      Int              @default(0)
-  overallCreditsAttempted   Int              @default(0)
-
-  // Academic status
-  currentStatus             AcademicStanding @default(GOOD_STANDING)
-  hasGraduated              Boolean          @default(false)
-  graduationDate            DateTime?
-
-  // Progress tracking
-  levelProgressionHistory   String?          // JSON: [{level: 100, date: '2024-01-01', gpa: 3.5}]
-  probationHistory          String?          // JSON: [{semester: 1, year: '2024/2025', reason: 'Low GPA'}]
-  awardsAndHonors           String?          // JSON: [{award: 'Deans List', semester: 1, year: '2024/2025'}]
-
-  // Metadata
-  lastUpdated               DateTime         @updatedAt
-  createdAt                 DateTime         @default(now())
-
-  @@index([studentId])
-  @@map("student_academic_history")
-}
-
-// ========================================
-// ASSESSMENT & GRADING SYSTEM
-// ========================================
-
-model AssessmentType {
-  id            Int     @id @default(autoincrement())
-  name          String  @unique // 'quiz', 'assignment', 'midterm', 'final', 'project'
-  description   String?
-  defaultWeight Float?  // Default percentage weight
-
-  assessments   Assessment[]
-
-  @@map("assessment_types")
-}
-
-model Assessment {
-  id                Int            @id @default(autoincrement())
-  courseOfferingId  Int
-  courseOffering    CourseOffering @relation(fields: [courseOfferingId], references: [id], onDelete: Cascade)
-  assessmentTypeId  Int
-  assessmentType    AssessmentType @relation(fields: [assessmentTypeId], references: [id])
-
-  title             String
-  description       String?
-  totalMarks        Float
-  weightPercentage  Float          // Percentage of final grade
-  dueDate           DateTime?
-  instructions      String?
-
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
-
-  studentAssessments StudentAssessment[]
-
-  @@map("assessments")
-}
-
-model StudentAssessment {
-  id           Int        @id @default(autoincrement())
-  assessmentId Int
-  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-  studentId    Int
-  student      User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
-
-  score        Float?
-  submittedAt  DateTime?
-  gradedAt     DateTime?
-  gradedById   Int?
-  gradedBy     User?      @relation("GradedBy", fields: [gradedById], references: [id])
-  feedback     String?
-
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-
-  @@unique([assessmentId, studentId])
-  @@map("student_assessments")
-}
-
-// ========================================
-// EXAMINATION MANAGEMENT
-// ========================================
 
 enum ExamStatus {
   PLANNED
@@ -994,67 +1148,6 @@ enum ExamStatus {
   CANCELLED
   POSTPONED
 }
-
-model Exam {
-  id          Int        @id @default(autoincrement())
-  title       String
-  courseId    Int
-  course      Course     @relation(fields: [courseId], references: [id])
-  facultyId   Int
-  faculty     Faculty    @relation(fields: [facultyId], references: [id])
-
-  // Exam scheduling
-  examDate    DateTime
-  startTime   DateTime
-  endTime     DateTime
-  duration    Int        // Duration in minutes
-
-  // Venue information
-  venueId     Int?
-  venue       Venue?     @relation(fields: [venueId], references: [id])
-  roomId      Int?
-  room        Room?      @relation(fields: [roomId], references: [id])
-
-  status      ExamStatus @default(PLANNED)
-  instructions String?
-  specialRequirements String?
-
-  // Metadata
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  createdBy   Int
-
-  // Relationships
-  scripts     Script[]
-  incidents   Incident[]
-  examSessions ExamSession[]
-  timetableEntries ExamTimetableEntry[]
-
-  @@map("exams")
-}
-
-model ExamSession {
-  id        Int      @id @default(autoincrement())
-  examId    Int
-  exam      Exam     @relation(fields: [examId], references: [id])
-  sessionDate DateTime
-  startTime DateTime
-  endTime   DateTime
-
-  // Session management
-  actualStartTime DateTime?
-  actualEndTime   DateTime?
-  notes          String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("exam_sessions")
-}
-
-// ========================================
-// EXAM TIMETABLE & SCHEDULING
-// ========================================
 
 enum ExamTimetableStatus {
   DRAFT
@@ -1119,252 +1212,6 @@ enum ConflictSeverity {
   CRITICAL
 }
 
-// Exam Timetable - container for all scheduled exams in a period
-model ExamTimetable {
-  id          Int                    @id @default(autoincrement())
-  title       String
-  description String?
-
-  // Academic period linkage
-  academicYearId   Int
-  academicYear     AcademicYear       @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
-  semesterId       Int
-  semester         Semester           @relation(fields: [semesterId], references: [id], onDelete: Cascade)
-  academicPeriodId Int?
-  academicPeriod   AcademicPeriod?    @relation(fields: [academicPeriodId], references: [id])
-
-  // Institution/Faculty scope
-  institutionId Int
-  institution   Institution          @relation(fields: [institutionId], references: [id])
-  facultyId     Int?
-  faculty       Faculty?             @relation(fields: [facultyId], references: [id])
-
-  // Date range
-  startDate DateTime
-  endDate   DateTime
-
-  // Status
-  status        ExamTimetableStatus     @default(DRAFT)
-  isPublished   Boolean                 @default(false)
-  publishedAt   DateTime?
-  publishedBy   Int?
-  publisher     User?                   @relation("TimetablePublisher", fields: [publishedBy], references: [id])
-
-  // Approval workflow
-  approvalStatus  TimetableApprovalStatus @default(NOT_SUBMITTED)
-  approvedBy      Int?
-  approver        User?                   @relation("TimetableApprover", fields: [approvedBy], references: [id])
-  approvedAt      DateTime?
-  rejectionReason String?
-
-  // Configuration
-  allowOverlaps          Boolean @default(false)
-  autoResolveConflicts   Boolean @default(true)
-  defaultExamDuration    Int     @default(180) // minutes
-
-  // Statistics
-  totalExams       Int   @default(0)
-  totalConflicts   Int   @default(0)
-  venuesUtilization Float?
-
-  // Metadata
-  createdBy Int
-  creator   User     @relation("TimetableCreator", fields: [createdBy], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relationships
-  entries  ExamTimetableEntry[]
-  imports  TimetableImport[]
-  conflicts TimetableConflict[]
-
-  @@index([institutionId, academicYearId, semesterId])
-  @@index([status, isPublished])
-  @@map("exam_timetables")
-}
-
-// Exam Timetable Entry - individual scheduled exam
-model ExamTimetableEntry {
-  id          Int                     @id @default(autoincrement())
-  timetableId Int
-  timetable   ExamTimetable           @relation(fields: [timetableId], references: [id], onDelete: Cascade)
-
-  // Link to actual Exam (created when entry is confirmed)
-  examId      Int?
-  exam        Exam?                   @relation(fields: [examId], references: [id])
-
-  // Core exam details
-  courseId    Int
-  course      Course                  @relation(fields: [courseId], references: [id])
-
-  // Program/Student information (stored as JSON arrays)
-  programIds  String                  // JSON array of program IDs
-  level       Int?                    // 100, 200, 300, 400
-  studentCount Int?
-
-  // Scheduling
-  examDate    DateTime
-  startTime   DateTime
-  endTime     DateTime
-  duration    Int                     // minutes
-
-  // Venue details
-  venueId     Int
-  venue       Venue                   @relation(fields: [venueId], references: [id])
-  roomIds     String                  // JSON array of room IDs
-  seatingCapacity Int?
-
-  // Invigilator assignments (stored as JSON arrays)
-  invigilatorIds     String           // JSON array of invigilator user IDs
-  chiefInvigilatorId Int?
-
-  // Status
-  status             ExamTimetableEntryStatus @default(DRAFT)
-  notes              String?
-  specialRequirements String?
-
-  // Conflict detection
-  hasConflicts    Boolean @default(false)
-  conflictDetails String? // JSON array of conflict descriptions
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relationships
-  conflictsAsEntry1 TimetableConflict[] @relation("ConflictEntry1")
-  conflictsAsEntry2 TimetableConflict[] @relation("ConflictEntry2")
-
-  @@index([timetableId, examDate])
-  @@index([courseId])
-  @@index([venueId, examDate, startTime])
-  @@index([status, hasConflicts])
-  @@map("exam_timetable_entries")
-}
-
-// Timetable Conflict - tracks scheduling conflicts
-model TimetableConflict {
-  id          String              @id @default(uuid())
-  timetableId Int
-  timetable   ExamTimetable       @relation(fields: [timetableId], references: [id], onDelete: Cascade)
-
-  // Conflict type and severity
-  type        ConflictType
-  severity    ConflictSeverity    @default(MEDIUM)
-
-  // Affected entries (usually 2, but can be more)
-  entry1Id    Int
-  entry1      ExamTimetableEntry  @relation("ConflictEntry1", fields: [entry1Id], references: [id], onDelete: Cascade)
-  entry2Id    Int
-  entry2      ExamTimetableEntry  @relation("ConflictEntry2", fields: [entry2Id], references: [id], onDelete: Cascade)
-
-  // Additional affected entry IDs (JSON array for multi-way conflicts)
-  additionalEntryIds String?
-
-  // Conflict details
-  description       String
-  affectedStudents  Int?
-  affectedPrograms  String?        // JSON array of program IDs
-
-  // Resolution
-  canAutoResolve       Boolean @default(false)
-  suggestedResolution  String?
-  isResolved           Boolean @default(false)
-  resolvedAt           DateTime?
-  resolvedBy           Int?
-  resolver             User?   @relation(fields: [resolvedBy], references: [id])
-
-  detectedAt DateTime @default(now())
-
-  @@index([timetableId, isResolved])
-  @@index([type, severity])
-  @@map("timetable_conflicts")
-}
-
-// Timetable Import - tracks calendar imports
-model TimetableImport {
-  id          Int                     @id @default(autoincrement())
-  timetableId Int?
-  timetable   ExamTimetable?          @relation(fields: [timetableId], references: [id], onDelete: SetNull)
-
-  // File details
-  fileName    String
-  fileUrl     String?
-  fileType    TimetableFileType
-  fileSize    Int?
-
-  // Import metadata
-  status            TimetableImportStatus @default(PENDING)
-  totalRecords      Int                   @default(0)
-  importedRecords   Int                   @default(0)
-  failedRecords     Int                   @default(0)
-  skippedRecords    Int                   @default(0)
-
-  // Error tracking (stored as JSON)
-  errors            String?               // JSON array of error objects
-  warnings          String?               // JSON array of warning objects
-
-  // Configuration (stored as JSON)
-  importMapping     String?               // JSON object: column mapping
-  importOptions     String?               // JSON object: import options
-
-  // Validation
-  validationPassed  Boolean               @default(false)
-  validationErrors  String?               // JSON array
-
-  // Preview data (stored as JSON, cleared after import)
-  previewData       String?               // JSON array of preview entries
-
-  // Audit
-  importedBy  Int
-  importer    User     @relation(fields: [importedBy], references: [id])
-  importedAt  DateTime @default(now())
-  completedAt DateTime?
-
-  @@index([timetableId, status])
-  @@index([importedBy, importedAt])
-  @@map("timetable_imports")
-}
-
-// ========================================
-// VENUE MANAGEMENT
-// ========================================
-
-model Venue {
-  id            Int         @id @default(autoincrement())
-  name          String
-  location      String
-  capacity      Int
-  institutionId Int
-  institution   Institution @relation(fields: [institutionId], references: [id])
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-
-  rooms         Room[]
-  exams         Exam[]
-  timetableEntries ExamTimetableEntry[]
-
-  @@map("venues")
-}
-
-model Room {
-  id        Int      @id @default(autoincrement())
-  name      String
-  capacity  Int
-  venueId   Int
-  venue     Venue    @relation(fields: [venueId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  exams     Exam[]
-
-  @@unique([venueId, name])
-  @@map("rooms")
-}
-
-// ========================================
-// SCRIPT TRACKING SYSTEM
-// ========================================
-
 enum ScriptStatus {
   GENERATED
   DISTRIBUTED
@@ -1373,29 +1220,10 @@ enum ScriptStatus {
   SCANNED
   DISPATCHED
   RECEIVED_FOR_GRADING
+  GRADING_IN_PROGRESS
   GRADED
   RETURNED
-}
-
-model Script {
-  id        Int          @id @default(autoincrement())
-  qrCode    String       @unique
-  studentId String       // Student registration number
-  examId    Int
-  exam      Exam         @relation(fields: [examId], references: [id])
-
-  status    ScriptStatus @default(GENERATED)
-  notes     String?
-
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
-
-  movements ScriptMovement[]
-  incidents Incident[]
-
-  // Indexes for performance
-  @@index([examId, status])
-  @@map("scripts")
+  ARCHIVED
 }
 
 enum MovementType {
@@ -1403,33 +1231,15 @@ enum MovementType {
   DISTRIBUTED_TO_VENUE
   COLLECTED_FROM_STUDENT
   VERIFIED_BY_INVIGILATOR
+  BATCH_SEALED
+  BATCH_TRANSFERRED
   SCANNED_BY_HANDLER
   DISPATCHED_TO_GRADER
   RECEIVED_BY_GRADER
+  GRADING_STARTED
   GRADED
   RETURNED_TO_REGISTRY
 }
-
-model ScriptMovement {
-  id        Int          @id @default(autoincrement())
-  scriptId  Int
-  script    Script       @relation(fields: [scriptId], references: [id])
-
-  type      MovementType
-  fromUserId Int?
-  toUserId  Int?
-  handledBy User?        @relation(fields: [toUserId], references: [id])
-
-  location  String?
-  notes     String?
-  timestamp DateTime     @default(now())
-
-  @@map("script_movements")
-}
-
-// ========================================
-// INCIDENT MANAGEMENT
-// ========================================
 
 enum IncidentType {
   ACADEMIC_MISCONDUCT
@@ -1458,41 +1268,6 @@ enum IncidentStatus {
   ESCALATED
 }
 
-model Incident {
-  id          Int              @id @default(autoincrement())
-  type        IncidentType
-  severity    IncidentSeverity @default(MEDIUM)
-  status      IncidentStatus   @default(REPORTED)
-
-  title       String
-  description String
-
-  // Relationships
-  examId      Int?
-  exam        Exam?            @relation(fields: [examId], references: [id])
-  scriptId    Int?
-  script      Script?          @relation(fields: [scriptId], references: [id])
-
-  reportedById Int
-  reportedBy   User            @relation("ReportedBy", fields: [reportedById], references: [id])
-  assignedToId Int?
-  assignedTo   User?           @relation("AssignedTo", fields: [assignedToId], references: [id])
-
-  resolution  String?
-  resolvedAt  DateTime?
-
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-
-  // Indexes for performance
-  @@index([examId, status])
-  @@map("incidents")
-}
-
-// ========================================
-// AUDIT & LOGGING
-// ========================================
-
 enum ActionType {
   CREATE
   READ
@@ -1504,22 +1279,14 @@ enum ActionType {
   IMPORT
 }
 
-model AuditLog {
-  id        Int        @id @default(autoincrement())
-  userId    Int
-  user      User       @relation(fields: [userId], references: [id])
-
-  action    ActionType
-  entity    String     // Table/model name
-  entityId  String?    // ID of the affected record
-  oldValues Json?      // Previous values (for updates)
-  newValues Json?      // New values (for creates/updates)
-
-  ipAddress String?
-  userAgent String?
-  timestamp DateTime   @default(now())
-
-  // Indexes for performance
-  @@index([userId, timestamp])
-  @@map("audit_logs")
+enum BatchScriptStatus {
+  PENDING
+  IN_COLLECTION
+  SEALED
+  IN_TRANSIT
+  WITH_LECTURER
+  GRADING_IN_PROGRESS
+  GRADING_COMPLETED
+  RETURNED_TO_REGISTRY
+  ARCHIVED
 }
