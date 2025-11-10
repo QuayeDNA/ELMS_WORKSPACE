@@ -138,15 +138,18 @@ const VenuesPage = lazy(() =>
   import("@/pages/admin/VenuesPage")
 );
 
+// Script Submission Page
+const ScriptSubmissionOversightPage = lazy(() =>
+  import("@/pages/institution-admin/ScriptSubmissionOversightPage")
+);
+const BatchScriptDetailsPage = lazy(() =>
+  import("@/pages/institution-admin/BatchScriptDetailsPage")
+);
+
 // Placeholder Pages
 const IncidentsPage = lazy(() =>
   import("@/pages/institution-admin/PlaceholderPages").then((module) => ({
     default: module.IncidentsPage,
-  }))
-);
-const ScriptsPage = lazy(() =>
-  import("@/pages/institution-admin/PlaceholderPages").then((module) => ({
-    default: module.ScriptsPage,
   }))
 );
 const ReportsPage = lazy(() =>
@@ -518,7 +521,15 @@ export function AppRoutes() {
         path="/admin/scripts"
         element={
           <AdminLayout>
-            <ScriptsPage />
+            <ScriptSubmissionOversightPage />
+          </AdminLayout>
+        }
+      />
+      <Route
+        path="/admin/scripts/:batchId"
+        element={
+          <AdminLayout>
+            <BatchScriptDetailsPage />
           </AdminLayout>
         }
       />

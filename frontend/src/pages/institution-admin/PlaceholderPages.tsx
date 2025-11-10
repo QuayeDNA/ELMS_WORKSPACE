@@ -16,13 +16,13 @@ export function PlaceholderPage({ title, description, icon }: PlaceholderPagePro
           <h1 className="text-3xl font-bold text-gray-900 mb-2">{title}</h1>
           <p className="text-gray-600 mb-8">{description}</p>
         </div>
-        
+
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-8">
           <p className="text-yellow-800 text-sm">
             🚧 This page is currently under development. Please check back later for updates.
           </p>
         </div>
-        
+
         <Link
           to="/admin/institution"
           className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
@@ -38,7 +38,7 @@ export function PlaceholderPage({ title, description, icon }: PlaceholderPagePro
 // Specific page components using the placeholder
 export function ExamsPage() {
   return (
-    <PlaceholderPage 
+    <PlaceholderPage
       title="Exams Management"
       description="Manage exam schedules, create assessments, and monitor exam logistics."
     />
@@ -47,25 +47,16 @@ export function ExamsPage() {
 
 export function IncidentsPage() {
   return (
-    <PlaceholderPage 
+    <PlaceholderPage
       title="Incidents Reporting"
       description="Track and manage security incidents, violations, and exam irregularities."
     />
   );
 }
 
-export function ScriptsPage() {
-  return (
-    <PlaceholderPage 
-      title="Scripts Management"
-      description="Manage examination scripts, grading workflows, and answer sheets."
-    />
-  );
-}
-
 export function ReportsPage() {
   return (
-    <PlaceholderPage 
+    <PlaceholderPage
       title="Reports & Analytics"
       description="Generate comprehensive reports and view analytical insights."
     />
@@ -74,7 +65,7 @@ export function ReportsPage() {
 
 export function SettingsPage() {
   return (
-    <PlaceholderPage 
+    <PlaceholderPage
       title="System Settings"
       description="Configure system preferences, user permissions, and institutional settings."
     />

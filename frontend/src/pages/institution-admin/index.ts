@@ -10,5 +10,7 @@ export { default as DepartmentsPage } from "./DepartmentsPage";
 export { default as DepartmentDetailsPage } from "./DepartmentDetailsPage";
 export { FacultyPage } from "./FacultyPage";
 export { UsersPage } from "./UsersPage";
+export { default as ScriptSubmissionOversightPage } from "./ScriptSubmissionOversightPage";
+export { default as BatchScriptDetailsPage } from "./BatchScriptDetailsPage";
 export * from "./PlaceholderPages";
 
