@@ -14,6 +14,18 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  server: {
+    headers: {
+      // Suppress Chrome origin trial warnings
+      'Permissions-Policy': 'interest-cohort=()',
+    },
+  },
+  preview: {
+    headers: {
+      // Suppress Chrome origin trial warnings
+      'Permissions-Policy': 'interest-cohort=()',
+    },
+  },
   build: {
     outDir: 'dist',
   }

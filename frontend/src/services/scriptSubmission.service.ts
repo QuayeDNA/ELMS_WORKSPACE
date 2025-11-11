@@ -19,7 +19,7 @@ import { apiService } from './api';
  */
 class ScriptSubmissionService extends BaseService {
   constructor() {
-    super('/script-submissions');
+    super('/api/script-submissions');
   }
 
   /**

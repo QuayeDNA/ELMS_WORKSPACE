@@ -16,7 +16,7 @@ import { apiService } from './api';
  */
 class BatchScriptService extends BaseService {
   constructor() {
-    super('/batch-scripts');
+    super('/api/batch-scripts');
   }
 
   /**

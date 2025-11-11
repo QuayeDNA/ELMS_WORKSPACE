@@ -121,14 +121,14 @@ export const courseService = {
               include: {
                 institution: true
               }
-            }
-          }
-        },
-        courseOfferings: {
-          include: {
-            enrollments: {
+            },
+            lecturerDepartments: {
+              where: {
+                isPrimary: true
+              },
+              take: 5,
               include: {
-                student: {
+                lecturer: {
                   select: {
                     id: true,
                     firstName: true,
@@ -138,6 +138,26 @@ export const courseService = {
                 }
               }
             }
+          }
+        },
+        courseOfferings: {
+          include: {
+            courseLecturers: {
+              include: {
+                lecturer: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    email: true
+                  }
+                }
+              }
+            }
+          },
+          take: 5, // Get the most recent 5 offerings
+          orderBy: {
+            createdAt: 'desc'
           }
         },
         _count: {

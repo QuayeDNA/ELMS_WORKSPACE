@@ -29,6 +29,7 @@
   "type": "commonjs",
   "dependencies": {
     "@prisma/client": "^6.17.1",
+    "@types/socket.io": "^3.0.1",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
@@ -39,7 +40,8 @@
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.1",
     "multer": "^2.0.2",
-    "prisma": "^6.17.1"
+    "prisma": "^6.17.1",
+    "socket.io": "^4.8.1"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

@@ -808,6 +808,32 @@ export const examTimetableController = {
       });
     }
   },
+
+  /**
+   * POST /api/timetables/:id/create-batches
+   * Create batch scripts for a published timetable
+   */
+  async createBatchScripts(req: Request, res: Response) {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid timetable ID",
+        });
+      }
+
+      const result = await examTimetableService.createBatchScriptsForTimetable(id);
+      res.json(result);
+    } catch (error) {
+      console.error("Error creating batch scripts:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to create batch scripts",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  },
 };
 
 // Helper function to calculate end time

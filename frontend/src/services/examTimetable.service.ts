@@ -102,6 +102,7 @@ export interface ExamTimetable {
   };
   academicPeriod?: {
     id: number;
+    name: string;
     examStartDate: string;
     examEndDate: string;
   };
@@ -121,6 +122,8 @@ export interface ExamTimetable {
     lastName: string;
     email: string;
   };
+  examEntries?: ExamTimetableEntry[];
+  entries?: ExamTimetableEntry[]; // Backend returns 'entries' not 'examEntries'
 }
 
 export interface ExamTimetableEntry {
@@ -161,6 +164,30 @@ export interface ExamTimetableEntry {
     location: string;
     capacity: number;
   };
+  batchScripts?: Array<{
+    id: number;
+    batchQRCode: string;
+    status: string;
+    totalRegistered: number;
+    scriptsSubmitted: number;
+    scriptsCollected: number;
+    scriptsGraded: number;
+    assignedLecturerId?: number;
+    sealedAt?: string;
+    createdAt: string;
+  }>;
+  batches?: Array<{
+    id: number;
+    batchQRCode: string;
+    status: string;
+    totalRegistered: number;
+    scriptsSubmitted: number;
+    scriptsCollected: number;
+    scriptsGraded: number;
+    assignedLecturerId?: number;
+    sealedAt?: string;
+    createdAt: string;
+  }>; // Alias for batchScripts
 }
 
 export enum ExamTimetableStatus {
@@ -323,6 +350,28 @@ export const examTimetableService = {
   },
 
   /**
+   * Get all published timetables with exam entries and batches
+   */
+  async getPublishedTimetables(): Promise<{
+    success: boolean;
+    data: ExamTimetable[];
+  }> {
+    const response = await apiService.get<{
+      success: boolean;
+      data: ExamTimetable[];
+    }>(API_ENDPOINTS.EXAM_TIMETABLES.BASE, {
+      params: {
+        isPublished: true,
+        limit: 1000 // Get all published timetables
+      }
+    });
+    return response as unknown as {
+      success: boolean;
+      data: ExamTimetable[];
+    };
+  },
+
+  /**
    * Get a single timetable by ID
    */
   async getTimetableById(id: number): Promise<{
@@ -373,7 +422,34 @@ export const examTimetableService = {
       success: boolean;
       data: ExamTimetable;
       message: string;
+      batchesCreated?: number;
     }>(API_ENDPOINTS.EXAM_TIMETABLES.PUBLISH(id), {});
+  },
+
+  /**
+   * Manually create batch scripts for a published timetable
+   */
+  async createBatchScripts(id: number) {
+    return await apiService.post<{
+      success: boolean;
+      message: string;
+      data: {
+        timetableId: number;
+        batchesCreated: Array<{
+          id: number;
+          batchNumber: string;
+          courseId: number;
+          courseName: string;
+          totalRegistered: number;
+        }>;
+        batchesSkipped: Array<{
+          entryId: number;
+          courseId: number;
+          courseName: string;
+          batchId: number;
+        }>;
+      };
+    }>(API_ENDPOINTS.EXAM_TIMETABLES.CREATE_BATCHES(id), {});
   },
 
   /**

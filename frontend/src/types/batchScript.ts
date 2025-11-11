@@ -4,34 +4,57 @@
 
 export interface BatchScript {
   id: number;
-  batchNumber: string;
+  batchNumber?: string; // Legacy field
+  batchQRCode: string; // New field from API
   examEntryId: number;
   courseId: number;
-  totalScripts: number;
-  submittedCount: number;
-  assignedToId?: number | null;
+  totalScripts?: number; // Legacy field
+  totalRegistered: number; // New field from API
+  submittedCount?: number; // Legacy field
+  scriptsSubmitted: number; // New field from API
+  scriptsCollected: number;
+  scriptsGraded: number;
+  assignedToId?: number | null; // Legacy field
+  assignedLecturerId?: number | null; // New field from API
   status: BatchStatus;
-  sealedAt?: Date | null;
+  sealedAt?: Date | string | null;
   sealedById?: number | null;
-  createdAt: Date;
-  updatedAt: Date;
+  sealedBy?: number | null;
+  deliveredAt?: Date | string | null;
+  completedAt?: Date | string | null;
+  notes?: string | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
 
   // Relations
   examEntry?: {
     id: number;
-    date: Date;
+    date?: Date; // Legacy field
+    examDate?: string; // New field from API
     startTime: string;
     endTime: string;
+    duration?: number;
+    venueId?: number;
+    level?: number;
+    programIds?: string; // JSON array of program IDs
     course: {
       id: number;
       code: string;
-      title: string;
+      title?: string; // Legacy field
+      name?: string; // New field from API
+    };
+    venue?: {
+      id: number;
+      name: string;
+      location: string;
     };
   };
   course?: {
     id: number;
     code: string;
-    title: string;
+    title?: string; // Legacy field
+    name?: string; // New field from API
+    creditHours?: number; // Optional credit hours
   };
   assignedTo?: {
     id: number;
@@ -39,12 +62,19 @@ export interface BatchScript {
     lastName: string;
     email: string;
   };
-  sealedBy?: {
+  assignedLecturer?: {
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  sealedByUser?: {
     id: number;
     firstName: string;
     lastName: string;
   };
   scripts?: Script[];
+  movements?: Array<unknown>;
   registrations?: Array<{
     id: number;
     studentId: number;
@@ -91,17 +121,24 @@ export enum ScriptStatus {
 
 export interface BatchStatistics {
   batchId: number;
-  batchNumber: string;
-  totalScripts: number;
-  submittedCount: number;
-  pendingCount: number;
-  verifiedCount: number;
-  gradedCount: number;
+  batchNumber?: string; // Legacy field
+  totalScripts?: number; // Legacy field
+  totalRegistered?: number; // New field from API
+  submittedCount?: number; // Legacy field
+  scriptsSubmitted?: number; // New field from API
+  scriptsCollected?: number;
+  scriptsGraded?: number;
+  pendingCount?: number; // Legacy field
+  pending?: number; // New field from API
+  verifiedCount?: number;
+  gradedCount?: number;
   submissionRate: number;
+  gradingProgress?: number;
   averageSubmissionTime?: number | null;
   firstSubmission?: Date | null;
   lastSubmission?: Date | null;
-  scriptsByStatus: Record<ScriptStatus, number>;
+  scriptsByStatus?: Record<ScriptStatus, number>;
+  status?: BatchStatus;
 }
 
 // ========================================

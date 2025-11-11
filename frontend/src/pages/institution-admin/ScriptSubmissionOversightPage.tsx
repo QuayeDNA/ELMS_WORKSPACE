@@ -1,75 +1,146 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
   FileText,
   Package,
-  TrendingUp,
+  Calendar,
   AlertCircle,
-  Search,
-  Filter,
   Download,
   RefreshCw,
+  ChevronRight,
+  Clock,
+  MapPin,
+  PackagePlus,
+  Loader2,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { batchScriptService } from '@/services/batchScript.service';
-import { BatchStatus } from '@/types/batchScript';
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { SearchAndFilter, FilterGroup } from '@/components/shared/SearchAndFilter';
+import { examTimetableService, ExamTimetableEntry } from '@/services/examTimetable.service';
+import { BatchStatus, BatchScript } from '@/types/batchScript';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 export function ScriptSubmissionOversightPage() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('overview');
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedTimetable, setSelectedTimetable] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<BatchStatus | 'ALL'>('ALL');
+  const [showBatchDialog, setShowBatchDialog] = useState(false);
+  const [selectedTimetableForBatch, setSelectedTimetableForBatch] = useState<number | null>(null);
 
-  // Fetch batch scripts
-  const { data: batchesData, isLoading: batchesLoading, refetch: refetchBatches } = useQuery({
-    queryKey: ['batch-scripts', statusFilter],
+  // Mutation for creating batches
+  const createBatchesMutation = useMutation({
+    mutationFn: (timetableId: number) => examTimetableService.createBatchScripts(timetableId),
+    onSuccess: (data) => {
+      toast.success(data.message || 'Batch scripts created successfully');
+      // Refetch data
+      queryClient.invalidateQueries({ queryKey: ['published-timetables'] });
+      setShowBatchDialog(false);
+      setSelectedTimetableForBatch(null);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to create batch scripts');
+    },
+  });
+
+  // Fetch published exam timetables with their entries and batches
+  const { data: timetablesData, refetch: refetchTimetables } = useQuery({
+    queryKey: ['published-timetables'],
     queryFn: async () => {
-      const response = await batchScriptService.getBatchScripts({
-        status: statusFilter !== 'ALL' ? statusFilter : undefined,
-        page: 1,
-        limit: 50,
+      const response = await examTimetableService.getPublishedTimetables();
+      return response;
+    },
+  });
+
+  const timetables = timetablesData?.data || [];
+
+  // Debug logging
+  console.log('📊 Timetables:', timetables.length, timetables);
+
+  // Extract all batches from timetable entries for statistics
+  const allBatches = timetables.flatMap(t =>
+    (t.entries || t.examEntries || []).flatMap(e => e.batchScripts || e.batches || [])
+  );
+  console.log('� Batches from entries:', allBatches.length, allBatches);
+
+  // Define entry with batches type
+  type EntryWithBatches = ExamTimetableEntry & {
+    batches: BatchScript[];
+  };
+
+  // Group batches by timetable and exam entry
+  const groupedData = timetables
+    .filter(timetable =>
+      selectedTimetable === 'all' || timetable.id.toString() === selectedTimetable
+    )
+    .map(timetable => {
+      // Get exam entries for this timetable, sorted by date and time
+      // Backend returns 'entries' not 'examEntries'
+      const entries = (timetable.examEntries || timetable.entries || [])
+        .sort((a, b) => {
+          const dateCompare = new Date(a.examDate).getTime() - new Date(b.examDate).getTime();
+          if (dateCompare !== 0) return dateCompare;
+          return a.startTime.localeCompare(b.startTime);
+        });
+
+      // Map entries with their batches (already included in the entries from backend)
+      const entriesWithBatches: EntryWithBatches[] = entries.map(entry => {
+        // Use batchScripts from the entry (already included by backend)
+        const entryBatches = (entry.batchScripts || entry.batches || [])
+          .filter(batch => {
+            // Apply status filter
+            if (statusFilter === 'ALL') return true;
+            return batch.status === statusFilter;
+          });
+        return {
+          ...entry,
+          batches: entryBatches,
+        };
+      }).filter(entry => {
+        // Filter by search term
+        if (!searchTerm) return true;
+        const searchLower = searchTerm.toLowerCase();
+        return (
+          entry.course?.code.toLowerCase().includes(searchLower) ||
+          entry.course?.name.toLowerCase().includes(searchLower) ||
+          entry.batches.some(b => b.batchNumber.toLowerCase().includes(searchLower))
+        );
       });
-      return response;
-    },
-  });
 
-  // Fetch pending batches
-  const { data: pendingBatchesData } = useQuery({
-    queryKey: ['pending-batches'],
-    queryFn: async () => {
-      const response = await batchScriptService.getPendingAssignment();
-      return response;
-    },
-  });
-
-  const batches = batchesData?.data || [];
-  const pendingBatches = pendingBatchesData?.data || [];
+      return {
+        ...timetable,
+        entries: entriesWithBatches,
+      };
+    })
+    // Only filter out timetables with no entries if there's an active search term
+    // Otherwise, show all timetables so users can create batches
+    .filter(timetable => !searchTerm || timetable.entries.length > 0);
 
   // Calculate overview statistics
-  const totalBatches = batches.length;
-  const totalScripts = batches.reduce((sum, b) => sum + b.totalScripts, 0);
-  const submittedScripts = batches.reduce((sum, b) => sum + b.submittedCount, 0);
+  const totalTimetables = timetables.length;
+  const totalBatches = allBatches.length;
+  const totalScripts = allBatches.reduce((sum, b) => sum + (b.totalRegistered || 0), 0);
+  const submittedScripts = allBatches.reduce((sum, b) => sum + (b.scriptsSubmitted || 0), 0);
   const submissionRate = totalScripts > 0 ? ((submittedScripts / totalScripts) * 100).toFixed(1) : '0';
 
   const getStatusColor = (status: BatchStatus) => {
@@ -84,26 +155,56 @@ export function ScriptSubmissionOversightPage() {
     return colors[status] || 'bg-gray-100 text-gray-800';
   };
 
-  const filteredBatches = batches.filter((batch) => {
-    const matchesSearch =
-      batch.batchNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      batch.course?.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      batch.course?.title.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch;
-  });
+  // Filter groups for SearchAndFilter component
+  const filterGroups: FilterGroup[] = [
+    {
+      id: 'timetable',
+      label: 'Exam Timetable',
+      type: 'select',
+      value: selectedTimetable,
+      onChange: (value) => setSelectedTimetable(value as string),
+      options: [
+        { label: 'All Timetables', value: 'all' },
+        ...timetables.map(t => ({
+          label: `${t.title} (${t.academicPeriod?.name || t.semester?.name || 'N/A'})`,
+          value: t.id.toString(),
+        })),
+      ],
+    },
+    {
+      id: 'status',
+      label: 'Batch Status',
+      type: 'select',
+      value: statusFilter,
+      onChange: (value) => setStatusFilter(value as BatchStatus | 'ALL'),
+      options: [
+        { label: 'All Status', value: 'ALL' },
+        { label: 'Pending', value: 'PENDING' },
+        { label: 'In Progress', value: 'IN_PROGRESS' },
+        { label: 'Sealed', value: 'SEALED' },
+        { label: 'Assigned', value: 'ASSIGNED' },
+        { label: 'Grading', value: 'GRADING' },
+        { label: 'Completed', value: 'COMPLETED' },
+      ],
+    },
+  ];
+
+  const handleRefresh = () => {
+    refetchTimetables();
+  };
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Script Submission Oversight</h1>
+          <h1 className="text-3xl font-bold">Script Batch Overview</h1>
           <p className="text-muted-foreground mt-2">
-            Monitor and manage script submissions across all exams
+            View and manage script batches from published exam timetables
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => refetchBatches()}>
+          <Button variant="outline" onClick={handleRefresh}>
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh
           </Button>
@@ -118,13 +219,26 @@ export function ScriptSubmissionOversightPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Published Timetables</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalTimetables}</div>
+            <p className="text-xs text-muted-foreground">
+              Active exam timetables
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Batches</CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalBatches}</div>
             <p className="text-xs text-muted-foreground">
-              {pendingBatches.length} pending assignment
+              Script batches created
             </p>
           </CardContent>
         </Card>
@@ -137,20 +251,7 @@ export function ScriptSubmissionOversightPage() {
           <CardContent>
             <div className="text-2xl font-bold">{totalScripts}</div>
             <p className="text-xs text-muted-foreground">
-              Across all exam entries
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Submitted Scripts</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{submittedScripts}</div>
-            <p className="text-xs text-muted-foreground">
-              {submissionRate}% submission rate
+              {submittedScripts} submitted ({submissionRate}%)
             </p>
           </CardContent>
         </Card>
@@ -163,245 +264,209 @@ export function ScriptSubmissionOversightPage() {
           <CardContent>
             <div className="text-2xl font-bold">{totalScripts - submittedScripts}</div>
             <p className="text-xs text-muted-foreground">
-              Yet to be submitted
+              Awaiting submission
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Main Content */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="overview">All Batches</TabsTrigger>
-          <TabsTrigger value="pending">
-            Pending Assignment ({pendingBatches.length})
-          </TabsTrigger>
-          <TabsTrigger value="in-progress">In Progress</TabsTrigger>
-          <TabsTrigger value="completed">Completed</TabsTrigger>
-        </TabsList>
+      {/* Search and Filters */}
+      <SearchAndFilter
+        searchPlaceholder="Search by course, batch number..."
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        filterGroups={filterGroups}
+        showSort={false}
+      />
 
-        <TabsContent value="overview" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Script Batches</CardTitle>
-                  <CardDescription>
-                    View and manage all script submission batches
-                  </CardDescription>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="relative">
-                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search batches..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-8 w-[250px]"
-                    />
-                  </div>
-                  <Select
-                    value={statusFilter}
-                    onValueChange={(value) => setStatusFilter(value as BatchStatus | 'ALL')}
-                  >
-                    <SelectTrigger className="w-[150px]">
-                      <Filter className="w-4 h-4 mr-2" />
-                      <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ALL">All Status</SelectItem>
-                      <SelectItem value="PENDING">Pending</SelectItem>
-                      <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                      <SelectItem value="SEALED">Sealed</SelectItem>
-                      <SelectItem value="ASSIGNED">Assigned</SelectItem>
-                      <SelectItem value="GRADING">Grading</SelectItem>
-                      <SelectItem value="COMPLETED">Completed</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {batchesLoading ? (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">Loading batches...</p>
-                </div>
-              ) : filteredBatches.length === 0 ? (
-                <div className="text-center py-8">
-                  <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium mb-2">No batches found</h3>
-                  <p className="text-muted-foreground">
-                    {searchTerm
-                      ? 'Try adjusting your search or filters'
-                      : 'Script batches will appear here once exams are conducted'}
-                  </p>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Batch Number</TableHead>
-                      <TableHead>Course</TableHead>
-                      <TableHead>Exam Date</TableHead>
-                      <TableHead>Scripts</TableHead>
-                      <TableHead>Submitted</TableHead>
-                      <TableHead>Assigned To</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredBatches.map((batch) => (
-                      <TableRow key={batch.id}>
-                        <TableCell className="font-medium">
-                          {batch.batchNumber}
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">{batch.course?.code}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {batch.course?.title}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {batch.examEntry?.date
-                            ? format(new Date(batch.examEntry.date), 'MMM dd, yyyy')
-                            : 'N/A'}
-                        </TableCell>
-                        <TableCell>{batch.totalScripts}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <span>{batch.submittedCount}</span>
-                            <Badge
-                              variant={
-                                batch.submittedCount === batch.totalScripts
-                                  ? 'default'
-                                  : 'secondary'
-                              }
-                            >
-                              {batch.totalScripts > 0
-                                ? `${((batch.submittedCount / batch.totalScripts) * 100).toFixed(0)}%`
-                                : '0%'}
-                            </Badge>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {batch.assignedTo ? (
-                            <div>
-                              <div className="text-sm">
-                                {batch.assignedTo.firstName} {batch.assignedTo.lastName}
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                {batch.assignedTo.email}
-                              </div>
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">Not assigned</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={getStatusColor(batch.status)}>
-                            {batch.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => navigate(`/admin/scripts/${batch.id}`)}
-                          >
-                            View Details
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="pending" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Batches Pending Assignment</CardTitle>
-              <CardDescription>
-                These batches need to be assigned to lecturers for grading
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {pendingBatches.length === 0 ? (
-                <div className="text-center py-8">
-                  <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium mb-2">No pending batches</h3>
-                  <p className="text-muted-foreground">
-                    All sealed batches have been assigned
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {pendingBatches.map((batch) => (
-                    <div
-                      key={batch.id}
-                      className="flex items-center justify-between p-4 border rounded-lg"
-                    >
-                      <div>
-                        <h4 className="font-medium">{batch.batchNumber}</h4>
-                        <p className="text-sm text-muted-foreground">
-                          {batch.course?.code} - {batch.course?.title}
-                        </p>
-                        <div className="flex items-center gap-4 mt-2">
-                          <span className="text-sm">
-                            {batch.submittedCount} / {batch.totalScripts} scripts
-                          </span>
-                          <Badge className={getStatusColor(batch.status)}>
-                            {batch.status}
-                          </Badge>
+      {/* Timetables and Batches List */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Exam Timetables & Script Batches</CardTitle>
+          <CardDescription>
+            Batches are organized by timetable and exam entry, in chronological order
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {timetables.length === 0 ? (
+            <div className="text-center py-12">
+              <RefreshCw className="w-8 h-8 text-muted-foreground mx-auto mb-4 animate-spin" />
+              <p className="text-muted-foreground">Loading timetables...</p>
+            </div>
+          ) : groupedData.length === 0 ? (
+            <div className="text-center py-12">
+              <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium mb-2">No batches found</h3>
+              <p className="text-muted-foreground">
+                {searchTerm
+                  ? 'Try adjusting your search or filters'
+                  : selectedTimetable !== 'all'
+                  ? 'No batches found for the selected timetable'
+                  : 'Script batches will appear here once exam timetables are published'}
+              </p>
+            </div>
+          ) : (
+            <Accordion type="multiple" className="space-y-4">
+              {groupedData.map((timetable) => (
+                <AccordionItem
+                  key={timetable.id}
+                  value={`timetable-${timetable.id}`}
+                  className="border rounded-lg px-4"
+                >
+                  <div className="flex items-center justify-between py-4">
+                    <AccordionTrigger className="hover:no-underline flex-1">
+                      <div className="flex items-center gap-4">
+                        <Calendar className="w-5 h-5 text-muted-foreground" />
+                        <div className="text-left">
+                          <h3 className="font-semibold text-base">{timetable.title}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {timetable.academicPeriod?.name || timetable.semester?.name} • {timetable.entries?.length || 0} exam entries
+                          </p>
                         </div>
                       </div>
-                      <Button size="sm">Assign Lecturer</Button>
+                    </AccordionTrigger>
+                    <div className="flex items-center gap-2 ml-4">
+                      <Button
+                        variant={timetable.entries?.reduce((sum: number, e) => sum + (e.batches?.length || 0), 0) === 0 ? "default" : "outline"}
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedTimetableForBatch(timetable.id);
+                          setShowBatchDialog(true);
+                        }}
+                        disabled={createBatchesMutation.isPending}
+                      >
+                        <PackagePlus className="w-4 h-4 mr-2" />
+                        {timetable.entries?.reduce((sum: number, e) => sum + (e.batches?.length || 0), 0) === 0
+                          ? 'Create Batches'
+                          : 'Add More Batches'}
+                      </Button>
+                      <Badge variant="outline">
+                        {timetable.entries?.reduce((sum: number, e) => sum + (e.batches?.length || 0), 0) || 0} batches
+                      </Badge>
+                      <Badge variant={timetable.isPublished ? 'default' : 'secondary'}>
+                        {timetable.isPublished ? 'Published' : 'Draft'}
+                      </Badge>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                  <AccordionContent className="pt-4">
+                    <div className="space-y-4">
+                      {timetable.entries.map((entry) => (
+                        <div key={entry.id} className="border rounded-lg p-4 space-y-3">
+                          {/* Exam Entry Header */}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-primary/10 rounded-lg">
+                                <FileText className="w-4 h-4 text-primary" />
+                              </div>
+                              <div>
+                                <h4 className="font-medium">
+                                  {entry.course?.code} - {entry.course?.name}
+                                </h4>
+                                <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
+                                  <span className="flex items-center gap-1">
+                                    <Calendar className="w-3 h-3" />
+                                    {format(new Date(entry.examDate), 'MMM dd, yyyy')}
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />
+                                    {entry.startTime} - {entry.endTime}
+                                  </span>
+                                  {entry.venue && (
+                                    <span className="flex items-center gap-1">
+                                      <MapPin className="w-3 h-3" />
+                                      {entry.venue.name}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            <Badge variant="outline">
+                              {entry.batches.length} {entry.batches.length === 1 ? 'batch' : 'batches'}
+                            </Badge>
+                          </div>
+
+                          {/* Batches for this Entry */}
+                          {entry.batches.length === 0 ? (
+                            <div className="text-center py-6 bg-muted/50 rounded-lg">
+                              <Package className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                              <p className="text-sm text-muted-foreground">
+                                No batches created yet
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              {entry.batches.map((batch) => (
+                                <div
+                                  key={batch.id}
+                                  className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+                                  onClick={() => navigate(`/admin/scripts/batch/${batch.id}`)}
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <Package className="w-4 h-4 text-muted-foreground" />
+                                    <div>
+                                      <p className="font-medium text-sm">{batch.batchNumber}</p>
+                                      <p className="text-xs text-muted-foreground">
+                                        {batch.submittedCount} / {batch.totalScripts} scripts submitted
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    {batch.assignedTo && (
+                                      <div className="text-xs text-muted-foreground">
+                                        Assigned to: {batch.assignedTo.firstName} {batch.assignedTo.lastName}
+                                      </div>
+                                    )}
+                                    <Badge className={getStatusColor(batch.status)}>
+                                      {batch.status}
+                                    </Badge>
+                                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Batch Creation Confirmation Dialog */}
+      <AlertDialog open={showBatchDialog} onOpenChange={setShowBatchDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Create Batch Scripts</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will create batch scripts for all exam entries in the selected timetable.
+              Batches that already exist will be skipped. Do you want to continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={createBatchesMutation.isPending}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (selectedTimetableForBatch) {
+                  createBatchesMutation.mutate(selectedTimetableForBatch);
+                }
+              }}
+              disabled={createBatchesMutation.isPending}
+            >
+              {createBatchesMutation.isPending && (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="in-progress" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Batches In Progress</CardTitle>
-              <CardDescription>
-                Scripts are currently being submitted for these batches
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-center py-8 text-muted-foreground">
-                Filter showing batches with IN_PROGRESS status
-              </p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="completed" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Completed Batches</CardTitle>
-              <CardDescription>
-                All scripts submitted and grading completed
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-center py-8 text-muted-foreground">
-                Filter showing batches with COMPLETED status
-              </p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+              Create Batches
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

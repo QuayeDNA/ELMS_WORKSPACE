@@ -46,6 +46,13 @@ router.post(
   examTimetableController.publishTimetable
 );
 
+// Create batch scripts for published timetable (ADMIN, EXAMS_OFFICER)
+router.post(
+  "/:id/create-batches",
+  requireRole(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.EXAMS_OFFICER),
+  examTimetableController.createBatchScripts
+);
+
 // Submit for approval (ADMIN, EXAMS_OFFICER)
 router.post(
   "/:id/submit-for-approval",

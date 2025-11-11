@@ -67,7 +67,8 @@
   "author": "ELMS Team",
   "license": "MIT",
   "dependencies": {
-    "electron": "38.1.2"
+    "electron": "38.1.2",
+    "socket.io-client": "^4.8.1"
   },
   "overrides": {
     "@types/react": "18.2.64",

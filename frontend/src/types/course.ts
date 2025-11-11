@@ -35,7 +35,29 @@ export interface Course {
         name: string;
       };
     };
+    lecturerDepartments?: Array<{
+      id: number;
+      lecturer?: {
+        id: number;
+        firstName: string;
+        lastName: string;
+        email: string;
+      };
+    }>;
   };
+
+  // Course offerings (for getting instructors)
+  courseOfferings?: Array<{
+    id: number;
+    courseLecturers?: Array<{
+      lecturer?: {
+        id: number;
+        firstName: string;
+        lastName: string;
+        email: string;
+      };
+    }>;
+  }>;
 
   // Enrollment count (computed)
   enrollmentCount?: number;

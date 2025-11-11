@@ -78,6 +78,9 @@ export const examTimetableService = {
     // Get total count
     const total = await prisma.examTimetable.count({ where });
 
+    // Build include object - add examEntries for published timetables
+    const includeExamEntries = isPublished === true;
+
     // Get timetables with relations
     const timetables = await prisma.examTimetable.findMany({
       where,
@@ -144,6 +147,45 @@ export const examTimetableService = {
             email: true,
           },
         },
+        ...(includeExamEntries && {
+          entries: {
+            include: {
+              course: {
+                select: {
+                  id: true,
+                  code: true,
+                  name: true,
+                  creditHours: true,
+                },
+              },
+              venue: {
+                select: {
+                  id: true,
+                  name: true,
+                  capacity: true,
+                },
+              },
+              batchScripts: {
+                select: {
+                  id: true,
+                  batchQRCode: true,
+                  status: true,
+                  totalRegistered: true,
+                  scriptsSubmitted: true,
+                  scriptsCollected: true,
+                  scriptsGraded: true,
+                  assignedLecturerId: true,
+                  sealedAt: true,
+                  createdAt: true,
+                },
+              },
+            },
+            orderBy: [
+              { examDate: 'asc' },
+              { startTime: 'asc' },
+            ],
+          },
+        }),
         _count: {
           select: {
             entries: true,
@@ -555,6 +597,11 @@ export const examTimetableService = {
     const timetable = await prisma.examTimetable.findUnique({
       where: { id },
       include: {
+        entries: {
+          include: {
+            course: true,
+          },
+        },
         _count: {
           select: {
             entries: true,
@@ -592,26 +639,75 @@ export const examTimetableService = {
       }
     }
 
-    const updated = await prisma.examTimetable.update({
-      where: { id },
-      data: {
-        status: ExamTimetableStatus.PUBLISHED,
-        isPublished: true,
-        publishedAt: new Date(),
-        publishedBy,
-      },
-      include: {
-        academicYear: true,
-        semester: true,
-        institution: true,
-        faculty: true,
-      },
+    // Use transaction to ensure atomicity
+    const result = await prisma.$transaction(async (tx) => {
+      // Update timetable status
+      const updated = await tx.examTimetable.update({
+        where: { id },
+        data: {
+          status: ExamTimetableStatus.PUBLISHED,
+          isPublished: true,
+          publishedAt: new Date(),
+          publishedBy,
+        },
+        include: {
+          academicYear: true,
+          semester: true,
+          institution: true,
+          faculty: true,
+        },
+      });
+
+      // Create batch scripts for each exam entry
+      const batchesCreated: number[] = [];
+      for (const entry of timetable.entries) {
+        // Check if batch already exists
+        const existingBatch = await tx.batchScript.findUnique({
+          where: {
+            examEntryId_courseId: {
+              examEntryId: entry.id,
+              courseId: entry.courseId,
+            },
+          },
+        });
+
+        if (!existingBatch) {
+          // Count registered students for this exam entry
+          const registeredCount = await tx.examRegistration.count({
+            where: {
+              examEntryId: entry.id,
+            },
+          });
+
+          // Generate unique QR code
+          const qrCode = `BATCH-${entry.id}-${entry.courseId}-${Date.now()}`;
+
+          // Create batch script
+          const batch = await tx.batchScript.create({
+            data: {
+              examEntryId: entry.id,
+              courseId: entry.courseId,
+              batchQRCode: qrCode,
+              totalRegistered: registeredCount,
+              status: 'PENDING',
+            },
+          });
+
+          batchesCreated.push(batch.id);
+        }
+      }
+
+      return {
+        timetable: updated,
+        batchesCreated: batchesCreated.length,
+      };
     });
 
     return {
       success: true,
-      message: "Timetable published successfully",
-      data: updated,
+      message: `Timetable published successfully. ${result.batchesCreated} batch(es) created.`,
+      data: result.timetable,
+      batchesCreated: result.batchesCreated,
     };
   },
 
@@ -1693,4 +1789,104 @@ export const examTimetableService = {
       },
     };
   },
+
+  /**
+   * Create batch scripts for published timetable entries
+   * Useful for retroactively creating batches for already published timetables
+   */
+  async createBatchScriptsForTimetable(timetableId: number) {
+    const timetable = await prisma.examTimetable.findUnique({
+      where: { id: timetableId },
+      include: {
+        entries: {
+          include: {
+            course: true,
+          },
+        },
+      },
+    });
+
+    if (!timetable) {
+      throw new Error("Timetable not found");
+    }
+
+    if (!timetable.isPublished) {
+      throw new Error("Timetable must be published before creating batches");
+    }
+
+    const batchesCreated: any[] = [];
+    const batchesSkipped: any[] = [];
+
+    for (const entry of timetable.entries) {
+      // Check if batch already exists
+      const existingBatch = await prisma.batchScript.findUnique({
+        where: {
+          examEntryId_courseId: {
+            examEntryId: entry.id,
+            courseId: entry.courseId,
+          },
+        },
+      });
+
+      if (existingBatch) {
+        batchesSkipped.push({
+          entryId: entry.id,
+          courseId: entry.courseId,
+          courseName: entry.course.name,
+          batchId: existingBatch.id,
+        });
+        continue;
+      }
+
+      // Count registered students for this exam entry
+      const registeredCount = await prisma.examRegistration.count({
+        where: {
+          examEntryId: entry.id,
+        },
+      });
+
+      // Generate unique QR code
+      const qrCode = `BATCH-${entry.id}-${entry.courseId}-${Date.now()}`;
+
+      // Create batch script
+      const batch = await prisma.batchScript.create({
+        data: {
+          examEntryId: entry.id,
+          courseId: entry.courseId,
+          batchQRCode: qrCode,
+          totalRegistered: registeredCount,
+          status: 'PENDING',
+        },
+        include: {
+          course: true,
+          examEntry: {
+            select: {
+              id: true,
+              examDate: true,
+              startTime: true,
+            },
+          },
+        },
+      });
+
+      batchesCreated.push({
+        batchId: batch.id,
+        entryId: entry.id,
+        courseId: entry.courseId,
+        courseName: entry.course.name,
+        totalRegistered: registeredCount,
+      });
+    }
+
+    return {
+      success: true,
+      message: `Created ${batchesCreated.length} batch(es), skipped ${batchesSkipped.length} existing batch(es)`,
+      data: {
+        timetableId,
+        batchesCreated,
+        batchesSkipped,
+      },
+    };
+  },
 };
+

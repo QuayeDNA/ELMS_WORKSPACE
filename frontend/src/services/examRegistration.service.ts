@@ -17,7 +17,7 @@ import { apiService } from './api';
  */
 class ExamRegistrationService extends BaseService {
   constructor() {
-    super('/exam-registrations');
+    super('/api/exam-registrations');
   }
 
   /**
@@ -156,6 +156,48 @@ class ExamRegistrationService extends BaseService {
       );
     } catch (error) {
       console.error('Error auto-registering for exam entry:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Submit script for a registration
+   */
+  async submitScript(
+    registrationId: number,
+    data: { scriptId: number; notes?: string }
+  ): Promise<ApiResponse<ExamRegistration>> {
+    try {
+      return await apiService.post<ExamRegistration>(
+        `${this.endpoint}/${registrationId}/submit-script`,
+        data
+      );
+    } catch (error) {
+      console.error('Error submitting script:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get registrations by exam
+   */
+  async getRegistrationsByExam(examId: number): Promise<ApiResponse<ExamRegistration[]>> {
+    try {
+      return await apiService.get<ExamRegistration[]>(`${this.endpoint}/exam/${examId}`);
+    } catch (error) {
+      console.error('Error fetching registrations by exam:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get registrations by student
+   */
+  async getRegistrationsByStudent(studentId: number): Promise<ApiResponse<ExamRegistration[]>> {
+    try {
+      return await apiService.get<ExamRegistration[]>(`${this.endpoint}/student/${studentId}`);
+    } catch (error) {
+      console.error('Error fetching registrations by student:', error);
       throw error;
     }
   }

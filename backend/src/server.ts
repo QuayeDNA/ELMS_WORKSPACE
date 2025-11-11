@@ -388,6 +388,10 @@ async function startServer() {
     console.log('================================================\n');
   });
 
+  // Initialize WebSocket server
+  const { realtimeService } = await import('./services/realtimeService');
+  realtimeService.initialize(server);
+
   return server;
 }
 

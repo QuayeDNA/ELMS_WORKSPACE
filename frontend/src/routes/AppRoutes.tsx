@@ -537,7 +537,7 @@ export function AppRoutes() {
         }
       />
       <Route
-        path="/admin/scripts/:batchId"
+        path="/admin/scripts/batch/:batchId"
         element={
           <AdminLayout>
             <BatchScriptDetailsPage />
