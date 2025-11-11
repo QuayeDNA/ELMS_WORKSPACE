@@ -1,48 +1,77 @@
+import { useEffect, useState } from "react";
 import { StatCard } from "@/components/ui/stat-card";
 import { GraduationCap, Users, BookOpen, Building2 } from "lucide-react";
+import { useAuthStore } from "@/stores/auth.store";
+import { institutionService } from "@/services/institution.service";
+
+interface InstitutionStats {
+  totalUsers: number;
+  totalStudents: number;
+  totalLecturers: number;
+  totalFaculties: number;
+  usersByRole: Record<string, number>;
+}
 
 export function DashboardStats() {
-  // TODO: Replace with actual API data
-  const stats = [
+  const { user } = useAuthStore();
+  const [stats, setStats] = useState<InstitutionStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadStats = async () => {
+      if (!user?.institutionId) return;
+
+      try {
+        setLoading(true);
+        const response = await institutionService.getInstitutionAnalytics(user.institutionId);
+        if (response) {
+          setStats(response);
+        }
+      } catch (error) {
+        console.error("Error loading institution stats:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadStats();
+  }, [user?.institutionId]);
+
+  const statCards = [
     {
       title: "Total Students",
-      value: "1,923",
+      value: loading ? "..." : (stats?.totalStudents || 0).toLocaleString(),
       icon: GraduationCap,
-      trend: { value: 5.3, label: "from last month" },
       description: "Active enrollments",
     },
     {
       title: "Total Instructors",
-      value: "145",
+      value: loading ? "..." : (stats?.totalLecturers || 0).toLocaleString(),
       icon: Users,
-      trend: { value: 3.2, label: "from last month" },
       description: "Faculty members",
     },
     {
-      title: "Active Courses",
-      value: "87",
+      title: "Total Users",
+      value: loading ? "..." : (stats?.totalUsers || 0).toLocaleString(),
       icon: BookOpen,
-      trend: { value: 2.1, label: "from last month" },
-      description: "This semester",
+      description: "All system users",
     },
     {
-      title: "Departments",
-      value: "12",
+      title: "Faculties",
+      value: loading ? "..." : (stats?.totalFaculties || 0).toLocaleString(),
       icon: Building2,
-      trend: { value: 0, label: "no change" },
-      description: "Across all faculties",
+      description: "Across institution",
     },
   ];
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      {stats.map((stat) => (
+      {statCards.map((stat) => (
         <StatCard
           key={stat.title}
           title={stat.title}
           value={stat.value}
           icon={stat.icon}
-          trend={stat.trend}
           description={stat.description}
         />
       ))}

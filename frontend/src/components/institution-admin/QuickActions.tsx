@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { ActionCard } from "@/components/ui/action-card";
 import {
   GraduationCap,
@@ -9,36 +10,61 @@ import {
   ClipboardList,
   Settings,
 } from "lucide-react";
+import { useAuthStore } from "@/stores/auth.store";
+import { institutionService } from "@/services/institution.service";
+
+interface InstitutionStats {
+  totalStudents: number;
+  totalLecturers: number;
+}
 
 export function QuickActions() {
+  const { user } = useAuthStore();
+  const [stats, setStats] = useState<InstitutionStats | null>(null);
+
+  useEffect(() => {
+    const loadStats = async () => {
+      if (!user?.institutionId) return;
+
+      try {
+        const response = await institutionService.getInstitutionAnalytics(user.institutionId);
+        if (response) {
+          setStats(response);
+        }
+      } catch (error) {
+        console.error("Error loading stats for quick actions:", error);
+      }
+    };
+
+    loadStats();
+  }, [user?.institutionId]);
+
   const actions = [
     {
       title: "Manage Students",
       description: "View, add, and manage student records",
       icon: GraduationCap,
       href: "/admin/students",
-      badge: "1,923 Active",
+      badge: stats ? `${stats.totalStudents} Active` : undefined,
     },
     {
       title: "Manage Instructors",
       description: "Faculty members and staff management",
       icon: Users,
       href: "/admin/instructors",
-      badge: "145 Faculty",
+      badge: stats ? `${stats.totalLecturers} Faculty` : undefined,
     },
     {
       title: "Course Management",
       description: "Courses, offerings, and enrollments",
       icon: BookOpen,
       href: "/admin/courses",
-      badge: "87 Courses",
     },
     {
       title: "Departments",
       description: "Department structure and programs",
       icon: Building2,
       href: "/admin/departments",
-      badge: "12 Depts",
     },
     {
       title: "Academic Calendar",

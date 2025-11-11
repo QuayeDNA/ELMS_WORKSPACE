@@ -120,6 +120,9 @@ const DepartmentsPage = lazy(() => import("@/pages/institution-admin/Departments
 const DepartmentDetailsPage = lazy(
   () => import("@/pages/institution-admin/DepartmentDetailsPage")
 );
+
+const ProgramsPage = lazy(() => import("@/pages/institution-admin/ProgramsPage"));
+
 const CoursesPage = lazy(() => import("@/pages/institution-admin/CoursesPage"));
 const CourseDetailsPage = lazy(() => import("@/pages/institution-admin/CourseDetailsPage"));
 
@@ -129,13 +132,13 @@ const AcademicCalendarPage = lazy(() =>
 );
 
 const ExamTimetableListPage = lazy(() =>
-  import("@/pages/admin/ExamTimetableListPage")
+  import("@/pages/institution-admin/ExamTimetableListPage")
 );
 const ExamTimetableDetailPage = lazy(() =>
-  import("@/pages/admin/ExamTimetableDetailPage")
+  import("@/pages/institution-admin/ExamTimetableDetailPage")
 );
 const VenuesPage = lazy(() =>
-  import("@/pages/admin/VenuesPage")
+  import("@/pages/institution-admin/VenuesPage")
 );
 
 // Script Submission Page
@@ -446,6 +449,14 @@ export function AppRoutes() {
         element={
           <AdminLayout>
             <DepartmentsPage />
+          </AdminLayout>
+        }
+      />
+      <Route
+        path="/admin/programs"
+        element={
+          <AdminLayout>
+            <ProgramsPage />
           </AdminLayout>
         }
       />

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +10,8 @@ import {
   FileEdit,
   Users,
 } from "lucide-react";
+import { useAuthStore } from "@/stores/auth.store";
+import { institutionService } from "@/services/institution.service";
 
 interface Activity {
   id: string;
@@ -24,8 +27,65 @@ interface Activity {
 }
 
 export function RecentActivity() {
-  // TODO: Replace with actual API data
-  const activities: Activity[] = [
+  const { user } = useAuthStore();
+  const [activities, setActivities] = useState<Activity[]>([]);
+
+  useEffect(() => {
+    const loadRecentActivity = async () => {
+      if (!user?.institutionId) return;
+
+      try {
+        const response = await institutionService.getInstitutionAnalytics(user.institutionId);
+
+        if (response?.recentActivity) {
+          // Transform backend activity data to match our Activity interface
+          interface BackendActivity {
+            type: string;
+            count: number;
+            time: string;
+          }
+
+          const transformedActivities: Activity[] = response.recentActivity.map((item: BackendActivity, index: number) => ({
+            id: `activity-${index}`,
+            type: (item.type as Activity["type"]) || "academic",
+            title: `${item.type}: ${item.count}`,
+            description: `${item.count} ${item.type} activities`,
+            user: { name: "System", initials: "SY" },
+            timestamp: item.time || "Recently",
+            icon: getIconForType(item.type),
+          }));
+          setActivities(transformedActivities);
+        } else {
+          setActivities(getDefaultActivities());
+        }
+      } catch (error) {
+        console.error("Error loading recent activity:", error);
+        // Fallback to default activities
+        setActivities(getDefaultActivities());
+      }
+    };
+
+    loadRecentActivity();
+  }, [user?.institutionId]);
+
+  const getIconForType = (type: string) => {
+    switch (type) {
+      case "student":
+        return UserPlus;
+      case "instructor":
+        return Users;
+      case "course":
+        return BookPlus;
+      case "academic":
+        return Calendar;
+      case "exam":
+        return FileEdit;
+      default:
+        return Calendar;
+    }
+  };
+
+  const getDefaultActivities = (): Activity[] => [
     {
       id: "1",
       type: "student",
@@ -52,24 +112,6 @@ export function RecentActivity() {
       user: { name: "Academic Office", initials: "AC" },
       timestamp: "2 hours ago",
       icon: Calendar,
-    },
-    {
-      id: "4",
-      type: "instructor",
-      title: "Instructor Assigned",
-      description: "3 new courses assigned to Dr. Michael Brown",
-      user: { name: "HOD Computer Science", initials: "HC" },
-      timestamp: "3 hours ago",
-      icon: Users,
-    },
-    {
-      id: "5",
-      type: "exam",
-      title: "Exam Schedule Published",
-      description: "Mid-semester exams scheduled for all departments",
-      user: { name: "Exams Office", initials: "EO" },
-      timestamp: "5 hours ago",
-      icon: FileEdit,
     },
   ];
 
@@ -120,7 +162,7 @@ export function RecentActivity() {
                         {activity.description}
                       </p>
                     </div>
-                    <Badge variant="secondary" className="text-xs flex-shrink-0">
+                    <Badge variant="secondary" className="text-xs shrink-0">
                       {activity.type}
                     </Badge>
                   </div>

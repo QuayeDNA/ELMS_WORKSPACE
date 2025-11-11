@@ -42,7 +42,7 @@ const ProgramsPage: React.FC = () => {
   >([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedDepartment, setSelectedDepartment] = useState<string>("");
+  const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [stats, setStats] = useState({
@@ -64,14 +64,15 @@ const ProgramsPage: React.FC = () => {
       setLoading(true);
       const query = {
         page: currentPage,
-        limit: 10,
+        limit: 100, // Get all programs to group by department
         search: searchTerm || undefined,
-        departmentId: selectedDepartment
-          ? parseInt(selectedDepartment)
-          : undefined,
+        departmentId: selectedDepartment === "all" || !selectedDepartment
+          ? undefined
+          : parseInt(selectedDepartment),
       };
 
       const response = await programService.getPrograms(query);
+      // The base service now properly transforms the response
       const programsData = response?.data || [];
       setPrograms(programsData);
       setTotalPages(response?.pagination?.totalPages || 1);
@@ -84,7 +85,12 @@ const ProgramsPage: React.FC = () => {
             .map((program: Program) => [program.department!.id, program.department!])
         ).values()
       );
-      setDepartments(uniqueDepartments as any[]);
+      setDepartments(uniqueDepartments as Array<{
+        id: number;
+        name: string;
+        code: string;
+        faculty?: { id: number; name: string; code: string };
+      }>);
 
       // Calculate stats directly from the loaded data
       const total = response?.pagination?.total || programsData.length;
@@ -250,7 +256,7 @@ const ProgramsPage: React.FC = () => {
                 <SelectValue placeholder="All Departments" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Departments</SelectItem>
+                <SelectItem value="all">All Departments</SelectItem>
                 {departments.map((department) => (
                   <SelectItem
                     key={department.id}

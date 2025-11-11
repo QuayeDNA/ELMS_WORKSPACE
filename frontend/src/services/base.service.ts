@@ -112,6 +112,22 @@ export abstract class BaseService {
         };
       }
 
+      // Handle programs format: { programs: [], total, totalPages, currentPage, hasNext, hasPrev }
+      if (backendData && typeof backendData === 'object' && Array.isArray(backendData.programs)) {
+        return {
+          success: response.success,
+          message: response.message,
+          data: backendData.programs as T[],
+          pagination: {
+            page: backendData.currentPage as number,
+            totalPages: backendData.totalPages as number,
+            total: backendData.total as number,
+            hasNext: backendData.hasNext as boolean,
+            hasPrev: backendData.hasPrev as boolean,
+          },
+        };
+      }
+
       // Handle backend responses where data is in a named property (e.g., venues, institutions, etc.)
       // Check for common patterns where the data array has the same name as the endpoint
       const endpointName = this.endpoint.split('/').pop()?.replace(/s$/, ''); // Remove trailing 's' to get singular
