@@ -389,8 +389,9 @@ async function startServer() {
   });
 
   // Initialize WebSocket server
-  const { realtimeService } = await import('./services/realtimeService');
-  realtimeService.initialize(server);
+  import('./services/realtimeService').then(({ realtimeService }) => {
+    realtimeService.initialize(server);
+  });
 
   return server;
 }

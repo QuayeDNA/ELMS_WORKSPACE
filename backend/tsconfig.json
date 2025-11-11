@@ -4,8 +4,8 @@
     "lib": [
       "ES2022"
     ],
-    "module": "ESNext",
-    "moduleResolution": "bundler",
+    "module": "commonjs",
+    "moduleResolution": "node",
     "outDir": "./dist",
     "rootDir": "./",
     "strict": true,
@@ -54,7 +54,7 @@
     "**/*.d.ts"
   ],
   "ts-node": {
-    "esm": true,
+    "esm": false,
     "experimentalSpecifierResolution": "node",
     "require": [
       "tsconfig-paths/register"
