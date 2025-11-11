@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useAuthStore } from '@/stores/auth.store';
 import { AppRoutes } from '@/routes/AppRoutes';
 import { Toaster } from '@/components/ui/sonner';
+import { RealtimeProvider } from '@/contexts/RealtimeContext';
 import './App.css';
 
 function App() {
@@ -15,8 +16,10 @@ function App() {
 
   return (
     <Router>
-      <AppRoutes />
-      <Toaster />
+      <RealtimeProvider>
+        <AppRoutes />
+        <Toaster />
+      </RealtimeProvider>
     </Router>
   );
 }

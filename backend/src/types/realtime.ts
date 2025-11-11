@@ -20,7 +20,7 @@ export enum RealtimeChannel {
 export interface RealtimeEvent<T = unknown> {
   channel: RealtimeChannel;
   event: string;
-  data: T;
+  payload: T;
   timestamp: string;
   institutionId?: number;
   userId?: number;
@@ -197,6 +197,21 @@ export interface IncidentReportedPayload {
   examId?: number;
 }
 
+export interface IncidentUpdatedPayload {
+  incidentId: number;
+  batchScriptId: number;
+  status: string;
+  updatedBy: number;
+  notes?: string;
+}
+
+export interface IncidentResolvedPayload {
+  incidentId: number;
+  batchScriptId: number;
+  resolvedBy: number;
+  resolution: string;
+}
+
 // ========================================
 // NOTIFICATION EVENTS
 // ========================================
@@ -214,6 +229,16 @@ export interface NotificationPayload {
   userId: number;
   createdAt: string;
   data?: Record<string, unknown>;
+}
+
+export interface NewNotificationPayload extends NotificationPayload {
+  isRead: false;
+}
+
+export interface NotificationReadPayload {
+  notificationId: number;
+  userId: number;
+  readAt: string;
 }
 
 // ========================================

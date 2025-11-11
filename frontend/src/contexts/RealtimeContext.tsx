@@ -1,7 +1,7 @@
 import React, { createContext, useEffect, useState, useCallback, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { RealtimeChannel, RealtimeEvent, RealtimeContextValue, RealtimeSubscription } from '../types/realtime';
-import { useAuth } from './AuthContext';
+import { useAuthStore } from '../stores/auth.store';
 import { toast } from 'sonner';
 
 export const RealtimeContext = createContext<RealtimeContextValue | undefined>(undefined);
@@ -11,7 +11,7 @@ interface RealtimeProviderProps {
 }
 
 export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) => {
-  const { user } = useAuth();
+  const { user } = useAuthStore();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const subscriptionsRef = useRef<Map<string, Set<(event: RealtimeEvent) => void>>>(new Map());
