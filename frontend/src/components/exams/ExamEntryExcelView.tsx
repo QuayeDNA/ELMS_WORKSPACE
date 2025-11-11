@@ -14,7 +14,8 @@ import {
   Edit2,
   Upload,
   Download,
-  FileText
+  FileText,
+  Building
 } from 'lucide-react';
 
 // Import external cell editors
@@ -23,6 +24,7 @@ import { DatePickerEditor } from './cell-editors/DatePickerEditor';
 import { LevelSelectorEditor } from './cell-editors/LevelSelectorEditor';
 import { TimePickerEditor } from './cell-editors/TimePickerEditor';
 import { VenueSearchEditor } from './cell-editors/VenueSearchEditor';
+import { RoomSearchEditor } from './cell-editors/RoomSearchEditor';
 
 // Import service and types
 import { examTimetableService, BulkUploadValidationResult } from '@/services/examTimetable.service';
@@ -43,6 +45,9 @@ export interface ExamEntryRow {
   venueId?: number;
   venueLocation: string;
   venueCapacity?: number;
+  roomIds?: string; // Comma-separated room IDs
+  roomNames?: string; // Comma-separated room names
+  roomCapacity?: number; // Total capacity of selected rooms
   level: string;
   notes: string;
   specialRequirements: string;
@@ -131,6 +136,11 @@ export default function ExamEntryExcelView({
     if (!row.examDate) errors.push('Exam date is required');
     if (!row.startTime) errors.push('Start time is required');
     if (!row.venueName) errors.push('Venue is required');
+
+    // Room validation: If venue is selected, at least one room should be selected
+    if (row.venueName && !row.roomNames) {
+      warnings.push('No rooms selected for venue');
+    }
 
     if (!row.duration) warnings.push('Duration not set');
     if (!row.level) warnings.push('Level not specified');
@@ -475,6 +485,22 @@ export default function ExamEntryExcelView({
         name: 'Capacity',
         width: 100,
         renderCell: ({ row }: { row: ExamEntryRow }) => <div className="px-2 text-sm text-right">{row.venueCapacity || '-'}</div>,
+      },
+      {
+        key: 'roomNames',
+        name: 'Rooms',
+        width: 200,
+        editable: true,
+        renderEditCell: (props) => <RoomSearchEditor {...props} />,
+        renderCell: ({ row }: { row: ExamEntryRow }) => (
+          <div className="flex items-center gap-2 h-full px-2">
+            <Building className="w-4 h-4 text-gray-400 shrink-0" />
+            <span className="text-sm truncate">{row.roomNames || '-'}</span>
+            {row.roomCapacity && (
+              <span className="text-xs text-gray-500">({row.roomCapacity})</span>
+            )}
+          </div>
+        ),
       },
       {
         key: 'level',

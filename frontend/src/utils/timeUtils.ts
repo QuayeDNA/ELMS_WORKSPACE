@@ -46,25 +46,79 @@ export function formatTimeToAMPM(time: string | null | undefined): string {
 
 /**
  * Converts HH:MM time to ISO datetime string by combining with a date
- * @param date - Date string in YYYY-MM-DD format
+ * @param date - Date string in YYYY-MM-DD format or ISO string
  * @param time - Time in HH:MM format
  * @returns ISO datetime string (e.g., "2026-03-10T09:00:00.000Z")
  */
 export function combineDateTime(date: string, time: string): string {
-  if (!date || !time) return '';
+  if (!date || !time) {
+    console.warn('combineDateTime: Missing date or time', { date, time });
+    return '';
+  }
 
   try {
+    // If date is an ISO string, extract just the date part (YYYY-MM-DD)
+    let dateStr = date;
+    if (date.includes('T')) {
+      // Extract date part from ISO string (e.g., "2026-01-08T00:00:00.000Z" -> "2026-01-08")
+      dateStr = date.split('T')[0];
+    }
+
+    // Validate date format (YYYY-MM-DD)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      console.error('combineDateTime: Invalid date format', { date, dateStr, expected: 'YYYY-MM-DD' });
+      return '';
+    }
+
+    // Validate time format (HH:MM)
+    if (!/^\d{1,2}:\d{2}$/.test(time)) {
+      console.error('combineDateTime: Invalid time format', { time, expected: 'HH:MM' });
+      return '';
+    }
+
     // Parse the date and time
-    const [year, month, day] = date.split('-').map(Number);
+    const [year, month, day] = dateStr.split('-').map(Number);
     const [hours, minutes] = time.split(':').map(Number);
+
+    // Validate parsed values
+    if (isNaN(year) || isNaN(month) || isNaN(day) || isNaN(hours) || isNaN(minutes)) {
+      console.error('combineDateTime: Invalid numeric values', { year, month, day, hours, minutes });
+      return '';
+    }
+
+    if (month < 1 || month > 12) {
+      console.error('combineDateTime: Invalid month', { month });
+      return '';
+    }
+
+    if (day < 1 || day > 31) {
+      console.error('combineDateTime: Invalid day', { day });
+      return '';
+    }
+
+    if (hours < 0 || hours > 23) {
+      console.error('combineDateTime: Invalid hours', { hours });
+      return '';
+    }
+
+    if (minutes < 0 || minutes > 59) {
+      console.error('combineDateTime: Invalid minutes', { minutes });
+      return '';
+    }
 
     // Create a date object in local timezone
     const dateTime = new Date(year, month - 1, day, hours, minutes, 0, 0);
 
+    // Check if the date is valid
+    if (isNaN(dateTime.getTime())) {
+      console.error('combineDateTime: Invalid date object created', { year, month, day, hours, minutes });
+      return '';
+    }
+
     // Return ISO string
     return dateTime.toISOString();
   } catch (error) {
-    console.error('Error combining date and time:', error);
+    console.error('Error combining date and time:', error, { date, time });
     return '';
   }
 }

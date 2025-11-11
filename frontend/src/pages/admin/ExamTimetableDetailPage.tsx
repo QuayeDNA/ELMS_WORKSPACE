@@ -72,26 +72,48 @@ export default function ExamTimetableDetailPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // Transform entries to ExamEntryRow format for the spreadsheet component
-  const transformedEntries: ExamEntryRow[] = entries.map(entry => ({
-    id: entry.id.toString(),
-    courseCode: entry.course?.code || '',
-    courseId: entry.courseId,
-    courseName: entry.course?.name || '',
-    examDate: entry.examDate,
-    startTime: extractTimeFromISO(entry.startTime), // Extract time from ISO datetime
-    duration: entry.duration,
-    venueName: entry.venue?.name || '',
-    venueId: entry.venueId,
-    venueLocation: entry.venue?.location || '',
-    venueCapacity: entry.venue?.capacity,
-    level: entry.level?.toString() || '',
-    notes: entry.notes || '',
-    specialRequirements: entry.specialRequirements || '',
-    isNew: false,
-    isValid: true,
-    errors: [],
-    warnings: [],
-  }));
+  const transformedEntries: ExamEntryRow[] = entries.map(entry => {
+    // Parse roomIds if it's a string, otherwise use the array directly
+    const roomIds = typeof entry.roomIds === 'string'
+      ? JSON.parse(entry.roomIds)
+      : (entry.roomIds || []);
+
+    // Get room names and calculate capacity from rooms array if available
+    interface EntryWithRooms {
+      rooms?: Array<{ id: number; name: string; capacity: number }>;
+    }
+    const rooms = (entry as EntryWithRooms).rooms || [];
+    const roomNames = rooms.length > 0
+      ? rooms.map(r => r.name).join(', ')
+      : '';
+    const roomCapacity = rooms.length > 0
+      ? rooms.reduce((sum, r) => sum + r.capacity, 0)
+      : entry.seatingCapacity || 0;
+
+    return {
+      id: entry.id.toString(),
+      courseCode: entry.course?.code || '',
+      courseId: entry.courseId,
+      courseName: entry.course?.name || '',
+      examDate: entry.examDate,
+      startTime: extractTimeFromISO(entry.startTime), // Extract time from ISO datetime
+      duration: entry.duration,
+      venueName: entry.venue?.name || '',
+      venueId: entry.venueId,
+      venueLocation: entry.venue?.location || '',
+      venueCapacity: entry.venue?.capacity,
+      roomIds: roomIds.length > 0 ? roomIds.join(',') : undefined,
+      roomNames: roomNames || undefined,
+      roomCapacity: roomCapacity || undefined,
+      level: entry.level?.toString() || '',
+      notes: entry.notes || '',
+      specialRequirements: entry.specialRequirements || '',
+      isNew: false,
+      isValid: true,
+      errors: [],
+      warnings: [],
+    };
+  });
 
   // Approval state
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
@@ -173,14 +195,25 @@ export default function ExamTimetableDetailPage() {
           // Skip invalid entries
           if (!row.isValid || !row.courseId || !row.examDate || !row.startTime || !row.venueId) {
             results.failed++;
-            results.errors.push(`Invalid entry for ${row.courseCode || 'Unknown course'}`);
+            results.errors.push(`Invalid entry for ${row.courseCode || 'Unknown course'}: Missing required fields`);
             continue;
           }
 
           // Combine date and time into ISO datetime strings
           const startTimeISO = combineDateTime(row.examDate, row.startTime);
+          if (!startTimeISO) {
+            results.failed++;
+            results.errors.push(`Invalid date/time for ${row.courseCode}: date=${row.examDate}, time=${row.startTime}`);
+            continue;
+          }
+
           const endTime = calculateEndTime(row.startTime, row.duration);
           const endTimeISO = combineDateTime(row.examDate, endTime);
+          if (!endTimeISO) {
+            results.failed++;
+            results.errors.push(`Invalid end date/time for ${row.courseCode}: date=${row.examDate}, time=${endTime}`);
+            continue;
+          }
 
           const entryData = {
             courseId: row.courseId,
@@ -191,7 +224,7 @@ export default function ExamTimetableDetailPage() {
             endTime: endTimeISO,
             duration: row.duration,
             venueId: row.venueId,
-            roomIds: [], // Default, can be enhanced later
+            roomIds: row.roomIds ? row.roomIds.split(',').map(id => parseInt(id.trim())) : [], // Parse room IDs
             invigilatorIds: [], // Default, can be enhanced later
             notes: row.notes,
             specialRequirements: row.specialRequirements,

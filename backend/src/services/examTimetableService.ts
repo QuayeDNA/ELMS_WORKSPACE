@@ -262,6 +262,13 @@ export const examTimetableService = {
                 name: true,
                 location: true,
                 capacity: true,
+                rooms: {
+                  select: {
+                    id: true,
+                    name: true,
+                    capacity: true,
+                  },
+                },
               },
             },
             exam: {
@@ -322,9 +329,31 @@ export const examTimetableService = {
       throw new Error("Timetable not found");
     }
 
+    // Transform entries to include parsed room details
+    const transformedEntries = timetable.entries.map((entry) => {
+      // Parse JSON strings to arrays
+      const roomIds = JSON.parse(entry.roomIds as string) as number[];
+      const programIds = JSON.parse(entry.programIds as string) as number[];
+      const invigilatorIds = JSON.parse(entry.invigilatorIds as string) as number[];
+
+      // Filter venue rooms to get only the rooms assigned to this entry
+      const assignedRooms = entry.venue.rooms.filter((room) => roomIds.includes(room.id));
+
+      return {
+        ...entry,
+        roomIds, // Parsed array
+        programIds, // Parsed array
+        invigilatorIds, // Parsed array
+        rooms: assignedRooms, // Include actual room objects
+      };
+    });
+
     return {
       success: true,
-      data: timetable,
+      data: {
+        ...timetable,
+        entries: transformedEntries,
+      },
     };
   },
 

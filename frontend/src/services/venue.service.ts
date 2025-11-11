@@ -168,11 +168,39 @@ class VenueService extends BaseService {
     venueId: number,
     query?: Omit<RoomQuery, 'venueId'>
   ): Promise<PaginatedResponse<Room>> {
-    const response = await apiService.get<PaginatedResponse<Room>>(
+    interface BackendRoomResponse {
+      rooms: Room[];
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
+    }
+
+    const response = await apiService.get<BackendRoomResponse>(
       API_ENDPOINTS.VENUES.ROOMS(venueId),
       query as Record<string, unknown>
     );
-    return response.data || {
+
+    // Transform backend response { rooms: [...] } to { data: [...] }
+    if (response.data) {
+      const { rooms, pagination } = response.data;
+      return {
+        success: true,
+        data: rooms || [],
+        pagination: {
+          page: pagination.page,
+          limit: pagination.limit,
+          total: pagination.total,
+          totalPages: pagination.totalPages,
+          hasNext: pagination.page < pagination.totalPages,
+          hasPrev: pagination.page > 1,
+        },
+      };
+    }
+
+    return {
       success: true,
       data: [],
       pagination: { page: 1, limit: 10, total: 0, totalPages: 0, hasNext: false, hasPrev: false },

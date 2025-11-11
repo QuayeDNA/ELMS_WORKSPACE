@@ -21,13 +21,13 @@ export interface ValidatedEntry {
   level?: number;
   notes?: string;
   specialRequirements?: string;
-  
+
   // Resolved values (populated after validation)
   courseId?: number;
   courseName?: string;
   venueId?: number;
   venueLocation?: string;
-  
+
   // Validation results
   errors: ValidationError[];
   warnings: ValidationError[];
@@ -134,6 +134,7 @@ export interface ExamTimetableEntry {
   startTime: string;
   endTime: string;
   duration: number;
+  seatingCapacity?: number;
   venueId: number;
   roomIds: number[];
   invigilatorIds: number[];

@@ -104,12 +104,16 @@ export const VenueSearchEditor = (props: VenueSearchEditorProps) => {
 
   const handleSelect = (venue: Venue) => {
     // Update all venue-related fields in the row
+    // Clear room selection when venue changes
     const updatedRow = {
       ...props.row,
       venueId: venue.id,
       venueName: venue.name,
       venueLocation: venue.location,
       venueCapacity: venue.capacity,
+      roomIds: undefined,
+      roomNames: undefined,
+      roomCapacity: undefined,
     };
     props.onRowChange(updatedRow, true);
   };
