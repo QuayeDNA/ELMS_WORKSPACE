@@ -34,6 +34,7 @@ import timetableConflictRoutes from "./routes/timetableConflictRoutes";
 import examRegistrationRoutes from "./routes/examRegistrationRoutes";
 import batchScriptRoutes from "./routes/batchScriptRoutes";
 import scriptSubmissionRoutes from "./routes/scriptSubmissionRoutes";
+import qrCodeRoutes from "./routes/qrCodeRoutes";
 
 // Load environment variables
 dotenv.config();
@@ -218,6 +219,9 @@ app.use("/api/public", publicRoutes);
 
 // Student ID Configuration routes
 app.use("/api/student-id-config", studentIdConfigRoutes);
+
+// QR Code verification routes
+app.use("/api/qr", qrCodeRoutes);
 
 // Authentication routes
 app.use("/api/auth", authRoutes);

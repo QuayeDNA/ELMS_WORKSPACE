@@ -9,6 +9,7 @@ import {
 	AcademicOverview,
 	StudentAnalyticsBentoGrid,
 	RecentActivity,
+	StudentIdCard,
 } from '@/components/student';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -107,14 +108,21 @@ export default function StudentDashboard() {
 
 			{/* Student Profile Card */}
 			{studentProfile && (
-				<Card className="border-l-4 border-l-blue-500">
-					<CardHeader>
-						<CardTitle className="flex items-center gap-2">
-							<User className="h-5 w-5" />
-							Student Profile
-						</CardTitle>
-					</CardHeader>
-					<CardContent>
+				<div className="grid lg:grid-cols-3 gap-6">
+					{/* Student ID Card - Left Side */}
+					<div className="lg:col-span-1">
+						<StudentIdCard student={studentProfile} />
+					</div>
+
+					{/* Profile Information - Right Side */}
+					<Card className="border-l-4 border-l-blue-500 lg:col-span-2">
+						<CardHeader>
+							<CardTitle className="flex items-center gap-2">
+								<User className="h-5 w-5" />
+								Student Profile
+							</CardTitle>
+						</CardHeader>
+						<CardContent>
 						<div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
 							{/* Personal Information */}
 							<div className="space-y-3">
@@ -211,6 +219,7 @@ export default function StudentDashboard() {
 						</div>
 					</CardContent>
 				</Card>
+				</div>
 			)}
 
 			<DashboardStats />
