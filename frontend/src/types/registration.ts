@@ -1,0 +1,85 @@
+/**
+ * Public Student Registration Types
+ * Used for the public-facing student registration page
+ */
+
+export interface PublicRegistrationRequest {
+  institutionId: number;
+  firstName: string;
+  lastName: string;
+  middleName?: string;
+  email: string;
+  phone?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  programId: number;
+  academicYearId: number;
+  entryLevel?: number;
+}
+
+export interface PublicRegistrationResponse {
+  success: boolean;
+  message: string;
+  data: {
+    studentId: string;
+    email: string;
+    password: string;
+    user: {
+      id: number;
+      firstName: string;
+      lastName: string;
+      email: string;
+    };
+    studentProfile: {
+      studentId: string;
+      indexNumber: string;
+      programId: number;
+    };
+    loginInstructions: {
+      message: string;
+      loginUrl: string;
+    };
+  };
+}
+
+export interface AvailableProgram {
+  id: number;
+  name: string;
+  code: string;
+  type: string;
+  level: string;
+  durationYears: number;
+  creditHours?: number;
+  description?: string;
+  isActive: boolean;
+  department: {
+    id: number;
+    name: string;
+    code: string;
+    faculty: {
+      id: number;
+      name: string;
+      code: string;
+    };
+  };
+}
+
+export interface AvailableAcademicYear {
+  id: number;
+  year: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  isCurrent: boolean;
+  institutionId: number;
+}
+
+export interface ProgramsResponse {
+  success: boolean;
+  data: AvailableProgram[];
+}
+
+export interface AcademicYearsResponse {
+  success: boolean;
+  data: AvailableAcademicYear[];
+}

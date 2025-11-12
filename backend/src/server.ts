@@ -9,6 +9,8 @@ const prisma = new PrismaClient();
 
 // Import routes
 import authRoutes from "./routes/authRoutes";
+import publicRoutes from "./routes/publicRoutes";
+import studentIdConfigRoutes from "./routes/studentIdConfigRoutes";
 import { institutionRoutes } from "./routes/institutionRoutes";
 import { facultyRoutes } from "./routes/facultyRoutes";
 import { userRoutes } from "./routes/userRoutes";
@@ -210,6 +212,12 @@ app.get("/api/database/status", async (req, res) => {
     });
   }
 });
+
+// Public routes (NO AUTH REQUIRED)
+app.use("/api/public", publicRoutes);
+
+// Student ID Configuration routes
+app.use("/api/student-id-config", studentIdConfigRoutes);
 
 // Authentication routes
 app.use("/api/auth", authRoutes);

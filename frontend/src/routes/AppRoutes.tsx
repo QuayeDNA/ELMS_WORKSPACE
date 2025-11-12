@@ -91,6 +91,13 @@ const StudentDashboard = lazy(() =>
   }))
 );
 
+// Public Registration Page
+const StudentRegistrationPage = lazy(() =>
+  import("@/pages/public/StudentRegistrationPage").then((module) => ({
+    default: module.StudentRegistrationPage,
+  }))
+);
+
 const StudentsPage = lazy(() =>
   import("@/pages/institution-admin/StudentsPage").then((module) => ({
     default: module.default,
@@ -277,6 +284,14 @@ export function AppRoutes() {
         element={
           <PublicLayout>
             <LoginPage />
+          </PublicLayout>
+        }
+      />
+      <Route
+        path="/register/:institutionId"
+        element={
+          <PublicLayout>
+            <StudentRegistrationPage />
           </PublicLayout>
         }
       />
