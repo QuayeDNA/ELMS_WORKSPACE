@@ -22,6 +22,7 @@ router.get(
 );
 router.get('/export', requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.FACULTY_ADMIN), studentController.exportStudents);
 router.get('/import-template', requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.FACULTY_ADMIN), studentController.downloadImportTemplate);
+router.get('/by-user-id/:userId', studentController.getStudentByUserId); // Students can view their own profile
 router.get('/:id', requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.FACULTY_ADMIN), studentController.getStudentById);
 router.get('/by-student-id/:studentId', requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.FACULTY_ADMIN), studentController.getStudentByStudentId);
 router.post('/', requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.FACULTY_ADMIN), studentController.createStudent);

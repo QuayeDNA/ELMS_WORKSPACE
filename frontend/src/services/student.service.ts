@@ -181,6 +181,38 @@ class StudentService {
   }
 
   /**
+   * Get student by user ID
+   */
+  async getStudentByUserId(userId: number): Promise<Student> {
+    try {
+      const response = await apiService.get<{
+        success: boolean;
+        data: Student;
+      }>(`${this.basePath}/by-user-id/${userId}`);
+
+      if (!response.success || !response.data) {
+        throw new Error(ERROR_MESSAGES.NOT_FOUND);
+      }
+
+      // Handle the response structure
+      const apiData = response.data;
+
+      // Early return for nested response structure
+      if (apiData && typeof apiData === 'object' && 'success' in apiData) {
+        return apiData.data;
+      }
+
+      return apiData as Student;
+    } catch (error) {
+      console.error(
+        `Error fetching student by user ID ${userId}:`,
+        error
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Create new student
    */
   async createStudent(studentData: CreateStudentRequest): Promise<Student> {

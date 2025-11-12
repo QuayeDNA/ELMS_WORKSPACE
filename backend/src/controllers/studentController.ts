@@ -95,6 +95,40 @@ export const studentController = {
     }
   },
 
+  // Get student by user ID
+  async getStudentByUserId(req: Request, res: Response) {
+    try {
+      const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid user ID'
+        });
+      }
+
+      const student = await studentService.getStudentByUserId(userId);
+
+      if (!student) {
+        return res.status(404).json({
+          success: false,
+          message: 'Student not found'
+        });
+      }
+
+      res.json({
+        success: true,
+        data: student
+      });
+    } catch (error) {
+      console.error('Error fetching student by user ID:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch student',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  },
+
   // Create new student
   async createStudent(req: Request, res: Response) {
     try {

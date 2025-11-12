@@ -229,6 +229,46 @@ export const studentService = {
     });
   },
 
+  // Get student by user ID
+  async getStudentByUserId(userId: number) {
+    return await prisma.studentProfile.findUnique({
+      where: { userId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            middleName: true,
+            title: true,
+            phone: true,
+            dateOfBirth: true,
+            gender: true,
+            nationality: true,
+            address: true,
+            status: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+        program: {
+          include: {
+            department: {
+              include: {
+                faculty: {
+                  include: {
+                    institution: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+  },
+
   // Create new student
   async createStudent(data: CreateStudentData) {
     const { user: userData, profile: profileData } = data;
