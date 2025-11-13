@@ -208,12 +208,12 @@ export function CreateTimetableForm({ open, onOpenChange, onSuccess, preselected
 
       const response = await examTimetableService.createTimetable(data);
 
-      if (response.data) {
+      if (response.success && response.data) {
         toast.success('Exam timetable created successfully');
         form.reset();
         onOpenChange(false);
-        if (onSuccess && response.data.data.id) {
-          onSuccess(response.data.data.id);
+        if (onSuccess && response.data.id) {
+          onSuccess(response.data.id);
         }
       }
     } catch (error) {
