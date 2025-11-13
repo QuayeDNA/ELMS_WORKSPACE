@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { X, Save, Building2, User, Phone, MapPin, FileText } from 'lucide-react';
+import { Save, Building2, User, Phone, MapPin, FileText, Mail, Globe, Calendar, Hash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
+import { AlertCircle } from 'lucide-react';
 import {
   InstitutionFormData,
   AdminFormData,
@@ -107,58 +108,67 @@ export const InstitutionForm = ({
   // ========================================
 
   const renderInstitutionForm = () => (
-    <div className="space-y-6">
-      {/* Basic Information */}
+    <div className="space-y-8">
+      {/* Basic Information Section */}
       <div className="space-y-4">
-        <h3 className="text-lg font-medium flex items-center gap-2">
-          <Building2 className="h-5 w-5" />
-          Basic Information
-        </h3>
+        <div className="flex items-center gap-2 text-blue-600">
+          <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center">
+            <Building2 className="h-4 w-4" />
+          </div>
+          <h3 className="text-base font-semibold text-gray-900">Basic Information</h3>
+        </div>
+        <Separator />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="institution-name">Institution Name *</Label>
+            <Label htmlFor="institution-name" className="flex items-center gap-1">
+              Institution Name <span className="text-red-500">*</span>
+            </Label>
             <Input
               id="institution-name"
               value={institutionData.name}
               onChange={(e) => handleInstitutionChange('name', e.target.value)}
-              placeholder="Enter institution name"
+              placeholder="e.g., University of Ghana"
               disabled={loading}
+              className="h-10"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="institution-code">Institution Code *</Label>
-            <Input
-              id="institution-code"
-              value={institutionData.code}
-              onChange={(e) => handleInstitutionChange('code', e.target.value.toUpperCase())}
-              placeholder="e.g., UG, KNUST"
-              disabled={loading}
-            />
+            <Label htmlFor="institution-code" className="flex items-center gap-1">
+              Institution Code <span className="text-red-500">*</span>
+            </Label>
+            <div className="relative">
+              <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="institution-code"
+                value={institutionData.code}
+                onChange={(e) => handleInstitutionChange('code', e.target.value.toUpperCase())}
+                placeholder="e.g., UG, KNUST"
+                disabled={loading}
+                className="pl-9 h-10"
+              />
+            </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="institution-type">Institution Type *</Label>
+            <Label htmlFor="institution-type" className="flex items-center gap-1">
+              Institution Type <span className="text-red-500">*</span>
+            </Label>
             <Select
               value={institutionData.type}
               onValueChange={(value) => handleInstitutionChange('type', value)}
               disabled={loading}
             >
-              <SelectTrigger id="institution-type">
+              <SelectTrigger id="institution-type" className="h-10">
                 <SelectValue placeholder="Select institution type" />
               </SelectTrigger>
               <SelectContent>
                 {INSTITUTION_TYPE_OPTIONS.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
-                    <div>
-                      <div className="font-medium">{option.label}</div>
-                      {option.description && (
-                        <div className="text-sm text-gray-500">{option.description}</div>
-                      )}
-                    </div>
+                    {option.label}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -167,26 +177,93 @@ export const InstitutionForm = ({
 
           <div className="space-y-2">
             <Label htmlFor="established-year">Established Year</Label>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="established-year"
+                type="number"
+                value={institutionData.establishedYear}
+                onChange={(e) => handleInstitutionChange('establishedYear', e.target.value)}
+                placeholder="e.g., 1948"
+                min="1800"
+                max={new Date().getFullYear()}
+                disabled={loading}
+                className="pl-9 h-10"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Contact Information Section */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 text-blue-600">
+          <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center">
+            <Phone className="h-4 w-4" />
+          </div>
+          <h3 className="text-base font-semibold text-gray-900">Contact Information</h3>
+        </div>
+        <Separator />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="contact-email">Contact Email</Label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="contact-email"
+                type="email"
+                value={institutionData.contactEmail}
+                onChange={(e) => handleInstitutionChange('contactEmail', e.target.value)}
+                placeholder="contact@institution.edu"
+                disabled={loading}
+                className="pl-9 h-10"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="contact-phone">Contact Phone</Label>
+            <div className="relative">
+              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="contact-phone"
+                value={institutionData.contactPhone}
+                onChange={(e) => handleInstitutionChange('contactPhone', e.target.value)}
+                placeholder="+233 XX XXX XXXX"
+                disabled={loading}
+                className="pl-9 h-10"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="website">Website</Label>
+          <div className="relative">
+            <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              id="established-year"
-              type="number"
-              value={institutionData.establishedYear}
-              onChange={(e) => handleInstitutionChange('establishedYear', e.target.value)}
-              placeholder="e.g., 1948"
-              min="1800"
-              max={new Date().getFullYear()}
+              id="website"
+              type="url"
+              value={institutionData.website}
+              onChange={(e) => handleInstitutionChange('website', e.target.value)}
+              placeholder="https://www.institution.edu"
               disabled={loading}
+              className="pl-9 h-10"
             />
           </div>
         </div>
       </div>
 
-      {/* Location Information */}
+      {/* Location Information Section */}
       <div className="space-y-4">
-        <h3 className="text-lg font-medium flex items-center gap-2">
-          <MapPin className="h-5 w-5" />
-          Location Information
-        </h3>
+        <div className="flex items-center gap-2 text-blue-600">
+          <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center">
+            <MapPin className="h-4 w-4" />
+          </div>
+          <h3 className="text-base font-semibold text-gray-900">Location Information</h3>
+        </div>
+        <Separator />
 
         <div className="space-y-2">
           <Label htmlFor="address">Address</Label>
@@ -195,8 +272,9 @@ export const InstitutionForm = ({
             value={institutionData.address}
             onChange={(e) => handleInstitutionChange('address', e.target.value)}
             placeholder="Enter full address"
-            rows={2}
+            rows={3}
             disabled={loading}
+            className="resize-none"
           />
         </div>
 
@@ -207,8 +285,9 @@ export const InstitutionForm = ({
               id="city"
               value={institutionData.city}
               onChange={(e) => handleInstitutionChange('city', e.target.value)}
-              placeholder="Enter city"
+              placeholder="e.g., Accra"
               disabled={loading}
+              className="h-10"
             />
           </div>
 
@@ -218,8 +297,9 @@ export const InstitutionForm = ({
               id="state"
               value={institutionData.state}
               onChange={(e) => handleInstitutionChange('state', e.target.value)}
-              placeholder="Enter state or region"
+              placeholder="e.g., Greater Accra"
               disabled={loading}
+              className="h-10"
             />
           </div>
 
@@ -229,64 +309,23 @@ export const InstitutionForm = ({
               id="country"
               value={institutionData.country}
               onChange={(e) => handleInstitutionChange('country', e.target.value)}
-              placeholder="Enter country"
+              placeholder="e.g., Ghana"
               disabled={loading}
+              className="h-10"
             />
           </div>
         </div>
       </div>
 
-      {/* Contact Information */}
+      {/* Description Section */}
       <div className="space-y-4">
-        <h3 className="text-lg font-medium flex items-center gap-2">
-          <Phone className="h-5 w-5" />
-          Contact Information
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="contact-email">Contact Email</Label>
-            <Input
-              id="contact-email"
-              type="email"
-              value={institutionData.contactEmail}
-              onChange={(e) => handleInstitutionChange('contactEmail', e.target.value)}
-              placeholder="contact@institution.edu"
-              disabled={loading}
-            />
+        <div className="flex items-center gap-2 text-blue-600">
+          <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center">
+            <FileText className="h-4 w-4" />
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="contact-phone">Contact Phone</Label>
-            <Input
-              id="contact-phone"
-              value={institutionData.contactPhone}
-              onChange={(e) => handleInstitutionChange('contactPhone', e.target.value)}
-              placeholder="+1234567890"
-              disabled={loading}
-            />
-          </div>
+          <h3 className="text-base font-semibold text-gray-900">Description</h3>
         </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="website">Website</Label>
-          <Input
-            id="website"
-            type="url"
-            value={institutionData.website}
-            onChange={(e) => handleInstitutionChange('website', e.target.value)}
-            placeholder="https://www.institution.edu"
-            disabled={loading}
-          />
-        </div>
-      </div>
-
-      {/* Description */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium flex items-center gap-2">
-          <FileText className="h-5 w-5" />
-          Description
-        </h3>
+        <Separator />
 
         <div className="space-y-2">
           <Label htmlFor="description">Institution Description</Label>
@@ -294,9 +333,10 @@ export const InstitutionForm = ({
             id="description"
             value={institutionData.description}
             onChange={(e) => handleInstitutionChange('description', e.target.value)}
-            placeholder="Brief description of the institution..."
+            placeholder="Brief description of the institution, its mission, and programs..."
             rows={4}
             disabled={loading}
+            className="resize-none"
           />
         </div>
       </div>
@@ -304,65 +344,87 @@ export const InstitutionForm = ({
   );
 
   const renderAdminForm = () => (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      {/* Admin User Information Section */}
       <div className="space-y-4">
-        <h3 className="text-lg font-medium flex items-center gap-2">
-          <User className="h-5 w-5" />
-          Admin User Information
-        </h3>
+        <div className="flex items-center gap-2 text-blue-600">
+          <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center">
+            <User className="h-4 w-4" />
+          </div>
+          <h3 className="text-base font-semibold text-gray-900">Admin User Information</h3>
+        </div>
+        <Separator />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="admin-first-name">First Name *</Label>
+            <Label htmlFor="admin-first-name" className="flex items-center gap-1">
+              First Name <span className="text-red-500">*</span>
+            </Label>
             <Input
               id="admin-first-name"
               value={adminData.firstName}
               onChange={(e) => handleAdminChange('firstName', e.target.value)}
               placeholder="Enter first name"
               disabled={loading}
+              className="h-10"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="admin-last-name">Last Name *</Label>
+            <Label htmlFor="admin-last-name" className="flex items-center gap-1">
+              Last Name <span className="text-red-500">*</span>
+            </Label>
             <Input
               id="admin-last-name"
               value={adminData.lastName}
               onChange={(e) => handleAdminChange('lastName', e.target.value)}
               placeholder="Enter last name"
               disabled={loading}
+              className="h-10"
             />
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="admin-email">Email Address *</Label>
-            <Input
-              id="admin-email"
-              type="email"
-              value={adminData.email}
-              onChange={(e) => handleAdminChange('email', e.target.value)}
-              placeholder="admin@institution.edu"
-              disabled={loading}
-            />
+            <Label htmlFor="admin-email" className="flex items-center gap-1">
+              Email Address <span className="text-red-500">*</span>
+            </Label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="admin-email"
+                type="email"
+                value={adminData.email}
+                onChange={(e) => handleAdminChange('email', e.target.value)}
+                placeholder="admin@institution.edu"
+                disabled={loading}
+                className="pl-9 h-10"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="admin-phone">Phone Number</Label>
-            <Input
-              id="admin-phone"
-              value={adminData.phone}
-              onChange={(e) => handleAdminChange('phone', e.target.value)}
-              placeholder="+1234567890"
-              disabled={loading}
-            />
+            <div className="relative">
+              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="admin-phone"
+                value={adminData.phone}
+                onChange={(e) => handleAdminChange('phone', e.target.value)}
+                placeholder="+233 XX XXX XXXX"
+                disabled={loading}
+                className="pl-9 h-10"
+              />
+            </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="admin-password">Password *</Label>
+            <Label htmlFor="admin-password" className="flex items-center gap-1">
+              Password <span className="text-red-500">*</span>
+            </Label>
             <Input
               id="admin-password"
               type="password"
@@ -370,11 +432,17 @@ export const InstitutionForm = ({
               onChange={(e) => handleAdminChange('password', e.target.value)}
               placeholder="Enter secure password"
               disabled={loading}
+              className="h-10"
             />
+            <p className="text-xs text-muted-foreground">
+              Minimum 8 characters, include uppercase, lowercase, and numbers
+            </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="admin-confirm-password">Confirm Password *</Label>
+            <Label htmlFor="admin-confirm-password" className="flex items-center gap-1">
+              Confirm Password <span className="text-red-500">*</span>
+            </Label>
             <Input
               id="admin-confirm-password"
               type="password"
@@ -382,6 +450,7 @@ export const InstitutionForm = ({
               onChange={(e) => handleAdminChange('confirmPassword', e.target.value)}
               placeholder="Confirm password"
               disabled={loading}
+              className="h-10"
             />
           </div>
         </div>
@@ -393,80 +462,81 @@ export const InstitutionForm = ({
   // RENDER MAIN COMPONENT
   // ========================================
 
-  const getTitle = () => {
-    switch (mode) {
-      case 'create':
-        return 'Create New Institution';
-      case 'edit':
-        return 'Edit Institution';
-      case 'create-with-admin':
-        return 'Create Institution with Admin';
-      default:
-        return 'Institution Form';
-    }
-  };
-
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">{getTitle()}</h2>
-        <Button variant="ghost" onClick={onCancel} disabled={loading}>
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
-
       {/* Error Display */}
       {errors.length > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4">
-          <h4 className="font-medium text-red-800 mb-2">Please fix the following errors:</h4>
-          <ul className="list-disc list-inside space-y-1 text-red-700">
-            {errors.map((error) => (
-              <li key={error}>{error}</li>
-            ))}
-          </ul>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              <AlertCircle className="h-5 w-5 text-red-600" />
+            </div>
+            <div className="flex-1">
+              <h4 className="text-sm font-semibold text-red-800 mb-2">
+                Please fix the following errors:
+              </h4>
+              <ul className="list-disc list-inside space-y-1 text-sm text-red-700">
+                {errors.map((error, index) => (
+                  <li key={index}>{error}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
         </div>
       )}
 
-      <form onSubmit={handleSubmit}>
-        <Card>
-          <CardContent className="p-6">
-            {mode === 'create-with-admin' ? (
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="institution">Institution Details</TabsTrigger>
-                  <TabsTrigger value="admin">Admin User</TabsTrigger>
-                </TabsList>
-                <TabsContent value="institution" className="mt-6">
-                  {renderInstitutionForm()}
-                </TabsContent>
-                <TabsContent value="admin" className="mt-6">
-                  {renderAdminForm()}
-                </TabsContent>
-              </Tabs>
-            ) : (
-              renderInstitutionForm()
-            )}
-          </CardContent>
-        </Card>
+      {/* Form Content */}
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {mode === 'create-with-admin' ? (
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 h-11">
+              <TabsTrigger value="institution" className="gap-2">
+                <Building2 className="h-4 w-4" />
+                Institution Details
+              </TabsTrigger>
+              <TabsTrigger value="admin" className="gap-2">
+                <User className="h-4 w-4" />
+                Admin User
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="institution" className="mt-6">
+              {renderInstitutionForm()}
+            </TabsContent>
+            <TabsContent value="admin" className="mt-6">
+              {renderAdminForm()}
+            </TabsContent>
+          </Tabs>
+        ) : (
+          renderInstitutionForm()
+        )}
 
         {/* Form Actions */}
-        <div className="flex justify-end gap-3 pt-6">
+        <div className="flex items-center justify-end gap-3 pt-4 border-t">
           <Button
             type="button"
             variant="outline"
             onClick={onCancel}
             disabled={loading}
+            className="min-w-[100px]"
           >
             Cancel
           </Button>
           <Button
             type="submit"
             disabled={loading}
-            className="flex items-center gap-2"
+            className="min-w-[140px] gap-2 bg-blue-600 hover:bg-blue-700"
           >
-            <Save className="h-4 w-4" />
-            {loading ? 'Saving...' : mode === 'edit' ? 'Update Institution' : 'Create Institution'}
+            {loading ? (
+              <>
+                <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4" />
+                {mode === 'edit' ? 'Update Institution' : 'Create Institution'}
+              </>
+            )}
           </Button>
         </div>
       </form>

@@ -1,31 +1,23 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Building2, TrendingUp, TrendingDown, Activity, Grid3x3, Table2 } from "lucide-react";
+import { Plus, Building2, TrendingUp, TrendingDown, Activity, Grid3x3, Table2, Building, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-  PaginationEllipsis,
-} from "@/components/ui/pagination";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
-import { StatCard } from "@/components/ui/stat-card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { SearchAndFilter, FilterGroup, SortOption } from "@/components/shared/SearchAndFilter";
 
 // Import our modular components
 import {
   InstitutionTable,
   InstitutionCard,
-  InstitutionFilters,
   InstitutionAnalytics,
   InstitutionAnalyticsData,
   InstitutionForm,
@@ -39,6 +31,8 @@ import {
   InstitutionFormData,
   AdminFormData,
   InstitutionStatus,
+  INSTITUTION_TYPE_OPTIONS,
+  INSTITUTION_STATUS_OPTIONS,
 } from "@/types/institution";
 import { institutionService } from "@/services/institution.service";
 
@@ -364,16 +358,78 @@ export function InstitutionsPage() {
   // RENDER HELPERS
   // ========================================
 
+  // Prepare sort options for SearchAndFilter
+  const sortOptions: SortOption[] = [
+    { label: 'Name (A-Z)', value: 'name-asc' },
+    { label: 'Name (Z-A)', value: 'name-desc' },
+    { label: 'Code (A-Z)', value: 'code-asc' },
+    { label: 'Code (Z-A)', value: 'code-desc' },
+    { label: 'Newest First', value: 'createdAt-desc' },
+    { label: 'Oldest First', value: 'createdAt-asc' },
+    { label: 'Recently Updated', value: 'updatedAt-desc' },
+  ];
+
+  // Prepare filter groups for SearchAndFilter
+  const filterGroups: FilterGroup[] = [
+    {
+      id: 'type',
+      label: 'Institution Type',
+      type: 'select',
+      options: [
+        { label: 'All Types', value: 'ALL' },
+        ...INSTITUTION_TYPE_OPTIONS.map(opt => ({
+          label: opt.label,
+          value: opt.value,
+        })),
+      ],
+      value: filters.type,
+      onChange: (value) => {
+        setFilters({
+          ...filters,
+          type: value === 'ALL' ? 'ALL' : (value as any),
+        });
+      },
+    },
+    {
+      id: 'status',
+      label: 'Status',
+      type: 'select',
+      options: [
+        { label: 'All Statuses', value: 'ALL' },
+        ...INSTITUTION_STATUS_OPTIONS.map(opt => ({
+          label: opt.label,
+          value: opt.value,
+        })),
+      ],
+      value: filters.status,
+      onChange: (value) => {
+        setFilters({
+          ...filters,
+          status: value === 'ALL' ? 'ALL' : (value as any),
+        });
+      },
+    },
+  ];
+
+  const handleSearchChange = (value: string) => {
+    setFilters({ ...filters, search: value });
+  };
+
+  const handleSortChange = (value: string) => {
+    const [sortBy, sortOrder] = value.split('-') as [any, 'asc' | 'desc'];
+    setFilters({ ...filters, sortBy, sortOrder });
+  };
+
   const renderInstitutionsContent = () => {
     if (state.error) {
       return (
         <Card className="border-red-200 bg-red-50/50">
-          <CardContent className="p-8 text-center">
+          <CardContent className="p-12 text-center">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-4">
               <Activity className="h-8 w-8 text-red-600" />
             </div>
-            <h3 className="text-lg font-semibold text-red-900 mb-2">Error Loading Institutions</h3>
-            <p className="text-red-700 mb-4">{state.error}</p>
+            <h3 className="text-xl font-semibold text-red-900 mb-2">Error Loading Institutions</h3>
+            <p className="text-red-700 mb-6 max-w-md mx-auto">{state.error}</p>
             <Button onClick={() => fetchInstitutions()} variant="outline" className="border-red-300 text-red-700 hover:bg-red-100">
               Try Again
             </Button>
@@ -386,15 +442,15 @@ export function InstitutionsPage() {
       return (
         <div className="space-y-6">
           {viewMode === 'grid' ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1, 2, 3, 4, 5, 6].map((i) => (
                 <Card key={i} className="animate-pulse">
-                  <CardHeader>
-                    <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
+                  <CardHeader className="space-y-3">
+                    <div className="h-6 bg-gray-200 rounded w-3/4"></div>
                     <div className="h-4 bg-gray-200 rounded w-1/2"></div>
                   </CardHeader>
-                  <CardContent>
-                    <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
+                  <CardContent className="space-y-2">
+                    <div className="h-4 bg-gray-200 rounded w-full"></div>
                     <div className="h-4 bg-gray-200 rounded w-5/6"></div>
                   </CardContent>
                 </Card>
@@ -403,12 +459,12 @@ export function InstitutionsPage() {
           ) : (
             <Card>
               <CardContent className="p-6">
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {[1, 2, 3, 4, 5].map((i) => (
                     <div key={i} className="flex items-center space-x-4 animate-pulse">
-                      <div className="h-12 w-12 bg-gray-200 rounded"></div>
-                      <div className="flex-1">
-                        <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
+                      <div className="h-12 w-12 bg-gray-200 rounded-lg"></div>
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-gray-200 rounded w-1/4"></div>
                         <div className="h-3 bg-gray-200 rounded w-1/3"></div>
                       </div>
                     </div>
@@ -423,20 +479,25 @@ export function InstitutionsPage() {
 
     if (state.institutions.length === 0) {
       return (
-        <Card className="border-dashed">
+        <Card className="border-dashed border-2">
           <CardContent className="p-12 text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
-              <Building2 className="h-8 w-8 text-gray-400" />
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 mb-4">
+              <Building2 className="h-10 w-10 text-white" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Institutions Found</h3>
-            <p className="text-gray-600 mb-4">
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">No Institutions Found</h3>
+            <p className="text-gray-600 mb-6 max-w-md mx-auto">
               {filters.search || filters.type !== 'ALL' || filters.status !== 'ALL'
                 ? 'Try adjusting your filters to find what you\'re looking for.'
                 : 'Get started by creating your first institution.'}
             </p>
-            {(filters.search || filters.type !== 'ALL' || filters.status !== 'ALL') && (
+            {(filters.search || filters.type !== 'ALL' || filters.status !== 'ALL') ? (
               <Button onClick={handleClearFilters} variant="outline">
                 Clear Filters
+              </Button>
+            ) : (
+              <Button onClick={handleAddInstitution} className="gap-2">
+                <Plus className="h-4 w-4" />
+                Add Institution
               </Button>
             )}
           </CardContent>
@@ -448,72 +509,120 @@ export function InstitutionsPage() {
       <div className="space-y-6">
         {/* Quick Stats */}
         {analyticsState.data && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard
-              title="Total Institutions"
-              value={analyticsState.data.totalInstitutions?.toString() || "0"}
-              icon={Building2}
-              trend={{
-                value: 12,
-                label: "vs last month",
-              }}
-            />
-            <StatCard
-              title="Active"
-              value={analyticsState.data.activeInstitutions?.toString() || "0"}
-              icon={TrendingUp}
-              trend={{
-                value: 8,
-                label: "vs last month",
-              }}
-            />
-            <StatCard
-              title="Inactive"
-              value={analyticsState.data.inactiveInstitutions?.toString() || "0"}
-              icon={TrendingDown}
-              trend={{
-                value: -2,
-                label: "vs last month",
-              }}
-            />
-            <StatCard
-              title="Pending"
-              value={analyticsState.data.pendingInstitutions?.toString() || "0"}
-              icon={Activity}
-              trend={{
-                value: 3,
-                label: "vs last month",
-              }}
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="border-blue-200 bg-blue-50/50 hover:shadow-md transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-blue-600">Total Institutions</p>
+                    <p className="text-3xl font-bold text-blue-900 mt-2">
+                      {analyticsState.data.totalInstitutions || 0}
+                    </p>
+                  </div>
+                  <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                    <Building2 className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 mt-4 text-xs text-blue-600">
+                  <TrendingUp className="h-3 w-3" />
+                  <span>12% vs last month</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-green-200 bg-green-50/50 hover:shadow-md transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-green-600">Active</p>
+                    <p className="text-3xl font-bold text-green-900 mt-2">
+                      {analyticsState.data.activeInstitutions || 0}
+                    </p>
+                  </div>
+                  <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
+                    <TrendingUp className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 mt-4 text-xs text-green-600">
+                  <TrendingUp className="h-3 w-3" />
+                  <span>8% vs last month</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-amber-200 bg-amber-50/50 hover:shadow-md transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-amber-600">Inactive</p>
+                    <p className="text-3xl font-bold text-amber-900 mt-2">
+                      {analyticsState.data.inactiveInstitutions || 0}
+                    </p>
+                  </div>
+                  <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center">
+                    <TrendingDown className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 mt-4 text-xs text-amber-600">
+                  <TrendingDown className="h-3 w-3" />
+                  <span>2% vs last month</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-purple-200 bg-purple-50/50 hover:shadow-md transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-purple-600">Pending</p>
+                    <p className="text-3xl font-bold text-purple-900 mt-2">
+                      {analyticsState.data.pendingInstitutions || 0}
+                    </p>
+                  </div>
+                  <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
+                    <Activity className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 mt-4 text-xs text-purple-600">
+                  <TrendingUp className="h-3 w-3" />
+                  <span>3 new this week</span>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         )}
 
-        {/* View Mode Selector */}
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">{state.pagination.total}</span> institution{state.pagination.total !== 1 ? 's' : ''} found
-          </div>
-          <div className="flex gap-1 border rounded-lg p-1 bg-muted/50">
-            <Button
-              variant={viewMode === 'table' ? 'secondary' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('table')}
-              className="gap-2"
-            >
-              <Table2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Table</span>
-            </Button>
-            <Button
-              variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('grid')}
-              className="gap-2"
-            >
-              <Grid3x3 className="h-4 w-4" />
-              <span className="hidden sm:inline">Grid</span>
-            </Button>
-          </div>
-        </div>
+        {/* View Mode Selector and Results Count */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                Showing <span className="font-semibold text-foreground">{state.institutions.length}</span> of{" "}
+                <span className="font-semibold text-foreground">{state.pagination.total}</span> institution{state.pagination.total !== 1 ? 's' : ''}
+              </div>
+              <div className="flex gap-1 border rounded-lg p-1 bg-muted/50">
+                <Button
+                  variant={viewMode === 'table' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('table')}
+                  className="gap-2"
+                >
+                  <Table2 className="h-4 w-4" />
+                  <span className="hidden sm:inline">Table</span>
+                </Button>
+                <Button
+                  variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('grid')}
+                  className="gap-2"
+                >
+                  <Grid3x3 className="h-4 w-4" />
+                  <span className="hidden sm:inline">Grid</span>
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Content Area */}
         {viewMode === 'table' ? (
@@ -528,7 +637,7 @@ export function InstitutionsPage() {
             actionLoading={actionLoading}
           />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {state.institutions.map((institution) => (
               <InstitutionCard
                 key={institution.id}
@@ -555,60 +664,50 @@ export function InstitutionsPage() {
             <CardContent className="p-4">
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="text-sm text-muted-foreground">
-                  Showing <span className="font-medium text-foreground">{(state.pagination.page - 1) * 10 + 1}</span> to{" "}
-                  <span className="font-medium text-foreground">{Math.min(state.pagination.page * 10, state.pagination.total)}</span> of{" "}
-                  <span className="font-medium text-foreground">{state.pagination.total}</span> results
+                  Page <span className="font-semibold text-foreground">{state.pagination.page}</span> of{" "}
+                  <span className="font-semibold text-foreground">{state.pagination.totalPages}</span>
                 </div>
-                <Pagination>
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          if (state.pagination.hasPrev) handlePageChange(state.pagination.page - 1);
-                        }}
-                        className={!state.pagination.hasPrev ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                      />
-                    </PaginationItem>
-
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(state.pagination.page - 1)}
+                    disabled={!state.pagination.hasPrev}
+                    className="gap-2"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
+                  <div className="flex gap-1">
                     {Array.from({ length: Math.min(state.pagination.totalPages, 5) }, (_, i) => {
                       const page = i + 1;
                       return (
-                        <PaginationItem key={page}>
-                          <PaginationLink
-                            href="#"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              handlePageChange(page);
-                            }}
-                            isActive={page === state.pagination.page}
-                            className="cursor-pointer"
-                          >
-                            {page}
-                          </PaginationLink>
-                        </PaginationItem>
+                        <Button
+                          key={page}
+                          variant={page === state.pagination.page ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => handlePageChange(page)}
+                          className="min-w-[40px]"
+                        >
+                          {page}
+                        </Button>
                       );
                     })}
-
                     {state.pagination.totalPages > 5 && (
-                      <PaginationItem>
-                        <PaginationEllipsis />
-                      </PaginationItem>
+                      <span className="flex items-center px-2 text-muted-foreground">...</span>
                     )}
-
-                    <PaginationItem>
-                      <PaginationNext
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          if (state.pagination.hasNext) handlePageChange(state.pagination.page + 1);
-                        }}
-                        className={!state.pagination.hasNext ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(state.pagination.page + 1)}
+                    disabled={!state.pagination.hasNext}
+                    className="gap-2"
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -624,36 +723,60 @@ export function InstitutionsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Institutions</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage educational institutions and their administrators
-          </p>
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm">
+              <Building className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight text-gray-900">Institutions</h1>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Manage educational institutions and their administrators
+              </p>
+            </div>
+          </div>
+          <Button
+            className="gap-2 shadow-sm bg-blue-600 hover:bg-blue-700"
+            onClick={handleAddInstitution}
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Add Institution</span>
+            <span className="sm:hidden">Add</span>
+          </Button>
         </div>
-        <Button
-          className="gap-2 shadow-sm"
-          onClick={handleAddInstitution}
-        >
-          <Plus className="h-4 w-4" />
-          <span className="hidden sm:inline">Add Institution</span>
-          <span className="sm:hidden">Add</span>
-        </Button>
       </div>
 
       <Tabs defaultValue="institutions" className="space-y-6">
         <TabsList className="bg-muted/50">
-          <TabsTrigger value="institutions">All Institutions</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics & Insights</TabsTrigger>
+          <TabsTrigger value="institutions" className="gap-2">
+            <Building2 className="h-4 w-4" />
+            All Institutions
+          </TabsTrigger>
+          <TabsTrigger value="analytics" className="gap-2">
+            <Activity className="h-4 w-4" />
+            Analytics & Insights
+          </TabsTrigger>
         </TabsList>
 
         {/* All Institutions Tab */}
         <TabsContent value="institutions" className="space-y-6">
-          <InstitutionFilters
-            filters={filters}
-            onFiltersChange={handleFiltersChange}
-            onClearFilters={handleClearFilters}
-            loading={state.loading}
+          {/* Search and Filter */}
+          <SearchAndFilter
+            searchPlaceholder="Search institutions by name, code, or city..."
+            searchValue={filters.search}
+            onSearchChange={handleSearchChange}
+            showSearch={true}
+            sortOptions={sortOptions}
+            sortValue={`${filters.sortBy}-${filters.sortOrder}`}
+            onSortChange={handleSortChange}
+            showSort={true}
+            sortLabel="Sort by"
+            filterGroups={filterGroups}
+            showFilters={true}
+            filterLabel="Filters"
+            onClearAll={handleClearFilters}
+            showClearAll={true}
           />
 
           {renderInstitutionsContent()}
@@ -689,29 +812,49 @@ export function InstitutionsPage() {
         open={formState.isOpen}
         onOpenChange={(open) => !open && handleFormCancel()}
       >
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold">
-              {formState.mode === "edit"
-                ? "Edit Institution"
-                : formState.mode === "create-with-admin"
-                ? "Create Institution with Admin"
-                : "Create Institution"}
-            </DialogTitle>
-          </DialogHeader>
-          <InstitutionForm
-            mode={formState.mode}
-            initialData={
-              formState.editingInstitution
-                ? institutionService.institutionToFormData(
-                    formState.editingInstitution
-                  )
-                : undefined
-            }
-            onSubmit={handleFormSubmit}
-            onCancel={handleFormCancel}
-            loading={formState.loading}
-          />
+        <DialogContent className="max-w-4xl max-h-[90vh]">
+          <ScrollArea className="max-h-[calc(90vh-180px)]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                  {formState.mode === "edit" ? (
+                    <Building2 className="h-5 w-5 text-white" />
+                  ) : (
+                    <Plus className="h-5 w-5 text-white" />
+                  )}
+                </div>
+                <div>
+                  <div className="text-xl font-bold">
+                    {formState.mode === "edit"
+                      ? "Edit Institution"
+                      : formState.mode === "create-with-admin"
+                      ? "Create Institution with Admin"
+                      : "Create Institution"}
+                  </div>
+                  <DialogDescription>
+                    {formState.mode === "edit"
+                      ? "Update institution details and settings"
+                      : "Add a new institution to the system"}
+                  </DialogDescription>
+                </div>
+              </DialogTitle>
+            </DialogHeader>
+            <div className="p-6">
+              <InstitutionForm
+                mode={formState.mode}
+                initialData={
+                  formState.editingInstitution
+                    ? institutionService.institutionToFormData(
+                        formState.editingInstitution
+                      )
+                    : undefined
+                }
+                onSubmit={handleFormSubmit}
+                onCancel={handleFormCancel}
+                loading={formState.loading}
+              />
+            </div>
+          </ScrollArea>
         </DialogContent>
       </Dialog>
     </div>
