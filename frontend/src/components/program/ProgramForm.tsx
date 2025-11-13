@@ -24,33 +24,37 @@ import {
 } from "@/components/ui/select";
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
 
 import { programService } from "@/services/program.service";
 import { departmentService } from "@/services/department.service";
 import { Department } from "@/types/shared";
 import { ProgramFormProps, ProgramType, ProgramLevel } from "@/types/shared";
+import {
+  Loader2,
+  BookOpen,
+  Hash,
+  Building2,
+  GraduationCap,
+  Calendar,
+  Award,
+  FileText,
+  AlertCircle,
+  CheckCircle
+} from "lucide-react";
 
 const programSchema = z.object({
   name: z.string().min(1, "Program name is required"),
   code: z.string().min(1, "Program code is required"),
   departmentId: z.number().min(1, "Department is required"),
-  type: z.enum(["UNDERGRADUATE", "POSTGRADUATE", "DIPLOMA", "CERTIFICATE"], {
+  type: z.enum(["CERTIFICATE", "DIPLOMA", "HND", "BACHELOR", "MASTERS", "PHD"], {
     message: "Program type is required",
   }),
-  level: z.enum(
-    [
-      "LEVEL_100",
-      "LEVEL_200",
-      "LEVEL_300",
-      "LEVEL_400",
-      "LEVEL_500",
-      "LEVEL_600",
-      "LEVEL_700",
-    ],
-    {
-      message: "Program level is required",
-    }
-  ),
+  level: z.enum(["UNDERGRADUATE", "POSTGRADUATE"], {
+    message: "Program level is required",
+  }),
   durationYears: z.number().min(1, "Duration is required"),
   creditHours: z.union([z.number(), z.null()]).optional(),
   description: z.union([z.string(), z.null()]).optional(),
@@ -82,9 +86,9 @@ const ProgramForm: React.FC<ProgramFormProps> = ({
       name: program?.name || "",
       code: program?.code || "",
       departmentId: program?.departmentId || 0,
-      type: program?.type || "UNDERGRADUATE",
-      level: program?.level || "LEVEL_100",
-      durationYears: program?.durationYears || 1,
+      type: program?.type || "BACHELOR",
+      level: program?.level || "UNDERGRADUATE",
+      durationYears: program?.durationYears || 4,
       creditHours: program?.creditHours ?? undefined,
       description: program?.description ?? undefined,
       admissionRequirements: program?.admissionRequirements ?? undefined,
@@ -126,10 +130,14 @@ const ProgramForm: React.FC<ProgramFormProps> = ({
         isActive: data.isActive,
       }),
     onSuccess: () => {
+      toast.success("Program created successfully");
       onSuccess();
     },
-    onError: (error: Error) => {
-      setError(error?.message || "Failed to create program");
+    onError: (err: Error & { response?: { data?: { message?: string } } }) => {
+      const errorMessage = err?.response?.data?.message || err?.message || "Failed to create program";
+      console.error('Create program error:', err);
+      setError(errorMessage);
+      toast.error(errorMessage);
     },
   });
 
@@ -150,10 +158,14 @@ const ProgramForm: React.FC<ProgramFormProps> = ({
       });
     },
     onSuccess: () => {
+      toast.success("Program updated successfully");
       onSuccess();
     },
-    onError: (error: Error) => {
-      setError(error?.message || "Failed to update program");
+    onError: (err: Error & { response?: { data?: { message?: string } } }) => {
+      const errorMessage = err?.response?.data?.message || err?.message || "Failed to update program";
+      console.error('Update program error:', err);
+      setError(errorMessage);
+      toast.error(errorMessage);
     },
   });
 
@@ -177,12 +189,23 @@ const ProgramForm: React.FC<ProgramFormProps> = ({
       </DialogHeader>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 mt-4">
           {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
+            <Alert variant="destructive" className="flex items-start gap-2">
+              <AlertCircle className="h-5 w-5 mt-0.5" />
+              <AlertDescription className="flex-1">{error}</AlertDescription>
             </Alert>
           )}
+
+          {/* Section 1: Basic Information */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                <BookOpen className="h-4 w-4 text-blue-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Basic Information</h3>
+            </div>
+            <Separator />
 
           <div className="grid grid-cols-2 gap-4">
             <FormField
@@ -192,7 +215,10 @@ const ProgramForm: React.FC<ProgramFormProps> = ({
                 <FormItem>
                   <FormLabel>Program Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter program name" {...field} />
+                    <div className="relative">
+                      <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input placeholder="Enter program name" className="pl-9 h-10" {...field} />
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -206,7 +232,10 @@ const ProgramForm: React.FC<ProgramFormProps> = ({
                 <FormItem>
                   <FormLabel>Program Code</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter program code" {...field} />
+                    <div className="relative">
+                      <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input placeholder="Enter program code" className="pl-9 h-10" {...field} />
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -214,38 +243,52 @@ const ProgramForm: React.FC<ProgramFormProps> = ({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="departmentId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Department</FormLabel>
-                  <Select
-                    onValueChange={(value) => field.onChange(parseInt(value))}
-                    value={field.value?.toString()}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
+          <FormField
+            control={form.control}
+            name="departmentId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Department</FormLabel>
+                <Select
+                  onValueChange={(value) => field.onChange(parseInt(value))}
+                  value={field.value?.toString()}
+                >
+                  <FormControl>
+                    <div className="relative">
+                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 z-10 pointer-events-none" />
+                      <SelectTrigger className="pl-9 h-10">
                         <SelectValue placeholder="Select department" />
                       </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {departments.map((department: Department) => (
-                        <SelectItem
-                          key={department.id}
-                          value={department.id.toString()}
-                        >
-                          {department.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    </div>
+                  </FormControl>
+                  <SelectContent>
+                    {departments.map((department: Department) => (
+                      <SelectItem
+                        key={department.id}
+                        value={department.id.toString()}
+                      >
+                        {department.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          </div>
 
+          {/* Section 2: Program Structure */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                <GraduationCap className="h-4 w-4 text-blue-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Program Structure</h3>
+            </div>
+            <Separator />
+
+          <div className="grid grid-cols-2 gap-4">
             <FormField
               control={form.control}
               name="type"
@@ -254,26 +297,27 @@ const ProgramForm: React.FC<ProgramFormProps> = ({
                   <FormLabel>Program Type</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
+                      <div className="relative">
+                        <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 z-10 pointer-events-none" />
+                        <SelectTrigger className="pl-9 h-10">
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                      </div>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="UNDERGRADUATE">
-                        Undergraduate
-                      </SelectItem>
-                      <SelectItem value="POSTGRADUATE">Postgraduate</SelectItem>
-                      <SelectItem value="DIPLOMA">Diploma</SelectItem>
                       <SelectItem value="CERTIFICATE">Certificate</SelectItem>
+                      <SelectItem value="DIPLOMA">Diploma</SelectItem>
+                      <SelectItem value="HND">HND</SelectItem>
+                      <SelectItem value="BACHELOR">Bachelor's Degree</SelectItem>
+                      <SelectItem value="MASTERS">Master's Degree</SelectItem>
+                      <SelectItem value="PHD">PhD</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
             <FormField
               control={form.control}
               name="level"
@@ -282,18 +326,16 @@ const ProgramForm: React.FC<ProgramFormProps> = ({
                   <FormLabel>Program Level</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select level" />
-                      </SelectTrigger>
+                      <div className="relative">
+                        <Award className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 z-10 pointer-events-none" />
+                        <SelectTrigger className="pl-9 h-10">
+                          <SelectValue placeholder="Select level" />
+                        </SelectTrigger>
+                      </div>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="LEVEL_100">Level 100</SelectItem>
-                      <SelectItem value="LEVEL_200">Level 200</SelectItem>
-                      <SelectItem value="LEVEL_300">Level 300</SelectItem>
-                      <SelectItem value="LEVEL_400">Level 400</SelectItem>
-                      <SelectItem value="LEVEL_500">Level 500</SelectItem>
-                      <SelectItem value="LEVEL_600">Level 600</SelectItem>
-                      <SelectItem value="LEVEL_700">Level 700</SelectItem>
+                      <SelectItem value="UNDERGRADUATE">Undergraduate</SelectItem>
+                      <SelectItem value="POSTGRADUATE">Postgraduate</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -308,12 +350,21 @@ const ProgramForm: React.FC<ProgramFormProps> = ({
                 <FormItem>
                   <FormLabel>Duration (Years)</FormLabel>
                   <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="Enter duration"
-                      {...field}
-                      onChange={(e) => field.onChange(parseInt(e.target.value))}
-                    />
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        type="number"
+                        placeholder="e.g., 4"
+                        className="pl-9 h-10"
+                        value={field.value || ""}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          field.onChange(value ? parseInt(value) : undefined);
+                        }}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                      />
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -328,22 +379,37 @@ const ProgramForm: React.FC<ProgramFormProps> = ({
               <FormItem>
                 <FormLabel>Credit Hours (Optional)</FormLabel>
                 <FormControl>
-                  <Input
-                    type="number"
-                    placeholder="Enter credit hours"
-                    {...field}
-                    value={field.value ?? ""}
-                    onChange={(e) =>
-                      field.onChange(
-                        e.target.value ? parseInt(e.target.value) : undefined
-                      )
-                    }
-                  />
+                  <div className="relative">
+                    <Award className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      type="number"
+                      placeholder="e.g., 120"
+                      className="pl-9 h-10"
+                      value={field.value || ""}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        field.onChange(value ? parseInt(value) : undefined);
+                      }}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                    />
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
+          </div>
+
+          {/* Section 3: Additional Details */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                <FileText className="h-4 w-4 text-blue-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Additional Details</h3>
+            </div>
+            <Separator />
 
           <FormField
             control={form.control}
@@ -354,7 +420,7 @@ const ProgramForm: React.FC<ProgramFormProps> = ({
                 <FormControl>
                   <Textarea
                     placeholder="Enter program description"
-                    className="resize-none"
+                    className="resize-none min-h-[100px]"
                     {...field}
                     value={field.value ?? ""}
                   />
@@ -373,7 +439,7 @@ const ProgramForm: React.FC<ProgramFormProps> = ({
                 <FormControl>
                   <Textarea
                     placeholder="Enter admission requirements"
-                    className="resize-none"
+                    className="resize-none min-h-[100px]"
                     {...field}
                     value={field.value ?? ""}
                   />
@@ -383,18 +449,56 @@ const ProgramForm: React.FC<ProgramFormProps> = ({
             )}
           />
 
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={onCancel}>
+          <FormField
+            control={form.control}
+            name="isActive"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <FormLabel className="text-base">Active Status</FormLabel>
+                  <div className="text-sm text-gray-500">
+                    Enable or disable this program for student enrollment
+                  </div>
+                </div>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+          </div>
+
+          <Separator className="my-6" />
+
+          <div className="flex justify-end space-x-3 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onCancel}
+              disabled={isLoading}
+              className="min-w-[100px]"
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading
-                ? mode === "create"
-                  ? "Creating..."
-                  : "Updating..."
-                : mode === "create"
-                  ? "Create Program"
-                  : "Update Program"}
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="min-w-[140px] bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {mode === "create" ? "Creating..." : "Updating..."}
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  {mode === "create" ? "Create Program" : "Update Program"}
+                </>
+              )}
             </Button>
           </div>
         </form>

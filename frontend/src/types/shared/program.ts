@@ -75,20 +75,17 @@ export interface Program {
 // ========================================
 
 export enum ProgramType {
-  UNDERGRADUATE = "UNDERGRADUATE",
-  POSTGRADUATE = "POSTGRADUATE",
-  DIPLOMA = "DIPLOMA",
   CERTIFICATE = "CERTIFICATE",
+  DIPLOMA = "DIPLOMA",
+  HND = "HND",
+  BACHELOR = "BACHELOR",
+  MASTERS = "MASTERS",
+  PHD = "PHD",
 }
 
 export enum ProgramLevel {
-  LEVEL_100 = "LEVEL_100",
-  LEVEL_200 = "LEVEL_200",
-  LEVEL_300 = "LEVEL_300",
-  LEVEL_400 = "LEVEL_400",
-  LEVEL_500 = "LEVEL_500",
-  LEVEL_600 = "LEVEL_600",
-  LEVEL_700 = "LEVEL_700",
+  UNDERGRADUATE = "UNDERGRADUATE",
+  POSTGRADUATE = "POSTGRADUATE",
 }
 
 // ========================================

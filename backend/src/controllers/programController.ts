@@ -20,7 +20,20 @@ export const programController = {
         sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'desc'
       };
 
+      // Auto-filter by institution for institution admins
+      const user = req.user as any;
+      if (user && user.role === 'ADMIN' && user.institutionId && !query.institutionId) {
+        query.institutionId = user.institutionId;
+      }
+
+      // Auto-filter by faculty for faculty admins
+      if (user && user.role === 'FACULTY_ADMIN' && user.facultyId && !query.facultyId) {
+        query.facultyId = user.facultyId;
+      }
+
+      console.log('Fetching programs with query:', query, 'for user:', { id: user?.id, role: user?.role, institutionId: user?.institutionId });
       const result = await programService.getPrograms(query);
+      console.log('Programs result:', { success: result.success, count: result.data?.programs?.length || 0, total: result.data?.total });
       res.json(result);
     } catch (error) {
       console.error('Error fetching programs:', error);

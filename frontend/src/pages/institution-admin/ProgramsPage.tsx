@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
@@ -17,18 +16,26 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { SearchAndFilter } from "@/components/shared/SearchAndFilter";
 import { programService } from "@/services/program.service";
 import { Program } from "@/types/shared/program";
-import { Plus, Search, Edit, Trash2, Eye, BookOpen } from "lucide-react";
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Eye,
+  BookOpen,
+  GraduationCap,
+  TrendingUp,
+  Users,
+  ChevronLeft,
+  ChevronRight,
+  AlertCircle
+} from "lucide-react";
 import ProgramCreate from "@/components/program/ProgramCreate";
 import ProgramEdit from "@/components/program/ProgramEdit";
+import { toast } from "sonner";
 
 const ProgramsPage: React.FC = () => {
   const [programs, setPrograms] = useState<Program[]>([]);
@@ -71,8 +78,11 @@ const ProgramsPage: React.FC = () => {
           : parseInt(selectedDepartment),
       };
 
+      console.log('Fetching programs with query:', query);
       const response = await programService.getPrograms(query);
-      // The base service now properly transforms the response
+      console.log('Programs response:', response);
+
+      // Handle the response structure from backend
       const programsData = response?.data || [];
       setPrograms(programsData);
       setTotalPages(response?.pagination?.totalPages || 1);
@@ -112,6 +122,7 @@ const ProgramsPage: React.FC = () => {
       });
     } catch (error) {
       console.error("Error loading programs:", error);
+      toast.error("Failed to load programs");
     } finally {
       setLoading(false);
     }
@@ -122,21 +133,26 @@ const ProgramsPage: React.FC = () => {
   }, [loadPrograms]);
 
   const handleDelete = async (id: number) => {
-    if (window.confirm("Are you sure you want to delete this program?")) {
+    if (window.confirm("Are you sure you want to delete this program? This action cannot be undone.")) {
       try {
         await programService.deleteProgram(id);
+        toast.success("Program deleted successfully");
         loadPrograms();
       } catch (error) {
         console.error("Error deleting program:", error);
+        const errorMessage = error instanceof Error ? error.message : "Failed to delete program";
+        toast.error(errorMessage);
       }
     }
   };
 
   const handleCreateSuccess = () => {
+    toast.success("Program created successfully");
     loadPrograms();
   };
 
   const handleEditSuccess = () => {
+    toast.success("Program updated successfully");
     loadPrograms();
   };
 
@@ -146,226 +162,328 @@ const ProgramsPage: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">Programs</h1>
-          <p className="text-gray-600">Manage academic programs</p>
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-linear-to-br from-blue-500 to-blue-600 shadow-lg">
+            <BookOpen className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Programs</h1>
+            <p className="text-muted-foreground mt-1">Manage academic programs and degrees</p>
+          </div>
         </div>
-        <Button onClick={() => setCreateDialogOpen(true)}>
+        <Button
+          onClick={() => setCreateDialogOpen(true)}
+          className="bg-linear-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg"
+        >
           <Plus className="mr-2 h-4 w-4" />
           Add Program
         </Button>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <BookOpen className="w-6 h-6 text-blue-600" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="relative overflow-hidden transition-all hover:shadow-lg">
+          <div className="absolute inset-0 bg-linear-to-br from-blue-500/10 to-blue-600/5" />
+          <CardContent className="relative p-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground">Total Programs</p>
+                <p className="text-3xl font-bold text-gray-900">{stats.total}</p>
+                <div className="flex items-center text-xs text-muted-foreground">
+                  <TrendingUp className="h-3 w-3 mr-1" />
+                  All programs
+                </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">
-                  Total Programs
-                </p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {stats.total}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <BookOpen className="w-6 h-6 text-green-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">
-                  Active Programs
-                </p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {stats.active}
-                </p>
+              <div className="flex items-center justify-center h-14 w-14 rounded-xl bg-linear-to-br from-blue-500 to-blue-600 shadow-lg">
+                <BookOpen className="h-7 w-7 text-white" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <BookOpen className="w-6 h-6 text-purple-600" />
+        <Card className="relative overflow-hidden transition-all hover:shadow-lg">
+          <div className="absolute inset-0 bg-linear-to-br from-green-500/10 to-green-600/5" />
+          <CardContent className="relative p-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground">Active Programs</p>
+                <p className="text-3xl font-bold text-gray-900">{stats.active}</p>
+                <div className="flex items-center text-xs text-muted-foreground">
+                  <TrendingUp className="h-3 w-3 mr-1" />
+                  Currently running
+                </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">
-                  Total Students
-                </p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {stats.totalStudents}
-                </p>
+              <div className="flex items-center justify-center h-14 w-14 rounded-xl bg-linear-to-br from-green-500 to-green-600 shadow-lg">
+                <TrendingUp className="h-7 w-7 text-white" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <BookOpen className="w-6 h-6 text-orange-600" />
+        <Card className="relative overflow-hidden transition-all hover:shadow-lg">
+          <div className="absolute inset-0 bg-linear-to-br from-purple-500/10 to-purple-600/5" />
+          <CardContent className="relative p-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground">Total Students</p>
+                <p className="text-3xl font-bold text-gray-900">{stats.totalStudents}</p>
+                <div className="flex items-center text-xs text-muted-foreground">
+                  <Users className="h-3 w-3 mr-1" />
+                  Enrolled students
+                </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">
-                  Total Courses
-                </p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {stats.totalCourses}
-                </p>
+              <div className="flex items-center justify-center h-14 w-14 rounded-xl bg-linear-to-br from-purple-500 to-purple-600 shadow-lg">
+                <GraduationCap className="h-7 w-7 text-white" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="relative overflow-hidden transition-all hover:shadow-lg">
+          <div className="absolute inset-0 bg-linear-to-br from-amber-500/10 to-amber-600/5" />
+          <CardContent className="relative p-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground">Total Courses</p>
+                <p className="text-3xl font-bold text-gray-900">{stats.totalCourses}</p>
+                <div className="flex items-center text-xs text-muted-foreground">
+                  <BookOpen className="h-3 w-3 mr-1" />
+                  Course offerings
+                </div>
+              </div>
+              <div className="flex items-center justify-center h-14 w-14 rounded-xl bg-linear-to-br from-amber-500 to-amber-600 shadow-lg">
+                <BookOpen className="h-7 w-7 text-white" />
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filters */}
-      <Card className="mb-6">
-        <CardContent className="pt-6">
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search programs..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8"
-                />
-              </div>
-            </div>
-            <Select
-              value={selectedDepartment}
-              onValueChange={setSelectedDepartment}
-            >
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="All Departments" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Departments</SelectItem>
-                {departments.map((department) => (
-                  <SelectItem
-                    key={department.id}
-                    value={department.id.toString()}
-                  >
-                    {department.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+      {/* Search and Filters */}
+      <Card>
+        <CardContent className="p-6">
+          <SearchAndFilter
+            searchValue={searchTerm}
+            onSearchChange={setSearchTerm}
+            searchPlaceholder="Search programs by name or code..."
+            sortOptions={[
+              { label: "Name (A-Z)", value: "name-asc" },
+              { label: "Name (Z-A)", value: "name-desc" },
+              { label: "Code (A-Z)", value: "code-asc" },
+              { label: "Code (Z-A)", value: "code-desc" },
+              { label: "Newest First", value: "createdAt-desc" },
+              { label: "Oldest First", value: "createdAt-asc" },
+            ]}
+            onSortChange={(value) => {
+              const [sortBy, sortOrder] = value.split("-");
+              console.log("Sort:", sortBy, sortOrder);
+            }}
+            filterGroups={[
+              {
+                id: "department",
+                label: "Department",
+                type: "select",
+                options: [
+                  { label: "All Departments", value: "all" },
+                  ...departments.map((dept) => ({
+                    label: dept.name,
+                    value: dept.id.toString(),
+                  })),
+                ],
+                value: selectedDepartment,
+                onChange: (value) => setSelectedDepartment(value as string),
+              },
+              {
+                id: "status",
+                label: "Status",
+                type: "select",
+                options: [
+                  { label: "All Status", value: "all" },
+                  { label: "Active", value: "active" },
+                  { label: "Inactive", value: "inactive" },
+                ],
+                value: "all",
+                onChange: (value) => console.log("Status:", value),
+              },
+            ]}
+          />
         </CardContent>
       </Card>
 
       {/* Programs Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Programs ({programs.length})</CardTitle>
-          <CardDescription>
-            A list of all programs in the system
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-blue-100">
+                  <BookOpen className="h-4 w-4 text-blue-600" />
+                </div>
+                Programs List
+              </CardTitle>
+              <CardDescription className="mt-2">
+                {loading ? "Loading..." : `Showing ${programs.length} of ${stats.total} programs`}
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent>
+        <Separator />
+        <CardContent className="p-0">
           {loading ? (
-            <div className="text-center py-4">Loading...</div>
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600" />
+              <p className="mt-4 text-sm text-muted-foreground">Loading programs...</p>
+            </div>
+          ) : programs.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="flex items-center justify-center h-16 w-16 rounded-full bg-gray-100">
+                <AlertCircle className="h-8 w-8 text-gray-400" />
+              </div>
+              <p className="mt-4 text-sm font-medium text-gray-900">No programs found</p>
+              <p className="text-xs text-muted-foreground">Try adjusting your search or filters</p>
+            </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Code</TableHead>
-                  <TableHead>Level</TableHead>
-                  <TableHead>Duration</TableHead>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {programs.map((program) => (
-                  <TableRow key={program.id}>
-                    <TableCell className="font-medium">
-                      {program.name}
-                    </TableCell>
-                    <TableCell>{program.code}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{program.level}</Badge>
-                    </TableCell>
-                    <TableCell>{program.durationYears} years</TableCell>
-                    <TableCell>{program.department?.name || "N/A"}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={program.isActive ? "default" : "secondary"}
-                      >
-                        {program.isActive ? "Active" : "Inactive"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button variant="ghost" size="sm">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEdit(program)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(program.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="font-semibold">Program Name</TableHead>
+                    <TableHead className="font-semibold">Code</TableHead>
+                    <TableHead className="font-semibold">Type</TableHead>
+                    <TableHead className="font-semibold">Level</TableHead>
+                    <TableHead className="font-semibold">Duration</TableHead>
+                    <TableHead className="font-semibold">Department</TableHead>
+                    <TableHead className="font-semibold">Students</TableHead>
+                    <TableHead className="font-semibold">Status</TableHead>
+                    <TableHead className="font-semibold text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {programs.map((program) => (
+                    <TableRow key={program.id} className="hover:bg-muted/50">
+                      <TableCell>
+                        <div>
+                          <p className="font-medium text-gray-900">{program.name}</p>
+                          {program.description && (
+                            <p className="text-xs text-muted-foreground truncate max-w-xs">
+                              {program.description}
+                            </p>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="font-mono">
+                          {program.code}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">
+                          {program.type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                          {program.level}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {program.durationYears} {program.durationYears === 1 ? "year" : "years"}
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="text-sm text-gray-900">{program.department?.name || "N/A"}</p>
+                          {program.department?.faculty && (
+                            <p className="text-xs text-muted-foreground">
+                              {program.department.faculty.name}
+                            </p>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm font-medium text-gray-900">
+                          {program.stats?.totalStudents || 0}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={program.isActive ? "default" : "secondary"}
+                          className={program.isActive ? "bg-green-500 hover:bg-green-600" : ""}
+                        >
+                          {program.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            title="View details"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={() => handleEdit(program)}
+                            title="Edit program"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => handleDelete(program.id)}
+                            title="Delete program"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
 
           {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex justify-center mt-4">
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </Button>
-                <span className="px-4 py-2">
+          {!loading && totalPages > 1 && (
+            <>
+              <Separator />
+              <div className="flex items-center justify-between px-6 py-4">
+                <div className="text-sm text-muted-foreground">
                   Page {currentPage} of {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  onClick={() =>
-                    setCurrentPage(Math.min(totalPages, currentPage + 1))
-                  }
-                  disabled={currentPage === totalPages}
-                >
-                  Next
-                </Button>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                    className="h-8"
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage === totalPages}
+                    className="h-8"
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
               </div>
-            </div>
+            </>
           )}
         </CardContent>
       </Card>

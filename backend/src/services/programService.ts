@@ -24,6 +24,7 @@ export const programService = {
 
     if (institutionId) {
       where.department = {
+        ...where.department,
         faculty: {
           institutionId: institutionId
         }
@@ -50,8 +51,11 @@ export const programService = {
       ];
     }
 
+    console.log('Program service where clause:', JSON.stringify(where, null, 2));
+
     // Get total count
     const total = await prisma.program.count({ where });
+    console.log(`Found ${total} total programs matching criteria`);
 
     // Get programs with relations
     const programs = await prisma.program.findMany({
@@ -98,6 +102,8 @@ export const programService = {
       skip,
       take: limit
     });
+
+    console.log(`Fetched ${programs.length} programs from database`);
 
     // Calculate stats for each program
     const programsWithStats = programs.map(program => ({
