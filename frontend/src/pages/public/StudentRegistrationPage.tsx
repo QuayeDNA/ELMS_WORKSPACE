@@ -167,7 +167,7 @@ export function StudentRegistrationPage() {
 
   if (!instId) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-50 to-indigo-100 p-4">
         <Alert variant="destructive">
           <AlertDescription>Invalid institution ID</AlertDescription>
         </Alert>
@@ -176,9 +176,9 @@ export function StudentRegistrationPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-50 to-indigo-100 p-4">
       <Card className="w-full max-w-3xl shadow-xl">
-        <CardHeader className="space-y-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg">
+        <CardHeader className="space-y-1 bg-linear-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg">
           <CardTitle className="text-3xl font-bold">Student Registration</CardTitle>
           <CardDescription className="text-blue-100">
             Create your student account to get started
@@ -377,7 +377,7 @@ export function StudentRegistrationPage() {
             <Button
               type="submit"
               disabled={registrationMutation.isPending}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+              className="bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
             >
               {registrationMutation.isPending ? (
                 <>
@@ -478,7 +478,7 @@ export function StudentRegistrationPage() {
             </Button>
             <Button
               onClick={handleAutoLogin}
-              className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+              className="flex-1 bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
               disabled={loginMutation.isPending}
             >
               {loginMutation.isPending ? (

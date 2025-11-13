@@ -6,6 +6,7 @@ import { RootRedirect } from "@/components/auth/RedirectMiddleware";
 import { Layout } from "@/components/layout/Layout";
 import { UserRole } from "@/types/auth";
 import { LoadingSpinner } from "@/components/ui/Loading";
+import { LoadingPage } from "@/components/shared/LoadingPage";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import {
   NotFound,
@@ -176,7 +177,7 @@ const AdminSettingsPage = lazy(() =>
 // Layout wrapper components for better organization
 const PublicLayout = ({ children }: { children: React.ReactNode }) => (
   <div className="min-h-screen bg-gray-50">
-    <Suspense fallback={<LoadingSpinner />}>{children}</Suspense>
+    <Suspense fallback={<LoadingPage message="Loading ELMS..." />}>{children}</Suspense>
   </div>
 );
 

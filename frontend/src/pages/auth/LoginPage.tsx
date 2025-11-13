@@ -50,9 +50,9 @@ export function LoginPage() {
   return (
     <div className="min-h-screen flex bg-gray-50">
       {/* Left Panel - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary via-blue-600 to-blue-800 p-12 flex-col justify-between relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 bg-linear-to-br from-primary via-blue-600 to-blue-800 p-12 flex-col justify-between relative overflow-hidden">
         {/* Background decoration */}
-        <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:20px_20px]" />
+        <div className="absolute inset-0 bg-grid-white/[0.05] bg-size-[20px_20px]" />
         <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/30 rounded-full blur-3xl" />
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-400/20 rounded-full blur-3xl" />
 
@@ -88,7 +88,7 @@ export function LoginPage() {
                 key={index}
                 className="flex items-start space-x-4 bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20"
               >
-                <div className="flex-shrink-0 w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                <div className="shrink-0 w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
                   <feature.icon className="h-5 w-5 text-white" />
                 </div>
                 <div>
@@ -114,7 +114,7 @@ export function LoginPage() {
         <div className="w-full max-w-md">
           {/* Mobile logo */}
           <div className="lg:hidden flex items-center justify-center space-x-3 mb-8">
-            <div className="w-12 h-12 bg-gradient-to-br from-primary to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+            <div className="w-12 h-12 bg-linear-to-br from-primary to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
               <span className="text-white font-bold text-xl">E</span>
             </div>
             <div>
