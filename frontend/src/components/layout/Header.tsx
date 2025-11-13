@@ -92,17 +92,17 @@ export function Header() {
                 {/* Avatar */}
                 <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
                   <span className="text-white font-semibold text-sm">
-                    {user.firstName.charAt(0)}{user.lastName.charAt(0)}
+                    {user?.firstName?.charAt(0) || 'U'}{user?.lastName?.charAt(0) || 'U'}
                   </span>
                 </div>
 
                 {/* User Info - Hidden on mobile */}
                 <div className="hidden md:flex flex-col items-start">
                   <span className="text-sm font-medium text-gray-900">
-                    {user.firstName} {user.lastName}
+                    {user?.firstName || 'User'} {user?.lastName || ''}
                   </span>
                   <span className="text-xs text-gray-500">
-                    {user.email}
+                    {user?.email || 'No email'}
                   </span>
                 </div>
 
@@ -114,9 +114,9 @@ export function Header() {
               <DropdownMenuLabel>
                 <div className="flex flex-col space-y-2">
                   <p className="text-sm font-medium">
-                    {user.firstName} {user.lastName}
+                    {user?.firstName || 'User'} {user?.lastName || ''}
                   </p>
-                  <p className="text-xs text-gray-500">{user.email}</p>
+                  <p className="text-xs text-gray-500">{user?.email || 'No email'}</p>
                   <RoleBadge role={user.role} className="w-fit" />
                 </div>
               </DropdownMenuLabel>

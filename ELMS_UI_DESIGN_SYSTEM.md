@@ -722,6 +722,95 @@ interface DashboardLayout {
 </Dialog>
 ```
 
+#### Dialog Form Layout Pattern
+
+**Two-Column Responsive Layout:**
+All dialog forms should use a consistent two-column layout that provides optimal space utilization and data clarity.
+
+**Layout Rules:**
+- **Small screens (< 768px)**: Single column `grid-cols-1`
+- **Medium+ screens (≥ 768px)**: Two columns `md:grid-cols-2`
+- **Gap**: `gap-4` between grid items (16px)
+- **Section gap**: `gap-6` between major sections (24px)
+- **Full-width elements**: Use entire grid width for textareas, descriptions, and context-specific fields
+
+**Implementation Example:**
+```tsx
+<DialogContent className="max-w-4xl max-h-[90vh]">
+  <ScrollArea className="max-h-[calc(90vh-180px)]">
+    <DialogHeader>
+      <DialogTitle className="flex items-center gap-2">
+        <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+          <UserPlus className="h-5 w-5 text-white" />
+        </div>
+        <div>
+          <div className="text-xl font-bold">Add New User</div>
+          <DialogDescription>Create a new user account</DialogDescription>
+        </div>
+      </DialogTitle>
+    </DialogHeader>
+
+    <div className="space-y-6 p-6">
+      {/* Two-column form layout */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="firstName">First Name *</Label>
+          <Input id="firstName" placeholder="John" />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="lastName">Last Name *</Label>
+          <Input id="lastName" placeholder="Doe" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="email">Email *</Label>
+          <Input id="email" type="email" placeholder="john.doe@university.edu" />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="phone">Phone Number</Label>
+          <Input id="phone" placeholder="+1 (555) 123-4567" />
+        </div>
+      </div>
+
+      {/* Full-width element example */}
+      <div className="space-y-2">
+        <Label htmlFor="address">Address</Label>
+        <Textarea id="address" placeholder="Enter full address" rows={3} />
+      </div>
+    </div>
+
+    <DialogFooter>
+      <Button variant="outline" onClick={onClose}>Cancel</Button>
+      <Button onClick={onSubmit}>Create User</Button>
+    </DialogFooter>
+  </ScrollArea>
+</DialogContent>
+```
+
+**Benefits:**
+- **Maximum space utilization**: Two columns on larger screens make efficient use of dialog width
+- **Clear data display**: Proper spacing prevents visual clutter
+- **Responsive without custom breakpoints**: Standard `md:` breakpoint works for all screen sizes
+- **Consistent pattern**: Same layout across all forms (create, edit, view)
+- **Better UX**: Related fields can be grouped logically in pairs
+
+**Common Field Pairs:**
+- First Name / Last Name
+- Email / Phone
+- Password / Confirm Password
+- Date of Birth / Gender
+- Institution / Department
+- Start Date / End Date
+
+**Full-Width Elements:**
+- Address fields
+- Description/Notes textareas
+- Rich text editors
+- File upload areas
+- Multi-select components with many options
+
 ### Alert Components
 
 ```tsx
