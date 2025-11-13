@@ -35,6 +35,12 @@ const DEV_CREDENTIALS: DevCredential[] = [
     email: "admin@elms.com",
     password: "Admin@123",
   },
+  {
+    id: "institution-admin",
+    name: "Institution Admin",
+    email: "test.institution@admin.com",
+    password: "Admin@123",
+  }
 ];
 
 interface LoginFormProps {
