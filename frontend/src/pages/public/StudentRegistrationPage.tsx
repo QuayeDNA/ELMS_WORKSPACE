@@ -29,7 +29,24 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Loader2, CheckCircle2, Copy, Eye, EyeOff } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import {
+  Loader2,
+  CheckCircle2,
+  Copy,
+  Eye,
+  EyeOff,
+  GraduationCap,
+  User,
+  Mail,
+  Phone,
+  Calendar,
+  BookOpen,
+  TrendingUp,
+  AlertCircle,
+  Info
+} from 'lucide-react';
 import { toast } from 'sonner';
 import {
   registerStudent,
@@ -167,8 +184,9 @@ export function StudentRegistrationPage() {
 
   if (!instId) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-50 to-indigo-100 p-4">
-        <Alert variant="destructive">
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-50 via-white to-blue-50 p-4">
+        <Alert variant="destructive" className="max-w-md">
+          <AlertCircle className="h-4 w-4" />
           <AlertDescription>Invalid institution ID</AlertDescription>
         </Alert>
       </div>
@@ -176,52 +194,81 @@ export function StudentRegistrationPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-50 to-indigo-100 p-4">
-      <Card className="w-full max-w-3xl shadow-xl">
-        <CardHeader className="space-y-1 bg-linear-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg">
-          <CardTitle className="text-3xl font-bold">Student Registration</CardTitle>
-          <CardDescription className="text-blue-100">
-            Create your student account to get started
-          </CardDescription>
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-50 via-white to-blue-50 p-4">
+      <Card className="w-full max-w-4xl shadow-2xl border-0">
+        <CardHeader className="space-y-4 bg-linear-to-r from-blue-500 to-blue-600 text-white rounded-xl p-8 mx-6">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center justify-center h-16 w-16 rounded-xl bg-white/20 backdrop-blur-sm">
+              <GraduationCap className="h-10 w-10 text-white" />
+            </div>
+            <div className="flex-1">
+              <CardTitle className="text-3xl font-bold">Student Registration</CardTitle>
+              <CardDescription className="text-blue-100 text-base mt-1">
+                Create your student account to get started
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
 
         <form onSubmit={handleSubmit(onSubmit)}>
-          <CardContent className="space-y-6 pt-6">
+          <CardContent className="space-y-8 p-8">
             {/* Personal Information */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
-                Personal Information
-              </h3>
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-blue-100">
+                  <User className="h-4 w-4 text-blue-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Personal Information
+                </h3>
+              </div>
+              <Separator />
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="firstName">
+                  <Label htmlFor="firstName" className="text-sm font-medium">
                     First Name <span className="text-red-500">*</span>
                   </Label>
-                  <Input
-                    id="firstName"
-                    {...register('firstName', { required: 'First name is required' })}
-                    placeholder="John"
-                  />
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="firstName"
+                      className="pl-9 h-10"
+                      {...register('firstName', { required: 'First name is required' })}
+                      placeholder="John"
+                    />
+                  </div>
                   {errors.firstName && (
                     <p className="text-sm text-red-500">{errors.firstName.message}</p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="middleName">Middle Name</Label>
-                  <Input id="middleName" {...register('middleName')} placeholder="Michael" />
+                  <Label htmlFor="middleName" className="text-sm font-medium">Middle Name</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="middleName"
+                      className="pl-9 h-10"
+                      {...register('middleName')}
+                      placeholder="Michael"
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="lastName">
+                  <Label htmlFor="lastName" className="text-sm font-medium">
                     Last Name <span className="text-red-500">*</span>
                   </Label>
-                  <Input
-                    id="lastName"
-                    {...register('lastName', { required: 'Last name is required' })}
-                    placeholder="Doe"
-                  />
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="lastName"
+                      className="pl-9 h-10"
+                      {...register('lastName', { required: 'Last name is required' })}
+                      placeholder="Doe"
+                    />
+                  </div>
                   {errors.lastName && (
                     <p className="text-sm text-red-500">{errors.lastName.message}</p>
                   )}
@@ -230,47 +277,63 @@ export function StudentRegistrationPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">
+                  <Label htmlFor="email" className="text-sm font-medium">
                     Email <span className="text-red-500">*</span>
                   </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    {...register('email', {
-                      required: 'Email is required',
-                      pattern: {
-                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                        message: 'Invalid email address',
-                      },
-                    })}
-                    placeholder="john.doe@example.com"
-                  />
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="email"
+                      type="email"
+                      className="pl-9 h-10"
+                      {...register('email', {
+                        required: 'Email is required',
+                        pattern: {
+                          value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                          message: 'Invalid email address',
+                        },
+                      })}
+                      placeholder="john.doe@example.com"
+                    />
+                  </div>
                   {errors.email && (
                     <p className="text-sm text-red-500">{errors.email.message}</p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    {...register('phone')}
-                    placeholder="+1234567890"
-                  />
+                  <Label htmlFor="phone" className="text-sm font-medium">Phone Number</Label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="phone"
+                      type="tel"
+                      className="pl-9 h-10"
+                      {...register('phone')}
+                      placeholder="+233 XX XXX XXXX"
+                    />
+                  </div>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="dateOfBirth">Date of Birth</Label>
-                  <Input id="dateOfBirth" type="date" {...register('dateOfBirth')} />
+                  <Label htmlFor="dateOfBirth" className="text-sm font-medium">Date of Birth</Label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="dateOfBirth"
+                      type="date"
+                      className="pl-9 h-10"
+                      {...register('dateOfBirth')}
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="gender">Gender</Label>
+                  <Label htmlFor="gender" className="text-sm font-medium">Gender</Label>
                   <Select onValueChange={(value) => setValue('gender', value)}>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-10">
                       <SelectValue placeholder="Select gender" />
                     </SelectTrigger>
                     <SelectContent>
@@ -284,21 +347,27 @@ export function StudentRegistrationPage() {
             </div>
 
             {/* Academic Information */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
-                Academic Information
-              </h3>
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-blue-100">
+                  <BookOpen className="h-4 w-4 text-blue-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Academic Information
+                </h3>
+              </div>
+              <Separator />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="programId">
+                  <Label htmlFor="programId" className="text-sm font-medium">
                     Program <span className="text-red-500">*</span>
                   </Label>
                   <Select
                     onValueChange={(value) => setValue('programId', value)}
                     disabled={loadingPrograms}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="h-10">
                       <SelectValue placeholder="Select program" />
                     </SelectTrigger>
                     <SelectContent>
@@ -315,14 +384,14 @@ export function StudentRegistrationPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="academicYearId">
+                  <Label htmlFor="academicYearId" className="text-sm font-medium">
                     Academic Year <span className="text-red-500">*</span>
                   </Label>
                   <Select
                     onValueChange={(value) => setValue('academicYearId', value)}
                     disabled={loadingAcademicYears}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="h-10">
                       <SelectValue placeholder="Select academic year" />
                     </SelectTrigger>
                     <SelectContent>
@@ -340,9 +409,9 @@ export function StudentRegistrationPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="entryLevel">Entry Level (Default: 100)</Label>
+                <Label htmlFor="entryLevel" className="text-sm font-medium">Entry Level (Default: 100)</Label>
                 <Select onValueChange={(value) => setValue('entryLevel', value)}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-10">
                     <SelectValue placeholder="Select entry level" />
                   </SelectTrigger>
                   <SelectContent>
@@ -356,8 +425,9 @@ export function StudentRegistrationPage() {
             </div>
 
             {/* Important Notice */}
-            <Alert>
-              <AlertDescription>
+            <Alert className="bg-blue-50 border-blue-200">
+              <Info className="h-4 w-4 text-blue-600" />
+              <AlertDescription className="text-blue-900">
                 <strong>Important:</strong> After registration, you will receive a student ID and
                 password. Please save them securely as they will be needed to access your student
                 dashboard.
@@ -365,19 +435,20 @@ export function StudentRegistrationPage() {
             </Alert>
           </CardContent>
 
-          <CardFooter className="flex justify-between bg-gray-50 rounded-b-lg">
+          <CardFooter className="flex flex-col sm:flex-row gap-3 bg-gray-50 rounded-b-xl border-t p-6">
             <Button
               type="button"
               variant="outline"
               onClick={() => navigate('/login')}
               disabled={registrationMutation.isPending}
+              className="flex-1 h-10"
             >
               Already have an account?
             </Button>
             <Button
               type="submit"
               disabled={registrationMutation.isPending}
-              className="bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+              className="flex-1 h-10 bg-linear-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all"
             >
               {registrationMutation.isPending ? (
                 <>
@@ -385,7 +456,10 @@ export function StudentRegistrationPage() {
                   Registering...
                 </>
               ) : (
-                'Register'
+                <>
+                  <GraduationCap className="mr-2 h-4 w-4" />
+                  Register
+                </>
               )}
             </Button>
           </CardFooter>
@@ -394,91 +468,95 @@ export function StudentRegistrationPage() {
 
       {/* Credentials Dialog */}
       <Dialog open={showCredentials} onOpenChange={setShowCredentials}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <div className="flex items-center justify-center w-12 h-12 mx-auto bg-green-100 rounded-full mb-4">
-              <CheckCircle2 className="w-6 h-6 text-green-600" />
+            <div className="flex items-center justify-center w-16 h-16 mx-auto rounded-xl bg-linear-to-br from-green-500 to-green-600 shadow-lg mb-4">
+              <CheckCircle2 className="w-10 h-10 text-white" />
             </div>
-            <DialogTitle className="text-center text-2xl">
+            <DialogTitle className="text-center text-2xl font-bold">
               Registration Successful! 🎉
             </DialogTitle>
-            <DialogDescription className="text-center">
+            <DialogDescription className="text-center text-base">
               Welcome, {credentials?.firstName} {credentials?.lastName}! Your account has been
               created successfully.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            <Alert className="bg-amber-50 border-amber-200">
-              <AlertDescription className="text-amber-900">
-                <strong>⚠️ Save these credentials!</strong> You will need them to login to your
-                student dashboard.
-              </AlertDescription>
-            </Alert>
+          <ScrollArea className="max-h-[400px]">
+            <div className="space-y-4 px-1">
+              <Alert className="bg-amber-50 border-amber-200">
+                <AlertCircle className="h-4 w-4 text-amber-600" />
+                <AlertDescription className="text-amber-900">
+                  <strong>⚠️ Save these credentials!</strong> You will need them to login to your
+                  student dashboard.
+                </AlertDescription>
+              </Alert>
 
-            <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
-              <div className="space-y-1">
-                <Label className="text-xs text-gray-500">Student ID</Label>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 bg-white px-3 py-2 rounded border font-mono text-sm">
-                    {credentials?.studentId}
-                  </code>
+              <div className="space-y-3 bg-gray-50 p-5 rounded-lg border">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Student ID</Label>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 bg-white px-4 py-2.5 rounded-lg border-2 border-gray-200 font-mono text-sm font-semibold text-gray-900">
+                      {credentials?.studentId}
+                    </code>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Email</Label>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 bg-white px-4 py-2.5 rounded-lg border-2 border-gray-200 font-mono text-sm font-semibold text-gray-900">
+                      {credentials?.email}
+                    </code>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Password</Label>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 bg-white px-4 py-2.5 rounded-lg border-2 border-gray-200 font-mono text-sm font-semibold text-gray-900">
+                      {showPassword ? credentials?.password : '••••••••'}
+                    </code>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-9 w-9"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <Label className="text-xs text-gray-500">Email</Label>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 bg-white px-3 py-2 rounded border font-mono text-sm">
-                    {credentials?.email}
-                  </code>
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs text-gray-500">Password</Label>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 bg-white px-3 py-2 rounded border font-mono text-sm">
-                    {showPassword ? credentials?.password : '••••••••'}
-                  </code>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
+              <Button
+                variant="outline"
+                className="w-full h-10"
+                onClick={handleCopyCredentials}
+              >
+                <Copy className="mr-2 h-4 w-4" />
+                Copy All Credentials
+              </Button>
             </div>
+          </ScrollArea>
 
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={handleCopyCredentials}
-            >
-              <Copy className="mr-2 h-4 w-4" />
-              Copy All Credentials
-            </Button>
-          </div>
-
-          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+          <DialogFooter className="flex flex-col sm:flex-row gap-3 border-t pt-6">
             <Button
               variant="outline"
               onClick={handleManualLogin}
-              className="flex-1"
+              className="flex-1 h-10"
               disabled={loginMutation.isPending}
             >
               I'll Login Later
             </Button>
             <Button
               onClick={handleAutoLogin}
-              className="flex-1 bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+              className="flex-1 h-10 bg-linear-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all"
               disabled={loginMutation.isPending}
             >
               {loginMutation.isPending ? (
@@ -487,7 +565,10 @@ export function StudentRegistrationPage() {
                   Logging in...
                 </>
               ) : (
-                'Continue to Dashboard'
+                <>
+                  <TrendingUp className="mr-2 h-4 w-4" />
+                  Continue to Dashboard
+                </>
               )}
             </Button>
           </DialogFooter>

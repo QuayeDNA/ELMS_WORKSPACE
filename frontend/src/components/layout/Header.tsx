@@ -92,14 +92,17 @@ export function Header() {
                 {/* Avatar */}
                 <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
                   <span className="text-white font-semibold text-sm">
-                    {user?.firstName?.charAt(0) || 'U'}{user?.lastName?.charAt(0) || 'U'}
+                    {user?.firstName?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'}
+                    {user?.lastName?.charAt(0)?.toUpperCase() || ''}
                   </span>
                 </div>
 
                 {/* User Info - Hidden on mobile */}
                 <div className="hidden md:flex flex-col items-start">
                   <span className="text-sm font-medium text-gray-900">
-                    {user?.firstName || 'User'} {user?.lastName || ''}
+                    {user?.firstName && user?.lastName
+                      ? `${user.firstName} ${user.lastName}`
+                      : user?.email?.split('@')[0] || 'User'}
                   </span>
                   <span className="text-xs text-gray-500">
                     {user?.email || 'No email'}
@@ -114,7 +117,9 @@ export function Header() {
               <DropdownMenuLabel>
                 <div className="flex flex-col space-y-2">
                   <p className="text-sm font-medium">
-                    {user?.firstName || 'User'} {user?.lastName || ''}
+                    {user?.firstName && user?.lastName
+                      ? `${user.firstName} ${user.lastName}`
+                      : user?.email?.split('@')[0] || 'User'}
                   </p>
                   <p className="text-xs text-gray-500">{user?.email || 'No email'}</p>
                   <RoleBadge role={user.role} className="w-fit" />

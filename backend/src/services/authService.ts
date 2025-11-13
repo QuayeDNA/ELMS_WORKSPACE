@@ -1,13 +1,13 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
-import { 
-  LoginRequest, 
-  RegisterRequest, 
-  AuthResponse, 
-  User, 
+import {
+  LoginRequest,
+  RegisterRequest,
+  AuthResponse,
+  User,
   UserRole,
-  UserStatus 
+  UserStatus
 } from '../types/auth';
 import { getRolePermissions } from '../config/roles';
 
@@ -26,11 +26,11 @@ const REFRESH_TOKEN_EXPIRES_IN = process.env.REFRESH_TOKEN_EXPIRES_IN || '7d';
 // ========================================
 
 export class AuthService {
-  
+
   // ========================================
   // USER REGISTRATION
   // ========================================
-  
+
   static async register(data: RegisterRequest): Promise<AuthResponse> {
     try {
       // Check if user already exists
@@ -93,7 +93,7 @@ export class AuthService {
   // ========================================
   // USER LOGIN
   // ========================================
-  
+
   static async login(data: LoginRequest): Promise<AuthResponse> {
     try {
       // Find user by email
@@ -160,7 +160,7 @@ export class AuthService {
   // ========================================
   // TOKEN MANAGEMENT
   // ========================================
-  
+
   static async generateTokens(user: any): Promise<{ token: string; refreshToken: string }> {
     const permissions = getRolePermissions(user.role);
 
@@ -175,7 +175,7 @@ export class AuthService {
     };
 
     // Create main access token
-    const token = jwt.sign(payload, JWT_SECRET!, { 
+    const token = jwt.sign(payload, JWT_SECRET!, {
       expiresIn: '24h',
       issuer: 'elms-system',
       audience: 'elms-users'
@@ -183,9 +183,9 @@ export class AuthService {
 
     // Create refresh token
     const refreshToken = jwt.sign(
-      { userId: user.id, type: 'refresh' }, 
-      JWT_SECRET!, 
-      { 
+      { userId: user.id, type: 'refresh' },
+      JWT_SECRET!,
+      {
         expiresIn: '7d',
         issuer: 'elms-system',
         audience: 'elms-users'
@@ -199,7 +199,7 @@ export class AuthService {
     try {
       // Verify refresh token
       const decoded = jwt.verify(refreshToken, JWT_SECRET!) as any;
-      
+
       if (decoded.type !== 'refresh') {
         throw new Error('Invalid token type');
       }
@@ -236,7 +236,7 @@ export class AuthService {
   // ========================================
   // USER PROFILE MANAGEMENT
   // ========================================
-  
+
   static async createRoleProfile(userId: number, role: UserRole, data: RegisterRequest): Promise<void> {
     switch (role) {
       case UserRole.ADMIN:
@@ -331,7 +331,7 @@ export class AuthService {
   // ========================================
   // SESSION MANAGEMENT
   // ========================================
-  
+
   static async createUserSession(userId: number, token: string, refreshToken: string): Promise<void> {
     // Implementation would store session in Redis or database
     // For now, we'll skip this but it's important for production
@@ -346,25 +346,25 @@ export class AuthService {
   // ========================================
   // USER VALIDATION
   // ========================================
-  
+
   static async validateRoleAssignment(role: UserRole, data: RegisterRequest): Promise<void> {
     // Validate that the role assignment is appropriate
     switch (role) {
       case UserRole.SUPER_ADMIN:
         throw new Error('Super Admin accounts cannot be created through registration');
-      
+
       case UserRole.ADMIN:
         if (!data.institutionId) {
           throw new Error('Institution ID is required for Admin role');
         }
         break;
-      
+
       case UserRole.FACULTY_ADMIN:
         if (!data.institutionId || !data.facultyId) {
           throw new Error('Institution and Faculty IDs are required for Faculty Admin role');
         }
         break;
-      
+
       case UserRole.STUDENT:
         if (!data.institutionId || !data.facultyId) {
           throw new Error('Institution and Faculty IDs are required for Student role');
@@ -376,7 +376,25 @@ export class AuthService {
   // ========================================
   // UTILITY METHODS
   // ========================================
-  
+
+  static async getUserById(userId: number): Promise<any> {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          institution: true,
+          faculty: true,
+          department: true,
+        }
+      });
+
+      return user;
+    } catch (error) {
+      console.error('Failed to fetch user by ID:', error);
+      return null;
+    }
+  }
+
   static transformUserResponse(user: any): User {
     return {
       id: user.id,
@@ -425,7 +443,7 @@ export class AuthService {
   // ========================================
   // PASSWORD MANAGEMENT
   // ========================================
-  
+
   static async changePassword(userId: number, currentPassword: string, newPassword: string): Promise<void> {
     try {
       const user = await prisma.user.findUnique({
@@ -490,7 +508,7 @@ export class AuthService {
     try {
       // Verify reset token
       const decoded = jwt.verify(resetToken, JWT_SECRET!) as any;
-      
+
       if (decoded.type !== 'password_reset') {
         throw new Error('Invalid token type');
       }
@@ -516,7 +534,7 @@ export class AuthService {
   // ========================================
   // USER ACCOUNT MANAGEMENT
   // ========================================
-  
+
   static async activateUser(userId: number): Promise<void> {
     await prisma.user.update({
       where: { id: userId },
@@ -529,7 +547,7 @@ export class AuthService {
       where: { id: userId },
       data: { status: UserStatus.SUSPENDED }
     });
-    
+
     // Log suspension
     await this.logAuditEvent(userId, 'UPDATE', 'user', userId.toString());
   }

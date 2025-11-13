@@ -477,7 +477,8 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
             {collapsed ? (
               <div className="w-10 h-10 mx-auto bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
                 <span className="text-white font-semibold text-sm">
-                  {user?.firstName?.charAt(0) || 'U'}{user?.lastName?.charAt(0) || 'U'}
+                  {user?.firstName?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'}
+                  {user?.lastName?.charAt(0)?.toUpperCase() || ''}
                 </span>
               </div>
             ) : (
@@ -485,12 +486,15 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
                     <span className="text-white font-semibold text-sm">
-                      {user?.firstName?.charAt(0) || 'U'}{user?.lastName?.charAt(0) || 'U'}
+                      {user?.firstName?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'}
+                      {user?.lastName?.charAt(0)?.toUpperCase() || ''}
                     </span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">
-                      {user?.firstName || 'User'} {user?.lastName || ''}
+                      {user?.firstName && user?.lastName
+                        ? `${user.firstName} ${user.lastName}`
+                        : user?.email?.split('@')[0] || 'User'}
                     </p>
                     <p className="text-xs text-gray-500 truncate">
                       {user?.email || 'No email'}

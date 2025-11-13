@@ -1,64 +1,32 @@
-import { useEffect, useState } from "react";
 import { StatCard } from "@/components/ui/stat-card";
 import { GraduationCap, Users, BookOpen, Building2 } from "lucide-react";
-import { useAuthStore } from "@/stores/auth.store";
-import { institutionService } from "@/services/institution.service";
-
-interface InstitutionStats {
-  totalUsers: number;
-  totalStudents: number;
-  totalLecturers: number;
-  totalFaculties: number;
-  usersByRole: Record<string, number>;
-}
+import { useInstitutionAnalytics } from "@/contexts/InstitutionAnalyticsContext";
 
 export function DashboardStats() {
-  const { user } = useAuthStore();
-  const [stats, setStats] = useState<InstitutionStats | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const loadStats = async () => {
-      if (!user?.institutionId) return;
-
-      try {
-        setLoading(true);
-        const response = await institutionService.getInstitutionAnalytics(user.institutionId);
-        if (response) {
-          setStats(response);
-        }
-      } catch (error) {
-        console.error("Error loading institution stats:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadStats();
-  }, [user?.institutionId]);
+  const { analytics, loading } = useInstitutionAnalytics();
 
   const statCards = [
     {
       title: "Total Students",
-      value: loading ? "..." : (stats?.totalStudents || 0).toLocaleString(),
+      value: loading ? "..." : (analytics?.totalStudents || 0).toLocaleString(),
       icon: GraduationCap,
       description: "Active enrollments",
     },
     {
       title: "Total Instructors",
-      value: loading ? "..." : (stats?.totalLecturers || 0).toLocaleString(),
+      value: loading ? "..." : (analytics?.totalLecturers || 0).toLocaleString(),
       icon: Users,
       description: "Faculty members",
     },
     {
       title: "Total Users",
-      value: loading ? "..." : (stats?.totalUsers || 0).toLocaleString(),
+      value: loading ? "..." : (analytics?.totalUsers || 0).toLocaleString(),
       icon: BookOpen,
       description: "All system users",
     },
     {
       title: "Faculties",
-      value: loading ? "..." : (stats?.totalFaculties || 0).toLocaleString(),
+      value: loading ? "..." : (analytics?.totalFaculties || 0).toLocaleString(),
       icon: Building2,
       description: "Across institution",
     },

@@ -10,8 +10,7 @@ import {
   FileEdit,
   Users,
 } from "lucide-react";
-import { useAuthStore } from "@/stores/auth.store";
-import { institutionService } from "@/services/institution.service";
+import { useInstitutionAnalytics } from "@/contexts/InstitutionAnalyticsContext";
 
 interface Activity {
   id: string;
@@ -27,46 +26,32 @@ interface Activity {
 }
 
 export function RecentActivity() {
-  const { user } = useAuthStore();
+  const { analytics } = useInstitutionAnalytics();
   const [activities, setActivities] = useState<Activity[]>([]);
 
   useEffect(() => {
-    const loadRecentActivity = async () => {
-      if (!user?.institutionId) return;
-
-      try {
-        const response = await institutionService.getInstitutionAnalytics(user.institutionId);
-
-        if (response?.recentActivity) {
-          // Transform backend activity data to match our Activity interface
-          interface BackendActivity {
-            type: string;
-            count: number;
-            time: string;
-          }
-
-          const transformedActivities: Activity[] = response.recentActivity.map((item: BackendActivity, index: number) => ({
-            id: `activity-${index}`,
-            type: (item.type as Activity["type"]) || "academic",
-            title: `${item.type}: ${item.count}`,
-            description: `${item.count} ${item.type} activities`,
-            user: { name: "System", initials: "SY" },
-            timestamp: item.time || "Recently",
-            icon: getIconForType(item.type),
-          }));
-          setActivities(transformedActivities);
-        } else {
-          setActivities(getDefaultActivities());
-        }
-      } catch (error) {
-        console.error("Error loading recent activity:", error);
-        // Fallback to default activities
-        setActivities(getDefaultActivities());
+    if (analytics?.recentActivity) {
+      // Transform backend activity data to match our Activity interface
+      interface BackendActivity {
+        type: string;
+        count: number;
+        time: string;
       }
-    };
 
-    loadRecentActivity();
-  }, [user?.institutionId]);
+      const transformedActivities: Activity[] = analytics.recentActivity.map((item: BackendActivity, index: number) => ({
+        id: `activity-${index}`,
+        type: (item.type as Activity["type"]) || "academic",
+        title: `${item.type}: ${item.count}`,
+        description: `${item.count} ${item.type} activities`,
+        user: { name: "System", initials: "SY" },
+        timestamp: item.time || "Recently",
+        icon: getIconForType(item.type),
+      }));
+      setActivities(transformedActivities);
+    } else {
+      setActivities(getDefaultActivities());
+    }
+  }, [analytics]);
 
   const getIconForType = (type: string) => {
     switch (type) {

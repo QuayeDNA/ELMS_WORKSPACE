@@ -65,6 +65,7 @@ class AuthService {
       const response = await apiService.get<User>(API_ENDPOINTS.AUTH.PROFILE);
 
       if (response.success && response.data) {
+        // Backend now returns full user data including firstName, lastName, etc.
         return response.data;
       }
 

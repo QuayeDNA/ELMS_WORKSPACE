@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { ActionCard } from "@/components/ui/action-card";
 import {
   GraduationCap,
@@ -10,34 +9,10 @@ import {
   ClipboardList,
   Settings,
 } from "lucide-react";
-import { useAuthStore } from "@/stores/auth.store";
-import { institutionService } from "@/services/institution.service";
-
-interface InstitutionStats {
-  totalStudents: number;
-  totalLecturers: number;
-}
+import { useInstitutionAnalytics } from "@/contexts/InstitutionAnalyticsContext";
 
 export function QuickActions() {
-  const { user } = useAuthStore();
-  const [stats, setStats] = useState<InstitutionStats | null>(null);
-
-  useEffect(() => {
-    const loadStats = async () => {
-      if (!user?.institutionId) return;
-
-      try {
-        const response = await institutionService.getInstitutionAnalytics(user.institutionId);
-        if (response) {
-          setStats(response);
-        }
-      } catch (error) {
-        console.error("Error loading stats for quick actions:", error);
-      }
-    };
-
-    loadStats();
-  }, [user?.institutionId]);
+  const { analytics } = useInstitutionAnalytics();
 
   const actions = [
     {
@@ -45,14 +20,14 @@ export function QuickActions() {
       description: "View, add, and manage student records",
       icon: GraduationCap,
       href: "/admin/students",
-      badge: stats ? `${stats.totalStudents} Active` : undefined,
+      badge: analytics ? `${analytics.totalStudents} Active` : undefined,
     },
     {
       title: "Manage Instructors",
       description: "Faculty members and staff management",
       icon: Users,
       href: "/admin/instructors",
-      badge: stats ? `${stats.totalLecturers} Faculty` : undefined,
+      badge: analytics ? `${analytics.totalLecturers} Faculty` : undefined,
     },
     {
       title: "Course Management",

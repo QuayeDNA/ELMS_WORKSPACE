@@ -58,7 +58,7 @@ export class AuthController {
   // ========================================
   // USER REGISTRATION
   // ========================================
-  
+
   static async register(req: Request, res: Response): Promise<void> {
     try {
       // Check for validation errors
@@ -73,7 +73,7 @@ export class AuthController {
       }
 
       const registerData: RegisterRequest = req.body;
-      
+
       // Register user
       const authResponse = await AuthService.register(registerData);
 
@@ -85,7 +85,7 @@ export class AuthController {
 
     } catch (error) {
       console.error('Registration error:', error);
-      
+
       // Only log detailed errors on server, return generic message to client
       res.status(400).json({
         success: false,
@@ -98,7 +98,7 @@ export class AuthController {
   // ========================================
   // USER LOGIN
   // ========================================
-  
+
   static async login(req: Request, res: Response): Promise<void> {
     try {
       // Check for validation errors
@@ -113,7 +113,7 @@ export class AuthController {
       }
 
       const loginData: LoginRequest = req.body;
-      
+
       // Authenticate user
       const authResponse = await AuthService.login(loginData);
 
@@ -125,7 +125,7 @@ export class AuthController {
 
     } catch (error) {
       console.error('Login error:', error);
-      
+
       // Only log detailed errors on server, return generic message to client
       res.status(401).json({
         success: false,
@@ -138,7 +138,7 @@ export class AuthController {
   // ========================================
   // TOKEN REFRESH
   // ========================================
-  
+
   static async refreshToken(req: Request, res: Response): Promise<void> {
     try {
       const { refreshToken } = req.body;
@@ -174,7 +174,7 @@ export class AuthController {
   // ========================================
   // USER LOGOUT
   // ========================================
-  
+
   static async logout(req: Request, res: Response): Promise<void> {
     try {
       const userId = req.user?.userId;
@@ -202,7 +202,7 @@ export class AuthController {
   // ========================================
   // USER PROFILE
   // ========================================
-  
+
   static async getProfile(req: Request, res: Response): Promise<void> {
     try {
       const user = req.user;
@@ -216,17 +216,40 @@ export class AuthController {
         return;
       }
 
+      // Fetch full user data from database
+      const fullUser = await AuthService.getUserById(user.userId);
+
+      if (!fullUser) {
+        res.status(404).json({
+          success: false,
+          message: 'User not found',
+          code: 'USER_NOT_FOUND'
+        });
+        return;
+      }
+
       res.status(200).json({
         success: true,
         message: 'Profile retrieved successfully',
         data: {
-          id: user.userId,
-          email: user.email,
-          role: user.role,
+          id: fullUser.id,
+          email: fullUser.email,
+          firstName: fullUser.firstName,
+          lastName: fullUser.lastName,
+          middleName: fullUser.middleName,
+          title: fullUser.title,
+          role: fullUser.role,
+          status: fullUser.status,
+          phone: fullUser.phone,
           permissions: user.permissions,
-          institutionId: user.institutionId,
-          facultyId: user.facultyId,
-          departmentId: user.departmentId
+          institutionId: fullUser.institutionId,
+          facultyId: fullUser.facultyId,
+          departmentId: fullUser.departmentId,
+          lastLogin: fullUser.lastLogin,
+          emailVerified: fullUser.emailVerified,
+          twoFactorEnabled: fullUser.twoFactorEnabled,
+          createdAt: fullUser.createdAt,
+          updatedAt: fullUser.updatedAt
         }
       });
 
@@ -243,7 +266,7 @@ export class AuthController {
   // ========================================
   // PASSWORD MANAGEMENT
   // ========================================
-  
+
   static async changePassword(req: Request, res: Response): Promise<void> {
     try {
       // Check for validation errors
@@ -364,14 +387,14 @@ export class AuthController {
   // ========================================
   // ACCOUNT MANAGEMENT
   // ========================================
-  
+
   static async verifyEmail(req: Request, res: Response): Promise<void> {
     try {
       const { token } = req.params;
-      
+
       // In a real implementation, you'd verify the email token here
       // For now, we'll just return success
-      
+
       res.status(200).json({
         success: true,
         message: 'Email verified successfully'
@@ -421,7 +444,7 @@ export class AuthController {
   // ========================================
   // HEALTH CHECK
   // ========================================
-  
+
   static async healthCheck(req: Request, res: Response): Promise<void> {
     res.status(200).json({
       success: true,
