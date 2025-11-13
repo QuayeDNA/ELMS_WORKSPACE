@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuthStore } from "@/stores/auth.store";
 import type { LoginRequest } from "@/types/auth";
 import { useState, useEffect, useRef } from "react";
+import { toast } from "sonner";
 
 const loginSchema = z.object({
   email: z
@@ -40,6 +41,12 @@ const DEV_CREDENTIALS: DevCredential[] = [
     name: "Institution Admin",
     email: "test.institution@admin.com",
     password: "Admin@123",
+  },
+  {
+    id: "student",
+    name: "Student",
+    email: "TIU0001@test-institute-uni.edu.gh",
+    password: " fQDh6aEK",
   }
 ];
 
@@ -85,12 +92,22 @@ export function LoginForm({ onSuccess }: Readonly<LoginFormProps>) {
   const onSubmit = async (data: LoginFormData) => {
     try {
       clearError();
-      await login(data as LoginRequest);
+      // Trim email and password to prevent whitespace issues
+      const loginData = {
+        ...data,
+        email: data.email.trim(),
+        password: data.password.trim(),
+      };
+      await login(loginData as LoginRequest);
       reset();
+      toast.success("Login successful!");
       onSuccess?.();
     } catch (err) {
-      // Error is handled by the store
+      // Error is already set in store by login action
+      const errorMessage = err instanceof Error ? err.message : "Login failed";
       console.error("Login failed:", err);
+      toast.error(errorMessage);
+      // Don't reset form on error so user can see what they entered
     }
   };
 

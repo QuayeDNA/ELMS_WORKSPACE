@@ -2,6 +2,7 @@ import { Navigate } from 'react-router-dom';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { useAuthStore } from '@/stores/auth.store';
 import { useLoginRedirect } from '@/hooks/useLoginRedirect';
+import { getRedirectPath } from '@/utils/routeConfig';
 import {
   Shield,
   Users,
@@ -11,12 +12,13 @@ import {
 } from 'lucide-react';
 
 export function LoginPage() {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const { redirectAfterLogin } = useLoginRedirect();
 
   // Redirect to appropriate dashboard if already authenticated
-  if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+  if (isAuthenticated && user) {
+    const redirectPath = getRedirectPath(user.role);
+    return <Navigate to={redirectPath} replace />;
   }
 
   const handleLoginSuccess = () => {

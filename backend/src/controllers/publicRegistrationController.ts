@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { prisma } from '../server';
 import { studentIdConfigService } from '../services/studentIdConfigService';
 import bcrypt from 'bcryptjs';
+import { StudentIdFormat, StudentIdYearPosition } from '@prisma/client';
 
 /**
  * Public Student Registration Controller
@@ -73,6 +74,31 @@ export const registerStudent = async (req: Request, res: Response) => {
       });
     }
 
+    // Ensure StudentIdConfig exists for institution, create default if not
+    let config = await prisma.studentIdConfig.findUnique({
+      where: { institutionId },
+    });
+
+    if (!config) {
+      // Create default configuration
+      config = await prisma.studentIdConfig.create({
+        data: {
+          institutionId,
+          format: StudentIdFormat.SEQUENTIAL,
+          prefix: institution.code || 'STU',
+          useAcademicYear: true,
+          academicYearPos: StudentIdYearPosition.MIDDLE,
+          separator: '/',
+          paddingLength: 4,
+          startNumber: 1,
+          currentNumber: 1,
+          pattern: '{PREFIX}/{YEAR}/{SEQ}',
+          example: `${institution.code || 'STU'}/${new Date().getFullYear()}/0001`,
+        },
+      });
+      console.log('Created default StudentIdConfig for institution:', institutionId);
+    }
+
     // Generate student ID
     const studentId = await studentIdConfigService.generateStudentId({
       institutionId,
@@ -82,11 +108,13 @@ export const registerStudent = async (req: Request, res: Response) => {
 
     // Generate student email using institution domain
     const institutionDomain = institution.website?.replace(/^https?:\/\//, '') || 'institution.edu';
-    const studentEmail = `${studentId}@${institutionDomain}`;
+    // Store email in lowercase for consistency
+    const studentEmail = `${studentId}@${institutionDomain}`.toLowerCase();
 
     // Generate random password (8 characters, alphanumeric)
-    const generatedPassword = generatePassword();
+    const generatedPassword = generatePassword().trim();
     const hashedPassword = await bcrypt.hash(generatedPassword, 10);
+    console.log('Generated credentials for student:', { studentId, email: studentEmail, passwordLength: generatedPassword.length });
 
     // Create user and student profile in a transaction
     const result = await prisma.$transaction(async (tx) => {
@@ -248,6 +276,8 @@ export const getAvailableAcademicYears = async (req: Request, res: Response) => 
       },
     });
 
+    console.log(`Found ${academicYears.length} academic years for institution ${institutionId}:`, academicYears.map(y => ({ id: y.id, yearCode: y.yearCode })));
+
     return res.json({
       success: true,
       data: academicYears,
@@ -257,6 +287,54 @@ export const getAvailableAcademicYears = async (req: Request, res: Response) => 
     return res.status(500).json({
       success: false,
       message: 'Failed to fetch academic years',
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Get institution details for registration page
+ * GET /api/public/institutions/:institutionId
+ */
+export const getInstitutionDetails = async (req: Request, res: Response) => {
+  try {
+    const { institutionId } = req.params;
+
+    const institution = await prisma.institution.findUnique({
+      where: { id: parseInt(institutionId) },
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        type: true,
+        logoUrl: true,
+        website: true,
+        contactEmail: true,
+        contactPhone: true,
+        address: true,
+        city: true,
+        state: true,
+        country: true,
+        description: true,
+      },
+    });
+
+    if (!institution) {
+      return res.status(404).json({
+        success: false,
+        message: 'Institution not found',
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: institution,
+    });
+  } catch (error: any) {
+    console.error('Error fetching institution details:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch institution details',
       error: error.message,
     });
   }

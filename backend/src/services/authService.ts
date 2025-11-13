@@ -96,9 +96,21 @@ export class AuthService {
 
   static async login(data: LoginRequest): Promise<AuthResponse> {
     try {
-      // Find user by email
-      const user = await prisma.user.findUnique({
-        where: { email: data.email },
+      // Trim email and password to prevent whitespace issues
+      const email = data.email.trim();
+      const password = data.password.trim();
+
+      console.log('Login attempt for email:', email);
+
+      // Find user by email (case-insensitive)
+      // PostgreSQL's unique constraint is case-sensitive, but we need case-insensitive login
+      const user = await prisma.user.findFirst({
+        where: {
+          email: {
+            equals: email,
+            mode: 'insensitive'
+          }
+        },
         include: {
           institution: true,
           faculty: true,
@@ -107,8 +119,22 @@ export class AuthService {
       });
 
       if (!user) {
+        console.log('User not found with email:', email);
+        // Check if user exists with slightly different email (case sensitivity, etc.)
+        const allUsers = await prisma.user.findMany({
+          where: {
+            email: {
+              contains: email.split('@')[0],
+              mode: 'insensitive'
+            }
+          },
+          select: { email: true, id: true }
+        });
+        console.log('Similar emails found:', allUsers);
         throw new Error('Invalid email or password');
       }
+
+      console.log('User found:', { id: user.id, email: user.email, role: user.role, status: user.status });
 
       // Check user status
       if (user.status === UserStatus.SUSPENDED) {
@@ -120,8 +146,12 @@ export class AuthService {
       }
 
       // Verify password
-      const isPasswordValid = await bcrypt.compare(data.password, user.password);
+      console.log('Verifying password for user:', user.email);
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      console.log('Password validation result:', isPasswordValid);
+
       if (!isPasswordValid) {
+        console.log('Invalid password for user:', email);
         throw new Error('Invalid email or password');
       }
 

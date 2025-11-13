@@ -11,6 +11,30 @@ export function getRedirectPath(role: UserRole): string {
     case UserRole.ADMIN:
       return '/admin'; // Institution admin dashboard
 
+    case UserRole.STUDENT:
+      return '/student'; // Student dashboard
+
+    case UserRole.FACULTY_ADMIN:
+      return '/faculty-admin'; // Faculty admin dashboard
+
+    case UserRole.DEAN:
+      return '/dean'; // Dean dashboard
+
+    case UserRole.HOD:
+      return '/hod'; // HOD dashboard
+
+    case UserRole.EXAMS_OFFICER:
+      return '/exams-officer'; // Exams officer dashboard
+
+    case UserRole.LECTURER:
+      return '/lecturer'; // Lecturer dashboard
+
+    case UserRole.INVIGILATOR:
+      return '/invigilator'; // Invigilator dashboard
+
+    case UserRole.SCRIPT_HANDLER:
+      return '/script-handler'; // Script handler dashboard
+
     default:
       return '/dashboard'; // Fallback to dashboard
   }

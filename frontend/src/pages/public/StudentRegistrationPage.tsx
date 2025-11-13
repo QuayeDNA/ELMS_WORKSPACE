@@ -52,6 +52,7 @@ import {
   registerStudent,
   getAvailablePrograms,
   getAvailableAcademicYears,
+  getInstitutionDetails,
 } from '@/services/publicRegistration.service';
 import { PublicRegistrationRequest } from '@/types/registration';
 import { useAuthStore } from '@/stores/auth.store';
@@ -94,6 +95,13 @@ export function StudentRegistrationPage() {
 
   // Get institution ID as number
   const instId = institutionId ? parseInt(institutionId) : 0;
+
+  // Fetch institution details
+  const { data: institutionData, isLoading: loadingInstitution } = useQuery({
+    queryKey: ['institution', instId],
+    queryFn: () => getInstitutionDetails(instId),
+    enabled: !!instId,
+  });
 
   // Fetch available programs
   const { data: programsData, isLoading: loadingPrograms } = useQuery({
@@ -193,10 +201,70 @@ export function StudentRegistrationPage() {
     );
   }
 
+  if (loadingInstitution) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-50 via-white to-blue-50 p-4">
+        <Card className="w-full max-w-md p-8">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
+            <p className="text-gray-600">Loading institution details...</p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-50 via-white to-blue-50 p-4">
       <Card className="w-full max-w-4xl shadow-2xl border-0">
-        <CardHeader className="space-y-4 bg-linear-to-r from-blue-500 to-blue-600 text-white rounded-xl p-8 mx-6">
+        {/* Institution Header */}
+        {institutionData?.data && (
+          <div className="bg-linear-to-r from-gray-50 to-gray-100 border-b p-6">
+            <div className="flex items-start gap-4">
+              {institutionData.data.logoUrl && (
+                <img
+                  src={institutionData.data.logoUrl}
+                  alt={institutionData.data.name}
+                  className="h-16 w-16 rounded-lg object-cover border-2 border-white shadow-md"
+                />
+              )}
+              <div className="flex-1">
+                <h2 className="text-xl font-bold text-gray-900">
+                  {institutionData.data.name}
+                </h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  {institutionData.data.type} • {institutionData.data.code}
+                </p>
+                {institutionData.data.description && (
+                  <p className="text-sm text-gray-500 mt-2 line-clamp-2">
+                    {institutionData.data.description}
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-4 mt-3 text-xs text-gray-500">
+                  {institutionData.data.contactEmail && (
+                    <div className="flex items-center gap-1">
+                      <Mail className="h-3 w-3" />
+                      <span>{institutionData.data.contactEmail}</span>
+                    </div>
+                  )}
+                  {institutionData.data.contactPhone && (
+                    <div className="flex items-center gap-1">
+                      <Phone className="h-3 w-3" />
+                      <span>{institutionData.data.contactPhone}</span>
+                    </div>
+                  )}
+                  {institutionData.data.city && institutionData.data.country && (
+                    <div className="flex items-center gap-1">
+                      <span>📍 {institutionData.data.city}, {institutionData.data.country}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <CardHeader className="space-y-4 bg-linear-to-r from-blue-500 to-blue-600 text-white rounded-xl p-8 mx-6 mt-6">
           <div className="flex items-center gap-4">
             <div className="flex items-center justify-center h-16 w-16 rounded-xl bg-white/20 backdrop-blur-sm">
               <GraduationCap className="h-10 w-10 text-white" />
@@ -397,7 +465,7 @@ export function StudentRegistrationPage() {
                     <SelectContent>
                       {academicYearsData?.data.map((year) => (
                         <SelectItem key={year.id} value={year.id.toString()}>
-                          {year.name} ({year.year})
+                          {year.yearCode} ({new Date(year.startDate).getFullYear()} - {new Date(year.endDate).getFullYear()})
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -467,7 +535,16 @@ export function StudentRegistrationPage() {
       </Card>
 
       {/* Credentials Dialog */}
-      <Dialog open={showCredentials} onOpenChange={setShowCredentials}>
+      <Dialog
+        open={showCredentials}
+        onOpenChange={(open) => {
+          setShowCredentials(open);
+          // Navigate to login if dialog is closed manually
+          if (!open && credentials) {
+            navigate('/login');
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <div className="flex items-center justify-center w-16 h-16 mx-auto rounded-xl bg-linear-to-br from-green-500 to-green-600 shadow-lg mb-4">

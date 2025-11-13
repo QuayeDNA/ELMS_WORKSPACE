@@ -3,6 +3,7 @@ import {
   registerStudent,
   getAvailablePrograms,
   getAvailableAcademicYears,
+  getInstitutionDetails,
 } from '../controllers/publicRegistrationController';
 
 const router = Router();
@@ -13,6 +14,9 @@ const router = Router();
 
 // Student registration
 router.post('/students/register', registerStudent);
+
+// Get institution details
+router.get('/institutions/:institutionId', getInstitutionDetails);
 
 // Get available programs for an institution
 router.get('/institutions/:institutionId/programs', getAvailablePrograms);

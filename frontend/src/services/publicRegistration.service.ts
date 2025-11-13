@@ -9,6 +9,7 @@ import {
   PublicRegistrationResponse,
   ProgramsResponse,
   AcademicYearsResponse,
+  InstitutionDetailsResponse,
 } from '@/types/registration';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -46,6 +47,18 @@ export const getAvailableAcademicYears = async (
 ): Promise<AcademicYearsResponse> => {
   const response = await axios.get<AcademicYearsResponse>(
     `${API_URL}/api/public/institutions/${institutionId}/academic-years`
+  );
+  return response.data;
+};
+
+/**
+ * Get institution details (public endpoint)
+ */
+export const getInstitutionDetails = async (
+  institutionId: number
+): Promise<InstitutionDetailsResponse> => {
+  const response = await axios.get<InstitutionDetailsResponse>(
+    `${API_URL}/api/public/institutions/${institutionId}`
   );
   return response.data;
 };

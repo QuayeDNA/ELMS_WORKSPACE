@@ -66,8 +66,7 @@ export interface AvailableProgram {
 
 export interface AvailableAcademicYear {
   id: number;
-  year: string;
-  name: string;
+  yearCode: string;
   startDate: string;
   endDate: string;
   isCurrent: boolean;
@@ -82,4 +81,25 @@ export interface ProgramsResponse {
 export interface AcademicYearsResponse {
   success: boolean;
   data: AvailableAcademicYear[];
+}
+
+export interface InstitutionDetails {
+  id: number;
+  name: string;
+  code: string;
+  type: string;
+  logoUrl?: string;
+  website?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  description?: string;
+}
+
+export interface InstitutionDetailsResponse {
+  success: boolean;
+  data: InstitutionDetails;
 }
