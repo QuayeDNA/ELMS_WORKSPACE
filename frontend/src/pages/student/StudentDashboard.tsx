@@ -106,125 +106,129 @@ export default function StudentDashboard() {
 				</Alert>
 			)}
 
-			{/* Student Profile Card */}
-			{studentProfile && (
-				<div className="grid lg:grid-cols-3 gap-6">
-					{/* Student ID Card - Left Side */}
-					<div className="lg:col-span-1">
-						<StudentIdCard student={studentProfile} />
-					</div>
-
-					{/* Profile Information - Right Side */}
-					<Card className="border-l-4 border-l-blue-500 lg:col-span-2">
-						<CardHeader>
-							<CardTitle className="flex items-center gap-2">
-								<User className="h-5 w-5" />
-								Student Profile
-							</CardTitle>
-						</CardHeader>
-						<CardContent>
-						<div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-							{/* Personal Information */}
-							<div className="space-y-3">
-								<h4 className="font-semibold text-sm text-muted-foreground uppercase">
-									Personal Information
-								</h4>
-								<div className="space-y-2">
-									<div className="flex items-center gap-2">
-										<User className="h-4 w-4 text-muted-foreground" />
-										<span className="text-sm">
-											{user?.firstName} {user?.middleName} {user?.lastName}
-										</span>
-									</div>
-									<div className="flex items-center gap-2">
-										<Mail className="h-4 w-4 text-muted-foreground" />
-										<span className="text-sm">{user?.email}</span>
-									</div>
-									{user?.phone && (
-										<div className="flex items-center gap-2">
-											<Phone className="h-4 w-4 text-muted-foreground" />
-											<span className="text-sm">{user?.phone}</span>
-										</div>
-									)}
-								</div>
-							</div>
-
-							{/* Academic Information */}
-							<div className="space-y-3">
-								<h4 className="font-semibold text-sm text-muted-foreground uppercase">
-									Academic Information
-								</h4>
-								<div className="space-y-2">
-									<div className="flex items-center gap-2">
-										<GraduationCap className="h-4 w-4 text-muted-foreground" />
-										<span className="text-sm font-medium">
-											Student ID: {studentProfile.studentId}
-										</span>
-									</div>
-									{studentProfile.indexNumber && (
-										<div className="flex items-center gap-2">
-											<Book className="h-4 w-4 text-muted-foreground" />
-											<span className="text-sm">
-												Index Number: {studentProfile.indexNumber}
-											</span>
-										</div>
-									)}
-									<div className="flex items-center gap-2">
-										<Calendar className="h-4 w-4 text-muted-foreground" />
-										<span className="text-sm">
-											Level {studentProfile.level} - Semester {studentProfile.semester}
-										</span>
-									</div>
-								</div>
-							</div>
-
-							{/* Program Information */}
-							{studentProfile.program && (
-								<div className="space-y-3">
-									<h4 className="font-semibold text-sm text-muted-foreground uppercase">
-										Program Details
-									</h4>
-									<div className="space-y-2">
-										<div>
-											<p className="text-sm font-medium">
-												{studentProfile.program.name}
-											</p>
-											<p className="text-xs text-muted-foreground">
-												{studentProfile.program.code}
-											</p>
-										</div>
-										{studentProfile.program.department && (
-											<div>
-												<p className="text-xs text-muted-foreground">
-													Department: {studentProfile.program.department.name}
-												</p>
-												{studentProfile.program.department.faculty && (
-													<p className="text-xs text-muted-foreground">
-														Faculty: {studentProfile.program.department.faculty.name}
-													</p>
-												)}
-											</div>
-										)}
-										<div className="flex gap-2 mt-2">
-											<Badge variant={studentProfile.enrollmentStatus === 'ACTIVE' ? 'default' : 'secondary'}>
-												{studentProfile.enrollmentStatus}
-											</Badge>
-											<Badge variant={studentProfile.academicStatus === 'GOOD_STANDING' ? 'default' : 'secondary'}>
-												{studentProfile.academicStatus}
-											</Badge>
-										</div>
-									</div>
-								</div>
-							)}
-						</div>
-					</CardContent>
-				</Card>
-				</div>
-			)}
-
+			{/* Dashboard Stats - Moved to top */}
 			<DashboardStats />
 
-			<QuickActions />
+			{/* Student ID Card - Full width, stacked vertically */}
+			{studentProfile && (
+				<div className="space-y-6">
+					<StudentIdCard student={studentProfile} />
+
+					{/* Profile and Quick Actions in two columns */}
+					<div className="grid lg:grid-cols-2 gap-6">
+						{/* Profile Information - Left Column */}
+						<Card className="border-l-4 border-l-blue-500">
+							<CardHeader>
+								<CardTitle className="flex items-center gap-2">
+									<User className="h-5 w-5" />
+									Student Profile
+								</CardTitle>
+							</CardHeader>
+							<CardContent>
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+									{/* Personal Information */}
+									<div className="space-y-3">
+										<h4 className="font-semibold text-sm text-muted-foreground uppercase">
+											Personal Information
+										</h4>
+										<div className="space-y-3">
+											<div className="flex items-center gap-3">
+												<User className="h-4 w-4 text-muted-foreground" />
+												<span className="text-base">
+													{user?.firstName} {user?.middleName} {user?.lastName}
+												</span>
+											</div>
+											<div className="flex items-center gap-3">
+												<Mail className="h-4 w-4 text-muted-foreground" />
+												<span className="text-base">{user?.email}</span>
+											</div>
+											{user?.phone && (
+												<div className="flex items-center gap-3">
+													<Phone className="h-4 w-4 text-muted-foreground" />
+													<span className="text-base">{user?.phone}</span>
+												</div>
+											)}
+										</div>
+									</div>
+
+									{/* Academic Information */}
+									<div className="space-y-3">
+										<h4 className="font-semibold text-sm text-muted-foreground uppercase">
+											Academic Information
+										</h4>
+										<div className="space-y-3">
+											<div className="flex items-center gap-3">
+												<GraduationCap className="h-4 w-4 text-muted-foreground" />
+												<span className="text-base font-medium">
+													Student ID: {studentProfile.studentId}
+												</span>
+											</div>
+											{studentProfile.indexNumber && (
+												<div className="flex items-center gap-3">
+													<Book className="h-4 w-4 text-muted-foreground" />
+													<span className="text-base">
+														Index Number: {studentProfile.indexNumber}
+													</span>
+												</div>
+											)}
+											<div className="flex items-center gap-3">
+												<Calendar className="h-4 w-4 text-muted-foreground" />
+												<span className="text-base">
+													Level {studentProfile.level} - Semester {studentProfile.semester}
+												</span>
+											</div>
+										</div>
+									</div>
+
+									{/* Program Information - Spans both columns */}
+									{studentProfile.program && (
+										<div className="space-y-3 md:col-span-2">
+											<h4 className="font-semibold text-sm text-muted-foreground uppercase">
+												Program Details
+											</h4>
+											<div className="space-y-3">
+												<div>
+													<p className="text-lg font-medium">
+														{studentProfile.program.name}
+													</p>
+													<p className="text-sm text-muted-foreground">
+														{studentProfile.program.code}
+													</p>
+												</div>
+												{studentProfile.program.department && (
+													<div>
+														<p className="text-sm text-muted-foreground">
+															Department: {studentProfile.program.department.name}
+														</p>
+														{studentProfile.program.department.faculty && (
+															<p className="text-sm text-muted-foreground">
+																Faculty: {studentProfile.program.department.faculty.name}
+															</p>
+														)}
+													</div>
+												)}
+												<div className="flex gap-2 mt-3">
+													<Badge variant={studentProfile.enrollmentStatus === 'ACTIVE' ? 'default' : 'secondary'}>
+														{studentProfile.enrollmentStatus}
+													</Badge>
+													<Badge variant={studentProfile.academicStatus === 'GOOD_STANDING' ? 'default' : 'secondary'}>
+														{studentProfile.academicStatus}
+													</Badge>
+												</div>
+											</div>
+										</div>
+									)}
+								</div>
+							</CardContent>
+						</Card>
+
+						{/* Quick Actions - Right Column */}
+						<div className="lg:col-span-1">
+							<QuickActions />
+						</div>
+					</div>
+				</div>
+			)}
 
 			<AcademicOverview />
 

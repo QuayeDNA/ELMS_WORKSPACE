@@ -246,7 +246,7 @@ const getSidebarItemsForRole = (role: UserRole): SidebarContent[] => {
       return [
         {
           title: "Dashboard",
-          href: "/dashboard",
+          href: "/faculty-admin",
           icon: LayoutDashboard,
           roles: [UserRole.FACULTY_ADMIN],
           description: "Faculty overview",
@@ -264,7 +264,7 @@ const getSidebarItemsForRole = (role: UserRole): SidebarContent[] => {
       return [
         {
           title: "Dashboard",
-          href: "/dashboard",
+          href: "/student",
           icon: LayoutDashboard,
           roles: [UserRole.STUDENT],
           description: "My exams and results",
@@ -282,7 +282,7 @@ const getSidebarItemsForRole = (role: UserRole): SidebarContent[] => {
       return [
         {
           title: "Dashboard",
-          href: "/dashboard",
+          href: getDefaultDashboardPath(role),
           icon: LayoutDashboard,
           roles: [role],
           description: "Overview",
@@ -295,6 +295,34 @@ const getSidebarItemsForRole = (role: UserRole): SidebarContent[] => {
           description: "Settings",
         },
       ];
+  }
+};
+
+// Helper function to get default dashboard path for a role
+const getDefaultDashboardPath = (role: UserRole): string => {
+  switch (role) {
+    case UserRole.SUPER_ADMIN:
+      return "/dashboard";
+    case UserRole.ADMIN:
+      return "/admin";
+    case UserRole.FACULTY_ADMIN:
+      return "/faculty-admin";
+    case UserRole.DEAN:
+      return "/dean";
+    case UserRole.HOD:
+      return "/hod";
+    case UserRole.EXAMS_OFFICER:
+      return "/exams-officer";
+    case UserRole.LECTURER:
+      return "/lecturer";
+    case UserRole.INVIGILATOR:
+      return "/invigilator";
+    case UserRole.SCRIPT_HANDLER:
+      return "/script-handler";
+    case UserRole.STUDENT:
+      return "/student";
+    default:
+      return "/dashboard";
   }
 };
 
@@ -314,7 +342,21 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
   const sidebarItems = getSidebarItemsForRole(user.role);
 
   const isActive = (href: string): boolean => {
-    if (href === "/dashboard" || href === "/admin") {
+    // Exact match for all dashboard routes to prevent false positives
+    const dashboardRoutes = [
+      "/dashboard",
+      "/admin",
+      "/student",
+      "/faculty-admin",
+      "/dean",
+      "/hod",
+      "/exams-officer",
+      "/lecturer",
+      "/invigilator",
+      "/script-handler"
+    ];
+
+    if (dashboardRoutes.includes(href)) {
       return location.pathname === href;
     }
     return location.pathname.startsWith(href);
@@ -359,7 +401,7 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
         )}
 
         <Icon className={cn(
-          "h-4 w-4 flex-shrink-0 transition-transform group-hover:scale-110",
+          "h-4 w-4 shrink-0 transition-transform group-hover:scale-110",
           !collapsed && "mr-3",
           active && "drop-shadow-sm"
         )} />
@@ -392,7 +434,7 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
           title={collapsed ? group.title : undefined}
         >
           <Icon className={cn(
-            "h-5 w-5 flex-shrink-0 transition-transform group-hover:scale-110",
+            "h-5 w-5 shrink-0 transition-transform group-hover:scale-110",
             !collapsed && "mr-3"
           )} />
           {!collapsed && (
@@ -438,17 +480,17 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
       {/* Logo */}
       <div
         className={cn(
-          "flex items-center h-16 px-4 border-b border-gray-200 bg-gradient-to-r from-primary/5 to-transparent",
+          "flex items-center h-16 px-4 border-b border-gray-200 bg-linear-to-r from-primary/5 to-transparent",
           collapsed && "justify-center px-2"
         )}
       >
         {collapsed ? (
-          <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center shadow-lg">
+          <div className="w-10 h-10 bg-linear-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center shadow-lg">
             <span className="text-white font-bold text-lg">E</span>
           </div>
         ) : (
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center shadow-lg">
+            <div className="w-10 h-10 bg-linear-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center shadow-lg">
               <span className="text-white font-bold text-lg">E</span>
             </div>
             <div>
@@ -471,11 +513,11 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
         <>
           <Separator />
           <div className={cn(
-            "p-4 bg-gradient-to-r from-primary/5 to-transparent",
+            "p-4 bg-linear-to-r from-primary/5 to-transparent",
             collapsed && "p-2"
           )}>
             {collapsed ? (
-              <div className="w-10 h-10 mx-auto bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 mx-auto bg-linear-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
                 <span className="text-white font-semibold text-sm">
                   {user?.firstName?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'}
                   {user?.lastName?.charAt(0)?.toUpperCase() || ''}
@@ -484,7 +526,7 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
             ) : (
               <div className="space-y-3">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 bg-linear-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shrink-0">
                     <span className="text-white font-semibold text-sm">
                       {user?.firstName?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'}
                       {user?.lastName?.charAt(0)?.toUpperCase() || ''}
