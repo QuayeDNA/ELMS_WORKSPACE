@@ -279,14 +279,14 @@ export default function BulkRegistrationPage() {
 							</Select>
 						</div>
 
-						<div>
-							<Label>Program (Optional)</Label>
-							<Select value={selectedProgramId} onValueChange={setSelectedProgramId}>
+					<div>
+						<Label>Program (Optional)</Label>
+						<div className="flex gap-2">
+							<Select value={selectedProgramId || undefined} onValueChange={(value) => setSelectedProgramId(value || '')}>
 								<SelectTrigger>
 									<SelectValue placeholder="All programs" />
 								</SelectTrigger>
 							<SelectContent>
-								<SelectItem value="">All Programs</SelectItem>
 								{programs?.map((program) => (
 									<SelectItem key={program.id} value={String(program.id)}>
 										{program.name}
@@ -294,28 +294,48 @@ export default function BulkRegistrationPage() {
 								))}
 							</SelectContent>
 							</Select>
+							{selectedProgramId && (
+								<Button
+									variant="ghost"
+									size="sm"
+									onClick={() => setSelectedProgramId('')}
+								>
+									Clear
+								</Button>
+							)}
 						</div>
+					</div>
 
 						<div>
 							<Label>Department (Optional)</Label>
-							<Select value={selectedDepartmentId} onValueChange={setSelectedDepartmentId}>
-								<SelectTrigger>
-									<SelectValue placeholder="All departments" />
-								</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="">All Departments</SelectItem>
-								{programs
-									?.map((p) => p.department)
-									.filter((d, i, arr) =>
-										arr.findIndex((dept) => dept.id === d.id) === i
-									)
-									.map((dept) => (
-										<SelectItem key={dept.id} value={String(dept.id)}>
-											{dept.name}
-										</SelectItem>
-									))}
-							</SelectContent>
-							</Select>
+							<div className="flex gap-2">
+								<Select value={selectedDepartmentId || undefined} onValueChange={(value) => setSelectedDepartmentId(value || '')}>
+									<SelectTrigger>
+										<SelectValue placeholder="All departments" />
+									</SelectTrigger>
+								<SelectContent>
+									{programs
+										?.map((p) => p.department)
+										.filter((d, i, arr) =>
+											arr.findIndex((dept) => dept.id === d.id) === i
+										)
+										.map((dept) => (
+											<SelectItem key={dept.id} value={String(dept.id)}>
+												{dept.name}
+											</SelectItem>
+										))}
+								</SelectContent>
+								</Select>
+								{selectedDepartmentId && (
+									<Button
+										variant="ghost"
+										size="sm"
+										onClick={() => setSelectedDepartmentId('')}
+									>
+										Clear
+									</Button>
+								)}
+							</div>
 						</div>
 					</div>
 				</CardContent>

@@ -554,7 +554,7 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
               </Button>
               <Button
                 variant="secondary"
-                onClick={() => navigate('/institution-admin/bulk-registration')}
+                onClick={() => navigate('/admin/students/bulk-registration')}
               >
                 <Users className="w-4 h-4 mr-2" />
                 Bulk Registration
