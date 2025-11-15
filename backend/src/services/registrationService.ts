@@ -849,6 +849,197 @@ export class RegistrationService {
 
     return summary;
   }
+
+  /**
+   * Bulk create registrations for multiple students
+   * Used by admins to register multiple students at once
+   */
+  async bulkCreateRegistrations(
+    studentIds: number[],
+    semesterId: number,
+    courseOfferingIds: number[],
+    createdBy: number
+  ): Promise<{ succeeded: number[]; failed: Array<{ studentId: number; reason: string }> }> {
+    const succeeded: number[] = [];
+    const failed: Array<{ studentId: number; reason: string }> = [];
+
+    for (const studentId of studentIds) {
+      try {
+        // Check if registration already exists
+        const existing = await prisma.courseRegistration.findFirst({
+          where: {
+            studentId,
+            semesterId,
+            status: { notIn: ['CANCELLED', 'REJECTED'] }
+          }
+        });
+
+        let registration;
+        if (existing) {
+          registration = existing;
+        } else {
+          // Create registration
+          registration = await prisma.courseRegistration.create({
+            data: {
+              studentId,
+              semesterId,
+              status: RegistrationStatus.DRAFT,
+              totalCredits: 0
+            }
+          });
+        }
+
+        // Add courses to registration
+        let totalCredits = registration.totalCredits;
+        for (const courseOfferingId of courseOfferingIds) {
+          // Check if course already registered
+          const existingCourse = await prisma.registeredCourse.findFirst({
+            where: { registrationId: registration.id, courseOfferingId }
+          });
+
+          if (!existingCourse) {
+            const courseOffering = await prisma.courseOffering.findUnique({
+              where: { id: courseOfferingId },
+              include: { course: true }
+            });
+
+            if (courseOffering) {
+              await prisma.registeredCourse.create({
+                data: {
+                  registrationId: registration.id,
+                  courseOfferingId,
+                  registrationType: RegistrationType.REGULAR,
+                  prerequisitesMet: true,
+                  prerequisitesOverride: true,
+                  overrideReason: 'Admin bulk registration',
+                  isLocked: false
+                }
+              });
+              totalCredits += courseOffering.course.creditHours;
+            }
+          }
+        }
+
+        // Update total credits
+        await prisma.courseRegistration.update({
+          where: { id: registration.id },
+          data: { totalCredits }
+        });
+
+        // Auto-approve for admin bulk registrations
+        await prisma.courseRegistration.update({
+          where: { id: registration.id },
+          data: {
+            status: RegistrationStatus.APPROVED,
+            approvedBy: createdBy,
+            approvedAt: new Date(),
+            submittedAt: new Date()
+          }
+        });
+
+        // Create enrollments
+        await this.createEnrollmentsFromRegistration(registration.id);
+
+        succeeded.push(studentId);
+      } catch (error) {
+        failed.push({
+          studentId,
+          reason: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    }
+
+    return { succeeded, failed };
+  }
+
+  /**
+   * Get students by registration status for a semester
+   * Used by admins to see which students have/haven't registered
+   */
+  async getStudentsByRegistrationStatus(
+    semesterId: number,
+    programId?: number,
+    departmentId?: number
+  ): Promise<{
+    registered: any[];
+    notRegistered: any[];
+  }> {
+    // Build where clause for students
+    const studentWhere: any = {
+      enrollmentStatus: 'ACTIVE'
+    };
+
+    if (programId) {
+      studentWhere.programId = programId;
+    } else if (departmentId) {
+      studentWhere.program = { departmentId };
+    }
+
+    // Get all active students
+    const students = await prisma.studentProfile.findMany({
+      where: studentWhere,
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            middleName: true
+          }
+        },
+        program: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            department: {
+              select: {
+                id: true,
+                name: true,
+                code: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // Get all registrations for this semester
+    const registrations = await prisma.courseRegistration.findMany({
+      where: {
+        semesterId,
+        status: { notIn: ['CANCELLED', 'REJECTED'] }
+      },
+      include: {
+        registeredCourses: {
+          include: {
+            courseOffering: {
+              include: { course: true }
+            }
+          }
+        }
+      }
+    });
+
+    const registeredStudentIds = new Set(registrations.map(r => r.studentId));
+
+    const registered = students
+      .filter(s => registeredStudentIds.has(s.userId))
+      .map(s => ({
+        ...s,
+        registration: registrations.find(r => r.studentId === s.userId)
+      }));
+
+    const notRegistered = students
+      .filter(s => !registeredStudentIds.has(s.userId))
+      .map(s => ({
+        ...s,
+        registration: null
+      }));
+
+    return { registered, notRegistered };
+  }
 }
 
 export const registrationService = new RegistrationService();

@@ -109,4 +109,20 @@ router.get(
   (req, res) => registrationController.getRegistrationSummary(req, res)
 );
 
+// Bulk create registrations (admin feature)
+// Access: ADMIN, FACULTY_ADMIN
+router.post(
+  '/bulk',
+  requireRole(UserRole.ADMIN, UserRole.FACULTY_ADMIN),
+  (req, res) => registrationController.bulkCreateRegistrations(req, res)
+);
+
+// Get students by registration status
+// Access: ADMIN, FACULTY_ADMIN
+router.get(
+  '/students-by-status/:semesterId',
+  requireRole(UserRole.ADMIN, UserRole.FACULTY_ADMIN),
+  (req, res) => registrationController.getStudentsByRegistrationStatus(req, res)
+);
+
 export default router;

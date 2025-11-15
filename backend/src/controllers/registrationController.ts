@@ -462,6 +462,112 @@ export class RegistrationController {
       });
     }
   }
+
+  /**
+   * Bulk create registrations for multiple students
+   * POST /api/registrations/bulk
+   * Access: Admin only
+   */
+  async bulkCreateRegistrations(req: Request, res: Response): Promise<void> {
+    try {
+      const { studentIds, semesterId, courseOfferingIds } = req.body;
+      const createdBy = req.user?.userId;
+
+      if (!studentIds || !Array.isArray(studentIds) || studentIds.length === 0) {
+        res.status(400).json({
+          success: false,
+          message: 'Student IDs array is required'
+        });
+        return;
+      }
+
+      if (!semesterId) {
+        res.status(400).json({
+          success: false,
+          message: 'Semester ID is required'
+        });
+        return;
+      }
+
+      if (!courseOfferingIds || !Array.isArray(courseOfferingIds) || courseOfferingIds.length === 0) {
+        res.status(400).json({
+          success: false,
+          message: 'Course offering IDs array is required'
+        });
+        return;
+      }
+
+      if (!createdBy) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated'
+        });
+        return;
+      }
+
+      const result = await registrationService.bulkCreateRegistrations(
+        studentIds,
+        semesterId,
+        courseOfferingIds,
+        createdBy
+      );
+
+      res.status(200).json({
+        success: true,
+        message: `Bulk registration completed: ${result.succeeded.length} succeeded, ${result.failed.length} failed`,
+        data: result
+      });
+    } catch (error) {
+      console.error('Error in bulk registration:', error);
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to create bulk registrations'
+      });
+    }
+  }
+
+  /**
+   * Get students by registration status
+   * GET /api/registrations/students-by-status/:semesterId
+   * Access: Admin only
+   */
+  async getStudentsByRegistrationStatus(req: Request, res: Response): Promise<void> {
+    try {
+      const semesterId = parseInt(req.params.semesterId);
+      const programId = req.query.programId ? parseInt(req.query.programId as string) : undefined;
+      const departmentId = req.query.departmentId ? parseInt(req.query.departmentId as string) : undefined;
+
+      if (isNaN(semesterId)) {
+        res.status(400).json({
+          success: false,
+          message: 'Invalid semester ID'
+        });
+        return;
+      }
+
+      const result = await registrationService.getStudentsByRegistrationStatus(
+        semesterId,
+        programId,
+        departmentId
+      );
+
+      res.status(200).json({
+        success: true,
+        data: result,
+        summary: {
+          totalStudents: result.registered.length + result.notRegistered.length,
+          registered: result.registered.length,
+          notRegistered: result.notRegistered.length
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching students by registration status:', error);
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to fetch students by registration status'
+      });
+    }
+  }
 }
 
 // Export a singleton instance

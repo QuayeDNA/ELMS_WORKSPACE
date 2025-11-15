@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/auth.store';
 import { studentService } from '@/services/student.service';
+import { registrationService } from '@/services/registration.service';
+import { academicService } from '@/services/academic.service';
 import { Student } from '@/types/student';
 import {
 	DashboardStats,
@@ -15,7 +17,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { GraduationCap, Book, User, Mail, Phone, Calendar } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import { GraduationCap, Book, User, Mail, Phone, Calendar, Plus, Trash2, Send, CheckCircle } from 'lucide-react';
 
 export default function StudentDashboard() {
 	const { user } = useAuthStore();
@@ -34,6 +38,99 @@ export default function StudentDashboard() {
 		},
 		enabled: !!user?.id,
 		staleTime: 5 * 60 * 1000, // 5 minutes
+	});
+
+	// Fetch current semester
+	const { data: currentSemester } = useQuery({
+		queryKey: ['currentSemester'],
+		queryFn: async () => {
+			const response = await academicService.getCurrentSemester();
+			return response.data;
+		},
+		staleTime: 10 * 60 * 1000, // 10 minutes
+	});
+
+	// Fetch eligible courses for registration
+	const { data: eligibleCourses, refetch: refetchEligibleCourses } = useQuery({
+		queryKey: ['eligibleCourses', studentProfile?.id, currentSemester?.id],
+		queryFn: async () => {
+			if (!studentProfile?.id || !currentSemester?.id) return [];
+			return await registrationService.getEligibleCourses(
+				String(studentProfile.id),
+				String(currentSemester.id)
+			);
+		},
+		enabled: !!studentProfile?.id && !!currentSemester?.id,
+		staleTime: 5 * 60 * 1000,
+	});
+
+	// Fetch registration summary
+	const {
+		data: registrationSummary,
+		refetch: refetchSummary
+	} = useQuery({
+		queryKey: ['registrationSummary', studentProfile?.id, currentSemester?.id],
+		queryFn: async () => {
+			if (!studentProfile?.id || !currentSemester?.id) return null;
+			return await registrationService.getRegistrationSummary(
+				String(studentProfile.id),
+				String(currentSemester.id)
+			);
+		},
+		enabled: !!studentProfile?.id && !!currentSemester?.id,
+		staleTime: 2 * 60 * 1000, // 2 minutes - more frequent updates
+	});
+
+	// Mutation for adding course to registration
+	const addCourseMutation = useMutation({
+		mutationFn: async ({ registrationId, courseOfferingId }: { registrationId: string; courseOfferingId: string }) => {
+			// If no registration exists, create one first
+			if (!registrationId && studentProfile?.id && currentSemester?.id) {
+				const newRegistration = await registrationService.createRegistration(
+					String(studentProfile.id),
+					String(currentSemester.id)
+				);
+				return await registrationService.addCourseToRegistration(newRegistration.id, courseOfferingId);
+			}
+			return await registrationService.addCourseToRegistration(registrationId, courseOfferingId);
+		},
+		onSuccess: () => {
+			toast.success('Course has been successfully added to your registration.');
+			refetchSummary();
+			refetchEligibleCourses();
+		},
+		onError: (error: Error) => {
+			toast.error(error.message);
+		},
+	});
+
+	// Mutation for removing course from registration
+	const removeCourseMutation = useMutation({
+		mutationFn: async (registeredCourseId: string) => {
+			return await registrationService.removeCourseFromRegistration(registeredCourseId);
+		},
+		onSuccess: () => {
+			toast.success('Course has been removed from your registration.');
+			refetchSummary();
+			refetchEligibleCourses();
+		},
+		onError: (error: Error) => {
+			toast.error(error.message);
+		},
+	});
+
+	// Mutation for submitting registration
+	const submitRegistrationMutation = useMutation({
+		mutationFn: async (registrationId: string) => {
+			return await registrationService.submitRegistration(registrationId);
+		},
+		onSuccess: () => {
+			toast.success('Your course registration has been submitted for approval.');
+			refetchSummary();
+		},
+		onError: (error: Error) => {
+			toast.error(error.message);
+		},
 	});
 
 	// Check if student is newly registered (within last 24 hours)
@@ -96,7 +193,7 @@ export default function StudentDashboard() {
 
 			{/* New Student Welcome Message */}
 			{isNewStudent && (
-				<Alert className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+				<Alert className="bg-linear-to-r from-blue-50 to-indigo-50 border-blue-200">
 					<GraduationCap className="h-5 w-5 text-blue-600" />
 					<AlertDescription className="text-blue-900">
 						<strong>Welcome to your student dashboard!</strong> Your account has been
@@ -228,6 +325,177 @@ export default function StudentDashboard() {
 						</div>
 					</div>
 				</div>
+			)}
+
+			{/* Course Registration Section */}
+			{currentSemester && (
+				<Card>
+					<CardHeader>
+						<CardTitle className="flex items-center justify-between">
+							<span>Course Registration - {currentSemester.name}</span>
+							{registrationSummary?.status && (
+								<Badge
+									variant={
+										registrationSummary.status === 'APPROVED' ? 'default' :
+										registrationSummary.status === 'SUBMITTED' ? 'secondary' :
+										registrationSummary.status === 'DRAFT' ? 'outline' :
+										'destructive'
+									}
+								>
+									{registrationSummary.status}
+								</Badge>
+							)}
+						</CardTitle>
+					</CardHeader>
+					<CardContent className="space-y-6">
+						{/* Registration Summary */}
+						{registrationSummary && (
+							<div className="p-4 bg-muted/50 rounded-lg space-y-2">
+								<h4 className="font-semibold text-sm">Registration Summary</h4>
+								<div className="grid grid-cols-3 gap-4 text-sm">
+									<div>
+										<span className="text-muted-foreground">Total Credits:</span>
+										<p className="font-semibold">{registrationSummary.totalCredits}</p>
+									</div>
+									<div>
+										<span className="text-muted-foreground">Min Credits:</span>
+										<p className="font-semibold">{registrationSummary.minCredits}</p>
+									</div>
+									<div>
+										<span className="text-muted-foreground">Max Credits:</span>
+										<p className="font-semibold">{registrationSummary.maxCredits}</p>
+									</div>
+							</div>
+
+							{/* Registered Courses */}
+							{registrationSummary?.registeredCourses && registrationSummary.registeredCourses.length > 0 && (
+								<div className="mt-4">
+										<h5 className="font-medium text-sm mb-2">Registered Courses:</h5>
+										<div className="space-y-1">
+											{registrationSummary.registeredCourses.map((course) => (
+												<div key={course.id} className="flex items-center justify-between p-2 bg-background rounded">
+													<div className="flex items-center gap-2">
+														<Book className="h-4 w-4 text-muted-foreground" />
+														<span className="text-sm">
+															{course.courseCode} - {course.courseName}
+														</span>
+														<Badge variant="outline" className="text-xs">
+															{course.credits} credits
+														</Badge>
+													</div>
+													{registrationSummary.status === 'DRAFT' && (
+														<Button
+															size="sm"
+															variant="ghost"
+															onClick={() => removeCourseMutation.mutate(course.id)}
+															disabled={removeCourseMutation.isPending}
+														>
+															<Trash2 className="h-4 w-4 text-destructive" />
+														</Button>
+													)}
+												</div>
+											))}
+										</div>
+									</div>
+								)}
+
+								{/* Submit Button */}
+								{registrationSummary.status === 'DRAFT' && registrationSummary.canSubmit && (
+									<Button
+										className="w-full mt-4"
+										onClick={() => {
+											if (registrationSummary.registrationId) {
+												submitRegistrationMutation.mutate(registrationSummary.registrationId);
+											}
+										}}
+										disabled={submitRegistrationMutation.isPending}
+									>
+										<Send className="h-4 w-4 mr-2" />
+										Submit Registration for Approval
+									</Button>
+								)}
+
+								{registrationSummary.status === 'APPROVED' && (
+									<Alert className="mt-4">
+										<CheckCircle className="h-4 w-4" />
+										<AlertDescription>
+											Your course registration has been approved. You are now enrolled in these courses.
+										</AlertDescription>
+									</Alert>
+								)}
+							</div>
+						)}
+
+						{/* Available Courses */}
+						{registrationSummary?.status !== 'APPROVED' && eligibleCourses && eligibleCourses.length > 0 && (
+							<div>
+								<h4 className="font-semibold text-sm mb-3">Available Courses</h4>
+								<div className="space-y-2">
+									{eligibleCourses
+										.filter(course =>
+											!registrationSummary?.registeredCourses.some(rc => rc.courseCode === course.code)
+										)
+										.map((course) => (
+											<div
+												key={course.id}
+												className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+											>
+												<div className="flex-1">
+													<div className="flex items-center gap-2">
+														<span className="font-medium">{course.code}</span>
+														<span className="text-muted-foreground">-</span>
+														<span>{course.name}</span>
+														<Badge variant="secondary" className="text-xs">
+															{course.credits} credits
+														</Badge>
+													</div>
+													{course.lecturer && (
+														<p className="text-sm text-muted-foreground mt-1">
+																Instructor: {course.lecturer.firstName} {course.lecturer.lastName}
+															</p>
+														)}
+														{!course.isPrerequisiteMet && course.unmetPrerequisites && course.unmetPrerequisites.length > 0 && (
+															<p className="text-xs text-destructive mt-1">
+															Unmet prerequisites: {course.unmetPrerequisites.join(', ')}
+														</p>
+													)}
+												</div>
+												{registrationSummary?.status === 'DRAFT' && (
+													<Button
+														size="sm"
+														onClick={() => {
+															const registrationId = registrationSummary.registrationId || '';
+															addCourseMutation.mutate({
+																registrationId,
+																courseOfferingId: course.courseOfferingId,
+															});
+														}}
+														disabled={
+															!course.isPrerequisiteMet ||
+															addCourseMutation.isPending ||
+															(registrationSummary.totalCredits + course.credits) > registrationSummary.maxCredits
+														}
+													>
+														<Plus className="h-4 w-4 mr-1" />
+														Add
+													</Button>
+												)}
+											</div>
+										))}
+								</div>
+							</div>
+						)}
+
+						{/* No courses available */}
+						{eligibleCourses && eligibleCourses.length === 0 && (
+							<Alert>
+								<AlertDescription>
+									No courses are available for registration at this time.
+								</AlertDescription>
+							</Alert>
+						)}
+					</CardContent>
+				</Card>
 			)}
 
 			<AcademicOverview />

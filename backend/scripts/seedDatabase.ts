@@ -1,68 +1,313 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
+import institutionData from './seed-data/institutions';
+import facultiesData from './seed-data/faculties';
+import departmentsData from './seed-data/departments';
+import programsData from './seed-data/programs';
+import coursesData from './seed-data/courses';
+import usersData, { lecturerProfilesData, studentProfilesData } from './seed-data/users';
+
 const prisma = new PrismaClient();
 
-/**
- * Create super admin user with specified credentials
- */
-async function createSuperAdmin() {
-  const email = 'admin@elms.com';
-  const password = 'Admin@123';
+const DEFAULT_PASSWORD = 'Password123!';
 
-  // Check if super admin already exists
-  const existingUser = await prisma.user.findUnique({
-    where: { email }
-  });
+async function upsertInstitution() {
+  const code = institutionData.code;
+  const existing = await prisma.institution.findUnique({ where: { code } });
+  if (existing) return existing;
+  return prisma.institution.create({ data: institutionData as any });
+}
 
-  if (existingUser) {
-    console.log('⚠️ Super Admin user already exists, skipping creation...');
-    console.log(`📧 Email: ${email}`);
-    console.log(`🔑 Password: ${password}`);
-    return existingUser;
+async function upsertFaculties(institutionId: number) {
+  const created: any[] = [];
+  for (const f of facultiesData) {
+    const existing = await prisma.faculty.findFirst({ where: { code: f.code, institutionId } });
+    if (existing) {
+      created.push(existing);
+      continue;
+    }
+    const rec = await prisma.faculty.create({ data: { ...f, institutionId } as any });
+    created.push(rec);
+  }
+  return created;
+}
+
+async function upsertDepartments(faculties: any[]) {
+  const created: any[] = [];
+  for (const d of departmentsData) {
+    const faculty = faculties.find((f) => f.code === d.facultyCode);
+    if (!faculty) {
+      console.warn(`⚠️ Faculty with code ${d.facultyCode} not found for department ${d.name}`);
+      continue;
+    }
+    const existing = await prisma.department.findFirst({ where: { code: d.code, facultyId: faculty.id } });
+    if (existing) {
+      created.push(existing);
+      continue;
+    }
+    const { facultyCode, ...deptData } = d;
+    const rec = await prisma.department.create({ data: { ...deptData, facultyId: faculty.id } as any });
+    created.push(rec);
+  }
+  return created;
+}
+
+async function upsertPrograms(departments: any[]) {
+  const created: any[] = [];
+  for (const p of programsData) {
+    const department = departments.find((d) => d.code === p.departmentCode);
+    if (!department) {
+      console.warn(`⚠️ Department with code ${p.departmentCode} not found for program ${p.name}`);
+      continue;
+    }
+    const existing = await prisma.program.findFirst({ where: { code: p.code, departmentId: department.id } });
+    if (existing) {
+      created.push(existing);
+      continue;
+    }
+    const { departmentCode, ...progData } = p;
+    const rec = await prisma.program.create({ data: { ...progData, departmentId: department.id } as any });
+    created.push(rec);
+  }
+  return created;
+}
+
+async function upsertUsers(institutionId: number, faculties: any[], departments: any[]) {
+  const createdUsers: any[] = [];
+
+  for (const u of usersData) {
+    const existing = await prisma.user.findUnique({ where: { email: u.email } });
+    if (existing) {
+      createdUsers.push(existing);
+      continue;
+    }
+
+    const faculty = u.facultyCode ? faculties.find((f) => f.code === u.facultyCode) : null;
+    const department = u.departmentCode ? departments.find((d) => d.code === u.departmentCode) : null;
+
+    const hashedPassword = await bcrypt.hash(DEFAULT_PASSWORD, 12);
+
+    const { facultyCode, departmentCode, ...userData } = u;
+
+    const user = await prisma.user.create({
+      data: {
+        ...userData,
+        password: hashedPassword,
+        middleName: userData.middleName || null,
+        title: userData.title || null,
+        status: userData.status || 'ACTIVE',
+        emailVerified: !!userData.emailVerified,
+        phone: userData.phone || null,
+        dateOfBirth: userData.dateOfBirth || null,
+        gender: userData.gender || null,
+        nationality: userData.nationality || null,
+        address: userData.address || null,
+        institutionId,
+        facultyId: faculty ? faculty.id : null,
+        departmentId: department ? department.id : null
+      } as any
+    });
+
+    createdUsers.push(user);
   }
 
-  console.log('👤 Creating Super Admin user...');
+  // Create lecturer profiles
+  for (const lp of lecturerProfilesData) {
+    const user = await prisma.user.findUnique({ where: { email: lp.email } });
+    if (!user) continue;
+    const existing = await prisma.lecturerProfile.findUnique({ where: { userId: user.id } });
+    if (existing) continue;
+    await prisma.lecturerProfile.create({
+      data: {
+        userId: user.id,
+        staffId: lp.staffId,
+        academicRank: lp.academicRank,
+        employmentType: lp.employmentType,
+        employmentStatus: lp.employmentStatus,
+        hireDate: lp.hireDate,
+        highestQualification: lp.highestQualification,
+        specialization: lp.specialization,
+        permissions: lp.permissions as any
+      } as any
+    });
+  }
 
-  // Hash the password
-  const hashedPassword = await bcrypt.hash(password, 12);
+  // Create student profiles
+  for (const sp of studentProfilesData) {
+    const user = await prisma.user.findUnique({ where: { email: sp.email } });
+    if (!user) continue;
+    const existing = await prisma.studentProfile.findUnique({ where: { userId: user.id } });
+    if (existing) continue;
 
-  // Create the super admin user
-  const superAdmin = await prisma.user.create({
-    data: {
-      email,
-      password: hashedPassword,
-      firstName: 'Super',
-      lastName: 'Administrator',
-      title: 'Mr',
-      role: 'SUPER_ADMIN',
-      status: 'ACTIVE',
-      emailVerified: true,
-      phone: '+1-555-000-0000',
+    // find program id
+    const program = await prisma.program.findFirst({ where: { code: sp.programCode } });
+
+    await prisma.studentProfile.create({
+      data: {
+        userId: user.id,
+        studentId: sp.studentId,
+        indexNumber: sp.indexNumber || null,
+        level: sp.level,
+        semester: sp.semester,
+        academicYear: sp.academicYear || null,
+        admissionDate: sp.admissionDate || null,
+        expectedGraduation: sp.expectedGraduation || null,
+        enrollmentStatus: sp.enrollmentStatus,
+        academicStatus: sp.academicStatus,
+        programId: program ? program.id : null
+      } as any
+    });
+  }
+
+  return createdUsers;
+}
+
+async function upsertAcademicYearAndSemesters(institutionId: number) {
+  const yearCode = '2024/2025';
+  let academicYear = await prisma.academicYear.findUnique({ where: { yearCode } });
+  if (!academicYear) {
+    academicYear = await prisma.academicYear.create({
+      data: {
+        yearCode,
+        startDate: new Date('2024-09-01'),
+        endDate: new Date('2025-06-30'),
+        isCurrent: true,
+        institutionId
+      }
+    });
+  }
+
+  // semester 1
+  let sem1 = await prisma.semester.findFirst({ where: { academicYearId: academicYear.id, semesterNumber: 1 } });
+  if (!sem1) {
+    sem1 = await prisma.semester.create({
+      data: {
+        academicYearId: academicYear.id,
+        semesterNumber: 1,
+        name: 'Semester 1',
+        startDate: new Date('2024-09-01'),
+        endDate: new Date('2025-01-15'),
+        isCurrent: true
+      }
+    });
+  }
+
+  let sem2 = await prisma.semester.findFirst({ where: { academicYearId: academicYear.id, semesterNumber: 2 } });
+  if (!sem2) {
+    sem2 = await prisma.semester.create({
+      data: {
+        academicYearId: academicYear.id,
+        semesterNumber: 2,
+        name: 'Semester 2',
+        startDate: new Date('2025-02-01'),
+        endDate: new Date('2025-06-30'),
+        isCurrent: false
+      }
+    });
+  }
+
+  return { academicYear, sem1, sem2 };
+}
+
+async function upsertCoursesAndProgramLinks(departments: any[], programs: any[], lecturers: any[], semester: any) {
+  const createdCourses: any[] = [];
+
+  // We'll seed the first 10 courses (or all if fewer)
+  const toSeed = coursesData.slice(0, 10);
+
+  for (const c of toSeed) {
+    const department = departments.find((d) => d.code === c.departmentCode);
+    if (!department) {
+      console.warn(`⚠️ Department with code ${c.departmentCode} not found for course ${c.name}`);
+      continue;
     }
-  });
 
-  console.log('✅ Super Admin user created successfully');
-  console.log(`📧 Email: ${email}`);
-  console.log(`🔑 Password: ${password}`);
+    const existing = await prisma.course.findUnique({ where: { code: c.code } });
+    let courseRec;
+    if (existing) {
+      courseRec = existing;
+    } else {
+      const { departmentCode, ...courseData } = c;
+      courseRec = await prisma.course.create({ data: { ...courseData, departmentId: department.id } as any });
+    }
 
-  return superAdmin;
+    createdCourses.push(courseRec);
+
+    // Link to programs within the same department
+    const deptPrograms = programs.filter((p) => p.departmentId === department.id);
+    for (const prog of deptPrograms) {
+      // avoid duplicate unique ([programId, courseId, level, semester])
+      const progCourseExists = await prisma.programCourse.findFirst({ where: { programId: prog.id, courseId: courseRec.id, level: c.level, semester: 1 } });
+      if (!progCourseExists) {
+        await prisma.programCourse.create({ data: {
+          programId: prog.id,
+          courseId: courseRec.id,
+          level: c.level,
+          semester: 1,
+          isRequired: true,
+          isCore: c.courseType === 'CORE',
+          offeredInSemester1: true,
+          offeredInSemester2: false,
+          yearInProgram: 1
+        } as any });
+      }
+    }
+
+    // Create a CourseOffering for the current semester
+    const lecturer = lecturers.find((l) => l.departmentId === department.id) || null;
+    const existingOffering = await prisma.courseOffering.findFirst({ where: { courseId: courseRec.id, semesterId: semester.id } });
+    if (!existingOffering) {
+      await prisma.courseOffering.create({ data: {
+        courseId: courseRec.id,
+        semesterId: semester.id,
+        primaryLecturerId: lecturer ? lecturer.id : null,
+        maxEnrollment: 200,
+        status: 'active'
+      } as any });
+    }
+  }
+
+  return createdCourses;
 }
 
 async function main() {
-  console.log('🌱 Starting ELMS database seeding (Super Admin Only)...');
+  console.log('🌱 Starting full ELMS database seeding...');
 
   try {
-    // Create only super admin user
-    const superAdmin = await createSuperAdmin();
+    const institution = await upsertInstitution();
+    console.log(`🏫 Institution: ${institution.name} (id=${institution.id})`);
+
+    const faculties = await upsertFaculties(institution.id);
+    console.log(`📚 Faculties seeded: ${faculties.length}`);
+
+    const departments = await upsertDepartments(faculties);
+    console.log(`🏛️ Departments seeded: ${departments.length}`);
+
+    const programs = await upsertPrograms(departments);
+    console.log(`🎓 Programs seeded: ${programs.length}`);
+
+    const users = await upsertUsers(institution.id, faculties, departments);
+    console.log(`👥 Users seeded/verified: ${users.length}`);
+
+    // collect lecturer user objects for assignments
+    const lecturers = await prisma.user.findMany({ where: { role: 'LECTURER' } });
+
+    const { academicYear, sem1 } = await upsertAcademicYearAndSemesters(institution.id);
+    console.log(`📆 Academic Year created: ${academicYear.yearCode}`);
+
+    const courses = await upsertCoursesAndProgramLinks(departments, programs, lecturers, sem1);
+    console.log(`📘 Courses created/linked: ${courses.length}`);
 
     console.log('\n✅ Database seeding completed successfully!');
     console.log('\n📊 Summary:');
-    console.log('- Super Admin user created/verified');
-
-    console.log('\n🔑 Login Credentials:');
-    console.log('Email: admin@elms.com');
-    console.log('Password: Admin@123');
+    console.log(`- Institution: ${institution.code}`);
+    console.log(`- Faculties: ${faculties.length}`);
+    console.log(`- Departments: ${departments.length}`);
+    console.log(`- Programs: ${programs.length}`);
+    console.log(`- Users: ${users.length}`);
+    console.log(`- Courses seeded & linked (first 10): ${courses.length}`);
+    console.log('\n🔑 Default user password for seeded users: ' + DEFAULT_PASSWORD);
 
   } catch (error) {
     console.error('❌ Error during seeding:', error);

@@ -30,5 +30,3 @@ const InlineLoadingSpinner = ({ size = 'md', className = '' }: { size?: 'sm' | '
 };
 
 export { LoadingSpinner, InlineLoadingSpinner };
-
-

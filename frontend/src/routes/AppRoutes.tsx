@@ -130,7 +130,7 @@ const DepartmentDetailsPage = lazy(
 );
 
 const ProgramsPage = lazy(() => import("@/pages/institution-admin/ProgramsPage"));
-
+const BulkRegistrationPage = lazy(() => import("@/pages/institution-admin/BulkRegistrationPage"));
 const CoursesPage = lazy(() => import("@/pages/institution-admin/CoursesPage"));
 const CourseDetailsPage = lazy(() => import("@/pages/institution-admin/CourseDetailsPage"));
 
@@ -373,6 +373,7 @@ export function AppRoutes() {
           </MultiRoleAdminLayout>
         }
       />
+
       <Route
         path="/admin/students/:id"
         element={
@@ -491,6 +492,14 @@ export function AppRoutes() {
             <CoursesPage />
           </AdminLayout>
         }
+      />
+      <Route
+      path="/admin/students/bulk-registration"
+      element={
+        <AdminLayout>
+          <BulkRegistrationPage />
+        </AdminLayout>
+      }
       />
       <Route
         path="/admin/courses/:id"
