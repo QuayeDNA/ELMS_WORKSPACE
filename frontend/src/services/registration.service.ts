@@ -1,295 +1,205 @@
 import { apiService } from './api';
 
-export interface EligibleCourse {
+// Simplified registration types matching backend
+export interface CourseOfferingWithDetails {
+	id: number;
+	courseId: number;
+	semesterId: number;
+	primaryLecturerId: number | null;
+	maxEnrollment: number | null;
+	maxCapacity: number;
+	currentEnrollment: number;
+	classroom: string | null;
+	schedule: string | null;
+	status: string;
+	createdAt: string;
+	updatedAt: string;
+	course: {
+		id: number;
+		name: string;
+		code: string;
+		creditHours: number;
+	};
+	instructor?: {
+		id: number;
+		firstName: string;
+		lastName: string;
+		email: string;
+	} | null;
+	primaryLecturer?: {
+		id: number;
+		firstName: string;
+		lastName: string;
+		email: string;
+	} | null;
+	available?: boolean;
+	enrolledCount?: number;
+	isEligible?: boolean;
+}
+
+export interface CourseRegistrationItem {
+	id: number;
+	courseOfferingId: number;
+	status: 'REGISTERED' | 'DROPPED' | 'COMPLETED';
 	courseOffering: {
 		id: number;
-		courseId: number;
-		semesterId: number;
-		primaryLecturerId: number;
-		maxEnrollment: number;
-		currentEnrollment: number;
-		classroom: string | null;
-		schedule: string | null;
-		status: string;
-		createdAt: string;
-		updatedAt: string;
 		course: {
 			id: number;
 			name: string;
 			code: string;
-			description: string;
 			creditHours: number;
-			contactHours: number;
-			level: number;
-			courseType: string;
-			prerequisites: string | null;
-			corequisites: string | null;
-			learningOutcomes: string;
-			syllabus: string;
-			assessmentMethods: string;
-			recommendedBooks: string;
-			departmentId: number;
-			isActive: boolean;
-			createdAt: string;
-			updatedAt: string;
-			department: {
-				id: number;
-				name: string;
-				code: string;
-			};
 		};
-		primaryLecturer: {
+		instructor?: {
 			id: number;
 			firstName: string;
 			lastName: string;
-			email: string;
 		} | null;
-		semester: {
-			id: number;
-			name: string;
-			semesterNumber: number;
-		};
-	};
-	eligibility: {
-		isEligible: boolean;
-		reasons: string[];
-		prerequisitesMet: boolean;
-		hasScheduleConflict: boolean;
 	};
 }
 
-export interface RegistrationSummary {
-	registrationId: string | null;
-	status: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED' | 'COMPLETED' | null;
-	registeredCourses: {
-		id: string;
-		courseCode: string;
-		courseName: string;
-		credits: number;
-	}[];
-	totalCredits: number;
-	minCredits: number;
-	maxCredits: number;
-	canSubmit: boolean;
-}
-
-export interface Registration {
-	id: string;
-	studentId: string;
-	semesterId: string;
-	status: string;
-	type: string;
+export interface StudentRegistration {
+	id: number;
+	status: 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
 	totalCredits: number;
 	createdAt: string;
-	submittedAt?: string;
-	approvedAt?: string;
-	approvedBy?: string;
-	registeredCourses: {
-		id: string;
-		courseOffering: {
-			id: string;
-			course: {
-				code: string;
-				name: string;
-				credits: number;
-			};
-		};
-	}[];
+	updatedAt: string;
+	items: CourseRegistrationItem[];
+	courses: CourseRegistrationItem[];
+}
+
+export interface RegisterForCoursesRequest {
+	studentId: number;
+	semesterId: number;
+	courseOfferingIds: number[];
+}
+
+export interface RegisterForCoursesResponse {
+	success: boolean;
+	message: string;
+	registeredCourses: any[];
+	totalCredits: number;
+}
+
+export interface DropCoursesRequest {
+	studentId: number;
+	semesterId: number;
+	courseOfferingIds: number[];
+}
+
+export interface DropCoursesResponse {
+	success: boolean;
+	message: string;
+	droppedCount: number;
+	remainingCredits: number;
 }
 
 class RegistrationService {
 	private readonly basePath = '/api/registrations';
 
 	/**
-	 * Get eligible courses for a student in a semester
+	 * Register student for multiple courses in one action
 	 */
-	async getEligibleCourses(
-		studentId: string,
-		semesterId: string
-	): Promise<{ data: EligibleCourse[]; count: number }> {
-		const response = await apiService.get<EligibleCourse[]>(
-			`${this.basePath}/eligible-courses/${studentId}/${semesterId}`
-		) as any; // Backend returns { success, data: [...], count }
-
-		if (!response.success || !response.data) {
-			throw new Error(response.message || 'Failed to fetch eligible courses');
-		}
-
-		// Backend returns { success, data: [...], count }
-		// apiService returns the full response if it has 'success' property
-		return {
-			data: response.data,
-			count: response.count || response.data.length
-		};
-	}
-
-	/**
-	 * Get registration summary for a student in a semester
-	 */
-	async getRegistrationSummary(
-		studentId: string,
-		semesterId: string
-	): Promise<RegistrationSummary> {
-		const response = await apiService.get<RegistrationSummary>(
-			`${this.basePath}/summary/${studentId}/${semesterId}`
-		);
-
-		if (!response.success || !response.data) {
-			throw new Error(response.message || 'Failed to fetch registration summary');
-		}
-
-		return response.data;
-	}
-
-	/**
-	 * Create a new registration for a student
-	 */
-	async createRegistration(
-		studentId: string,
-		semesterId: string,
-		type: 'REGULAR' | 'ADD_DROP' | 'LATE' = 'REGULAR'
-	): Promise<Registration> {
-		const response = await apiService.post<Registration>(this.basePath, {
-			studentId,
-			semesterId,
-			type,
-		});
-
-		if (!response.success || !response.data) {
-			throw new Error(response.message || 'Failed to create registration');
-		}
-
-		return response.data;
-	}
-
-	/**
-	 * Add a course to an existing registration
-	 */
-	async addCourseToRegistration(
-		registrationId: string,
-		courseOfferingId: string
-	): Promise<Registration> {
-		const response = await apiService.post<Registration>(
-			`${this.basePath}/${registrationId}/courses`,
+	async registerForCourses(
+		studentId: number,
+		semesterId: number,
+		courseOfferingIds: number[]
+	): Promise<RegisterForCoursesResponse> {
+		const response = await apiService.post<RegisterForCoursesResponse>(
+			`${this.basePath}/register`,
 			{
-				courseOfferingId,
+				studentId,
+				semesterId,
+				courseOfferingIds,
 			}
 		);
 
-		if (!response.success || !response.data) {
-			throw new Error(response.message || 'Failed to add course');
-		}
-
-		return response.data;
-	}
-
-	/**
-	 * Remove a course from registration
-	 */
-	async removeCourseFromRegistration(
-		registeredCourseId: string
-	): Promise<void> {
-		const response = await apiService.delete<void>(
-			`${this.basePath}/courses/${registeredCourseId}`
-		);
-
-		if (!response.success) {
-			throw new Error(response.message || 'Failed to remove course');
-		}
-	}
-
-	/**
-	 * Submit registration for approval
-	 */
-	async submitRegistration(registrationId: string): Promise<Registration> {
-		const response = await apiService.post<Registration>(
-			`${this.basePath}/${registrationId}/submit`
-		);
-
-		if (!response.success || !response.data) {
-			throw new Error(response.message || 'Failed to submit registration');
-		}
-
-		return response.data;
-	}
-
-	/**
-	 * Validate a registration
-	 */
-	async validateRegistration(registrationId: string): Promise<{
-		isValid: boolean;
-		errors: string[];
-		warnings: string[];
-	}> {
-		const response = await apiService.get<{
-			isValid: boolean;
-			errors: string[];
-			warnings: string[];
-		}>(`${this.basePath}/${registrationId}/validate`);
-
-		if (!response.success || !response.data) {
-			throw new Error(response.message || 'Failed to validate registration');
-		}
-
-		return response.data;
-	}
-
-	/**
-	 * Get students by registration status for a semester
-	 */
-	async getStudentsByRegistrationStatus(
-		semesterId: string,
-		filters?: {
-			programId?: string;
-			departmentId?: string;
-		}
-	): Promise<{
-		registered: any[];
-		notRegistered: any[];
-	}> {
-		const params = new URLSearchParams();
-		if (filters?.programId) params.append('programId', filters.programId);
-		if (filters?.departmentId) params.append('departmentId', filters.departmentId);
-
-		const queryString = params.toString();
-		const url = `${this.basePath}/students-by-status/${semesterId}${queryString ? `?${queryString}` : ''}`;
-
-		const response = await apiService.get<{
-			registered: any[];
-			notRegistered: any[];
-		}>(url);
-
-		if (!response.success || !response.data) {
-			throw new Error(response.message || 'Failed to fetch students by registration status');
-		}
-
-		return response.data;
-	}
-
-	/**
-	 * Register student for all eligible courses
-	 */
-	async registerAllEligibleCourses(
-		studentProfileId: number,
-		semesterId: number
-	): Promise<{
-		success: boolean;
-		message: string;
-		registeredCount: number;
-		courses: any[];
-	}> {
-		const response = await apiService.post<{
-			success: boolean;
-			message: string;
-			registeredCount: number;
-			courses: any[];
-		}>(`${this.basePath}/register-all`, {
-			studentProfileId,
-			semesterId
-		});
-
 		if (!response.success) {
 			throw new Error(response.message || 'Failed to register for courses');
+		}
+
+		return response;
+	}
+
+	/**
+	 * Get available courses for a student in a semester
+	 */
+	async getAvailableCourses(
+		semesterId: number
+	): Promise<CourseOfferingWithDetails[]> {
+		const response = await apiService.get<CourseOfferingWithDetails[]>(
+			`${this.basePath}/available-courses/${semesterId}`
+		);
+
+		if (!response.success || !response.data) {
+			throw new Error(response.message || 'Failed to fetch available courses');
+		}
+
+		return response.data;
+	}
+
+	/**
+	 * Get student's current registration for a semester
+	 */
+	async getStudentRegistration(
+		studentId: number,
+		semesterId: number
+	): Promise<StudentRegistration | null> {
+		const response = await apiService.get<StudentRegistration>(
+			`${this.basePath}/student/${studentId}/semester/${semesterId}`
+		);
+
+		if (!response.success) {
+			// Return null if no registration found (404 is okay)
+			if (response.message?.includes('not found')) {
+				return null;
+			}
+			throw new Error(response.message || 'Failed to fetch registration');
+		}
+
+		return response.data;
+	}
+
+	/**
+	 * Drop courses from registration
+	 */
+	async dropCourses(
+		studentId: number,
+		semesterId: number,
+		courseOfferingIds: number[]
+	): Promise<DropCoursesResponse> {
+		const response = await apiService.post<DropCoursesResponse>(
+			`${this.basePath}/drop`,
+			{
+				studentId,
+				semesterId,
+				courseOfferingIds,
+			}
+		);
+
+		if (!response.success) {
+			throw new Error(response.message || 'Failed to drop courses');
+		}
+
+		return response;
+	}
+
+	/**
+	 * Cancel entire registration
+	 */
+	async cancelRegistration(
+		studentId: number,
+		semesterId: number
+	): Promise<{ success: boolean; message: string }> {
+		const response = await apiService.post<{ success: boolean; message: string }>(
+			`${this.basePath}/cancel`,
+			{
+				studentId,
+				semesterId,
+			}
+		);
+
+		if (!response.success) {
+			throw new Error(response.message || 'Failed to cancel registration');
 		}
 
 		return response;

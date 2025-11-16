@@ -1,74 +1,104 @@
 import { Request, Response } from 'express';
 import { registrationService } from '../services/registrationService';
-import { RegistrationStatus } from '@prisma/client';
 
 /**
- * Course Registration Controller
- * Handles student course registration workflow
+ * Simplified Course Registration Controller
+ * Handles single-action course registration workflow
  */
 export class RegistrationController {
-  /**
-   * Create a new course registration
-   * POST /api/registrations
-   * Access: Student, Advisor
-   */
-  async createRegistration(req: Request, res: Response): Promise<void> {
-    try {
-      const { studentId, semesterId, advisorId, notes } = req.body;
 
-      // Validate required fields
-      if (!studentId || !semesterId) {
+  /**
+   * Register student for multiple courses in one action
+   * POST /api/registrations/register
+   * Access: Student
+   */
+  async registerForCourses(req: Request, res: Response): Promise<void> {
+    try {
+      const { studentId, semesterId, courseOfferingIds } = req.body;
+
+      if (!studentId || !semesterId || !courseOfferingIds || !Array.isArray(courseOfferingIds)) {
         res.status(400).json({
           success: false,
-          message: 'Student ID and Semester ID are required'
+          message: 'Student ID, semester ID, and course offering IDs are required'
         });
         return;
       }
 
-      const registration = await registrationService.createRegistration({
+      const result = await registrationService.registerForCourses(
         studentId,
         semesterId,
-        advisorId,
-        notes
-      });
+        courseOfferingIds
+      );
 
-      res.status(201).json({
-        success: true,
-        message: 'Registration created successfully',
-        data: registration
-      });
+      res.status(200).json(result);
     } catch (error) {
-      console.error('Error creating registration:', error);
+      console.error('Error registering for courses:', error);
       res.status(500).json({
         success: false,
-        message: error instanceof Error ? error.message : 'Failed to create registration'
+        message: error instanceof Error ? error.message : 'Failed to register for courses'
       });
     }
   }
 
   /**
-   * Get a specific registration by ID
-   * GET /api/registrations/:id
+   * Get available courses for a student in a semester
+   * GET /api/registrations/available-courses/:studentId/:semesterId
    * Access: Student (own), Advisor, Admin
    */
-  async getRegistrationById(req: Request, res: Response): Promise<void> {
+  async getAvailableCourses(req: Request, res: Response): Promise<void> {
     try {
-      const registrationId = parseInt(req.params.id);
+      const studentId = parseInt(req.params.studentId);
+      const semesterId = parseInt(req.params.semesterId);
 
-      if (isNaN(registrationId)) {
+      if (isNaN(studentId) || isNaN(semesterId)) {
         res.status(400).json({
           success: false,
-          message: 'Invalid registration ID'
+          message: 'Invalid student ID or semester ID'
         });
         return;
       }
 
-      const registration = await registrationService.getRegistrationById(registrationId);
+      const courses = await registrationService.getAvailableCourses(studentId, semesterId);
+
+      res.status(200).json({
+        success: true,
+        data: courses,
+        count: courses.length
+      });
+    } catch (error) {
+      console.error('Error fetching available courses:', error);
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to fetch available courses'
+      });
+    }
+  }
+
+  /**
+   * Get student's current registration for a semester
+   * GET /api/registrations/student/:studentId/:semesterId
+   * Access: Student (own), Advisor, Admin
+   */
+  async getStudentRegistration(req: Request, res: Response): Promise<void> {
+    try {
+      const studentId = parseInt(req.params.studentId);
+      const semesterId = parseInt(req.params.semesterId);
+
+      if (isNaN(studentId) || isNaN(semesterId)) {
+        res.status(400).json({
+          success: false,
+          message: 'Invalid student ID or semester ID'
+        });
+        return;
+      }
+
+      const registration = await registrationService.getStudentRegistration(studentId, semesterId);
 
       if (!registration) {
-        res.status(404).json({
-          success: false,
-          message: 'Registration not found'
+        res.status(200).json({
+          success: true,
+          data: null,
+          message: 'No active registration found'
         });
         return;
       }
@@ -78,7 +108,7 @@ export class RegistrationController {
         data: registration
       });
     } catch (error) {
-      console.error('Error fetching registration:', error);
+      console.error('Error fetching student registration:', error);
       res.status(500).json({
         success: false,
         message: error instanceof Error ? error.message : 'Failed to fetch registration'
@@ -87,531 +117,63 @@ export class RegistrationController {
   }
 
   /**
-   * Get all registrations for a student
-   * GET /api/registrations/student/:studentId
-   * Access: Student (own), Advisor, Admin
-   */
-  async getStudentRegistrations(req: Request, res: Response): Promise<void> {
-    try {
-      const studentId = parseInt(req.params.studentId);
-      const semesterId = req.query.semesterId ? parseInt(req.query.semesterId as string) : undefined;
-
-      if (isNaN(studentId)) {
-        res.status(400).json({
-          success: false,
-          message: 'Invalid student ID'
-        });
-        return;
-      }
-
-      const registrations = await registrationService.getStudentRegistrations(
-        studentId,
-        semesterId
-      );
-
-      res.status(200).json({
-        success: true,
-        data: registrations,
-        count: registrations.length
-      });
-    } catch (error) {
-      console.error('Error fetching student registrations:', error);
-      res.status(500).json({
-        success: false,
-        message: error instanceof Error ? error.message : 'Failed to fetch registrations'
-      });
-    }
-  }
-
-  /**
-   * Add a course to a registration
-   * POST /api/registrations/:id/courses
-   * Access: Student (own), Advisor
-   */
-  async addCourseToRegistration(req: Request, res: Response): Promise<void> {
-    try {
-      const registrationId = parseInt(req.params.id);
-      const { courseOfferingId, registrationType, notes } = req.body;
-
-      if (isNaN(registrationId) || !courseOfferingId) {
-        res.status(400).json({
-          success: false,
-          message: 'Registration ID and Course Offering ID are required'
-        });
-        return;
-      }
-
-      const updatedRegistration = await registrationService.addCourseToRegistration(
-        registrationId,
-        {
-          courseOfferingId,
-          registrationType: registrationType || 'REGULAR'
-        }
-      );
-
-      res.status(200).json({
-        success: true,
-        message: 'Course added to registration successfully',
-        data: updatedRegistration
-      });
-    } catch (error) {
-      console.error('Error adding course to registration:', error);
-      res.status(500).json({
-        success: false,
-        message: error instanceof Error ? error.message : 'Failed to add course to registration'
-      });
-    }
-  }
-
-  /**
-   * Remove a course from a registration
-   * DELETE /api/registrations/courses/:courseId
-   * Access: Student (own), Advisor
-   */
-  async removeCourseFromRegistration(req: Request, res: Response): Promise<void> {
-    try {
-      const registeredCourseId = parseInt(req.params.courseId);
-      const { dropReason } = req.body;
-
-      if (isNaN(registeredCourseId)) {
-        res.status(400).json({
-          success: false,
-          message: 'Invalid registered course ID'
-        });
-        return;
-      }
-
-      await registrationService.removeCourseFromRegistration(
-        registeredCourseId,
-        dropReason
-      );
-
-      res.status(200).json({
-        success: true,
-        message: 'Course removed from registration successfully'
-      });
-    } catch (error) {
-      console.error('Error removing course from registration:', error);
-      res.status(500).json({
-        success: false,
-        message: error instanceof Error ? error.message : 'Failed to remove course from registration'
-      });
-    }
-  }
-
-  /**
-   * Submit a registration for approval
-   * POST /api/registrations/:id/submit
+   * Drop courses from registration
+   * POST /api/registrations/drop-courses
    * Access: Student (own)
    */
-  async submitRegistration(req: Request, res: Response): Promise<void> {
+  async dropCourses(req: Request, res: Response): Promise<void> {
     try {
-      const registrationId = parseInt(req.params.id);
+      const { studentId, semesterId, courseOfferingIds } = req.body;
 
-      if (isNaN(registrationId)) {
+      if (!studentId || !semesterId || !courseOfferingIds || !Array.isArray(courseOfferingIds)) {
         res.status(400).json({
           success: false,
-          message: 'Invalid registration ID'
+          message: 'Student ID, semester ID, and course offering IDs are required'
         });
         return;
       }
 
-      const updatedRegistration = await registrationService.submitRegistration(registrationId);
-
-      res.status(200).json({
-        success: true,
-        message: 'Registration submitted successfully',
-        data: updatedRegistration
-      });
-    } catch (error) {
-      console.error('Error submitting registration:', error);
-      res.status(500).json({
-        success: false,
-        message: error instanceof Error ? error.message : 'Failed to submit registration'
-      });
-    }
-  }
-
-  /**
-   * Approve a registration
-   * POST /api/registrations/:id/approve
-   * Access: Advisor, Admin
-   */
-  async approveRegistration(req: Request, res: Response): Promise<void> {
-    try {
-      const registrationId = parseInt(req.params.id);
-      const approverId = req.user?.userId; // From auth middleware
-
-      if (isNaN(registrationId)) {
-        res.status(400).json({
-          success: false,
-          message: 'Invalid registration ID'
-        });
-        return;
-      }
-
-      if (!approverId) {
-        res.status(401).json({
-          success: false,
-          message: 'User not authenticated'
-        });
-        return;
-      }
-
-      const updatedRegistration = await registrationService.approveRegistration(
-        registrationId,
-        approverId
-      );
-
-      res.status(200).json({
-        success: true,
-        message: 'Registration approved successfully',
-        data: updatedRegistration
-      });
-    } catch (error) {
-      console.error('Error approving registration:', error);
-      res.status(500).json({
-        success: false,
-        message: error instanceof Error ? error.message : 'Failed to approve registration'
-      });
-    }
-  }
-
-  /**
-   * Reject a registration
-   * POST /api/registrations/:id/reject
-   * Access: Advisor, Admin
-   */
-  async rejectRegistration(req: Request, res: Response): Promise<void> {
-    try {
-      const registrationId = parseInt(req.params.id);
-      const { rejectionReason } = req.body;
-
-      if (isNaN(registrationId)) {
-        res.status(400).json({
-          success: false,
-          message: 'Invalid registration ID'
-        });
-        return;
-      }
-
-      if (!rejectionReason) {
-        res.status(400).json({
-          success: false,
-          message: 'Rejection reason is required'
-        });
-        return;
-      }
-
-      const updatedRegistration = await registrationService.rejectRegistration(
-        registrationId,
-        rejectionReason
-      );
-
-      res.status(200).json({
-        success: true,
-        message: 'Registration rejected successfully',
-        data: updatedRegistration
-      });
-    } catch (error) {
-      console.error('Error rejecting registration:', error);
-      res.status(500).json({
-        success: false,
-        message: error instanceof Error ? error.message : 'Failed to reject registration'
-      });
-    }
-  }
-
-  /**
-   * Validate a registration
-   * GET /api/registrations/:id/validate
-   * Access: Student (own), Advisor, Admin
-   */
-  async validateRegistration(req: Request, res: Response): Promise<void> {
-    try {
-      const registrationId = parseInt(req.params.id);
-
-      if (isNaN(registrationId)) {
-        res.status(400).json({
-          success: false,
-          message: 'Invalid registration ID'
-        });
-        return;
-      }
-
-      const validation = await registrationService.validateRegistration(registrationId);
-
-      res.status(200).json({
-        success: true,
-        data: validation
-      });
-    } catch (error) {
-      console.error('Error validating registration:', error);
-      res.status(500).json({
-        success: false,
-        message: error instanceof Error ? error.message : 'Failed to validate registration'
-      });
-    }
-  }
-
-  /**
-   * Check course eligibility for a student
-   * GET /api/registrations/eligibility/:studentId/:courseOfferingId
-   * Access: Student (own), Advisor, Admin
-   */
-  async checkCourseEligibility(req: Request, res: Response): Promise<void> {
-    try {
-      const studentId = parseInt(req.params.studentId);
-      const courseOfferingId = parseInt(req.params.courseOfferingId);
-
-      if (isNaN(studentId) || isNaN(courseOfferingId)) {
-        res.status(400).json({
-          success: false,
-          message: 'Invalid student ID or course offering ID'
-        });
-        return;
-      }
-
-      const eligibility = await registrationService.checkCourseEligibility(
+      const result = await registrationService.dropCourses(
         studentId,
-        courseOfferingId
-      );
-
-      res.status(200).json({
-        success: true,
-        data: eligibility
-      });
-    } catch (error) {
-      console.error('Error checking course eligibility:', error);
-      res.status(500).json({
-        success: false,
-        message: error instanceof Error ? error.message : 'Failed to check course eligibility'
-      });
-    }
-  }
-
-  /**
-   * Get eligible courses for a student in a semester
-   * GET /api/registrations/eligible-courses/:studentId/:semesterId
-   * Access: Student (own), Advisor, Admin
-   */
-  async getEligibleCourses(req: Request, res: Response): Promise<void> {
-    try {
-      const studentId = parseInt(req.params.studentId);
-      const semesterId = parseInt(req.params.semesterId);
-
-      if (isNaN(studentId) || isNaN(semesterId)) {
-        res.status(400).json({
-          success: false,
-          message: 'Invalid student ID or semester ID'
-        });
-        return;
-      }
-
-      const eligibleCourses = await registrationService.getEligibleCourses(
-        studentId,
-        semesterId
-      );
-
-      res.status(200).json({
-        success: true,
-        data: eligibleCourses,
-        count: eligibleCourses.length
-      });
-    } catch (error) {
-      console.error('Error fetching eligible courses:', error);
-      res.status(500).json({
-        success: false,
-        message: error instanceof Error ? error.message : 'Failed to fetch eligible courses'
-      });
-    }
-  }
-
-  /**
-   * Get registration summary for a student
-   * GET /api/registrations/summary/:studentId/:semesterId
-   * Access: Student (own), Advisor, Admin
-   */
-  async getRegistrationSummary(req: Request, res: Response): Promise<void> {
-    try {
-      const studentId = parseInt(req.params.studentId);
-      const semesterId = parseInt(req.params.semesterId);
-
-      if (isNaN(studentId) || isNaN(semesterId)) {
-        res.status(400).json({
-          success: false,
-          message: 'Invalid student ID or semester ID'
-        });
-        return;
-      }
-
-      const summary = await registrationService.getRegistrationSummary(
-        studentId,
-        semesterId
-      );
-
-      res.status(200).json({
-        success: true,
-        data: summary
-      });
-    } catch (error) {
-      console.error('Error fetching registration summary:', error);
-      res.status(500).json({
-        success: false,
-        message: error instanceof Error ? error.message : 'Failed to fetch registration summary'
-      });
-    }
-  }
-
-  /**
-   * Bulk create registrations for multiple students
-   * POST /api/registrations/bulk
-   * Access: Admin only
-   */
-  async bulkCreateRegistrations(req: Request, res: Response): Promise<void> {
-    try {
-      const { studentIds, semesterId, courseOfferingIds } = req.body;
-      const createdBy = req.user?.userId;
-
-      if (!studentIds || !Array.isArray(studentIds) || studentIds.length === 0) {
-        res.status(400).json({
-          success: false,
-          message: 'Student IDs array is required'
-        });
-        return;
-      }
-
-      if (!semesterId) {
-        res.status(400).json({
-          success: false,
-          message: 'Semester ID is required'
-        });
-        return;
-      }
-
-      if (!courseOfferingIds || !Array.isArray(courseOfferingIds) || courseOfferingIds.length === 0) {
-        res.status(400).json({
-          success: false,
-          message: 'Course offering IDs array is required'
-        });
-        return;
-      }
-
-      if (!createdBy) {
-        res.status(401).json({
-          success: false,
-          message: 'User not authenticated'
-        });
-        return;
-      }
-
-      const result = await registrationService.bulkCreateRegistrations(
-        studentIds,
         semesterId,
-        courseOfferingIds,
-        createdBy
-      );
-
-      res.status(200).json({
-        success: true,
-        message: `Bulk registration completed: ${result.succeeded.length} succeeded, ${result.failed.length} failed`,
-        data: result
-      });
-    } catch (error) {
-      console.error('Error in bulk registration:', error);
-      res.status(500).json({
-        success: false,
-        message: error instanceof Error ? error.message : 'Failed to create bulk registrations'
-      });
-    }
-  }
-
-  /**
-   * Get students by registration status
-   * GET /api/registrations/students-by-status/:semesterId
-   * Access: Admin only
-   */
-  async getStudentsByRegistrationStatus(req: Request, res: Response): Promise<void> {
-    try {
-      const semesterId = parseInt(req.params.semesterId);
-      const programId = req.query.programId ? parseInt(req.query.programId as string) : undefined;
-      const departmentId = req.query.departmentId ? parseInt(req.query.departmentId as string) : undefined;
-      const institutionId = (req as any).user?.institutionId;
-
-      if (isNaN(semesterId)) {
-        res.status(400).json({
-          success: false,
-          message: 'Invalid semester ID'
-        });
-        return;
-      }
-
-      if (!institutionId) {
-        res.status(400).json({
-          success: false,
-          message: 'Institution ID not found in user context'
-        });
-        return;
-      }
-
-      const result = await registrationService.getStudentsByRegistrationStatus(
-        semesterId,
-        institutionId,
-        programId,
-        departmentId
-      );
-
-      res.status(200).json({
-        success: true,
-        data: result,
-        summary: {
-          totalStudents: result.registered.length + result.notRegistered.length,
-          registered: result.registered.length,
-          notRegistered: result.notRegistered.length
-        }
-      });
-    } catch (error) {
-      console.error('Error fetching students by registration status:', error);
-      res.status(500).json({
-        success: false,
-        message: error instanceof Error ? error.message : 'Failed to fetch students by registration status'
-      });
-    }
-  }
-
-  /**
-   * Register student for all eligible courses
-   * POST /api/registrations/register-all
-   * Access: Student
-   */
-  async registerAllEligibleCourses(req: Request, res: Response): Promise<void> {
-    try {
-      const { studentProfileId, semesterId } = req.body;
-
-      // Validate required fields
-      if (!studentProfileId || !semesterId) {
-        res.status(400).json({
-          success: false,
-          message: 'Student Profile ID and Semester ID are required'
-        });
-        return;
-      }
-
-      // Convert to numbers if needed
-      const studentProfileIdNum = typeof studentProfileId === 'string' ? parseInt(studentProfileId) : studentProfileId;
-      const semesterIdNum = typeof semesterId === 'string' ? parseInt(semesterId) : semesterId;
-
-      const result = await registrationService.registerAllEligibleCourses(
-        studentProfileIdNum,
-        semesterIdNum
+        courseOfferingIds
       );
 
       res.status(200).json(result);
     } catch (error) {
-      console.error('Error registering for all courses:', error);
+      console.error('Error dropping courses:', error);
       res.status(500).json({
         success: false,
-        message: error instanceof Error ? error.message : 'Failed to register for courses'
+        message: error instanceof Error ? error.message : 'Failed to drop courses'
+      });
+    }
+  }
+
+  /**
+   * Cancel entire registration
+   * POST /api/registrations/cancel
+   * Access: Student (own)
+   */
+  async cancelRegistration(req: Request, res: Response): Promise<void> {
+    try {
+      const { studentId, semesterId } = req.body;
+
+      if (!studentId || !semesterId) {
+        res.status(400).json({
+          success: false,
+          message: 'Student ID and semester ID are required'
+        });
+        return;
+      }
+
+      const result = await registrationService.cancelRegistration(studentId, semesterId);
+
+      res.status(200).json(result);
+    } catch (error) {
+      console.error('Error cancelling registration:', error);
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to cancel registration'
       });
     }
   }

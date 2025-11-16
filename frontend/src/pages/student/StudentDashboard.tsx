@@ -1,28 +1,24 @@
 import { useEffect, useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/auth.store';
 import { studentService } from '@/services/student.service';
-import { registrationService } from '@/services/registration.service';
+import { registrationService, CourseOfferingWithDetails, StudentRegistration } from '@/services/registration.service';
 import { academicService } from '@/services/academic.service';
 import { Student } from '@/types/student';
-import {
-	DashboardStats,
-	QuickActions,
-	AcademicOverview,
-	StudentAnalyticsBentoGrid,
-	RecentActivity,
-	StudentIdCard,
-} from '@/components/student';
+import { StudentIdCard } from '@/components/student';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { GraduationCap, Book, User, Mail, Phone, Calendar, Trash2, Send, CheckCircle } from 'lucide-react';
+import { GraduationCap, Book, CheckCircle, XCircle } from 'lucide-react';
 
 export default function StudentDashboard() {
 	const { user } = useAuthStore();
+	const queryClient = useQueryClient();
+	const [selectedCourses, setSelectedCourses] = useState<number[]>([]);
 	const [isNewStudent, setIsNewStudent] = useState(false);
 
 	// Fetch student profile data
@@ -37,7 +33,7 @@ export default function StudentDashboard() {
 			return await studentService.getStudentByUserId(user.id);
 		},
 		enabled: !!user?.id,
-		staleTime: 5 * 60 * 1000, // 5 minutes
+		staleTime: 5 * 60 * 1000,
 	});
 
 	// Fetch current semester
@@ -47,98 +43,116 @@ export default function StudentDashboard() {
 			const response = await academicService.getCurrentSemester();
 			return response.data;
 		},
-		staleTime: 10 * 60 * 1000, // 10 minutes
+		staleTime: 10 * 60 * 1000,
 	});
 
-	// Fetch eligible courses for registration
+	// Fetch available courses
 	const {
-		data: eligibleCoursesResponse,
-		refetch: refetchEligibleCourses,
+		data: availableCourses,
 		isLoading: isLoadingCourses,
 		error: coursesError
-	} = useQuery({
-		queryKey: ['eligibleCourses', studentProfile?.id, currentSemester?.id],
+	} = useQuery<CourseOfferingWithDetails[]>({
+		queryKey: ['availableCourses', currentSemester?.id],
 		queryFn: async () => {
-			if (!studentProfile?.id || !currentSemester?.id) return { data: [], count: 0 };
-			return await registrationService.getEligibleCourses(
-				String(studentProfile.id),
-				String(currentSemester.id)
-			);
+			if (!currentSemester?.id) return [];
+			return await registrationService.getAvailableCourses(currentSemester.id);
 		},
-		enabled: !!studentProfile?.id && !!currentSemester?.id,
+		enabled: !!currentSemester?.id,
 		staleTime: 5 * 60 * 1000,
 	});
 
-	const eligibleCourses = eligibleCoursesResponse?.data || [];
-
-	// Fetch registration summary
+	// Fetch student's current registration
 	const {
-		data: registrationSummary,
-		refetch: refetchSummary
-	} = useQuery({
-		queryKey: ['registrationSummary', studentProfile?.id, currentSemester?.id],
+		data: currentRegistration,
+		isLoading: isLoadingRegistration
+	} = useQuery<StudentRegistration | null>({
+		queryKey: ['studentRegistration', user?.id, currentSemester?.id],
 		queryFn: async () => {
-			if (!studentProfile?.id || !currentSemester?.id) return null;
-			return await registrationService.getRegistrationSummary(
-				String(studentProfile.id),
-				String(currentSemester.id)
-			);
+			if (!user?.id || !currentSemester?.id) return null;
+			return await registrationService.getStudentRegistration(user.id, currentSemester.id);
 		},
-		enabled: !!studentProfile?.id && !!currentSemester?.id,
-		staleTime: 2 * 60 * 1000, // 2 minutes - more frequent updates
+		enabled: !!user?.id && !!currentSemester?.id,
+		staleTime: 2 * 60 * 1000,
 	});
 
-	// Mutation for removing course from registration
-	const removeCourseMutation = useMutation({
-		mutationFn: async (registeredCourseId: string) => {
-			return await registrationService.removeCourseFromRegistration(registeredCourseId);
-		},
-		onSuccess: () => {
-			toast.success('Course has been removed from your registration.');
-			refetchSummary();
-			refetchEligibleCourses();
-		},
-		onError: (error: Error) => {
-			toast.error(error.message);
-		},
-	});
-
-	// Mutation for submitting registration
-	const submitRegistrationMutation = useMutation({
-		mutationFn: async (registrationId: string) => {
-			return await registrationService.submitRegistration(registrationId);
-		},
-		onSuccess: () => {
-			toast.success('Your course registration has been submitted for approval.');
-			refetchSummary();
-		},
-		onError: (error: Error) => {
-			toast.error(error.message);
-		},
-	});
-
-	// Mutation for registering all eligible courses
-	const registerAllMutation = useMutation({
+	// Register for courses mutation
+	const registerMutation = useMutation({
 		mutationFn: async () => {
-			if (!studentProfile?.id || !currentSemester?.id) {
-				throw new Error('Missing student profile or semester information');
+			if (!user?.id || !currentSemester?.id || selectedCourses.length === 0) {
+				throw new Error('Missing required information');
 			}
-			return await registrationService.registerAllEligibleCourses(
-				studentProfile.id,
-				currentSemester.id
+			return await registrationService.registerForCourses(
+				user.id,
+				currentSemester.id,
+				selectedCourses
 			);
 		},
 		onSuccess: (data) => {
-			toast.success(`Successfully registered for ${data.registeredCount} course${data.registeredCount !== 1 ? 's' : ''}`);
-			refetchSummary();
-			refetchEligibleCourses();
+			toast.success(data.message || `Successfully registered for ${selectedCourses.length} course(s)`);
+			setSelectedCourses([]);
+			queryClient.invalidateQueries({ queryKey: ['studentRegistration'] });
+			queryClient.invalidateQueries({ queryKey: ['availableCourses'] });
 		},
 		onError: (error: Error) => {
 			toast.error(error.message || 'Failed to register for courses');
 		},
 	});
 
-	// Check if student is newly registered (within last 24 hours)
+	// Drop courses mutation
+	const dropCoursesMutation = useMutation({
+		mutationFn: async (courseOfferingIds: number[]) => {
+			if (!user?.id || !currentSemester?.id) {
+				throw new Error('Missing required information');
+			}
+			return await registrationService.dropCourses(
+				user.id,
+				currentSemester.id,
+				courseOfferingIds
+			);
+		},
+		onSuccess: (data) => {
+			toast.success(data.message || 'Course(s) dropped successfully');
+			queryClient.invalidateQueries({ queryKey: ['studentRegistration'] });
+			queryClient.invalidateQueries({ queryKey: ['availableCourses'] });
+		},
+		onError: (error: Error) => {
+			toast.error(error.message || 'Failed to drop course(s)');
+		},
+	});
+
+	// Cancel registration mutation
+	const cancelRegistrationMutation = useMutation({
+		mutationFn: async () => {
+			if (!user?.id || !currentSemester?.id) {
+				throw new Error('Missing required information');
+			}
+			return await registrationService.cancelRegistration(user.id, currentSemester.id);
+		},
+		onSuccess: (data) => {
+			toast.success(data.message || 'Registration cancelled successfully');
+			queryClient.invalidateQueries({ queryKey: ['studentRegistration'] });
+			queryClient.invalidateQueries({ queryKey: ['availableCourses'] });
+		},
+		onError: (error: Error) => {
+			toast.error(error.message || 'Failed to cancel registration');
+		},
+	});
+
+	// Toggle course selection
+	const toggleCourseSelection = (courseOfferingId: number) => {
+		setSelectedCourses(prev =>
+			prev.includes(courseOfferingId)
+				? prev.filter(id => id !== courseOfferingId)
+				: [...prev, courseOfferingId]
+		);
+	};
+
+	// Calculate total credits for selected courses
+	const selectedCredits = availableCourses
+		?.filter(course => selectedCourses.includes(course.id))
+		.reduce((sum, course) => sum + course.course.creditHours, 0) || 0;
+
+	// Check if student is newly registered
 	useEffect(() => {
 		if (studentProfile?.createdAt) {
 			const createdDate = new Date(studentProfile.createdAt);
@@ -151,16 +165,9 @@ export default function StudentDashboard() {
 	if (isLoading) {
 		return (
 			<div className="space-y-8 p-8">
-				<div>
-					<Skeleton className="h-9 w-64" />
-					<Skeleton className="h-5 w-96 mt-2" />
-				</div>
-				<div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-					{[1, 2, 3, 4].map((i) => (
-						<Skeleton key={i} className="h-32" />
-					))}
-				</div>
+				<Skeleton className="h-9 w-64" />
 				<Skeleton className="h-64" />
+				<Skeleton className="h-96" />
 			</div>
 		);
 	}
@@ -192,380 +199,268 @@ export default function StudentDashboard() {
 					)}
 				</div>
 				<p className="text-muted-foreground mt-2">
-					Your academic progress and activities
+					Your academic dashboard
 				</p>
 			</div>
 
 			{/* New Student Welcome Message */}
 			{isNewStudent && (
-				<Alert className="bg-linear-to-r from-blue-50 to-indigo-50 border-blue-200">
+				<Alert className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
 					<GraduationCap className="h-5 w-5 text-blue-600" />
 					<AlertDescription className="text-blue-900">
-						<strong>Welcome to your student dashboard!</strong> Your account has been
-						successfully created. You can now access your courses, view your academic
-						information, and track your progress.
+						<strong>Welcome!</strong> Your account has been successfully created. You can now register for courses and access your student ID card.
 					</AlertDescription>
 				</Alert>
 			)}
 
-			{/* Dashboard Stats - Moved to top */}
-			<DashboardStats />
-
-			{/* Student ID Card - Full width, stacked vertically */}
+			{/* Student ID Card */}
 			{studentProfile && (
-				<div className="space-y-6">
-					<StudentIdCard student={studentProfile} />
-
-					{/* Profile and Quick Actions in two columns */}
-					<div className="grid lg:grid-cols-2 gap-6">
-						{/* Profile Information - Left Column */}
-						<Card className="border-l-4 border-l-blue-500">
-							<CardHeader>
-								<CardTitle className="flex items-center gap-2">
-									<User className="h-5 w-5" />
-									Student Profile
-								</CardTitle>
-							</CardHeader>
-							<CardContent>
-								<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-									{/* Personal Information */}
-									<div className="space-y-3">
-										<h4 className="font-semibold text-sm text-muted-foreground uppercase">
-											Personal Information
-										</h4>
-										<div className="space-y-3">
-											<div className="flex items-center gap-3">
-												<User className="h-4 w-4 text-muted-foreground" />
-												<span className="text-base">
-													{user?.firstName} {user?.middleName} {user?.lastName}
-												</span>
-											</div>
-											<div className="flex items-center gap-3">
-												<Mail className="h-4 w-4 text-muted-foreground" />
-												<span className="text-base">{user?.email}</span>
-											</div>
-											{user?.phone && (
-												<div className="flex items-center gap-3">
-													<Phone className="h-4 w-4 text-muted-foreground" />
-													<span className="text-base">{user?.phone}</span>
-												</div>
-											)}
-										</div>
-									</div>
-
-									{/* Academic Information */}
-									<div className="space-y-3">
-										<h4 className="font-semibold text-sm text-muted-foreground uppercase">
-											Academic Information
-										</h4>
-										<div className="space-y-3">
-											<div className="flex items-center gap-3">
-												<GraduationCap className="h-4 w-4 text-muted-foreground" />
-												<span className="text-base font-medium">
-													Student ID: {studentProfile.studentId}
-												</span>
-											</div>
-											{studentProfile.indexNumber && (
-												<div className="flex items-center gap-3">
-													<Book className="h-4 w-4 text-muted-foreground" />
-													<span className="text-base">
-														Index Number: {studentProfile.indexNumber}
-													</span>
-												</div>
-											)}
-											<div className="flex items-center gap-3">
-												<Calendar className="h-4 w-4 text-muted-foreground" />
-												<span className="text-base">
-													Level {studentProfile.level} - Semester {studentProfile.semester}
-												</span>
-											</div>
-										</div>
-									</div>
-
-									{/* Program Information - Spans both columns */}
-									{studentProfile.program && (
-										<div className="space-y-3 md:col-span-2">
-											<h4 className="font-semibold text-sm text-muted-foreground uppercase">
-												Program Details
-											</h4>
-											<div className="space-y-3">
-												<div>
-													<p className="text-lg font-medium">
-														{studentProfile.program.name}
-													</p>
-													<p className="text-sm text-muted-foreground">
-														{studentProfile.program.code}
-													</p>
-												</div>
-												{studentProfile.program.department && (
-													<div>
-														<p className="text-sm text-muted-foreground">
-															Department: {studentProfile.program.department.name}
-														</p>
-														{studentProfile.program.department.faculty && (
-															<p className="text-sm text-muted-foreground">
-																Faculty: {studentProfile.program.department.faculty.name}
-															</p>
-														)}
-													</div>
-												)}
-												<div className="flex gap-2 mt-3">
-													<Badge variant={studentProfile.enrollmentStatus === 'ACTIVE' ? 'default' : 'secondary'}>
-														{studentProfile.enrollmentStatus}
-													</Badge>
-													<Badge variant={studentProfile.academicStatus === 'GOOD_STANDING' ? 'default' : 'secondary'}>
-														{studentProfile.academicStatus}
-													</Badge>
-												</div>
-											</div>
-										</div>
-									)}
-								</div>
-							</CardContent>
-						</Card>
-
-						{/* Quick Actions - Right Column */}
-						<div className="lg:col-span-1">
-							<QuickActions />
-						</div>
-					</div>
-				</div>
+				<StudentIdCard student={studentProfile} />
 			)}
 
 			{/* Course Registration Section */}
-			{currentSemester && (
-				<Card>
+			<div className="grid gap-6 lg:grid-cols-2">
+				{/* Available Courses */}
+				<Card className="lg:col-span-1">
 					<CardHeader>
-						<CardTitle className="flex items-center justify-between">
-							<span>Course Registration - {currentSemester.name}</span>
-							{registrationSummary?.status && (
-								<Badge
-									variant={
-										registrationSummary.status === 'APPROVED' ? 'default' :
-										registrationSummary.status === 'SUBMITTED' ? 'secondary' :
-										registrationSummary.status === 'DRAFT' ? 'outline' :
-										'destructive'
-									}
-								>
-									{registrationSummary.status}
+						<CardTitle className="flex items-center gap-2">
+							<Book className="h-5 w-5" />
+							Available Courses
+							{currentSemester && (
+								<Badge variant="outline" className="ml-auto">
+									{currentSemester.name}
 								</Badge>
 							)}
 						</CardTitle>
 					</CardHeader>
-					<CardContent className="space-y-6">
-						{/* Registration Summary */}
-						{registrationSummary && (
+					<CardContent>
+						{isLoadingCourses ? (
+							<div className="space-y-3">
+								{[1, 2, 3].map((i) => (
+									<Skeleton key={i} className="h-20" />
+								))}
+							</div>
+						) : coursesError ? (
+							<Alert variant="destructive">
+								<AlertDescription>
+									Failed to load available courses.
+								</AlertDescription>
+							</Alert>
+						) : !availableCourses || availableCourses.length === 0 ? (
+							<Alert>
+								<AlertDescription>
+									No courses available for registration at this time.
+								</AlertDescription>
+							</Alert>
+						) : (
 							<>
-								<div className="p-4 bg-muted/50 rounded-lg space-y-2">
-									<h4 className="font-semibold text-sm">Registration Summary</h4>
-									<div className="grid grid-cols-3 gap-4 text-sm">
-										<div>
-											<span className="text-muted-foreground">Total Credits:</span>
-											<p className="font-semibold">{registrationSummary.totalCredits}</p>
-										</div>
-										<div>
-											<span className="text-muted-foreground">Min Credits:</span>
-											<p className="font-semibold">{registrationSummary.minCredits}</p>
-										</div>
-										<div>
-											<span className="text-muted-foreground">Max Credits:</span>
-											<p className="font-semibold">{registrationSummary.maxCredits}</p>
-										</div>
-									</div>
-								</div>
+								<div className="space-y-2 mb-4">
+									{availableCourses.map((offering) => {
+										const isSelected = selectedCourses.includes(offering.id);
+										const isRegistered = currentRegistration?.items?.some(
+											item => item.courseOfferingId === offering.id && item.status === 'REGISTERED'
+										);
+										const isFull = offering.currentEnrollment >= offering.maxCapacity;
 
-								{/* Registered Courses */}
-								{registrationSummary?.registeredCourses && registrationSummary.registeredCourses.length > 0 && (
-								<div className="mt-4">
-										<h5 className="font-medium text-sm mb-2">Registered Courses:</h5>
-										<div className="space-y-1">
-											{registrationSummary.registeredCourses.map((course) => (
-												<div key={course.id} className="flex items-center justify-between p-2 bg-background rounded">
-													<div className="flex items-center gap-2">
-														<Book className="h-4 w-4 text-muted-foreground" />
-														<span className="text-sm">
-															{course.courseCode} - {course.courseName}
-														</span>
-														<Badge variant="outline" className="text-xs">
-															{course.credits} credits
-														</Badge>
-													</div>
-													{registrationSummary.status === 'DRAFT' && (
-														<Button
-															size="sm"
-															variant="ghost"
-															onClick={() => removeCourseMutation.mutate(course.id)}
-															disabled={removeCourseMutation.isPending}
-														>
-															<Trash2 className="h-4 w-4 text-destructive" />
-														</Button>
-													)}
-												</div>
-											))}
-										</div>
-									</div>
-								)}
-
-								{/* Submit Button */}
-								{registrationSummary.status === 'DRAFT' && registrationSummary.canSubmit && (
-									<Button
-										className="w-full mt-4"
-										onClick={() => {
-											if (registrationSummary.registrationId) {
-												submitRegistrationMutation.mutate(registrationSummary.registrationId);
-											}
-										}}
-										disabled={submitRegistrationMutation.isPending}
-									>
-										<Send className="h-4 w-4 mr-2" />
-										Submit Registration for Approval
-									</Button>
-								)}
-
-								{registrationSummary.status === 'APPROVED' && (
-									<Alert className="mt-4">
-										<CheckCircle className="h-4 w-4" />
-										<AlertDescription>
-											Your course registration has been approved. You are now enrolled in these courses.
-										</AlertDescription>
-									</Alert>
-								)}
-							</>
-						)}
-
-						{/* Available Courses */}
-						{registrationSummary?.status !== 'APPROVED' && (
-							<div>
-								<div className="flex items-center justify-between mb-3">
-									<div>
-										<h4 className="font-semibold text-sm">
-											Available Courses
-											{eligibleCoursesResponse?.count !== undefined && (
-												<Badge variant="outline" className="ml-2">
-													{eligibleCoursesResponse.count} {eligibleCoursesResponse.count === 1 ? 'course' : 'courses'}
-												</Badge>
-											)}
-										</h4>
-									</div>
-
-									{/* Register All Button */}
-									{!isLoadingCourses && !coursesError && eligibleCourses.length > 0 &&
-									(!registrationSummary || registrationSummary?.status === 'DRAFT') && (
-										<Button
-											onClick={() => registerAllMutation.mutate()}
-											disabled={registerAllMutation.isPending}
-											className="gap-2"
-										>
-											<GraduationCap className="h-4 w-4" />
-											{registerAllMutation.isPending ? 'Registering...' : 'Register All Courses'}
-										</Button>
-									)}
-								</div>
-
-								{/* Loading State */}
-								{isLoadingCourses && (
-									<div className="space-y-2">
-										{[1, 2, 3].map((i) => (
-											<div key={i} className="p-3 border rounded-lg">
-												<Skeleton className="h-6 w-3/4 mb-2" />
-												<Skeleton className="h-4 w-1/2" />
-											</div>
-										))}
-									</div>
-								)}
-
-								{/* Error State */}
-								{coursesError && (
-									<Alert variant="destructive">
-										<AlertDescription>
-											Failed to load available courses. Please try refreshing the page.
-										</AlertDescription>
-									</Alert>
-								)}
-
-								{/* Empty State */}
-								{!isLoadingCourses && !coursesError && eligibleCourses.length === 0 && (
-									<Alert>
-										<AlertDescription>
-											No courses are available for registration at this time. Please check back later or contact your academic advisor.
-										</AlertDescription>
-									</Alert>
-								)}
-
-								{/* Courses List */}
-								{!isLoadingCourses && !coursesError && eligibleCourses.length > 0 && (
-									<div className="space-y-2">
-										{eligibleCourses
-											.filter(item =>
-												!registrationSummary?.registeredCourses?.some(rc => rc.courseCode === item.courseOffering.course.code)
-											)
-											.map((item) => {
-												const { courseOffering, eligibility } = item;
-												const { course, primaryLecturer } = courseOffering;
-
-												return (
-													<div
-														key={courseOffering.id}
-														className={`p-3 border rounded-lg transition-colors ${
-															eligibility.isEligible ? 'bg-background' : 'bg-muted/30 opacity-75'
-														}`}
-													>
-														<div className="flex-1">
-															<div className="flex items-center gap-2 flex-wrap">
-																<span className="font-medium">{course.code}</span>
-																<span className="text-muted-foreground">-</span>
-																<span>{course.name}</span>
-																<Badge variant="secondary" className="text-xs">
-																	{course.creditHours} credits
-																</Badge>
-																<Badge variant="outline" className="text-xs">
-																	{course.courseType}
-																</Badge>
+										return (
+											<div
+												key={offering.id}
+												className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
+													isSelected ? 'bg-blue-50 border-blue-300' : 'hover:bg-gray-50'
+												} ${isRegistered ? 'opacity-50' : ''}`}
+											>
+												<Checkbox
+													id={`course-${offering.id}`}
+													checked={isSelected}
+													onCheckedChange={() => toggleCourseSelection(offering.id)}
+													disabled={isRegistered || isFull || registerMutation.isPending}
+												/>
+												<label
+													htmlFor={`course-${offering.id}`}
+													className="flex-1 cursor-pointer"
+												>
+													<div className="flex items-start justify-between">
+														<div>
+															<div className="font-medium">
+																{offering.course.code} - {offering.course.name}
 															</div>
-
-															{primaryLecturer && (
-																<p className="text-sm text-muted-foreground mt-1">
-																	Instructor: {primaryLecturer.firstName} {primaryLecturer.lastName}
-																</p>
-															)}
-
-															{course.prerequisites && (
-																<p className="text-xs text-muted-foreground mt-1">
-																	Prerequisites: {JSON.parse(course.prerequisites).join(', ')}
-																</p>
-															)}
-
-															{!eligibility.isEligible && eligibility.reasons.length > 0 && (
-																<div className="mt-2">
-																	{eligibility.reasons.map((reason, idx) => (
-																		<p key={idx} className="text-xs text-destructive">
-																			⚠ {reason}
-																		</p>
-																	))}
-																</div>
+															<div className="text-sm text-muted-foreground">
+																{offering.course.creditHours} credits
+																{offering.instructor && ` • ${offering.instructor.firstName} ${offering.instructor.lastName}`}
+															</div>
+															<div className="text-xs text-muted-foreground mt-1">
+																{offering.currentEnrollment}/{offering.maxCapacity} enrolled
+															</div>
+														</div>
+														<div className="flex flex-col gap-1">
+															{isRegistered && (
+															<Badge variant="secondary" className="text-xs bg-green-100 text-green-800 border-green-200">
+																<CheckCircle className="h-3 w-3 mr-1" />
+																Registered
+															</Badge>
+														)}
+															{isFull && !isRegistered && (
+																<Badge variant="destructive" className="text-xs">
+																	Full
+																</Badge>
 															)}
 														</div>
 													</div>
-												);
-											})}
+												</label>
+											</div>
+										);
+									})}
+								</div>
+
+								{/* Registration Actions */}
+								{selectedCourses.length > 0 && (
+									<div className="pt-4 border-t">
+										<div className="flex items-center justify-between mb-3">
+											<div className="text-sm">
+												<span className="font-medium">{selectedCourses.length} course(s) selected</span>
+												<span className="text-muted-foreground ml-2">({selectedCredits} credits)</span>
+											</div>
+											<Button
+												size="sm"
+												variant="outline"
+												onClick={() => setSelectedCourses([])}
+											>
+												Clear Selection
+											</Button>
+										</div>
+										<Button
+											className="w-full"
+											onClick={() => registerMutation.mutate()}
+											disabled={registerMutation.isPending}
+										>
+											{registerMutation.isPending ? 'Registering...' : 'Register for Selected Courses'}
+										</Button>
 									</div>
 								)}
-							</div>
+							</>
 						)}
 					</CardContent>
 				</Card>
-			)}
 
-			<AcademicOverview />
+				{/* Registered Courses */}
+				<Card className="lg:col-span-1">
+					<CardHeader>
+						<CardTitle className="flex items-center gap-2">
+							<GraduationCap className="h-5 w-5" />
+							My Registered Courses
+						</CardTitle>
+					</CardHeader>
+					<CardContent>
+						{isLoadingRegistration ? (
+							<div className="space-y-3">
+								{[1, 2].map((i) => (
+									<Skeleton key={i} className="h-20" />
+								))}
+							</div>
+						) : !currentRegistration || currentRegistration.items.length === 0 ? (
+							<Alert>
+								<AlertDescription>
+									You haven't registered for any courses yet.
+								</AlertDescription>
+							</Alert>
+						) : (
+							<>
+								<div className="space-y-2 mb-4">
+									{currentRegistration.items.map((item) => (
+										<div
+											key={item.id}
+											className="p-3 rounded-lg border hover:bg-gray-50 transition-colors"
+										>
+											<div className="flex items-start justify-between">
+												<div className="flex-1">
+													<div className="font-medium">
+														{item.courseOffering.course.code} - {item.courseOffering.course.name}
+													</div>
+													<div className="text-sm text-muted-foreground">
+														{item.courseOffering.course.creditHours} credits
+														{item.courseOffering.instructor &&
+															` • ${item.courseOffering.instructor.firstName} ${item.courseOffering.instructor.lastName}`
+														}
+													</div>
+													<div className="flex items-center gap-2 mt-2">
+														<Badge
+															variant={
+																item.status === 'REGISTERED' ? 'secondary' :
+																item.status === 'DROPPED' ? 'destructive' :
+																'secondary'
+															}
+															className={`text-xs ${item.status === 'REGISTERED' ? 'bg-green-100 text-green-800 border-green-200' : ''}`}
+														>
+															{item.status === 'REGISTERED' && <CheckCircle className="h-3 w-3 mr-1" />}
+															{item.status === 'DROPPED' && <XCircle className="h-3 w-3 mr-1" />}
+															{item.status}
+														</Badge>
+													</div>
+												</div>
+												{item.status === 'REGISTERED' && (
+													<Button
+														size="sm"
+														variant="ghost"
+														className="text-red-600 hover:text-red-700 hover:bg-red-50"
+														onClick={() => dropCoursesMutation.mutate([item.courseOfferingId])}
+														disabled={dropCoursesMutation.isPending}
+													>
+														<XCircle className="h-4 w-4" />
+													</Button>
+												)}
+											</div>
+										</div>
+									))}
+								</div>
 
-			<div className="space-y-4">
-				<h2 className="text-lg font-semibold text-foreground">
-					Academic Analytics
-				</h2>
-				<StudentAnalyticsBentoGrid />
+								{/* Registration Summary */}
+								<div className="pt-4 border-t space-y-2">
+									<div className="flex justify-between text-sm">
+										<span className="text-muted-foreground">Total Courses:</span>
+										<span className="font-medium">
+											{currentRegistration.items.filter(item => item.status === 'REGISTERED').length}
+										</span>
+									</div>
+									<div className="flex justify-between text-sm">
+										<span className="text-muted-foreground">Total Credits:</span>
+										<span className="font-medium">{currentRegistration.totalCredits}</span>
+									</div>
+									<div className="flex justify-between text-sm">
+										<span className="text-muted-foreground">Status:</span>
+										<Badge
+											variant={
+												currentRegistration.status === 'ACTIVE' ? 'secondary' :
+												currentRegistration.status === 'CANCELLED' ? 'destructive' :
+												'secondary'
+											}
+											className={currentRegistration.status === 'ACTIVE' ? 'bg-green-100 text-green-800 border-green-200' : ''}
+										>
+											{currentRegistration.status}
+										</Badge>
+									</div>
+
+									{currentRegistration.status === 'ACTIVE' && currentRegistration.items.length > 0 && (
+										<Button
+											variant="destructive"
+											size="sm"
+											className="w-full mt-4"
+											onClick={() => {
+												if (confirm('Are you sure you want to cancel your entire registration? This will drop all registered courses.')) {
+													cancelRegistrationMutation.mutate();
+												}
+											}}
+											disabled={cancelRegistrationMutation.isPending}
+										>
+											<XCircle className="h-4 w-4 mr-2" />
+											{cancelRegistrationMutation.isPending ? 'Cancelling...' : 'Cancel Registration'}
+										</Button>
+									)}
+								</div>
+							</>
+						)}
+					</CardContent>
+				</Card>
 			</div>
-
-			<RecentActivity />
 		</div>
 	);
 }

@@ -1,79 +1,37 @@
-import { PrismaClient, Prisma } from '@prisma/client';
-import {
-  CourseRegistrationWithRelations,
-  RegisteredCourseWithRelations,
-  CreateCourseRegistrationData,
-  UpdateCourseRegistrationData,
-  AddCourseToRegistrationData,
-  RegistrationValidation,
-  CourseEligibility,
-  RegistrationSummary,
-  RegistrationStatus,
-  RegistrationType,
-} from '../types/registration';
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
 /**
- * RegistrationService
- * Handles course registration workflow and validation
+ * Simplified RegistrationService
+ * Handles course registration with single-action workflow
  */
 export class RegistrationService {
 
   /**
-   * Create a new course registration (DRAFT status)
+   * Register student for multiple courses in one action
    */
-  async createRegistration(
-    data: CreateCourseRegistrationData
-  ): Promise<CourseRegistrationWithRelations> {
-    const { studentId, semesterId, advisorId, notes } = data;
-
+  async registerForCourses(
+    studentId: number,
+    semesterId: number,
+    courseOfferingIds: number[]
+  ): Promise<{
+    success: boolean;
+    message: string;
+    registeredCourses: any[];
+    totalCredits: number;
+  }> {
     // Validate student exists and is active
     const student = await prisma.user.findUnique({
       where: { id: studentId },
-      include: {
-        enrollments: {
-          where: { semesterId },
-          include: { course: true }
-        },
-        academicHistory: true
-      }
+      include: { studentProfiles: true }
     });
 
-    if (!student) {
-      throw new Error('Student not found');
+    if (!student || student.status !== 'ACTIVE') {
+      throw new Error('Student not found or inactive');
     }
 
-    if (student.status !== 'ACTIVE') {
-      throw new Error('Student account is not active');
-    }
-
-    // Check if registration already exists for this semester
-    const existingRegistration = await prisma.courseRegistration.findFirst({
-      where: {
-        studentId,
-        semesterId,
-        status: {
-          notIn: ['CANCELLED', 'REJECTED']
-        }
-      }
-    });
-
-    if (existingRegistration) {
-      throw new Error('A registration already exists for this semester');
-    }
-
-    // Get semester details
-    const semester = await prisma.semester.findUnique({
-      where: { id: semesterId },
-      include: { academicYear: true }
-    });
-
-    if (!semester) {
-      throw new Error('Semester not found');
-    }
-
-    // Check if registration is open
+    // Check if registration period is open
     const academicPeriod = await prisma.academicPeriod.findFirst({
       where: { semesterId },
       orderBy: { createdAt: 'desc' }
@@ -88,695 +46,136 @@ export class RegistrationService {
       throw new Error('Registration period is not open');
     }
 
-    // Create the registration
+    // Check if student already has an active registration
+    const existingRegistration = await prisma.courseRegistration.findFirst({
+      where: {
+        studentId,
+        semesterId,
+        status: 'ACTIVE'
+      }
+    });
+
+    if (existingRegistration) {
+      throw new Error('Student already has an active registration for this semester');
+    }
+
+    // Validate courses and calculate total credits
+    let totalCredits = 0;
+    const validCourses = [];
+
+    for (const courseOfferingId of courseOfferingIds) {
+      const courseOffering = await prisma.courseOffering.findUnique({
+        where: { id: courseOfferingId },
+        include: {
+          course: true
+        }
+      });
+
+      if (!courseOffering) {
+        throw new Error(`Course offering ${courseOfferingId} not found`);
+      }
+
+      // Check capacity
+      const enrolledCount = await prisma.courseRegistrationItem.count({
+        where: {
+          courseOfferingId: courseOfferingId,
+          status: 'REGISTERED'
+        }
+      });
+      if (enrolledCount >= (courseOffering.maxEnrollment || 0)) {
+        throw new Error(`Course ${courseOffering.course.code} is at full capacity`);
+      }
+
+      // Basic eligibility check (simplified)
+      const isEligible = await this.checkBasicEligibility(studentId, courseOfferingId);
+      if (!isEligible) {
+        throw new Error(`Not eligible for course ${courseOffering.course.code}`);
+      }
+
+      totalCredits += courseOffering.course.creditHours;
+      validCourses.push(courseOffering);
+    }
+
+    // Check credit limits
+    const maxCredits = 24;
+    const minCredits = 12;
+
+    if (totalCredits < minCredits) {
+      throw new Error(`Must register for at least ${minCredits} credits`);
+    }
+
+    if (totalCredits > maxCredits) {
+      throw new Error(`Cannot register for more than ${maxCredits} credits`);
+    }
+
+    // Create registration
     const registration = await prisma.courseRegistration.create({
       data: {
         studentId,
         semesterId,
-        status: RegistrationStatus.DRAFT,
-        totalCredits: 0,
-        advisorId,
-        notes
-      },
-      include: {
-        student: {
-          include: {
-            studentProfiles: true
-          }
-        },
-        semester: {
-          include: {
-            academicYear: true
-          }
-        },
-        registeredCourses: {
-          include: {
-            courseOffering: {
-              include: {
-                course: true,
-                primaryLecturer: true
-              }
-            }
-          }
-        },
-        advisor: true
+        status: 'ACTIVE',
+        totalCredits
       }
     });
 
-    return registration as CourseRegistrationWithRelations;
-  }
-
-  /**
-   * Get a registration by ID
-   */
-  async getRegistrationById(
-    registrationId: number
-  ): Promise<CourseRegistrationWithRelations | null> {
-    const registration = await prisma.courseRegistration.findUnique({
-      where: { id: registrationId },
-      include: {
-        student: {
-          include: { studentProfiles: true }
+    // Create registration items
+    const registeredCourses = [];
+    for (const courseOffering of validCourses) {
+      const item = await prisma.courseRegistrationItem.create({
+        data: {
+          registrationId: registration.id,
+          courseOfferingId: courseOffering.id,
+          status: 'REGISTERED'
         },
-        semester: {
-          include: {
-            academicYear: true
-          }
-        },
-        registeredCourses: {
-          include: {
-            courseOffering: {
-              include: {
-                course: true,
-                primaryLecturer: true,
-              }
+        include: {
+          courseOffering: {
+            include: {
+              course: true,
+              primaryLecturer: true
             }
           }
-        },
-        advisor: true
-      }
-    });
-
-    return registration as CourseRegistrationWithRelations | null;
-  }
-
-  /**
-   * Get all registrations for a student
-   */
-  async getStudentRegistrations(
-    studentId: number,
-    semesterId?: number
-  ): Promise<CourseRegistrationWithRelations[]> {
-    const where: Prisma.CourseRegistrationWhereInput = { studentId };
-    if (semesterId) {
-      where.semesterId = semesterId;
-    }
-
-    const registrations = await prisma.courseRegistration.findMany({
-      where,
-      include: {
-        student: {
-          include: {
-            studentProfiles: true
-          }
-        },
-        semester: {
-          include: {
-            academicYear: true
-          }
-        },
-        registeredCourses: {
-          include: {
-            courseOffering: {
-              include: {
-                course: true,
-                primaryLecturer: true,
-              }
-            }
-          }
-        },
-        advisor: true
-      },
-      orderBy: { createdAt: 'desc' }
-    });
-
-    return registrations as CourseRegistrationWithRelations[];
-  }
-
-  /**
-   * Add a course to a registration
-   */
-  async addCourseToRegistration(
-    registrationId: number,
-    data: AddCourseToRegistrationData
-  ): Promise<RegisteredCourseWithRelations> {
-    const { courseOfferingId, registrationType, prerequisitesOverride, overrideReason } = data;
-
-    // Get registration
-    const registration = await this.getRegistrationById(registrationId);
-    if (!registration) {
-      throw new Error('Registration not found');
-    }
-
-    // Only allow adding courses to DRAFT registrations
-    if (registration.status !== RegistrationStatus.DRAFT) {
-      throw new Error('Can only add courses to draft registrations');
-    }
-
-    // Get course offering details
-    const courseOffering = await prisma.courseOffering.findUnique({
-      where: { id: courseOfferingId },
-      include: {
-        course: true,
-        primaryLecturer: true,
-        _count: {
-          select: { enrollments: true, registeredCourses: true }
         }
-      }
-    });
-
-    if (!courseOffering) {
-      throw new Error('Course offering not found');
+      });
+      registeredCourses.push(item);
     }
-
-    // Check if course is already registered
-    const existingCourse = await prisma.registeredCourse.findFirst({
-      where: {
-        registrationId,
-        courseOfferingId
-      }
-    });
-
-    if (existingCourse) {
-      throw new Error('Course is already registered');
-    }
-
-    // Check capacity
-    const totalEnrolled = courseOffering._count.enrollments + courseOffering._count.registeredCourses;
-    const maxEnrollment = courseOffering.maxEnrollment || 0;
-    if (totalEnrolled >= maxEnrollment) {
-      throw new Error('Course is at full capacity');
-    }
-
-    // Check eligibility
-    const eligibility = await this.checkCourseEligibility(
-      registration.studentId,
-      courseOfferingId
-    );
-
-    if (!eligibility.isEligible && !prerequisitesOverride) {
-      throw new Error(`Course not eligible: ${eligibility.reasons.join(', ')}`);
-    }
-
-    // Calculate new total credits
-    const newTotalCredits = registration.totalCredits + courseOffering.course.creditHours;
-
-    // Check credit limits (configurable, default max 24)
-    const maxCredits = 24;
-    const minCredits = 12;
-
-    if (newTotalCredits > maxCredits) {
-      throw new Error(`Exceeds maximum credits limit of ${maxCredits}`);
-    }
-
-    // Add the course
-    const registeredCourse = await prisma.registeredCourse.create({
-      data: {
-        registrationId,
-        courseOfferingId,
-        registrationType: registrationType || RegistrationType.REGULAR,
-        prerequisitesMet: eligibility.prerequisitesMet,
-        prerequisitesOverride: prerequisitesOverride || false,
-        overrideReason,
-        isLocked: false
-      },
-      include: {
-        courseOffering: {
-          include: {
-            course: true,
-            primaryLecturer: true,          }
-        },
-        registration: true
-      }
-    });
-
-    // Update total credits
-    await prisma.courseRegistration.update({
-      where: { id: registrationId },
-      data: { totalCredits: newTotalCredits }
-    });
-
-    return registeredCourse as RegisteredCourseWithRelations;
-  }
-
-  /**
-   * Remove a course from a registration
-   */
-  async removeCourseFromRegistration(
-    registeredCourseId: number,
-    dropReason?: string
-  ): Promise<void> {
-    const registeredCourse = await prisma.registeredCourse.findUnique({
-      where: { id: registeredCourseId },
-      include: {
-        registration: true,
-        courseOffering: {
-          include: { course: true }
-        }
-      }
-    });
-
-    if (!registeredCourse) {
-      throw new Error('Registered course not found');
-    }
-
-    // Only allow removing from DRAFT registrations
-    if (registeredCourse.registration.status !== RegistrationStatus.DRAFT) {
-      throw new Error('Can only remove courses from draft registrations');
-    }
-
-    // Check if course is locked
-    if (registeredCourse.isLocked) {
-      throw new Error('This course is locked and cannot be removed');
-    }
-
-    // Calculate new total credits
-    const newTotalCredits = registeredCourse.registration.totalCredits -
-                           registeredCourse.courseOffering.course.creditHours;
-
-    // Delete the registered course
-    await prisma.registeredCourse.delete({
-      where: { id: registeredCourseId }
-    });
-
-    // Update total credits
-    await prisma.courseRegistration.update({
-      where: { id: registeredCourse.registrationId },
-      data: { totalCredits: Math.max(0, newTotalCredits) }
-    });
-  }
-
-  /**
-   * Submit a registration for approval
-   */
-  async submitRegistration(registrationId: number): Promise<CourseRegistrationWithRelations> {
-    const registration = await this.getRegistrationById(registrationId);
-
-    if (!registration) {
-      throw new Error('Registration not found');
-    }
-
-    if (registration.status !== RegistrationStatus.DRAFT) {
-      throw new Error('Only draft registrations can be submitted');
-    }
-
-    // Validate the registration
-    const validation = await this.validateRegistration(registrationId);
-
-    if (!validation.canSubmit) {
-      throw new Error(`Registration cannot be submitted: ${validation.errors.join(', ')}`);
-    }
-
-    // Update status
-    const updated = await prisma.courseRegistration.update({
-      where: { id: registrationId },
-      data: {
-        status: RegistrationStatus.SUBMITTED,
-        submittedAt: new Date()
-      },
-      include: {
-        student: {
-          include: { studentProfiles: true }
-        },
-        semester: {
-          include: {
-            academicYear: true
-          }
-        },
-        registeredCourses: {
-          include: {
-            courseOffering: {
-              include: {
-                course: true,
-                primaryLecturer: true,
-              }
-            }
-          }
-        },
-        advisor: true
-      }
-    });
-
-    return updated as CourseRegistrationWithRelations;
-  }
-
-  /**
-   * Approve a registration
-   */
-  async approveRegistration(
-    registrationId: number,
-    approverId: number
-  ): Promise<CourseRegistrationWithRelations> {
-    const registration = await this.getRegistrationById(registrationId);
-
-    if (!registration) {
-      throw new Error('Registration not found');
-    }
-
-    if (registration.status !== RegistrationStatus.SUBMITTED) {
-      throw new Error('Only submitted registrations can be approved');
-    }
-
-    // Validate the registration
-    const validation = await this.validateRegistration(registrationId);
-
-    if (!validation.canApprove) {
-      throw new Error(`Registration cannot be approved: ${validation.errors.join(', ')}`);
-    }
-
-    // Update status
-    const updated = await prisma.courseRegistration.update({
-      where: { id: registrationId },
-      data: {
-        status: RegistrationStatus.APPROVED,
-        approvedBy: approverId,
-        approvedAt: new Date()
-      },
-      include: {
-        student: {
-          include: { studentProfiles: true }
-        },
-        semester: {
-          include: {
-            academicYear: true
-          }
-        },
-        registeredCourses: {
-          include: {
-            courseOffering: {
-              include: {
-                course: true,
-                primaryLecturer: true,
-              }
-            }
-          }
-        },
-        advisor: true
-      }
-    });
-
-    // Create enrollments for approved courses
-    await this.createEnrollmentsFromRegistration(registrationId);
-
-    return updated as CourseRegistrationWithRelations;
-  }
-
-  /**
-   * Reject a registration
-   */
-  async rejectRegistration(
-    registrationId: number,
-    rejectionReason: string
-  ): Promise<CourseRegistrationWithRelations> {
-    const registration = await this.getRegistrationById(registrationId);
-
-    if (!registration) {
-      throw new Error('Registration not found');
-    }
-
-    if (registration.status !== RegistrationStatus.SUBMITTED) {
-      throw new Error('Only submitted registrations can be rejected');
-    }
-
-    // Update status
-    const updated = await prisma.courseRegistration.update({
-      where: { id: registrationId },
-      data: {
-        status: RegistrationStatus.REJECTED,
-        rejectedAt: new Date(),
-        rejectionReason
-      },
-      include: {
-        student: {
-          include: { studentProfiles: true }
-        },
-        semester: {
-          include: {
-            academicYear: true
-          }
-        },
-        registeredCourses: {
-          include: {
-            courseOffering: {
-              include: {
-                course: true,
-                primaryLecturer: true,
-              }
-            }
-          }
-        },
-        advisor: true
-      }
-    });
-
-    return updated as CourseRegistrationWithRelations;
-  }
-
-  /**
-   * Validate a registration
-   */
-  async validateRegistration(registrationId: number): Promise<RegistrationValidation> {
-    const registration = await this.getRegistrationById(registrationId);
-
-    if (!registration) {
-      throw new Error('Registration not found');
-    }
-
-    const errors: string[] = [];
-    const warnings: string[] = [];
-
-    // Check minimum credits (default 12)
-    const minCredits = 12;
-    if (registration.totalCredits < minCredits) {
-      errors.push(`Must register for at least ${minCredits} credits`);
-    }
-
-    const registeredCourses = registration.registeredCourses || [];
-
-    // Check if at least one course is registered
-    if (registeredCourses.length === 0) {
-      errors.push('Must register for at least one course');
-    }
-
-    // Check each course for eligibility and conflicts
-    for (const regCourse of registeredCourses) {
-      // Skip if courseOffering is not loaded
-      if (!regCourse.courseOffering) continue;
-
-      const eligibility = await this.checkCourseEligibility(
-        registration.studentId,
-        regCourse.courseOfferingId
-      );
-
-      const courseCode = regCourse.courseOffering.course.code;
-
-      if (!eligibility.isEligible && !regCourse.prerequisitesOverride) {
-        errors.push(`${courseCode}: Not eligible`);
-      }
-
-      if (eligibility.hasTimeConflict) {
-        errors.push(`${courseCode}: Time conflict with another course`);
-      }
-
-      if (!eligibility.hasCapacity) {
-        errors.push(`${courseCode}: Course is full`);
-      }
-
-      if (!eligibility.prerequisitesMet && !regCourse.prerequisitesOverride) {
-        warnings.push(
-          `${courseCode}: Missing prerequisites - ${eligibility.missingPrerequisites.join(', ')}`
-        );
-      }
-    }
-
-    const isValid = errors.length === 0;
-    const canSubmit = isValid && registration.status === RegistrationStatus.DRAFT;
-    const canApprove = isValid && registration.status === RegistrationStatus.SUBMITTED;
 
     return {
-      isValid,
-      errors,
-      warnings,
-      canSubmit,
-      canApprove
+      success: true,
+      message: `Successfully registered for ${registeredCourses.length} courses`,
+      registeredCourses,
+      totalCredits
     };
   }
 
   /**
-   * Check if a student is eligible for a course
+   * Get available courses for a student in a semester
    */
-  async checkCourseEligibility(
+  async getAvailableCourses(
     studentId: number,
-    courseOfferingId: number
-  ): Promise<CourseEligibility> {
-    const courseOffering = await prisma.courseOffering.findUnique({
-      where: { id: courseOfferingId },
-      include: {
-        course: true,
-        _count: {
-          select: { enrollments: true, registeredCourses: true }
-        }
-      }
-    });
-
-    if (!courseOffering) {
-      throw new Error('Course offering not found');
-    }
-
-    // Get student's academic history
-    const student = await prisma.user.findUnique({
-      where: { id: studentId },
-      include: {
-        studentProfiles: true,
-        academicHistory: true,
-        enrollments: {
-          where: {
-            OR: [
-              { grade: { not: null } },
-              { status: 'ACTIVE' }
-            ]
-          },
-          include: { course: true }
-        }
-      }
-    });
-
-    if (!student) {
-      throw new Error('Student not found');
-    }
-
-    const errors: string[] = [];
-    const missingPrerequisites: string[] = [];
-
-    // Check capacity
-    const totalEnrolled = courseOffering._count.enrollments + courseOffering._count.registeredCourses;
-    const maxEnrollment = courseOffering.maxEnrollment || 0;
-    const hasCapacity = totalEnrolled < maxEnrollment;
-
-    if (!hasCapacity) {
-      errors.push('Course is at full capacity');
-    }
-
-    // Get student's program ID from student profiles
-    const studentProgramId = student.studentProfiles?.programId;
-
-    // Check prerequisites (only if student has a program)
-    const programCourse = studentProgramId ? await prisma.programCourse.findFirst({
-      where: {
-        programId: studentProgramId,
-        courseId: courseOffering.courseId
-      }
-    }) : null;
-
-    let prerequisitesMet = true;
-
-    if (programCourse?.prerequisiteCourseIds) {
-      // Parse prerequisite IDs from JSON string to number array
-      const prerequisiteIds = JSON.parse(programCourse.prerequisiteCourseIds) as number[];
-
-      for (const prereqId of prerequisiteIds) {
-        const hasCompleted = student.enrollments?.some(
-          (enrollment: any) =>
-            enrollment.courseId === prereqId &&
-            enrollment.grade &&
-            !['F', 'W'].includes(enrollment.grade)
-        );
-
-        if (!hasCompleted) {
-          const prereqCourse = await prisma.course.findUnique({
-            where: { id: prereqId }
-          });
-
-          if (prereqCourse) {
-            missingPrerequisites.push(prereqCourse.code);
-            prerequisitesMet = false;
-          }
-        }
-      }
-    }
-
-    if (!prerequisitesMet) {
-      errors.push('Missing required prerequisites');
-    }
-
-    // Check time conflicts (simplified - would need more complex logic in production)
-    const hasTimeConflict = false; // TODO: Implement time conflict detection
-
-    // Check level restrictions
-    const currentLevel = student.academicHistory?.currentLevel || 100;
-    const courseLevel = parseInt(courseOffering.course.code.substring(0, 1)) * 100;
-
-    if (courseLevel > currentLevel + 100) {
-      errors.push('Course level is too advanced for current level');
-    }
-
-    const isEligible = errors.length === 0;
-
-    return {
-      isEligible,
-      prerequisitesMet,
-      missingPrerequisites,
-      hasCapacity,
-      hasTimeConflict,
-      reasons: errors,
-      conflictingCourses: [] // TODO: Implement actual conflict detection
-    };
-  }
-
-  /**
-   * Get eligible courses for a student in a semester
-   */
-  async getEligibleCourses(
-    studentProfileId: number,
     semesterId: number
-  ): Promise<RegisteredCourseWithRelations[]> {
-    // Get student with their program to determine institution and level
+  ): Promise<any[]> {
+    // Get student's program and level
     const studentProfile = await prisma.studentProfile.findUnique({
-      where: { id: studentProfileId },
-      include: {
-        user: true,
-        program: {
-          include: {
-            department: {
-              include: {
-                faculty: {
-                  include: {
-                    institution: true
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+      where: { userId: studentId },
+      include: { program: true }
     });
 
-    if (!studentProfile) {
-      throw new Error('Student profile not found');
+    if (!studentProfile?.programId) {
+      throw new Error('Student program not found');
     }
 
-    if (!studentProfile.programId) {
-      throw new Error('Student is not enrolled in any program');
-    }
-
-    // Get the semester details to determine which semester (1 or 2)
-    const semester = await prisma.semester.findUnique({
-      where: { id: semesterId }
-    });
-
-    if (!semester) {
-      throw new Error('Semester not found');
-    }
-
-    // Get program courses for the student's level and semester
+    // Get program courses for student's level
     const programCourses = await prisma.programCourse.findMany({
       where: {
         programId: studentProfile.programId,
-        level: studentProfile.level,
-        semester: semester.semesterNumber
+        level: studentProfile.level
       },
-      include: {
-        course: {
-          include: {
-            department: true
-          }
-        }
-      }
+      include: { course: true }
     });
 
-    // Get course offerings for these program courses in the current semester
     const courseIds = programCourses.map(pc => pc.courseId);
 
+    // Get available course offerings
     const courseOfferings = await prisma.courseOffering.findMany({
       where: {
         semesterId,
@@ -786,440 +185,235 @@ export class RegistrationService {
       include: {
         course: {
           include: {
-            department: {
-              select: {
-                id: true,
-                name: true,
-                code: true
-              }
-            }
+            department: true
           }
         },
-        primaryLecturer: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true
-          }
-        },
-        semester: {
-          select: {
-            id: true,
-            name: true,
-            semesterNumber: true
-          }
-        }
+        primaryLecturer: true
       },
       orderBy: {
-        course: {
-          code: 'asc'
-        }
+        course: { code: 'asc' }
       }
     });
 
-    // Return course offerings with basic eligibility (all are eligible since they're from the program)
-    return courseOfferings.map(offering => ({
-      courseOffering: offering,
-      eligibility: {
-        isEligible: true,
-        reasons: [],
-        prerequisitesMet: true,
-        hasScheduleConflict: false
-      }
-    })) as any;
-  }
-
-  /**
-   * Create enrollments from approved registration
-   */
-  private async createEnrollmentsFromRegistration(registrationId: number): Promise<void> {
-    const registration = await this.getRegistrationById(registrationId);
-
-    if (!registration) {
-      throw new Error('Registration not found');
-    }
-
-    if (registration.status !== RegistrationStatus.APPROVED) {
-      throw new Error('Only approved registrations can create enrollments');
-    }
-
-    // Create enrollments for each registered course
-    const registeredCourses = registration.registeredCourses || [];
-    for (const regCourse of registeredCourses) {
-      // Check if enrollment already exists
-      const existingEnrollment = await prisma.enrollment.findFirst({
-        where: {
-          studentId: registration.studentId,
-          courseOfferingId: regCourse.courseOfferingId
-        }
-      });
-
-      if (!existingEnrollment && regCourse.courseOffering) {
-        await prisma.enrollment.create({
-          data: {
-            studentId: registration.studentId,
-            courseOfferingId: regCourse.courseOfferingId,
-            courseId: regCourse.courseOffering.course.id,
-            semesterId: registration.semesterId,
-            status: 'ACTIVE',
-            enrollmentDate: new Date()
+    // Add availability and eligibility info
+    const availableCourses = await Promise.all(
+      courseOfferings.map(async (offering) => {
+        // Count enrolled students for this offering
+        const enrolled = await prisma.courseRegistrationItem.count({
+          where: {
+            courseOfferingId: offering.id,
+            status: 'REGISTERED'
           }
         });
-      }
-    }
+        const capacity = offering.maxEnrollment || 0;
+        const isEligible = await this.checkBasicEligibility(studentId, offering.id);
 
-    // Update registration status to COMPLETED
-    await prisma.courseRegistration.update({
-      where: { id: registrationId },
-      data: { status: RegistrationStatus.COMPLETED }
-    });
+        return {
+          ...offering,
+          available: enrolled < capacity,
+          enrolledCount: enrolled,
+          maxEnrollment: capacity,
+          isEligible,
+          creditHours: offering.course.creditHours
+        };
+      })
+    );
+
+    return availableCourses;
   }
 
   /**
-   * Get registration summary for a student
+   * Get student's current registration for a semester
    */
-  async getRegistrationSummary(
+  async getStudentRegistration(
     studentId: number,
     semesterId: number
-  ): Promise<RegistrationSummary> {
+  ): Promise<any | null> {
     const registration = await prisma.courseRegistration.findFirst({
-      where: { studentId, semesterId },
-      include: {
-        registeredCourses: {
-          include: {
-            courseOffering: {
-              include: { course: true }
-            }
-          }
-        }
-      }
-    });
-
-    const student = await prisma.user.findUnique({
-      where: { id: studentId },
-      include: { academicHistory: true }
-    });
-
-    if (!student) {
-      throw new Error('Student not found');
-    }
-
-    const summary: RegistrationSummary = {
-      studentId,
-      semesterId,
-      hasRegistration: !!registration,
-      registrationId: registration?.id,
-      status: registration?.status as any,
-      totalCredits: registration?.totalCredits || 0,
-      courseCount: registration?.registeredCourses.length || 0,
-      canRegister: !registration || registration.status === RegistrationStatus.DRAFT,
-      minCredits: 12,
-      maxCredits: 24,
-      remainingCredits: 24 - (registration?.totalCredits || 0)
-    };
-
-    return summary;
-  }
-
-  /**
-   * Bulk create registrations for multiple students
-   * Used by admins to register multiple students at once
-   */
-  async bulkCreateRegistrations(
-    studentIds: number[],
-    semesterId: number,
-    courseOfferingIds: number[],
-    createdBy: number
-  ): Promise<{ succeeded: number[]; failed: Array<{ studentId: number; reason: string }> }> {
-    const succeeded: number[] = [];
-    const failed: Array<{ studentId: number; reason: string }> = [];
-
-    for (const studentId of studentIds) {
-      try {
-        // Check if registration already exists
-        const existing = await prisma.courseRegistration.findFirst({
-          where: {
-            studentId,
-            semesterId,
-            status: { notIn: ['CANCELLED', 'REJECTED'] }
-          }
-        });
-
-        let registration;
-        if (existing) {
-          registration = existing;
-        } else {
-          // Create registration
-          registration = await prisma.courseRegistration.create({
-            data: {
-              studentId,
-              semesterId,
-              status: RegistrationStatus.DRAFT,
-              totalCredits: 0
-            }
-          });
-        }
-
-        // Add courses to registration
-        let totalCredits = registration.totalCredits;
-        for (const courseOfferingId of courseOfferingIds) {
-          // Check if course already registered
-          const existingCourse = await prisma.registeredCourse.findFirst({
-            where: { registrationId: registration.id, courseOfferingId }
-          });
-
-          if (!existingCourse) {
-            const courseOffering = await prisma.courseOffering.findUnique({
-              where: { id: courseOfferingId },
-              include: { course: true }
-            });
-
-            if (courseOffering) {
-              await prisma.registeredCourse.create({
-                data: {
-                  registrationId: registration.id,
-                  courseOfferingId,
-                  registrationType: RegistrationType.REGULAR,
-                  prerequisitesMet: true,
-                  prerequisitesOverride: true,
-                  overrideReason: 'Admin bulk registration',
-                  isLocked: false
-                }
-              });
-              totalCredits += courseOffering.course.creditHours;
-            }
-          }
-        }
-
-        // Update total credits
-        await prisma.courseRegistration.update({
-          where: { id: registration.id },
-          data: { totalCredits }
-        });
-
-        // Auto-approve for admin bulk registrations
-        await prisma.courseRegistration.update({
-          where: { id: registration.id },
-          data: {
-            status: RegistrationStatus.APPROVED,
-            approvedBy: createdBy,
-            approvedAt: new Date(),
-            submittedAt: new Date()
-          }
-        });
-
-        // Create enrollments
-        await this.createEnrollmentsFromRegistration(registration.id);
-
-        succeeded.push(studentId);
-      } catch (error) {
-        failed.push({
-          studentId,
-          reason: error instanceof Error ? error.message : 'Unknown error'
-        });
-      }
-    }
-
-    return { succeeded, failed };
-  }
-
-  /**
-   * Get students by registration status for a semester
-   * Used by admins to see which students have/haven't registered
-   */
-  async getStudentsByRegistrationStatus(
-    semesterId: number,
-    institutionId: number,
-    programId?: number,
-    departmentId?: number
-  ): Promise<{
-    registered: any[];
-    notRegistered: any[];
-  }> {
-    // Build where clause for students with institution filtering
-    const studentWhere: any = {
-      enrollmentStatus: 'ACTIVE',
-      program: {
-        department: {
-          faculty: {
-            institutionId
-          }
-        }
-      }
-    };
-
-    if (programId) {
-      studentWhere.programId = programId;
-    } else if (departmentId) {
-      studentWhere.program.departmentId = departmentId;
-    }
-
-    // Get all active students
-    const students = await prisma.studentProfile.findMany({
-      where: studentWhere,
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            middleName: true
-          }
-        },
-        program: {
-          select: {
-            id: true,
-            name: true,
-            code: true,
-            department: {
-              select: {
-                id: true,
-                name: true,
-                code: true
-              }
-            }
-          }
-        }
-      }
-    });
-
-    // Get all registrations for this semester
-    const registrations = await prisma.courseRegistration.findMany({
       where: {
+        studentId,
         semesterId,
-        status: { notIn: ['CANCELLED', 'REJECTED'] }
+        status: { not: 'CANCELLED' }
       },
       include: {
-        registeredCourses: {
-          include: {
-            courseOffering: {
-              include: { course: true }
-            }
-          }
-        }
-      }
-    });
-
-    const registeredStudentIds = new Set(registrations.map(r => r.studentId));
-
-    const registered = students
-      .filter(s => registeredStudentIds.has(s.userId))
-      .map(s => ({
-        ...s,
-        registration: registrations.find(r => r.studentId === s.userId)
-      }));
-
-    const notRegistered = students
-      .filter(s => !registeredStudentIds.has(s.userId))
-      .map(s => ({
-        ...s,
-        registration: null
-      }));
-
-    return { registered, notRegistered };
-  }
-
-  /**
-   * Register student for all eligible courses in current semester
-   */
-  async registerAllEligibleCourses(
-    studentProfileId: number,
-    semesterId: number
-  ): Promise<{ success: boolean; message: string; registeredCount: number; courses: any[] }> {
-    // Get eligible courses
-    const eligibleCourses = await this.getEligibleCourses(studentProfileId, semesterId);
-
-    if (!eligibleCourses || eligibleCourses.length === 0) {
-      throw new Error('No eligible courses found for registration');
-    }
-
-    // Get student profile to get userId
-    const studentProfile = await prisma.studentProfile.findUnique({
-      where: { id: studentProfileId },
-      include: { user: true }
-    });
-
-    if (!studentProfile) {
-      throw new Error('Student profile not found');
-    }
-
-    const studentUserId = studentProfile.userId;
-
-    // Check if registration exists
-    let registration = await prisma.courseRegistration.findFirst({
-      where: {
-        studentId: studentUserId,
-        semesterId,
-        status: { notIn: ['CANCELLED', 'REJECTED'] }
-      }
-    });
-
-    // Create registration if it doesn't exist
-    if (!registration) {
-      registration = await prisma.courseRegistration.create({
-        data: {
-          studentId: studentUserId,
-          semesterId,
-          status: 'DRAFT',
-          totalCredits: 0
-        }
-      });
-    }
-
-    // Register all eligible courses
-    const registeredCourses = [];
-    for (const eligibleCourse of eligibleCourses) {
-      const courseOffering = eligibleCourse.courseOffering;
-
-      if (!courseOffering) continue;
-
-      // Check if already registered
-      const existingRegistration = await prisma.registeredCourse.findFirst({
-        where: {
-          registrationId: registration.id,
-          courseOfferingId: courseOffering.id
-        }
-      });
-
-      if (!existingRegistration && courseOffering) {
-        const registeredCourse = await prisma.registeredCourse.create({
-          data: {
-            registrationId: registration.id,
-            courseOfferingId: courseOffering.id,
-            registrationType: 'REGULAR',
-            prerequisitesMet: true
-          },
+        courses: {
           include: {
             courseOffering: {
               include: {
-                course: true
+                course: true,
+                primaryLecturer: true
               }
             }
           }
-        });
-        registeredCourses.push(registeredCourse);
-      }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    if (!registration) {
+      return null;
     }
 
-    // Update total credits
-    const totalCredits = registeredCourses.reduce((sum, rc) => {
-      const creditHours = rc.courseOffering?.course?.creditHours || 0;
-      return sum + creditHours;
-    }, 0);
+    return {
+      id: registration.id,
+      status: registration.status,
+      totalCredits: registration.totalCredits,
+      createdAt: registration.createdAt,
+      courses: registration.courses.map((item: any) => ({
+        id: item.id,
+        status: item.status,
+        courseOffering: item.courseOffering
+      }))
+    };
+  }
 
+  /**
+   * Drop courses from registration
+   */
+  async dropCourses(
+    studentId: number,
+    semesterId: number,
+    courseOfferingIds: number[]
+  ): Promise<{
+    success: boolean;
+    message: string;
+    droppedCount: number;
+    remainingCredits: number;
+  }> {
+    // Get active registration
+    const registration = await prisma.courseRegistration.findFirst({
+      where: {
+        studentId,
+        semesterId,
+        status: 'ACTIVE'
+      },
+      include: {
+        courses: {
+          where: {
+            courseOfferingId: { in: courseOfferingIds },
+            status: 'REGISTERED'
+          },
+          include: {
+            courseOffering: {
+              include: { course: true }
+            }
+          }
+        }
+      }
+    });
+
+    if (!registration) {
+      throw new Error('No active registration found');
+    }
+
+    // Update items to DROPPED
+    const updatePromises = courseOfferingIds.map(courseOfferingId =>
+      prisma.courseRegistrationItem.updateMany({
+        where: {
+          registrationId: registration.id,
+          courseOfferingId,
+          status: 'REGISTERED'
+        },
+        data: { status: 'DROPPED', droppedAt: new Date() }
+      })
+    );
+
+    await Promise.all(updatePromises);
+
+    // Recalculate total credits (only count REGISTERED courses)
+    const remainingItems = await prisma.courseRegistrationItem.findMany({
+      where: {
+        registrationId: registration.id,
+        status: 'REGISTERED'
+      },
+      include: {
+        courseOffering: {
+          include: { course: true }
+        }
+      }
+    });
+
+    const remainingCredits = remainingItems.reduce(
+      (sum: number, item: any) => sum + (item.courseOffering?.course?.creditHours || 0),
+      0
+    );
+
+    // Update registration credits
     await prisma.courseRegistration.update({
       where: { id: registration.id },
-      data: { totalCredits }
+      data: { totalCredits: remainingCredits }
     });
 
     return {
       success: true,
-      message: `Successfully registered for ${registeredCourses.length} courses`,
-      registeredCount: registeredCourses.length,
-      courses: registeredCourses
+      message: `Successfully dropped ${courseOfferingIds.length} courses`,
+      droppedCount: courseOfferingIds.length,
+      remainingCredits
     };
+  }
+
+  /**
+   * Cancel entire registration
+   */
+  async cancelRegistration(
+    studentId: number,
+    semesterId: number
+  ): Promise<{ success: boolean; message: string }> {
+    const registration = await prisma.courseRegistration.findFirst({
+      where: {
+        studentId,
+        semesterId,
+        status: 'ACTIVE'
+      }
+    });
+
+    if (!registration) {
+      throw new Error('No active registration found');
+    }
+
+    // Update status to CANCELLED
+    await prisma.courseRegistration.update({
+      where: { id: registration.id },
+      data: { status: 'CANCELLED' }
+    });
+
+    return {
+      success: true,
+      message: 'Registration cancelled successfully'
+    };
+  }
+
+  /**
+   * Basic eligibility check (simplified version)
+   */
+  private async checkBasicEligibility(
+    studentId: number,
+    courseOfferingId: number
+  ): Promise<boolean> {
+    // Get course offering
+    const courseOffering = await prisma.courseOffering.findUnique({
+      where: { id: courseOfferingId },
+      include: { course: true }
+    });
+
+    if (!courseOffering) {
+      return false;
+    }
+
+    // Get student's academic level
+    const studentProfile = await prisma.studentProfile.findUnique({
+      where: { userId: studentId }
+    });
+
+    if (!studentProfile) {
+      return false;
+    }
+
+    // Basic level check (course level should not be more than 1 level ahead)
+    const courseLevel = Math.floor(parseInt(courseOffering.course.code.substring(0, 1)));
+    const studentLevel = studentProfile.level;
+
+    return courseLevel <= studentLevel + 1;
   }
 }
 

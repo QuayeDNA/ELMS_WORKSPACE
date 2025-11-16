@@ -97,13 +97,7 @@ class CourseOfferingService {
           }
         },
         primaryLecturer: true,
-        semester: true,
-        _count: {
-          select: {
-            enrollments: true,
-            registeredCourses: true
-          }
-        }
+        semester: true
       }
     });
 
@@ -111,7 +105,8 @@ class CourseOfferingService {
       return null;
     }
 
-    const totalEnrolled = offering._count.enrollments + offering._count.registeredCourses;
+    // Use currentEnrollment field instead of counting
+    const totalEnrolled = offering.currentEnrollment;
 
     return {
       ...offering,

@@ -1,5 +1,9 @@
 import { Navigate } from 'react-router-dom';
 import { LoginForm } from '@/components/auth/LoginForm';
+import DevCredentialsFab from '@/components/auth/DevCredentialsFab';
+import type { LoginFormRef } from '@/components/auth/LoginForm';
+import { useRef, useEffect, useState } from 'react';
+import type { DevCredential } from '@/components/auth/devCredentials';
 import { useAuthStore } from '@/stores/auth.store';
 import { useLoginRedirect } from '@/hooks/useLoginRedirect';
 import { getRedirectPath } from '@/utils/routeConfig';
@@ -14,6 +18,41 @@ import {
 export function LoginPage() {
   const { isAuthenticated, user } = useAuthStore();
   const { redirectAfterLogin } = useLoginRedirect();
+  const loginFormRef = useRef<LoginFormRef | null>(null);
+
+  // Dynamic greetings that vary by visit count for a friendlier UX
+  const [greeting, setGreeting] = useState('Welcome Back');
+  const [subtext, setSubtext] = useState('Sign in to your account to continue');
+
+  useEffect(() => {
+    try {
+      const greetings = [
+        'Welcome Back',
+        'Hello again',
+        'Nice to see you',
+        'Welcome!',
+        'Hi there — let\'s sign you in',
+      ];
+      const subs = [
+        'Sign in to your account to continue',
+        'Enter your credentials to get started',
+        'Access your exams and analytics',
+        'Securely manage exams and incidents',
+      ];
+
+      const raw = window.localStorage.getItem('elms_visit_count') || '0';
+      const count = Number(raw) || 0;
+      const next = count + 1;
+      window.localStorage.setItem('elms_visit_count', String(next));
+
+      const idx = next % greetings.length;
+      const sidx = next % subs.length;
+      setGreeting(greetings[idx]);
+      setSubtext(subs[sidx]);
+    } catch (e) {
+      // ignore localStorage errors
+    }
+  }, []);
 
   // Redirect to appropriate dashboard if already authenticated
   if (isAuthenticated && user) {
@@ -24,6 +63,11 @@ export function LoginPage() {
   const handleLoginSuccess = () => {
     // Use role-based redirect (delay is handled in the hook)
     redirectAfterLogin();
+  };
+
+  const handleDevCredentialSelect = (credential: DevCredential) => {
+    // Fill credentials via ref exposed by LoginForm
+    loginFormRef.current?.fillCredentials(credential);
   };
 
   const features = [
@@ -125,20 +169,19 @@ export function LoginPage() {
             </div>
           </div>
 
-          {/* Welcome message */}
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">
-              Welcome Back
-            </h2>
-            <p className="text-gray-600">
-              Sign in to your account to continue
-            </p>
+          {/* Welcome message (centered, dynamic) */}
+          <div className="mb-8 text-center">
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">{greeting}</h2>
+            <p className="text-gray-600">{subtext}</p>
           </div>
 
           {/* Login Form */}
           <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
-            <LoginForm onSuccess={handleLoginSuccess} />
+            <LoginForm ref={loginFormRef} onSuccess={handleLoginSuccess} />
           </div>
+
+          {/* Add FAB outside of form so it doesn't clutter the form UI */}
+          <DevCredentialsFab onSelect={handleDevCredentialSelect} />
 
           {/* Help text */}
           <div className="mt-6 text-center">

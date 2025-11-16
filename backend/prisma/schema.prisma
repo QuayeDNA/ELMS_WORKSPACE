@@ -474,7 +474,7 @@ model CourseOffering {
   primaryLecturer   User?              @relation(fields: [primaryLecturerId], references: [id])
   semester          Semester           @relation(fields: [semesterId], references: [id], onDelete: Cascade)
   enrollments       Enrollment[]
-  registeredCourses RegisteredCourse[]
+  registeredItems   CourseRegistrationItem[]
 
   @@unique([courseId, semesterId])
   @@map("course_offerings")
@@ -530,25 +530,20 @@ model Enrollment {
 }
 
 model CourseRegistration {
-  id                Int                @id @default(autoincrement())
-  studentId         Int
-  semesterId        Int
-  status            RegistrationStatus @default(DRAFT)
-  totalCredits      Int                @default(0)
-  approvedBy        Int?
-  advisorId         Int?
-  submittedAt       DateTime?
-  approvedAt        DateTime?
-  rejectedAt        DateTime?
-  rejectionReason   String?
-  notes             String?
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  advisor           User?              @relation("RegistrationAdvisors", fields: [advisorId], references: [id])
-  approver          User?              @relation("RegistrationApprovers", fields: [approvedBy], references: [id])
-  semester          Semester           @relation(fields: [semesterId], references: [id], onDelete: Cascade)
-  student           User               @relation("StudentRegistrations", fields: [studentId], references: [id], onDelete: Cascade)
-  registeredCourses RegisteredCourse[]
+  id           Int      @id @default(autoincrement())
+  studentId    Int
+  semesterId   Int
+  advisorId    Int?
+  approverId   Int?
+  status       RegistrationStatus @default(ACTIVE)
+  totalCredits Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  advisor      User?    @relation("RegistrationAdvisors", fields: [advisorId], references: [id])
+  approver     User?    @relation("RegistrationApprovers", fields: [approverId], references: [id])
+  student      User     @relation("StudentRegistrations", fields: [studentId], references: [id], onDelete: Cascade)
+  semester     Semester @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  courses      CourseRegistrationItem[]
 
   @@unique([studentId, semesterId])
   @@index([studentId, status])
@@ -556,26 +551,22 @@ model CourseRegistration {
   @@map("course_registrations")
 }
 
-model RegisteredCourse {
-  id                    Int                @id @default(autoincrement())
-  registrationId        Int
-  courseOfferingId      Int
-  registrationType      RegistrationType   @default(REGULAR)
-  prerequisitesMet      Boolean            @default(true)
-  prerequisitesOverride Boolean            @default(false)
-  overrideReason        String?
-  isLocked              Boolean            @default(false)
-  droppedAt             DateTime?
-  dropReason            String?
-  createdAt             DateTime           @default(now())
-  updatedAt             DateTime           @updatedAt
-  courseOffering        CourseOffering     @relation(fields: [courseOfferingId], references: [id], onDelete: Cascade)
-  registration          CourseRegistration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+model CourseRegistrationItem {
+  id               Int      @id @default(autoincrement())
+  registrationId   Int
+  courseOfferingId Int
+  status           RegistrationItemStatus @default(REGISTERED)
+  droppedAt        DateTime?
+  dropReason       String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  registration     CourseRegistration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  courseOffering   CourseOffering     @relation(fields: [courseOfferingId], references: [id], onDelete: Cascade)
 
   @@unique([registrationId, courseOfferingId])
   @@index([registrationId])
   @@index([courseOfferingId])
-  @@map("registered_courses")
+  @@map("course_registration_items")
 }
 
 model StudentSemesterRecord {
@@ -1148,19 +1139,15 @@ enum CalendarFileType {
 }
 
 enum RegistrationStatus {
-  DRAFT
-  SUBMITTED
-  APPROVED
-  REJECTED
+  ACTIVE
   COMPLETED
   CANCELLED
 }
 
-enum RegistrationType {
-  REGULAR
-  RETAKE
-  CARRYOVER
-  MAKE_UP
+enum RegistrationItemStatus {
+  REGISTERED
+  DROPPED
+  COMPLETED
 }
 
 enum AcademicStanding {
