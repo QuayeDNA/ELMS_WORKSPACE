@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/auth.store';
 import { studentService } from '@/services/student.service';
-import { registrationService, CourseOfferingWithDetails, StudentRegistration } from '@/services/registration.service';
+import { registrationService } from '@/services/registration.service';
 import { academicService } from '@/services/academic.service';
 import { Student } from '@/types/student';
 import { StudentIdCard } from '@/components/student';
@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { GraduationCap, Book, CheckCircle, XCircle } from 'lucide-react';
+import { CourseOfferingWithDetails, StudentRegistration,  } from '@/types/registration';
 
 export default function StudentDashboard() {
 	const { user } = useAuthStore();
@@ -52,12 +53,12 @@ export default function StudentDashboard() {
 		isLoading: isLoadingCourses,
 		error: coursesError
 	} = useQuery<CourseOfferingWithDetails[]>({
-		queryKey: ['availableCourses', currentSemester?.id],
+		queryKey: ['availableCourses', user?.id, currentSemester?.id],
 		queryFn: async () => {
-			if (!currentSemester?.id) return [];
-			return await registrationService.getAvailableCourses(currentSemester.id);
+			if (!user?.id || !currentSemester?.id) return [];
+			return await registrationService.getAvailableCourses(user.id, currentSemester.id);
 		},
-		enabled: !!currentSemester?.id,
+		enabled: !!user?.id && !!currentSemester?.id,
 		staleTime: 5 * 60 * 1000,
 	});
 
@@ -185,7 +186,7 @@ export default function StudentDashboard() {
 	}
 
 	return (
-		<div className="space-y-8 p-8">
+		<div className="space-y-8">
 			{/* Welcome Header */}
 			<div>
 				<div className="flex items-center gap-3">
@@ -205,7 +206,7 @@ export default function StudentDashboard() {
 
 			{/* New Student Welcome Message */}
 			{isNewStudent && (
-				<Alert className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+				<Alert className="bg-linear-to-r from-blue-50 to-indigo-50 border-blue-200">
 					<GraduationCap className="h-5 w-5 text-blue-600" />
 					<AlertDescription className="text-blue-900">
 						<strong>Welcome!</strong> Your account has been successfully created. You can now register for courses and access your student ID card.

@@ -1,97 +1,12 @@
 import { apiService } from './api';
 
-// Simplified registration types matching backend
-export interface CourseOfferingWithDetails {
-	id: number;
-	courseId: number;
-	semesterId: number;
-	primaryLecturerId: number | null;
-	maxEnrollment: number | null;
-	maxCapacity: number;
-	currentEnrollment: number;
-	classroom: string | null;
-	schedule: string | null;
-	status: string;
-	createdAt: string;
-	updatedAt: string;
-	course: {
-		id: number;
-		name: string;
-		code: string;
-		creditHours: number;
-	};
-	instructor?: {
-		id: number;
-		firstName: string;
-		lastName: string;
-		email: string;
-	} | null;
-	primaryLecturer?: {
-		id: number;
-		firstName: string;
-		lastName: string;
-		email: string;
-	} | null;
-	available?: boolean;
-	enrolledCount?: number;
-	isEligible?: boolean;
-}
-
-export interface CourseRegistrationItem {
-	id: number;
-	courseOfferingId: number;
-	status: 'REGISTERED' | 'DROPPED' | 'COMPLETED';
-	courseOffering: {
-		id: number;
-		course: {
-			id: number;
-			name: string;
-			code: string;
-			creditHours: number;
-		};
-		instructor?: {
-			id: number;
-			firstName: string;
-			lastName: string;
-		} | null;
-	};
-}
-
-export interface StudentRegistration {
-	id: number;
-	status: 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
-	totalCredits: number;
-	createdAt: string;
-	updatedAt: string;
-	items: CourseRegistrationItem[];
-	courses: CourseRegistrationItem[];
-}
-
-export interface RegisterForCoursesRequest {
-	studentId: number;
-	semesterId: number;
-	courseOfferingIds: number[];
-}
-
-export interface RegisterForCoursesResponse {
-	success: boolean;
-	message: string;
-	registeredCourses: any[];
-	totalCredits: number;
-}
-
-export interface DropCoursesRequest {
-	studentId: number;
-	semesterId: number;
-	courseOfferingIds: number[];
-}
-
-export interface DropCoursesResponse {
-	success: boolean;
-	message: string;
-	droppedCount: number;
-	remainingCredits: number;
-}
+// Import types from types file
+import {
+	CourseOfferingWithDetails,
+	StudentRegistration,
+	RegisterForCoursesResponse,
+	DropCoursesResponse,
+} from '@/types/registration';
 
 class RegistrationService {
 	private readonly basePath = '/api/registrations';
@@ -117,17 +32,18 @@ class RegistrationService {
 			throw new Error(response.message || 'Failed to register for courses');
 		}
 
-		return response;
+		return response.data!;
 	}
 
 	/**
 	 * Get available courses for a student in a semester
 	 */
 	async getAvailableCourses(
+		studentId: number,
 		semesterId: number
 	): Promise<CourseOfferingWithDetails[]> {
 		const response = await apiService.get<CourseOfferingWithDetails[]>(
-			`${this.basePath}/available-courses/${semesterId}`
+			`${this.basePath}/available-courses/${studentId}/${semesterId}`
 		);
 
 		if (!response.success || !response.data) {
@@ -145,7 +61,7 @@ class RegistrationService {
 		semesterId: number
 	): Promise<StudentRegistration | null> {
 		const response = await apiService.get<StudentRegistration>(
-			`${this.basePath}/student/${studentId}/semester/${semesterId}`
+			`${this.basePath}/student/${studentId}/${semesterId}`
 		);
 
 		if (!response.success) {
@@ -156,7 +72,7 @@ class RegistrationService {
 			throw new Error(response.message || 'Failed to fetch registration');
 		}
 
-		return response.data;
+		return response.data || null;
 	}
 
 	/**
@@ -180,7 +96,7 @@ class RegistrationService {
 			throw new Error(response.message || 'Failed to drop courses');
 		}
 
-		return response;
+		return response.data!;
 	}
 
 	/**
@@ -202,7 +118,7 @@ class RegistrationService {
 			throw new Error(response.message || 'Failed to cancel registration');
 		}
 
-		return response;
+		return response.data!;
 	}
 }
 
