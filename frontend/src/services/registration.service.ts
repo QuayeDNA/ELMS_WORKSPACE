@@ -1,19 +1,61 @@
 import { apiService } from './api';
 
 export interface EligibleCourse {
-	id: string;
-	code: string;
-	name: string;
-	credits: number;
-	semesterId: string;
-	courseOfferingId: string;
-	lecturer?: {
-		id: string;
-		firstName: string;
-		lastName: string;
+	courseOffering: {
+		id: number;
+		courseId: number;
+		semesterId: number;
+		primaryLecturerId: number;
+		maxEnrollment: number;
+		currentEnrollment: number;
+		classroom: string | null;
+		schedule: string | null;
+		status: string;
+		createdAt: string;
+		updatedAt: string;
+		course: {
+			id: number;
+			name: string;
+			code: string;
+			description: string;
+			creditHours: number;
+			contactHours: number;
+			level: number;
+			courseType: string;
+			prerequisites: string | null;
+			corequisites: string | null;
+			learningOutcomes: string;
+			syllabus: string;
+			assessmentMethods: string;
+			recommendedBooks: string;
+			departmentId: number;
+			isActive: boolean;
+			createdAt: string;
+			updatedAt: string;
+			department: {
+				id: number;
+				name: string;
+				code: string;
+			};
+		};
+		primaryLecturer: {
+			id: number;
+			firstName: string;
+			lastName: string;
+			email: string;
+		} | null;
+		semester: {
+			id: number;
+			name: string;
+			semesterNumber: number;
+		};
 	};
-	isPrerequisiteMet: boolean;
-	unmetPrerequisites: string[];
+	eligibility: {
+		isEligible: boolean;
+		reasons: string[];
+		prerequisitesMet: boolean;
+		hasScheduleConflict: boolean;
+	};
 }
 
 export interface RegistrationSummary {
@@ -64,16 +106,21 @@ class RegistrationService {
 	async getEligibleCourses(
 		studentId: string,
 		semesterId: string
-	): Promise<EligibleCourse[]> {
+	): Promise<{ data: EligibleCourse[]; count: number }> {
 		const response = await apiService.get<EligibleCourse[]>(
 			`${this.basePath}/eligible-courses/${studentId}/${semesterId}`
-		);
+		) as any; // Backend returns { success, data: [...], count }
 
 		if (!response.success || !response.data) {
 			throw new Error(response.message || 'Failed to fetch eligible courses');
 		}
 
-		return response.data;
+		// Backend returns { success, data: [...], count }
+		// apiService returns the full response if it has 'success' property
+		return {
+			data: response.data,
+			count: response.count || response.data.length
+		};
 	}
 
 	/**

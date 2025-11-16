@@ -266,8 +266,17 @@ export const academicPeriodController = {
   // Get current semester
   async getCurrentSemester(req: Request, res: Response) {
     try {
+      // Get user's institution from JWT token
+      const userInstitutionId = (req as any).user?.institutionId;
+      const userRole = (req as any).user?.role;
+
+      // Super admins can query across institutions, others are scoped to their institution
+      const institutionId = userRole === 'SUPER_ADMIN'
+        ? (req.query.institutionId ? parseInt(req.query.institutionId as string) : undefined)
+        : userInstitutionId;
+
       const academicYearId = req.query.academicYearId ? parseInt(req.query.academicYearId as string) : undefined;
-      const semester = await academicPeriodService.getCurrentSemester(academicYearId);
+      const semester = await academicPeriodService.getCurrentSemester(academicYearId, institutionId);
 
       if (!semester) {
         return res.status(404).json({

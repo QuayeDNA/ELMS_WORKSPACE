@@ -32,11 +32,11 @@ interface Program {
 }
 
 interface CourseOffering {
-	id: string;
+	id: number;
 	course: {
 		code: string;
 		name: string;
-		credits: number;
+		creditHours: number;
 	};
 }
 
@@ -67,7 +67,7 @@ export default function BulkRegistrationPage() {
 	const [selectedProgramId, setSelectedProgramId] = useState<string>('');
 	const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>('');
 	const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
-	const [selectedCourseIds, setSelectedCourseIds] = useState<string[]>([]);
+	const [selectedCourseIds, setSelectedCourseIds] = useState<number[]>([]);
 
 	const queryClient = useQueryClient();
 	const navigate = useNavigate();
@@ -142,8 +142,8 @@ export default function BulkRegistrationPage() {
 					'Authorization': `Bearer ${localStorage.getItem('token')}`,
 				},
 				body: JSON.stringify({
-					studentIds: selectedStudentIds,
-					semesterId: selectedSemesterId,
+					studentIds: selectedStudentIds.map(id => parseInt(id)),
+					semesterId: parseInt(selectedSemesterId),
 					courseOfferingIds: selectedCourseIds,
 				}),
 			});
@@ -190,7 +190,7 @@ export default function BulkRegistrationPage() {
 		);
 	};
 
-	const handleSelectCourse = (courseId: string) => {
+	const handleSelectCourse = (courseId: number) => {
 		setSelectedCourseIds((prev) =>
 			prev.includes(courseId)
 				? prev.filter((id) => id !== courseId)
@@ -356,7 +356,7 @@ export default function BulkRegistrationPage() {
 										<p className="font-medium">{offering.course.code}</p>
 										<p className="text-sm text-muted-foreground">{offering.course.name}</p>
 										<Badge variant="secondary" className="text-xs mt-1">
-											{offering.course.credits} credits
+											{offering.course.creditHours} credits
 										</Badge>
 									</div>
 								</div>

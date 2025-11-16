@@ -51,10 +51,15 @@ export default function StudentDashboard() {
 	});
 
 	// Fetch eligible courses for registration
-	const { data: eligibleCourses, refetch: refetchEligibleCourses } = useQuery({
+	const {
+		data: eligibleCoursesResponse,
+		refetch: refetchEligibleCourses,
+		isLoading: isLoadingCourses,
+		error: coursesError
+	} = useQuery({
 		queryKey: ['eligibleCourses', studentProfile?.id, currentSemester?.id],
 		queryFn: async () => {
-			if (!studentProfile?.id || !currentSemester?.id) return [];
+			if (!studentProfile?.id || !currentSemester?.id) return { data: [], count: 0 };
 			return await registrationService.getEligibleCourses(
 				String(studentProfile.id),
 				String(currentSemester.id)
@@ -63,6 +68,8 @@ export default function StudentDashboard() {
 		enabled: !!studentProfile?.id && !!currentSemester?.id,
 		staleTime: 5 * 60 * 1000,
 	});
+
+	const eligibleCourses = eligibleCoursesResponse?.data || [];
 
 	// Fetch registration summary
 	const {
@@ -83,16 +90,16 @@ export default function StudentDashboard() {
 
 	// Mutation for adding course to registration
 	const addCourseMutation = useMutation({
-		mutationFn: async ({ registrationId, courseOfferingId }: { registrationId: string; courseOfferingId: string }) => {
+		mutationFn: async ({ registrationId, courseOfferingId }: { registrationId: string; courseOfferingId: number }) => {
 			// If no registration exists, create one first
 			if (!registrationId && studentProfile?.id && currentSemester?.id) {
 				const newRegistration = await registrationService.createRegistration(
 					String(studentProfile.id),
 					String(currentSemester.id)
 				);
-				return await registrationService.addCourseToRegistration(newRegistration.id, courseOfferingId);
+				return await registrationService.addCourseToRegistration(newRegistration.id, String(courseOfferingId));
 			}
-			return await registrationService.addCourseToRegistration(registrationId, courseOfferingId);
+			return await registrationService.addCourseToRegistration(registrationId, String(courseOfferingId));
 		},
 		onSuccess: () => {
 			toast.success('Course has been successfully added to your registration.');
@@ -350,25 +357,27 @@ export default function StudentDashboard() {
 					<CardContent className="space-y-6">
 						{/* Registration Summary */}
 						{registrationSummary && (
-							<div className="p-4 bg-muted/50 rounded-lg space-y-2">
-								<h4 className="font-semibold text-sm">Registration Summary</h4>
-								<div className="grid grid-cols-3 gap-4 text-sm">
-									<div>
-										<span className="text-muted-foreground">Total Credits:</span>
-										<p className="font-semibold">{registrationSummary.totalCredits}</p>
+							<>
+								<div className="p-4 bg-muted/50 rounded-lg space-y-2">
+									<h4 className="font-semibold text-sm">Registration Summary</h4>
+									<div className="grid grid-cols-3 gap-4 text-sm">
+										<div>
+											<span className="text-muted-foreground">Total Credits:</span>
+											<p className="font-semibold">{registrationSummary.totalCredits}</p>
+										</div>
+										<div>
+											<span className="text-muted-foreground">Min Credits:</span>
+											<p className="font-semibold">{registrationSummary.minCredits}</p>
+										</div>
+										<div>
+											<span className="text-muted-foreground">Max Credits:</span>
+											<p className="font-semibold">{registrationSummary.maxCredits}</p>
+										</div>
 									</div>
-									<div>
-										<span className="text-muted-foreground">Min Credits:</span>
-										<p className="font-semibold">{registrationSummary.minCredits}</p>
-									</div>
-									<div>
-										<span className="text-muted-foreground">Max Credits:</span>
-										<p className="font-semibold">{registrationSummary.maxCredits}</p>
-									</div>
-							</div>
+								</div>
 
-							{/* Registered Courses */}
-							{registrationSummary?.registeredCourses && registrationSummary.registeredCourses.length > 0 && (
+								{/* Registered Courses */}
+								{registrationSummary?.registeredCourses && registrationSummary.registeredCourses.length > 0 && (
 								<div className="mt-4">
 										<h5 className="font-medium text-sm mb-2">Registered Courses:</h5>
 										<div className="space-y-1">
@@ -423,76 +432,148 @@ export default function StudentDashboard() {
 										</AlertDescription>
 									</Alert>
 								)}
-							</div>
+							</>
 						)}
 
 						{/* Available Courses */}
-						{registrationSummary?.status !== 'APPROVED' && eligibleCourses && eligibleCourses.length > 0 && (
+						{registrationSummary?.status !== 'APPROVED' && (
 							<div>
-								<h4 className="font-semibold text-sm mb-3">Available Courses</h4>
-								<div className="space-y-2">
-									{eligibleCourses
-										.filter(course =>
-											!registrationSummary?.registeredCourses.some(rc => rc.courseCode === course.code)
-										)
-										.map((course) => (
-											<div
-												key={course.id}
-												className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-											>
-												<div className="flex-1">
-													<div className="flex items-center gap-2">
-														<span className="font-medium">{course.code}</span>
-														<span className="text-muted-foreground">-</span>
-														<span>{course.name}</span>
-														<Badge variant="secondary" className="text-xs">
-															{course.credits} credits
-														</Badge>
-													</div>
-													{course.lecturer && (
-														<p className="text-sm text-muted-foreground mt-1">
-																Instructor: {course.lecturer.firstName} {course.lecturer.lastName}
-															</p>
-														)}
-														{!course.isPrerequisiteMet && course.unmetPrerequisites && course.unmetPrerequisites.length > 0 && (
-															<p className="text-xs text-destructive mt-1">
-															Unmet prerequisites: {course.unmetPrerequisites.join(', ')}
-														</p>
-													)}
-												</div>
-												{registrationSummary?.status === 'DRAFT' && (
-													<Button
-														size="sm"
-														onClick={() => {
-															const registrationId = registrationSummary.registrationId || '';
-															addCourseMutation.mutate({
-																registrationId,
-																courseOfferingId: course.courseOfferingId,
-															});
-														}}
-														disabled={
-															!course.isPrerequisiteMet ||
-															addCourseMutation.isPending ||
-															(registrationSummary.totalCredits + course.credits) > registrationSummary.maxCredits
-														}
-													>
-														<Plus className="h-4 w-4 mr-1" />
-														Add
-													</Button>
-												)}
+								<h4 className="font-semibold text-sm mb-3">
+									Available Courses
+									{eligibleCoursesResponse?.count !== undefined && (
+										<Badge variant="outline" className="ml-2">
+											{eligibleCoursesResponse.count} {eligibleCoursesResponse.count === 1 ? 'course' : 'courses'}
+										</Badge>
+									)}
+								</h4>
+
+								{/* Loading State */}
+								{isLoadingCourses && (
+									<div className="space-y-2">
+										{[1, 2, 3].map((i) => (
+											<div key={i} className="p-3 border rounded-lg">
+												<Skeleton className="h-6 w-3/4 mb-2" />
+												<Skeleton className="h-4 w-1/2" />
 											</div>
 										))}
-								</div>
-							</div>
-						)}
+									</div>
+								)}
 
-						{/* No courses available */}
-						{eligibleCourses && eligibleCourses.length === 0 && (
-							<Alert>
-								<AlertDescription>
-									No courses are available for registration at this time.
-								</AlertDescription>
-							</Alert>
+								{/* Error State */}
+								{coursesError && (
+									<Alert variant="destructive">
+										<AlertDescription>
+											Failed to load available courses. Please try refreshing the page.
+										</AlertDescription>
+									</Alert>
+								)}
+
+								{/* Empty State */}
+								{!isLoadingCourses && !coursesError && eligibleCourses.length === 0 && (
+									<Alert>
+										<AlertDescription>
+											No courses are available for registration at this time. Please check back later or contact your academic advisor.
+										</AlertDescription>
+									</Alert>
+								)}
+
+								{/* Courses List */}
+								{!isLoadingCourses && !coursesError && eligibleCourses.length > 0 && (
+									<div className="space-y-2">
+										{eligibleCourses
+											.filter(item =>
+												!registrationSummary?.registeredCourses?.some(rc => rc.courseCode === item.courseOffering.course.code)
+											)
+											.map((item) => {
+												const { courseOffering, eligibility } = item;
+												const { course, primaryLecturer } = courseOffering;
+												const isRegisterable = eligibility.isEligible && registrationSummary?.status === 'DRAFT';
+												const wouldExceedMaxCredits = registrationSummary
+													? (registrationSummary.totalCredits + course.creditHours) > registrationSummary.maxCredits
+													: false;
+
+												return (
+													<div
+														key={courseOffering.id}
+														className={`flex items-center justify-between p-3 border rounded-lg transition-colors ${
+															eligibility.isEligible ? 'hover:bg-muted/50' : 'bg-muted/30 opacity-75'
+														}`}
+													>
+														<div className="flex-1">
+															<div className="flex items-center gap-2 flex-wrap">
+																<span className="font-medium">{course.code}</span>
+																<span className="text-muted-foreground">-</span>
+																<span>{course.name}</span>
+																<Badge variant="secondary" className="text-xs">
+																	{course.creditHours} credits
+																</Badge>
+																<Badge variant="outline" className="text-xs">
+																	{course.courseType}
+																</Badge>
+															</div>
+
+															{primaryLecturer && (
+																<p className="text-sm text-muted-foreground mt-1">
+																	Instructor: {primaryLecturer.firstName} {primaryLecturer.lastName}
+																</p>
+															)}
+
+															{course.prerequisites && (
+																<p className="text-xs text-muted-foreground mt-1">
+																	Prerequisites: {JSON.parse(course.prerequisites).join(', ')}
+																</p>
+															)}
+
+															{!eligibility.isEligible && eligibility.reasons.length > 0 && (
+																<div className="mt-2">
+																	{eligibility.reasons.map((reason, idx) => (
+																		<p key={idx} className="text-xs text-destructive">
+																			⚠ {reason}
+																		</p>
+																	))}
+																</div>
+															)}
+
+															{wouldExceedMaxCredits && (
+																<p className="text-xs text-warning mt-1">
+																	⚠ Adding this course would exceed maximum credit hours ({registrationSummary?.maxCredits})
+																</p>
+															)}
+														</div>
+
+														{isRegisterable && (
+															<Button
+																size="sm"
+																onClick={() => {
+																	const registrationId = registrationSummary?.registrationId || '';
+																	addCourseMutation.mutate({
+																		registrationId,
+																		courseOfferingId: courseOffering.id,
+																	});
+																}}
+																disabled={
+																	addCourseMutation.isPending ||
+																	wouldExceedMaxCredits ||
+																	courseOffering.currentEnrollment >= courseOffering.maxEnrollment
+																}
+																title={
+																	wouldExceedMaxCredits
+																		? 'Would exceed maximum credits'
+																		: courseOffering.currentEnrollment >= courseOffering.maxEnrollment
+																		? 'Course is full'
+																		: 'Add course to registration'
+																}
+															>
+																<Plus className="h-4 w-4 mr-1" />
+																Add
+															</Button>
+														)}
+													</div>
+												);
+											})}
+									</div>
+								)}
+							</div>
 						)}
 					</CardContent>
 				</Card>

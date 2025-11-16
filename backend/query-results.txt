@@ -1,0 +1,1012 @@
+
+=== QUERYING DATABASE ===
+
+≡ƒôà SEMESTERS:
+[
+  {
+    "id": 1,
+    "academicYearId": 1,
+    "semesterNumber": 1,
+    "name": "FIRST SEMESTER",
+    "startDate": "2026-01-05T00:00:00.000Z",
+    "endDate": "2026-04-24T00:00:00.000Z",
+    "isCurrent": true,
+    "createdAt": "2025-11-13T19:55:14.628Z",
+    "academicYear": {
+      "id": 1,
+      "yearCode": "2025/2026",
+      "startDate": "2026-01-01T00:00:00.000Z",
+      "endDate": "2026-12-18T00:00:00.000Z",
+      "isCurrent": true,
+      "institutionId": 1,
+      "createdAt": "2025-11-13T19:48:43.450Z"
+    }
+  },
+  {
+    "id": 2,
+    "academicYearId": 2,
+    "semesterNumber": 1,
+    "name": "Semester 1",
+    "startDate": "2024-09-01T00:00:00.000Z",
+    "endDate": "2025-01-15T00:00:00.000Z",
+    "isCurrent": true,
+    "createdAt": "2025-11-14T22:57:56.700Z",
+    "academicYear": {
+      "id": 2,
+      "yearCode": "2024/2025",
+      "startDate": "2024-09-01T00:00:00.000Z",
+      "endDate": "2025-06-30T00:00:00.000Z",
+      "isCurrent": true,
+      "institutionId": 2,
+      "createdAt": "2025-11-14T22:57:56.652Z"
+    }
+  },
+  {
+    "id": 3,
+    "academicYearId": 2,
+    "semesterNumber": 2,
+    "name": "Semester 2",
+    "startDate": "2025-02-01T00:00:00.000Z",
+    "endDate": "2025-06-30T00:00:00.000Z",
+    "isCurrent": false,
+    "createdAt": "2025-11-14T22:57:56.707Z",
+    "academicYear": {
+      "id": 2,
+      "yearCode": "2024/2025",
+      "startDate": "2024-09-01T00:00:00.000Z",
+      "endDate": "2025-06-30T00:00:00.000Z",
+      "isCurrent": true,
+      "institutionId": 2,
+      "createdAt": "2025-11-14T22:57:56.652Z"
+    }
+  }
+]
+
+≡ƒæÑ STUDENT PROFILES:
+[
+  {
+    "id": 1,
+    "userId": 3,
+    "studentId": "TIU0001",
+    "indexNumber": "TIU0001",
+    "level": 100,
+    "semester": 1,
+    "academicYear": null,
+    "programId": 1,
+    "admissionDate": "2025-11-13T21:50:11.206Z",
+    "expectedGraduation": null,
+    "enrollmentStatus": "ACTIVE",
+    "academicStatus": "GOOD_STANDING",
+    "guardianName": null,
+    "guardianPhone": null,
+    "guardianEmail": null,
+    "emergencyContact": null,
+    "user": {
+      "id": 3,
+      "email": "TIU0001@test-institute-uni.edu.gh",
+      "firstName": "David",
+      "lastName": "Quaye"
+    },
+    "program": {
+      "id": 1,
+      "code": "IT",
+      "name": "Information Technology"
+    }
+  },
+  {
+    "id": 2,
+    "userId": 18,
+    "studentId": "10240001",
+    "indexNumber": "GIT/CSE/24/001",
+    "level": 200,
+    "semester": 1,
+    "academicYear": "2024/2025",
+    "programId": 2,
+    "admissionDate": "2023-09-01T00:00:00.000Z",
+    "expectedGraduation": "2027-06-30T00:00:00.000Z",
+    "enrollmentStatus": "ACTIVE",
+    "academicStatus": "GOOD_STANDING",
+    "guardianName": null,
+    "guardianPhone": null,
+    "guardianEmail": null,
+    "emergencyContact": null,
+    "user": {
+      "id": 18,
+      "email": "alice.student@st.git.edu.gh",
+      "firstName": "Alice",
+      "lastName": "Owusu"
+    },
+    "program": {
+      "id": 2,
+      "code": "BSC_CS",
+      "name": "Computer Science"
+    }
+  },
+  {
+    "id": 3,
+    "userId": 19,
+    "studentId": "10240002",
+    "indexNumber": "GIT/CSE/24/002",
+    "level": 200,
+    "semester": 1,
+    "academicYear": "2024/2025",
+    "programId": 2,
+    "admissionDate": "2023-09-01T00:00:00.000Z",
+    "expectedGraduation": "2027-06-30T00:00:00.000Z",
+    "enrollmentStatus": "ACTIVE",
+    "academicStatus": "GOOD_STANDING",
+    "guardianName": null,
+    "guardianPhone": null,
+    "guardianEmail": null,
+    "emergencyContact": null,
+    "user": {
+      "id": 19,
+      "email": "bob.student@st.git.edu.gh",
+      "firstName": "Bob",
+      "lastName": "Agyeman"
+    },
+    "program": {
+      "id": 2,
+      "code": "BSC_CS",
+      "name": "Computer Science"
+    }
+  },
+  {
+    "id": 4,
+    "userId": 20,
+    "studentId": "10240003",
+    "indexNumber": "GIT/CSE/24/003",
+    "level": 100,
+    "semester": 1,
+    "academicYear": "2024/2025",
+    "programId": 3,
+    "admissionDate": "2024-09-01T00:00:00.000Z",
+    "expectedGraduation": "2028-06-30T00:00:00.000Z",
+    "enrollmentStatus": "ACTIVE",
+    "academicStatus": "GOOD_STANDING",
+    "guardianName": null,
+    "guardianPhone": null,
+    "guardianEmail": null,
+    "emergencyContact": null,
+    "user": {
+      "id": 20,
+      "email": "clara.student@st.git.edu.gh",
+      "firstName": "Clara",
+      "lastName": "Asiedu"
+    },
+    "program": {
+      "id": 3,
+      "code": "BSC_SE",
+      "name": "Software Engineering"
+    }
+  },
+  {
+    "id": 5,
+    "userId": 21,
+    "studentId": "10240004",
+    "indexNumber": "GIT/CSE/24/004",
+    "level": 200,
+    "semester": 1,
+    "academicYear": "2024/2025",
+    "programId": 2,
+    "admissionDate": "2023-09-01T00:00:00.000Z",
+    "expectedGraduation": "2027-06-30T00:00:00.000Z",
+    "enrollmentStatus": "ACTIVE",
+    "academicStatus": "GOOD_STANDING",
+    "guardianName": null,
+    "guardianPhone": null,
+    "guardianEmail": null,
+    "emergencyContact": null,
+    "user": {
+      "id": 21,
+      "email": "daniel.student@st.git.edu.gh",
+      "firstName": "Daniel",
+      "lastName": "Nkrumah"
+    },
+    "program": {
+      "id": 2,
+      "code": "BSC_CS",
+      "name": "Computer Science"
+    }
+  }
+]
+
+≡ƒôÜ PROGRAM COURSES:
+[
+  {
+    "id": 1,
+    "programId": 2,
+    "courseId": 1,
+    "level": 100,
+    "semester": 1,
+    "isRequired": true,
+    "createdAt": "2025-11-14T22:57:56.804Z",
+    "isCore": true,
+    "offeredInSemester1": true,
+    "offeredInSemester2": false,
+    "prerequisiteCourseIds": null,
+    "updatedAt": "2025-11-14T22:57:56.804Z",
+    "yearInProgram": 1,
+    "program": {
+      "code": "BSC_CS",
+      "name": "Computer Science"
+    },
+    "course": {
+      "code": "CSE101",
+      "name": "Introduction to Programming"
+    }
+  },
+  {
+    "id": 2,
+    "programId": 3,
+    "courseId": 1,
+    "level": 100,
+    "semester": 1,
+    "isRequired": true,
+    "createdAt": "2025-11-14T22:57:56.810Z",
+    "isCore": true,
+    "offeredInSemester1": true,
+    "offeredInSemester2": false,
+    "prerequisiteCourseIds": null,
+    "updatedAt": "2025-11-14T22:57:56.810Z",
+    "yearInProgram": 1,
+    "program": {
+      "code": "BSC_SE",
+      "name": "Software Engineering"
+    },
+    "course": {
+      "code": "CSE101",
+      "name": "Introduction to Programming"
+    }
+  },
+  {
+    "id": 3,
+    "programId": 4,
+    "courseId": 1,
+    "level": 100,
+    "semester": 1,
+    "isRequired": true,
+    "createdAt": "2025-11-14T22:57:56.820Z",
+    "isCore": true,
+    "offeredInSemester1": true,
+    "offeredInSemester2": false,
+    "prerequisiteCourseIds": null,
+    "updatedAt": "2025-11-14T22:57:56.820Z",
+    "yearInProgram": 1,
+    "program": {
+      "code": "MSC_CS",
+      "name": "Computer Science"
+    },
+    "course": {
+      "code": "CSE101",
+      "name": "Introduction to Programming"
+    }
+  },
+  {
+    "id": 4,
+    "programId": 2,
+    "courseId": 2,
+    "level": 200,
+    "semester": 1,
+    "isRequired": true,
+    "createdAt": "2025-11-14T22:57:56.861Z",
+    "isCore": true,
+    "offeredInSemester1": true,
+    "offeredInSemester2": false,
+    "prerequisiteCourseIds": null,
+    "updatedAt": "2025-11-14T22:57:56.861Z",
+    "yearInProgram": 1,
+    "program": {
+      "code": "BSC_CS",
+      "name": "Computer Science"
+    },
+    "course": {
+      "code": "CSE201",
+      "name": "Data Structures and Algorithms"
+    }
+  },
+  {
+    "id": 5,
+    "programId": 3,
+    "courseId": 2,
+    "level": 200,
+    "semester": 1,
+    "isRequired": true,
+    "createdAt": "2025-11-14T22:57:56.868Z",
+    "isCore": true,
+    "offeredInSemester1": true,
+    "offeredInSemester2": false,
+    "prerequisiteCourseIds": null,
+    "updatedAt": "2025-11-14T22:57:56.868Z",
+    "yearInProgram": 1,
+    "program": {
+      "code": "BSC_SE",
+      "name": "Software Engineering"
+    },
+    "course": {
+      "code": "CSE201",
+      "name": "Data Structures and Algorithms"
+    }
+  },
+  {
+    "id": 6,
+    "programId": 4,
+    "courseId": 2,
+    "level": 200,
+    "semester": 1,
+    "isRequired": true,
+    "createdAt": "2025-11-14T22:57:56.872Z",
+    "isCore": true,
+    "offeredInSemester1": true,
+    "offeredInSemester2": false,
+    "prerequisiteCourseIds": null,
+    "updatedAt": "2025-11-14T22:57:56.872Z",
+    "yearInProgram": 1,
+    "program": {
+      "code": "MSC_CS",
+      "name": "Computer Science"
+    },
+    "course": {
+      "code": "CSE201",
+      "name": "Data Structures and Algorithms"
+    }
+  },
+  {
+    "id": 7,
+    "programId": 2,
+    "courseId": 3,
+    "level": 200,
+    "semester": 1,
+    "isRequired": true,
+    "createdAt": "2025-11-14T22:57:56.887Z",
+    "isCore": true,
+    "offeredInSemester1": true,
+    "offeredInSemester2": false,
+    "prerequisiteCourseIds": null,
+    "updatedAt": "2025-11-14T22:57:56.887Z",
+    "yearInProgram": 1,
+    "program": {
+      "code": "BSC_CS",
+      "name": "Computer Science"
+    },
+    "course": {
+      "code": "CSE202",
+      "name": "Object-Oriented Programming"
+    }
+  },
+  {
+    "id": 8,
+    "programId": 3,
+    "courseId": 3,
+    "level": 200,
+    "semester": 1,
+    "isRequired": true,
+    "createdAt": "2025-11-14T22:57:56.892Z",
+    "isCore": true,
+    "offeredInSemester1": true,
+    "offeredInSemester2": false,
+    "prerequisiteCourseIds": null,
+    "updatedAt": "2025-11-14T22:57:56.892Z",
+    "yearInProgram": 1,
+    "program": {
+      "code": "BSC_SE",
+      "name": "Software Engineering"
+    },
+    "course": {
+      "code": "CSE202",
+      "name": "Object-Oriented Programming"
+    }
+  },
+  {
+    "id": 9,
+    "programId": 4,
+    "courseId": 3,
+    "level": 200,
+    "semester": 1,
+    "isRequired": true,
+    "createdAt": "2025-11-14T22:57:56.896Z",
+    "isCore": true,
+    "offeredInSemester1": true,
+    "offeredInSemester2": false,
+    "prerequisiteCourseIds": null,
+    "updatedAt": "2025-11-14T22:57:56.896Z",
+    "yearInProgram": 1,
+    "program": {
+      "code": "MSC_CS",
+      "name": "Computer Science"
+    },
+    "course": {
+      "code": "CSE202",
+      "name": "Object-Oriented Programming"
+    }
+  },
+  {
+    "id": 10,
+    "programId": 2,
+    "courseId": 4,
+    "level": 300,
+    "semester": 1,
+    "isRequired": true,
+    "createdAt": "2025-11-14T22:57:56.912Z",
+    "isCore": true,
+    "offeredInSemester1": true,
+    "offeredInSemester2": false,
+    "prerequisiteCourseIds": null,
+    "updatedAt": "2025-11-14T22:57:56.912Z",
+    "yearInProgram": 1,
+    "program": {
+      "code": "BSC_CS",
+      "name": "Computer Science"
+    },
+    "course": {
+      "code": "CSE301",
+      "name": "Database Systems"
+    }
+  }
+]
+
+≡ƒôû COURSE OFFERINGS:
+[
+  {
+    "id": 1,
+    "courseId": 1,
+    "semesterId": 2,
+    "primaryLecturerId": 11,
+    "maxEnrollment": 200,
+    "currentEnrollment": 0,
+    "classroom": null,
+    "schedule": null,
+    "status": "active",
+    "createdAt": "2025-11-14T22:57:56.850Z",
+    "updatedAt": "2025-11-14T22:57:56.850Z",
+    "course": {
+      "id": 1,
+      "code": "CSE101",
+      "name": "Introduction to Programming"
+    },
+    "semester": {
+      "id": 2,
+      "name": "Semester 1",
+      "semesterNumber": 1
+    }
+  },
+  {
+    "id": 2,
+    "courseId": 2,
+    "semesterId": 2,
+    "primaryLecturerId": 11,
+    "maxEnrollment": 200,
+    "currentEnrollment": 0,
+    "classroom": null,
+    "schedule": null,
+    "status": "active",
+    "createdAt": "2025-11-14T22:57:56.876Z",
+    "updatedAt": "2025-11-14T22:57:56.876Z",
+    "course": {
+      "id": 2,
+      "code": "CSE201",
+      "name": "Data Structures and Algorithms"
+    },
+    "semester": {
+      "id": 2,
+      "name": "Semester 1",
+      "semesterNumber": 1
+    }
+  },
+  {
+    "id": 3,
+    "courseId": 3,
+    "semesterId": 2,
+    "primaryLecturerId": 11,
+    "maxEnrollment": 200,
+    "currentEnrollment": 0,
+    "classroom": null,
+    "schedule": null,
+    "status": "active",
+    "createdAt": "2025-11-14T22:57:56.902Z",
+    "updatedAt": "2025-11-14T22:57:56.902Z",
+    "course": {
+      "id": 3,
+      "code": "CSE202",
+      "name": "Object-Oriented Programming"
+    },
+    "semester": {
+      "id": 2,
+      "name": "Semester 1",
+      "semesterNumber": 1
+    }
+  },
+  {
+    "id": 4,
+    "courseId": 4,
+    "semesterId": 2,
+    "primaryLecturerId": 11,
+    "maxEnrollment": 200,
+    "currentEnrollment": 0,
+    "classroom": null,
+    "schedule": null,
+    "status": "active",
+    "createdAt": "2025-11-14T22:57:56.925Z",
+    "updatedAt": "2025-11-14T22:57:56.925Z",
+    "course": {
+      "id": 4,
+      "code": "CSE301",
+      "name": "Database Systems"
+    },
+    "semester": {
+      "id": 2,
+      "name": "Semester 1",
+      "semesterNumber": 1
+    }
+  },
+  {
+    "id": 5,
+    "courseId": 5,
+    "semesterId": 2,
+    "primaryLecturerId": 11,
+    "maxEnrollment": 200,
+    "currentEnrollment": 0,
+    "classroom": null,
+    "schedule": null,
+    "status": "active",
+    "createdAt": "2025-11-14T22:57:56.950Z",
+    "updatedAt": "2025-11-14T22:57:56.950Z",
+    "course": {
+      "id": 5,
+      "code": "CSE302",
+      "name": "Software Engineering"
+    },
+    "semester": {
+      "id": 2,
+      "name": "Semester 1",
+      "semesterNumber": 1
+    }
+  },
+  {
+    "id": 6,
+    "courseId": 6,
+    "semesterId": 2,
+    "primaryLecturerId": 14,
+    "maxEnrollment": 200,
+    "currentEnrollment": 0,
+    "classroom": null,
+    "schedule": null,
+    "status": "active",
+    "createdAt": "2025-11-14T22:57:56.969Z",
+    "updatedAt": "2025-11-14T22:57:56.969Z",
+    "course": {
+      "id": 6,
+      "code": "MATH101",
+      "name": "Calculus I"
+    },
+    "semester": {
+      "id": 2,
+      "name": "Semester 1",
+      "semesterNumber": 1
+    }
+  },
+  {
+    "id": 7,
+    "courseId": 7,
+    "semesterId": 2,
+    "primaryLecturerId": 14,
+    "maxEnrollment": 200,
+    "currentEnrollment": 0,
+    "classroom": null,
+    "schedule": null,
+    "status": "active",
+    "createdAt": "2025-11-14T22:57:56.989Z",
+    "updatedAt": "2025-11-14T22:57:56.989Z",
+    "course": {
+      "id": 7,
+      "code": "MATH102",
+      "name": "Calculus II"
+    },
+    "semester": {
+      "id": 2,
+      "name": "Semester 1",
+      "semesterNumber": 1
+    }
+  },
+  {
+    "id": 8,
+    "courseId": 8,
+    "semesterId": 2,
+    "primaryLecturerId": 14,
+    "maxEnrollment": 200,
+    "currentEnrollment": 0,
+    "classroom": null,
+    "schedule": null,
+    "status": "active",
+    "createdAt": "2025-11-14T22:57:57.008Z",
+    "updatedAt": "2025-11-14T22:57:57.008Z",
+    "course": {
+      "id": 8,
+      "code": "MATH201",
+      "name": "Discrete Mathematics"
+    },
+    "semester": {
+      "id": 2,
+      "name": "Semester 1",
+      "semesterNumber": 1
+    }
+  },
+  {
+    "id": 9,
+    "courseId": 9,
+    "semesterId": 2,
+    "primaryLecturerId": 16,
+    "maxEnrollment": 200,
+    "currentEnrollment": 0,
+    "classroom": null,
+    "schedule": null,
+    "status": "active",
+    "createdAt": "2025-11-14T22:57:57.023Z",
+    "updatedAt": "2025-11-14T22:57:57.023Z",
+    "course": {
+      "id": 9,
+      "code": "PHYS101",
+      "name": "General Physics I"
+    },
+    "semester": {
+      "id": 2,
+      "name": "Semester 1",
+      "semesterNumber": 1
+    }
+  },
+  {
+    "id": 10,
+    "courseId": 10,
+    "semesterId": 2,
+    "primaryLecturerId": 16,
+    "maxEnrollment": 200,
+    "currentEnrollment": 0,
+    "classroom": null,
+    "schedule": null,
+    "status": "active",
+    "createdAt": "2025-11-14T22:57:57.037Z",
+    "updatedAt": "2025-11-14T22:57:57.037Z",
+    "course": {
+      "id": 10,
+      "code": "PHYS102",
+      "name": "General Physics II"
+    },
+    "semester": {
+      "id": 2,
+      "name": "Semester 1",
+      "semesterNumber": 1
+    }
+  },
+  {
+    "id": 11,
+    "courseId": 11,
+    "semesterId": 2,
+    "primaryLecturerId": 17,
+    "maxEnrollment": 200,
+    "currentEnrollment": 0,
+    "classroom": null,
+    "schedule": null,
+    "status": "active",
+    "createdAt": "2025-11-16T12:56:04.827Z",
+    "updatedAt": "2025-11-16T12:56:04.827Z",
+    "course": {
+      "id": 11,
+      "code": "EEE201",
+      "name": "Circuit Analysis I"
+    },
+    "semester": {
+      "id": 2,
+      "name": "Semester 1",
+      "semesterNumber": 1
+    }
+  },
+  {
+    "id": 12,
+    "courseId": 12,
+    "semesterId": 2,
+    "primaryLecturerId": null,
+    "maxEnrollment": 200,
+    "currentEnrollment": 0,
+    "classroom": null,
+    "schedule": null,
+    "status": "active",
+    "createdAt": "2025-11-16T12:56:04.864Z",
+    "updatedAt": "2025-11-16T12:56:04.864Z",
+    "course": {
+      "id": 12,
+      "code": "BUS101",
+      "name": "Principles of Management"
+    },
+    "semester": {
+      "id": 2,
+      "name": "Semester 1",
+      "semesterNumber": 1
+    }
+  },
+  {
+    "id": 13,
+    "courseId": 13,
+    "semesterId": 2,
+    "primaryLecturerId": null,
+    "maxEnrollment": 200,
+    "currentEnrollment": 0,
+    "classroom": null,
+    "schedule": null,
+    "status": "active",
+    "createdAt": "2025-11-16T12:56:04.997Z",
+    "updatedAt": "2025-11-16T12:56:04.997Z",
+    "course": {
+      "id": 13,
+      "code": "ECON101",
+      "name": "Microeconomics"
+    },
+    "semester": {
+      "id": 2,
+      "name": "Semester 1",
+      "semesterNumber": 1
+    }
+  },
+  {
+    "id": 14,
+    "courseId": 14,
+    "semesterId": 2,
+    "primaryLecturerId": 11,
+    "maxEnrollment": 200,
+    "currentEnrollment": 0,
+    "classroom": null,
+    "schedule": null,
+    "status": "active",
+    "createdAt": "2025-11-16T12:56:05.013Z",
+    "updatedAt": "2025-11-16T12:56:05.013Z",
+    "course": {
+      "id": 14,
+      "code": "GEN101",
+      "name": "Technical Writing and Communication"
+    },
+    "semester": {
+      "id": 2,
+      "name": "Semester 1",
+      "semesterNumber": 1
+    }
+  },
+  {
+    "id": 15,
+    "courseId": 15,
+    "semesterId": 2,
+    "primaryLecturerId": 11,
+    "maxEnrollment": 200,
+    "currentEnrollment": 0,
+    "classroom": null,
+    "schedule": null,
+    "status": "active",
+    "createdAt": "2025-11-16T12:56:05.068Z",
+    "updatedAt": "2025-11-16T12:56:05.068Z",
+    "course": {
+      "id": 15,
+      "code": "GEN102",
+      "name": "Critical Thinking and Problem Solving"
+    },
+    "semester": {
+      "id": 2,
+      "name": "Semester 1",
+      "semesterNumber": 1
+    }
+  }
+]
+
+≡ƒô¥ COURSE REGISTRATIONS:
+[]
+
+≡ƒöì SPECIFIC STUDENT TEST (User ID 21):
+{
+  "id": 5,
+  "userId": 21,
+  "studentId": "10240004",
+  "indexNumber": "GIT/CSE/24/004",
+  "level": 200,
+  "semester": 1,
+  "academicYear": "2024/2025",
+  "programId": 2,
+  "admissionDate": "2023-09-01T00:00:00.000Z",
+  "expectedGraduation": "2027-06-30T00:00:00.000Z",
+  "enrollmentStatus": "ACTIVE",
+  "academicStatus": "GOOD_STANDING",
+  "guardianName": null,
+  "guardianPhone": null,
+  "guardianEmail": null,
+  "emergencyContact": null,
+  "user": {
+    "id": 21,
+    "email": "daniel.student@st.git.edu.gh",
+    "password": "$2b$12$jmDcQOBf6PEMdbpYf5RKZ.HHMivgWtWU3waXYBvIFJ3l/LjQmVouW",
+    "firstName": "Daniel",
+    "lastName": "Nkrumah",
+    "middleName": "Kofi",
+    "title": null,
+    "role": "STUDENT",
+    "status": "ACTIVE",
+    "lastLogin": "2025-11-16T00:24:12.946Z",
+    "emailVerified": true,
+    "twoFactorEnabled": false,
+    "phone": "+233-24-555-2004",
+    "dateOfBirth": "2002-12-03T00:00:00.000Z",
+    "gender": "Male",
+    "nationality": "Ghanaian",
+    "address": "21 Student Hostel Block D, GIT Campus",
+    "createdAt": "2025-11-14T22:56:48.037Z",
+    "updatedAt": "2025-11-16T00:24:12.948Z",
+    "institutionId": 2,
+    "facultyId": 2,
+    "departmentId": 2
+  },
+  "program": {
+    "id": 2,
+    "name": "Computer Science",
+    "code": "BSC_CS",
+    "type": "BACHELOR",
+    "level": "UNDERGRADUATE",
+    "durationYears": 4,
+    "creditHours": 120,
+    "description": "Bachelor of Science in Computer Science - A comprehensive program covering software development, algorithms, data structures, and computer systems.",
+    "admissionRequirements": "WASSCE with credits in Mathematics, English, Physics, and any other science subject. Minimum aggregate of 24.",
+    "isActive": true,
+    "departmentId": 2,
+    "createdAt": "2025-11-14T22:56:37.364Z",
+    "updatedAt": "2025-11-14T22:56:37.364Z",
+    "department": {
+      "id": 2,
+      "name": "Computer Science and Engineering",
+      "code": "CSE",
+      "type": "department",
+      "description": "Department of Computer Science and Software Engineering, offering programs in software development, artificial intelligence, and computer systems.",
+      "officeLocation": "Engineering Block A, 2nd Floor",
+      "contactInfo": "{\"email\":\"cse@git.edu.gh\",\"phone\":\"+233-30-555-0201\",\"officeHours\":\"Mon-Fri 8:00-17:00\"}",
+      "facultyId": 2,
+      "hodId": null,
+      "createdAt": "2025-11-14T22:56:37.156Z",
+      "updatedAt": "2025-11-14T22:56:37.156Z",
+      "faculty": {
+        "id": 2,
+        "name": "Faculty of Engineering",
+        "code": "ENG",
+        "description": "Faculty of Engineering Sciences covering all major engineering disciplines including Computer, Electrical, Civil, and Mechanical Engineering.",
+        "establishedYear": 1985,
+        "institutionId": 2,
+        "deanId": null,
+        "createdAt": "2025-11-14T22:55:11.365Z",
+        "updatedAt": "2025-11-14T22:55:11.365Z",
+        "institution": {
+          "id": 2,
+          "name": "Ghana Institute of Technology",
+          "code": "GIT",
+          "type": "UNIVERSITY",
+          "status": "ACTIVE",
+          "establishedYear": 1985,
+          "address": "123 Technology Avenue, East Legon",
+          "city": "Accra",
+          "state": "Greater Accra",
+          "country": "Ghana",
+          "contactEmail": "info@git.edu.gh",
+          "contactPhone": "+233-30-555-0100",
+          "website": "https://www.git.edu.gh",
+          "description": "A leading technology-focused university in Ghana, dedicated to innovation and excellence in engineering, science, and technology education.",
+          "logoUrl": "https://www.git.edu.gh/assets/logo.png",
+          "createdAt": "2025-11-14T22:55:10.815Z",
+          "updatedAt": "2025-11-14T22:55:10.815Z"
+        }
+      }
+    }
+  }
+}
+
+≡ƒôÜ PROGRAM COURSES FOR THIS STUDENT:
+[
+  {
+    "id": 4,
+    "programId": 2,
+    "courseId": 2,
+    "level": 200,
+    "semester": 1,
+    "isRequired": true,
+    "createdAt": "2025-11-14T22:57:56.861Z",
+    "isCore": true,
+    "offeredInSemester1": true,
+    "offeredInSemester2": false,
+    "prerequisiteCourseIds": null,
+    "updatedAt": "2025-11-14T22:57:56.861Z",
+    "yearInProgram": 1,
+    "course": {
+      "id": 2,
+      "name": "Data Structures and Algorithms",
+      "code": "CSE201",
+      "description": "Advanced data structures and algorithmic thinking. Analysis of algorithms, complexity theory, and implementation of efficient data structures.",
+      "creditHours": 3,
+      "contactHours": 45,
+      "level": 200,
+      "courseType": "CORE",
+      "prerequisites": "[\"CSE101\"]",
+      "corequisites": "[\"MATH201\"]",
+      "learningOutcomes": "Students will master fundamental data structures, algorithm analysis, and efficient problem-solving techniques.",
+      "syllabus": "Arrays and linked lists, stacks and queues, trees and graphs, sorting algorithms, searching algorithms, hash tables, algorithm analysis and Big-O notation.",
+      "assessmentMethods": "Programming assignments (30%), Tests (30%), Final exam (40%)",
+      "recommendedBooks": "Introduction to Algorithms by Cormen, Leiserson, Rivest, and Stein; Data Structures and Algorithm Analysis by Mark Allen Weiss",
+      "departmentId": 2,
+      "isActive": true,
+      "createdAt": "2025-11-14T22:57:56.856Z",
+      "updatedAt": "2025-11-14T22:57:56.856Z"
+    }
+  },
+  {
+    "id": 7,
+    "programId": 2,
+    "courseId": 3,
+    "level": 200,
+    "semester": 1,
+    "isRequired": true,
+    "createdAt": "2025-11-14T22:57:56.887Z",
+    "isCore": true,
+    "offeredInSemester1": true,
+    "offeredInSemester2": false,
+    "prerequisiteCourseIds": null,
+    "updatedAt": "2025-11-14T22:57:56.887Z",
+    "yearInProgram": 1,
+    "course": {
+      "id": 3,
+      "name": "Object-Oriented Programming",
+      "code": "CSE202",
+      "description": "Object-oriented programming principles using Java. Classes, objects, inheritance, polymorphism, and design patterns.",
+      "creditHours": 3,
+      "contactHours": 45,
+      "level": 200,
+      "courseType": "CORE",
+      "prerequisites": "[\"CSE101\"]",
+      "corequisites": null,
+      "learningOutcomes": "Students will understand OOP principles and develop complex applications using object-oriented design.",
+      "syllabus": "Classes and objects, encapsulation, inheritance, polymorphism, abstract classes and interfaces, exception handling, collections framework, design patterns.",
+      "assessmentMethods": "Programming projects (40%), Mid-semester exam (25%), Final exam (35%)",
+      "recommendedBooks": "Java: The Complete Reference by Herbert Schildt; Effective Java by Joshua Bloch",
+      "departmentId": 2,
+      "isActive": true,
+      "createdAt": "2025-11-14T22:57:56.883Z",
+      "updatedAt": "2025-11-14T22:57:56.883Z"
+    }
+  },
+  {
+    "id": 30,
+    "programId": 2,
+    "courseId": 8,
+    "level": 200,
+    "semester": 1,
+    "isRequired": true,
+    "createdAt": "2025-11-16T12:56:04.472Z",
+    "isCore": true,
+    "offeredInSemester1": true,
+    "offeredInSemester2": false,
+    "prerequisiteCourseIds": null,
+    "updatedAt": "2025-11-16T12:56:04.472Z",
+    "yearInProgram": 2,
+    "course": {
+      "id": 8,
+      "name": "Discrete Mathematics",
+      "code": "MATH201",
+      "description": "Mathematical foundations for computer science. Logic, sets, functions, relations, graph theory, and combinatorics.",
+      "creditHours": 3,
+      "contactHours": 45,
+      "level": 200,
+      "courseType": "CORE",
+      "prerequisites": "[\"MATH101\"]",
+      "corequisites": null,
+      "learningOutcomes": "Students will understand discrete mathematical structures essential for computer science.",
+      "syllabus": "Propositional and predicate logic, sets and functions, relations, graph theory, trees, combinatorics, number theory, Boolean algebra.",
+      "assessmentMethods": "Assignments (25%), Tests (35%), Final exam (40%)",
+      "recommendedBooks": "Discrete Mathematics and Its Applications by Kenneth Rosen; Discrete Mathematics by Richard Johnsonbaugh",
+      "departmentId": 6,
+      "isActive": true,
+      "createdAt": "2025-11-14T22:57:56.993Z",
+      "updatedAt": "2025-11-14T22:57:56.993Z"
+    }
+  }
+]
+
+≡ƒôû COURSE OFFERINGS FOR STUDENT'S COURSES:
+[]

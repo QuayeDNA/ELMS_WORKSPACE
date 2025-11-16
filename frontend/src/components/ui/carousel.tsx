@@ -95,7 +95,11 @@ export function Carousel({
 
 			{/* Carousel Content */}
 			<div className={`grid gap-3 ${isMobile ? 'grid-cols-2' : 'grid-cols-2'}`}>
-				{visibleItems}
+				{visibleItems.map((item, index) => (
+					<div key={currentIndex + index}>
+						{item}
+					</div>
+				))}
 			</div>
 
 			{/* Dots Indicator */}

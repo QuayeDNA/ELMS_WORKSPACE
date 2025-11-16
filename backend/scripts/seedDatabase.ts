@@ -6,6 +6,7 @@ import facultiesData from './seed-data/faculties';
 import departmentsData from './seed-data/departments';
 import programsData from './seed-data/programs';
 import coursesData from './seed-data/courses';
+import programCoursesData from './seed-data/programCourses';
 import usersData, { lecturerProfilesData, studentProfilesData } from './seed-data/users';
 
 const prisma = new PrismaClient();
@@ -213,10 +214,8 @@ async function upsertAcademicYearAndSemesters(institutionId: number) {
 async function upsertCoursesAndProgramLinks(departments: any[], programs: any[], lecturers: any[], semester: any) {
   const createdCourses: any[] = [];
 
-  // We'll seed the first 10 courses (or all if fewer)
-  const toSeed = coursesData.slice(0, 10);
-
-  for (const c of toSeed) {
+  // Create all courses first
+  for (const c of coursesData) {
     const department = departments.find((d) => d.code === c.departmentCode);
     if (!department) {
       console.warn(`⚠️ Department with code ${c.departmentCode} not found for course ${c.name}`);
@@ -233,40 +232,89 @@ async function upsertCoursesAndProgramLinks(departments: any[], programs: any[],
     }
 
     createdCourses.push(courseRec);
+  }
 
-    // Link to programs within the same department
-    const deptPrograms = programs.filter((p) => p.departmentId === department.id);
-    for (const prog of deptPrograms) {
-      // avoid duplicate unique ([programId, courseId, level, semester])
-      const progCourseExists = await prisma.programCourse.findFirst({ where: { programId: prog.id, courseId: courseRec.id, level: c.level, semester: 1 } });
-      if (!progCourseExists) {
-        await prisma.programCourse.create({ data: {
-          programId: prog.id,
-          courseId: courseRec.id,
-          level: c.level,
-          semester: 1,
-          isRequired: true,
-          isCore: c.courseType === 'CORE',
-          offeredInSemester1: true,
-          offeredInSemester2: false,
-          yearInProgram: 1
-        } as any });
-      }
+  console.log(`✅ Created/verified ${createdCourses.length} courses`);
+
+  // Now create program-course links using programCoursesData
+  let linkedCount = 0;
+  for (const pc of programCoursesData) {
+    const program = programs.find((p) => p.code === pc.programCode);
+    const course = createdCourses.find((c) => c.code === pc.courseCode);
+
+    if (!program) {
+      console.warn(`⚠️ Program ${pc.programCode} not found for program-course link`);
+      continue;
     }
 
-    // Create a CourseOffering for the current semester
-    const lecturer = lecturers.find((l) => l.departmentId === department.id) || null;
-    const existingOffering = await prisma.courseOffering.findFirst({ where: { courseId: courseRec.id, semesterId: semester.id } });
-    if (!existingOffering) {
-      await prisma.courseOffering.create({ data: {
-        courseId: courseRec.id,
-        semesterId: semester.id,
-        primaryLecturerId: lecturer ? lecturer.id : null,
-        maxEnrollment: 200,
-        status: 'active'
-      } as any });
+    if (!course) {
+      console.warn(`⚠️ Course ${pc.courseCode} not found for program-course link`);
+      continue;
+    }
+
+    // Check if link already exists
+    const existing = await prisma.programCourse.findFirst({
+      where: {
+        programId: program.id,
+        courseId: course.id,
+        level: pc.level,
+        semester: pc.semester
+      }
+    });
+
+    if (!existing) {
+      await prisma.programCourse.create({
+        data: {
+          programId: program.id,
+          courseId: course.id,
+          level: pc.level,
+          semester: pc.semester,
+          isRequired: pc.isRequired,
+          isCore: pc.isCore,
+          yearInProgram: pc.yearInProgram,
+          offeredInSemester1: pc.semester === 1,
+          offeredInSemester2: pc.semester === 2
+        } as any
+      });
+      linkedCount++;
     }
   }
+
+  console.log(`✅ Created ${linkedCount} program-course links`);
+
+  // Create CourseOfferings for semester 1 courses
+  let offeringsCount = 0;
+  for (const courseRec of createdCourses) {
+    const department = departments.find((d) => d.id === courseRec.departmentId);
+    if (!department) continue;
+
+    // Check if this course is offered in semester 1 for any program
+    const isOfferedInSem1 = programCoursesData.some(
+      pc => pc.courseCode === courseRec.code && pc.semester === semester.semesterNumber
+    );
+
+    if (!isOfferedInSem1) continue;
+
+    const lecturer = lecturers.find((l) => l.departmentId === department.id) || null;
+    const existingOffering = await prisma.courseOffering.findFirst({
+      where: { courseId: courseRec.id, semesterId: semester.id }
+    });
+
+    if (!existingOffering) {
+      await prisma.courseOffering.create({
+        data: {
+          courseId: courseRec.id,
+          semesterId: semester.id,
+          primaryLecturerId: lecturer ? lecturer.id : null,
+          maxEnrollment: 200,
+          status: 'active'
+        } as any
+      });
+      offeringsCount++;
+    }
+  }
+
+  console.log(`✅ Created ${offeringsCount} course offerings for ${semester.name}`);
 
   return createdCourses;
 }

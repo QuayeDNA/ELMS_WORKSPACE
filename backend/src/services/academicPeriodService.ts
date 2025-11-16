@@ -330,10 +330,18 @@ export const academicPeriodService = {
   },
 
   // Get current semester
-  async getCurrentSemester(academicYearId?: number) {
+  async getCurrentSemester(academicYearId?: number, institutionId?: number) {
     const where: any = { isCurrent: true };
+
     if (academicYearId) {
       where.academicYearId = academicYearId;
+    }
+
+    // Filter by institution through the academicYear relation
+    if (institutionId) {
+      where.academicYear = {
+        institutionId: institutionId
+      };
     }
 
     return await prisma.semester.findFirst({
