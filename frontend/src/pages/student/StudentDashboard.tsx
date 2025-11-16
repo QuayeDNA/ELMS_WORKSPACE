@@ -258,8 +258,8 @@ export default function StudentDashboard() {
 								<div className="space-y-2 mb-4">
 									{availableCourses.map((offering) => {
 										const isSelected = selectedCourses.includes(offering.id);
-										const isRegistered = currentRegistration?.items?.some(
-											item => item.courseOfferingId === offering.id && item.status === 'REGISTERED'
+										const isRegistered = currentRegistration?.courses?.some(
+											item => item.courseOffering.id === offering.id && item.status === 'REGISTERED'
 										);
 										const isFull = offering.currentEnrollment >= offering.maxCapacity;
 
@@ -287,7 +287,7 @@ export default function StudentDashboard() {
 															</div>
 															<div className="text-sm text-muted-foreground">
 																{offering.course.creditHours} credits
-																{offering.instructor && ` • ${offering.instructor.firstName} ${offering.instructor.lastName}`}
+																{offering.primaryLecturer && ` • ${offering.primaryLecturer.firstName} ${offering.primaryLecturer.lastName}`}
 															</div>
 															<div className="text-xs text-muted-foreground mt-1">
 																{offering.currentEnrollment}/{offering.maxCapacity} enrolled
@@ -358,7 +358,7 @@ export default function StudentDashboard() {
 									<Skeleton key={i} className="h-20" />
 								))}
 							</div>
-						) : !currentRegistration || currentRegistration.items.length === 0 ? (
+						) : !currentRegistration || currentRegistration.courses.length === 0 ? (
 							<Alert>
 								<AlertDescription>
 									You haven't registered for any courses yet.
@@ -367,7 +367,7 @@ export default function StudentDashboard() {
 						) : (
 							<>
 								<div className="space-y-2 mb-4">
-									{currentRegistration.items.map((item) => (
+									{currentRegistration.courses.map((item) => (
 										<div
 											key={item.id}
 											className="p-3 rounded-lg border hover:bg-gray-50 transition-colors"
@@ -379,8 +379,8 @@ export default function StudentDashboard() {
 													</div>
 													<div className="text-sm text-muted-foreground">
 														{item.courseOffering.course.creditHours} credits
-														{item.courseOffering.instructor &&
-															` • ${item.courseOffering.instructor.firstName} ${item.courseOffering.instructor.lastName}`
+														{item.courseOffering.primaryLecturer &&
+															` • ${item.courseOffering.primaryLecturer.firstName} ${item.courseOffering.primaryLecturer.lastName}`
 														}
 													</div>
 													<div className="flex items-center gap-2 mt-2">
@@ -403,7 +403,7 @@ export default function StudentDashboard() {
 														size="sm"
 														variant="ghost"
 														className="text-red-600 hover:text-red-700 hover:bg-red-50"
-														onClick={() => dropCoursesMutation.mutate([item.courseOfferingId])}
+														onClick={() => dropCoursesMutation.mutate([item.courseOffering.id])}
 														disabled={dropCoursesMutation.isPending}
 													>
 														<XCircle className="h-4 w-4" />
@@ -419,7 +419,7 @@ export default function StudentDashboard() {
 									<div className="flex justify-between text-sm">
 										<span className="text-muted-foreground">Total Courses:</span>
 										<span className="font-medium">
-											{currentRegistration.items.filter(item => item.status === 'REGISTERED').length}
+											{currentRegistration.courses.filter(item => item.status === 'REGISTERED').length}
 										</span>
 									</div>
 									<div className="flex justify-between text-sm">
@@ -440,7 +440,7 @@ export default function StudentDashboard() {
 										</Badge>
 									</div>
 
-									{currentRegistration.status === 'ACTIVE' && currentRegistration.items.length > 0 && (
+									{currentRegistration.status === 'ACTIVE' && currentRegistration.courses.length > 0 && (
 										<Button
 											variant="destructive"
 											size="sm"
