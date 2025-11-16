@@ -578,6 +578,43 @@ export class RegistrationController {
       });
     }
   }
+
+  /**
+   * Register student for all eligible courses
+   * POST /api/registrations/register-all
+   * Access: Student
+   */
+  async registerAllEligibleCourses(req: Request, res: Response): Promise<void> {
+    try {
+      const { studentProfileId, semesterId } = req.body;
+
+      // Validate required fields
+      if (!studentProfileId || !semesterId) {
+        res.status(400).json({
+          success: false,
+          message: 'Student Profile ID and Semester ID are required'
+        });
+        return;
+      }
+
+      // Convert to numbers if needed
+      const studentProfileIdNum = typeof studentProfileId === 'string' ? parseInt(studentProfileId) : studentProfileId;
+      const semesterIdNum = typeof semesterId === 'string' ? parseInt(semesterId) : semesterId;
+
+      const result = await registrationService.registerAllEligibleCourses(
+        studentProfileIdNum,
+        semesterIdNum
+      );
+
+      res.status(200).json(result);
+    } catch (error) {
+      console.error('Error registering for all courses:', error);
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to register for courses'
+      });
+    }
+  }
 }
 
 // Export a singleton instance

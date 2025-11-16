@@ -19,7 +19,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { GraduationCap, Book, User, Mail, Phone, Calendar, Plus, Trash2, Send, CheckCircle } from 'lucide-react';
+import { GraduationCap, Book, User, Mail, Phone, Calendar, Trash2, Send, CheckCircle } from 'lucide-react';
 
 export default function StudentDashboard() {
 	const { user } = useAuthStore();
@@ -88,29 +88,6 @@ export default function StudentDashboard() {
 		staleTime: 2 * 60 * 1000, // 2 minutes - more frequent updates
 	});
 
-	// Mutation for adding course to registration
-	const addCourseMutation = useMutation({
-		mutationFn: async ({ registrationId, courseOfferingId }: { registrationId: string; courseOfferingId: number }) => {
-			// If no registration exists, create one first
-			if (!registrationId && studentProfile?.id && currentSemester?.id) {
-				const newRegistration = await registrationService.createRegistration(
-					String(studentProfile.id),
-					String(currentSemester.id)
-				);
-				return await registrationService.addCourseToRegistration(newRegistration.id, String(courseOfferingId));
-			}
-			return await registrationService.addCourseToRegistration(registrationId, String(courseOfferingId));
-		},
-		onSuccess: () => {
-			toast.success('Course has been successfully added to your registration.');
-			refetchSummary();
-			refetchEligibleCourses();
-		},
-		onError: (error: Error) => {
-			toast.error(error.message);
-		},
-	});
-
 	// Mutation for removing course from registration
 	const removeCourseMutation = useMutation({
 		mutationFn: async (registeredCourseId: string) => {
@@ -137,6 +114,27 @@ export default function StudentDashboard() {
 		},
 		onError: (error: Error) => {
 			toast.error(error.message);
+		},
+	});
+
+	// Mutation for registering all eligible courses
+	const registerAllMutation = useMutation({
+		mutationFn: async () => {
+			if (!studentProfile?.id || !currentSemester?.id) {
+				throw new Error('Missing student profile or semester information');
+			}
+			return await registrationService.registerAllEligibleCourses(
+				studentProfile.id,
+				currentSemester.id
+			);
+		},
+		onSuccess: (data) => {
+			toast.success(`Successfully registered for ${data.registeredCount} course${data.registeredCount !== 1 ? 's' : ''}`);
+			refetchSummary();
+			refetchEligibleCourses();
+		},
+		onError: (error: Error) => {
+			toast.error(error.message || 'Failed to register for courses');
 		},
 	});
 
@@ -438,14 +436,31 @@ export default function StudentDashboard() {
 						{/* Available Courses */}
 						{registrationSummary?.status !== 'APPROVED' && (
 							<div>
-								<h4 className="font-semibold text-sm mb-3">
-									Available Courses
-									{eligibleCoursesResponse?.count !== undefined && (
-										<Badge variant="outline" className="ml-2">
-											{eligibleCoursesResponse.count} {eligibleCoursesResponse.count === 1 ? 'course' : 'courses'}
-										</Badge>
+								<div className="flex items-center justify-between mb-3">
+									<div>
+										<h4 className="font-semibold text-sm">
+											Available Courses
+											{eligibleCoursesResponse?.count !== undefined && (
+												<Badge variant="outline" className="ml-2">
+													{eligibleCoursesResponse.count} {eligibleCoursesResponse.count === 1 ? 'course' : 'courses'}
+												</Badge>
+											)}
+										</h4>
+									</div>
+
+									{/* Register All Button */}
+									{!isLoadingCourses && !coursesError && eligibleCourses.length > 0 &&
+									(!registrationSummary || registrationSummary?.status === 'DRAFT') && (
+										<Button
+											onClick={() => registerAllMutation.mutate()}
+											disabled={registerAllMutation.isPending}
+											className="gap-2"
+										>
+											<GraduationCap className="h-4 w-4" />
+											{registerAllMutation.isPending ? 'Registering...' : 'Register All Courses'}
+										</Button>
 									)}
-								</h4>
+								</div>
 
 								{/* Loading State */}
 								{isLoadingCourses && (
@@ -487,16 +502,12 @@ export default function StudentDashboard() {
 											.map((item) => {
 												const { courseOffering, eligibility } = item;
 												const { course, primaryLecturer } = courseOffering;
-												const isRegisterable = eligibility.isEligible && registrationSummary?.status === 'DRAFT';
-												const wouldExceedMaxCredits = registrationSummary
-													? (registrationSummary.totalCredits + course.creditHours) > registrationSummary.maxCredits
-													: false;
 
 												return (
 													<div
 														key={courseOffering.id}
-														className={`flex items-center justify-between p-3 border rounded-lg transition-colors ${
-															eligibility.isEligible ? 'hover:bg-muted/50' : 'bg-muted/30 opacity-75'
+														className={`p-3 border rounded-lg transition-colors ${
+															eligibility.isEligible ? 'bg-background' : 'bg-muted/30 opacity-75'
 														}`}
 													>
 														<div className="flex-1">
@@ -533,41 +544,7 @@ export default function StudentDashboard() {
 																	))}
 																</div>
 															)}
-
-															{wouldExceedMaxCredits && (
-																<p className="text-xs text-warning mt-1">
-																	⚠ Adding this course would exceed maximum credit hours ({registrationSummary?.maxCredits})
-																</p>
-															)}
 														</div>
-
-														{isRegisterable && (
-															<Button
-																size="sm"
-																onClick={() => {
-																	const registrationId = registrationSummary?.registrationId || '';
-																	addCourseMutation.mutate({
-																		registrationId,
-																		courseOfferingId: courseOffering.id,
-																	});
-																}}
-																disabled={
-																	addCourseMutation.isPending ||
-																	wouldExceedMaxCredits ||
-																	courseOffering.currentEnrollment >= courseOffering.maxEnrollment
-																}
-																title={
-																	wouldExceedMaxCredits
-																		? 'Would exceed maximum credits'
-																		: courseOffering.currentEnrollment >= courseOffering.maxEnrollment
-																		? 'Course is full'
-																		: 'Add course to registration'
-																}
-															>
-																<Plus className="h-4 w-4 mr-1" />
-																Add
-															</Button>
-														)}
 													</div>
 												);
 											})}

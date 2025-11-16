@@ -1120,6 +1120,107 @@ export class RegistrationService {
 
     return { registered, notRegistered };
   }
+
+  /**
+   * Register student for all eligible courses in current semester
+   */
+  async registerAllEligibleCourses(
+    studentProfileId: number,
+    semesterId: number
+  ): Promise<{ success: boolean; message: string; registeredCount: number; courses: any[] }> {
+    // Get eligible courses
+    const eligibleCourses = await this.getEligibleCourses(studentProfileId, semesterId);
+
+    if (!eligibleCourses || eligibleCourses.length === 0) {
+      throw new Error('No eligible courses found for registration');
+    }
+
+    // Get student profile to get userId
+    const studentProfile = await prisma.studentProfile.findUnique({
+      where: { id: studentProfileId },
+      include: { user: true }
+    });
+
+    if (!studentProfile) {
+      throw new Error('Student profile not found');
+    }
+
+    const studentUserId = studentProfile.userId;
+
+    // Check if registration exists
+    let registration = await prisma.courseRegistration.findFirst({
+      where: {
+        studentId: studentUserId,
+        semesterId,
+        status: { notIn: ['CANCELLED', 'REJECTED'] }
+      }
+    });
+
+    // Create registration if it doesn't exist
+    if (!registration) {
+      registration = await prisma.courseRegistration.create({
+        data: {
+          studentId: studentUserId,
+          semesterId,
+          status: 'DRAFT',
+          totalCredits: 0
+        }
+      });
+    }
+
+    // Register all eligible courses
+    const registeredCourses = [];
+    for (const eligibleCourse of eligibleCourses) {
+      const courseOffering = eligibleCourse.courseOffering;
+
+      if (!courseOffering) continue;
+
+      // Check if already registered
+      const existingRegistration = await prisma.registeredCourse.findFirst({
+        where: {
+          registrationId: registration.id,
+          courseOfferingId: courseOffering.id
+        }
+      });
+
+      if (!existingRegistration && courseOffering) {
+        const registeredCourse = await prisma.registeredCourse.create({
+          data: {
+            registrationId: registration.id,
+            courseOfferingId: courseOffering.id,
+            registrationType: 'REGULAR',
+            prerequisitesMet: true
+          },
+          include: {
+            courseOffering: {
+              include: {
+                course: true
+              }
+            }
+          }
+        });
+        registeredCourses.push(registeredCourse);
+      }
+    }
+
+    // Update total credits
+    const totalCredits = registeredCourses.reduce((sum, rc) => {
+      const creditHours = rc.courseOffering?.course?.creditHours || 0;
+      return sum + creditHours;
+    }, 0);
+
+    await prisma.courseRegistration.update({
+      where: { id: registration.id },
+      data: { totalCredits }
+    });
+
+    return {
+      success: true,
+      message: `Successfully registered for ${registeredCourses.length} courses`,
+      registeredCount: registeredCourses.length,
+      courses: registeredCourses
+    };
+  }
 }
 
 export const registrationService = new RegistrationService();

@@ -265,6 +265,35 @@ class RegistrationService {
 
 		return response.data;
 	}
+
+	/**
+	 * Register student for all eligible courses
+	 */
+	async registerAllEligibleCourses(
+		studentProfileId: number,
+		semesterId: number
+	): Promise<{
+		success: boolean;
+		message: string;
+		registeredCount: number;
+		courses: any[];
+	}> {
+		const response = await apiService.post<{
+			success: boolean;
+			message: string;
+			registeredCount: number;
+			courses: any[];
+		}>(`${this.basePath}/register-all`, {
+			studentProfileId,
+			semesterId
+		});
+
+		if (!response.success) {
+			throw new Error(response.message || 'Failed to register for courses');
+		}
+
+		return response;
+	}
 }
 
 export const registrationService = new RegistrationService();

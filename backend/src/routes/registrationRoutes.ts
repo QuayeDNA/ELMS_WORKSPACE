@@ -125,4 +125,12 @@ router.get(
   (req, res) => registrationController.getStudentsByRegistrationStatus(req, res)
 );
 
+// Register student for all eligible courses
+// Access: STUDENT (own)
+router.post(
+  '/register-all',
+  requireRole(UserRole.STUDENT),
+  (req, res) => registrationController.registerAllEligibleCourses(req, res)
+);
+
 export default router;
