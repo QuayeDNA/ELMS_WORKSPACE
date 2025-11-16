@@ -486,7 +486,7 @@ const ProgramForm: React.FC<ProgramFormProps> = ({
             <Button
               type="submit"
               disabled={isLoading}
-              className="min-w-[140px] bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+              className="min-w-[140px] bg-linear-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
             >
               {isLoading ? (
                 <>

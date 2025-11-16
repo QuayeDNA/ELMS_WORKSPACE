@@ -468,7 +468,7 @@ export const InstitutionForm = ({
       {errors.length > 0 && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <div className="flex items-start gap-3">
-            <div className="flex-shrink-0">
+            <div className="shrink-0">
               <AlertCircle className="h-5 w-5 text-red-600" />
             </div>
             <div className="flex-1">

@@ -37,7 +37,7 @@ const ProgramEdit: React.FC<ProgramEditProps> = ({
       <DialogContent className="max-w-4xl max-h-[90vh] p-0">
         <DialogHeader className="px-6 pt-6 pb-2">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg">
+            <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-linear-to-br from-blue-500 to-blue-600 shadow-lg">
               <Edit className="h-5 w-5 text-white" />
             </div>
             <div>

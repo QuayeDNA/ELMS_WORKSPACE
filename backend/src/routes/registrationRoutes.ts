@@ -53,4 +53,20 @@ router.post(
   (req, res) => registrationController.cancelRegistration(req, res)
 );
 
+// Bulk register students for courses
+// Access: ADMIN (Institution Admin)
+router.post(
+  '/bulk',
+  requireRole(UserRole.ADMIN),
+  (req, res) => registrationController.bulkRegisterStudents(req, res)
+);
+
+// Get students by registration status
+// Access: ADMIN (Institution Admin)
+router.get(
+  '/students-by-status/:semesterId',
+  requireRole(UserRole.ADMIN),
+  (req, res) => registrationController.getStudentsByRegistrationStatus(req, res)
+);
+
 export default router;

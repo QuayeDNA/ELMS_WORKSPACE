@@ -44,7 +44,7 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-white border-b border-gray-200 h-16 flex-shrink-0 shadow-sm">
+    <header className="sticky top-0 z-40 bg-white border-b border-gray-200 h-16 shrink-0 shadow-sm">
       <div className="h-full px-4 lg:px-6 flex justify-between items-center">
         {/* Left section - Breadcrumb */}
         <div className="flex items-center space-x-3">
@@ -90,7 +90,7 @@ export function Header() {
                 className="flex items-center space-x-3 h-10 px-3"
               >
                 {/* Avatar */}
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+                <div className="w-8 h-8 bg-linear-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
                   <span className="text-white font-semibold text-sm">
                     {user?.firstName?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'}
                     {user?.lastName?.charAt(0)?.toUpperCase() || ''}

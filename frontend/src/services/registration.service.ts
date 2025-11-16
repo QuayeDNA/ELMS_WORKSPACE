@@ -8,6 +8,33 @@ import {
 	DropCoursesResponse,
 } from '@/types/registration';
 
+interface BulkRegisterResponse {
+	success: boolean;
+	message: string;
+	succeeded: Array<{ studentId: number; studentName: string; registeredCourses: number }>;
+	failed: Array<{ studentId: number; studentName: string; reason: string }>;
+	totalProcessed: number;
+}
+
+interface StudentsByRegistrationStatus {
+	registered: Array<{
+		id: string;
+		studentId: string;
+		user: { firstName: string; lastName: string; email: string };
+		program?: { id: string; name: string; code: string; department: { id: string; name: string } };
+		level: number;
+		semester: number;
+	}>;
+	notRegistered: Array<{
+		id: string;
+		studentId: string;
+		user: { firstName: string; lastName: string; email: string };
+		program?: { id: string; name: string; code: string; department: { id: string; name: string } };
+		level: number;
+		semester: number;
+	}>;
+}
+
 class RegistrationService {
 	private readonly basePath = '/api/registrations';
 
@@ -119,6 +146,53 @@ class RegistrationService {
 		}
 
 		return response.data!;
+	}
+
+	/**
+	 * Bulk register students for courses (Institution Admin only)
+	 */
+	async bulkRegisterStudents(
+		studentIds: number[],
+		semesterId: number,
+		courseOfferingIds: number[]
+	): Promise<BulkRegisterResponse> {
+		const response = await apiService.post<BulkRegisterResponse>(
+			`${this.basePath}/bulk`,
+			{
+				studentIds,
+				semesterId,
+				courseOfferingIds,
+			}
+		);
+
+		if (!response.success) {
+			throw new Error(response.message || 'Failed to bulk register students');
+		}
+
+		return response.data!;
+	}
+
+	/**
+	 * Get students by registration status (Institution Admin only)
+	 */
+	async getStudentsByRegistrationStatus(
+		semesterId: number,
+		filters?: { programId?: string; departmentId?: string }
+	): Promise<StudentsByRegistrationStatus> {
+		const queryParams = new URLSearchParams();
+		if (filters?.programId) queryParams.append('programId', filters.programId);
+		if (filters?.departmentId) queryParams.append('departmentId', filters.departmentId);
+
+		const queryString = queryParams.toString();
+		const url = `${this.basePath}/students-by-status/${semesterId}${queryString ? `?${queryString}` : ''}`;
+
+		const response = await apiService.get<StudentsByRegistrationStatus>(url);
+
+		if (!response.success || !response.data) {
+			throw new Error(response.message || 'Failed to fetch students by registration status');
+		}
+
+		return response.data;
 	}
 }
 

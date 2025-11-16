@@ -177,6 +177,109 @@ export class RegistrationController {
       });
     }
   }
+
+  /**
+   * Bulk register students for courses
+   * POST /api/registrations/bulk
+   * Access: Institution Admin (ADMIN role)
+   */
+  async bulkRegisterStudents(req: Request, res: Response): Promise<void> {
+    try {
+      const { studentIds, semesterId, courseOfferingIds } = req.body;
+
+      if (!req.user?.institutionId) {
+        res.status(400).json({
+          success: false,
+          message: 'Institution context required'
+        });
+        return;
+      }
+
+      if (!studentIds || !Array.isArray(studentIds) || studentIds.length === 0) {
+        res.status(400).json({
+          success: false,
+          message: 'Student IDs array is required and cannot be empty'
+        });
+        return;
+      }
+
+      if (!semesterId) {
+        res.status(400).json({
+          success: false,
+          message: 'Semester ID is required'
+        });
+        return;
+      }
+
+      if (!courseOfferingIds || !Array.isArray(courseOfferingIds) || courseOfferingIds.length === 0) {
+        res.status(400).json({
+          success: false,
+          message: 'Course offering IDs array is required and cannot be empty'
+        });
+        return;
+      }
+
+      const result = await registrationService.bulkRegisterStudents(
+        req.user.institutionId,
+        semesterId,
+        studentIds,
+        courseOfferingIds
+      );
+
+      res.status(200).json(result);
+    } catch (error) {
+      console.error('Error bulk registering students:', error);
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to bulk register students'
+      });
+    }
+  }
+
+  /**
+   * Get students by registration status
+   * GET /api/registrations/students-by-status/:semesterId
+   * Access: Institution Admin (ADMIN role)
+   */
+  async getStudentsByRegistrationStatus(req: Request, res: Response): Promise<void> {
+    try {
+      const semesterId = parseInt(req.params.semesterId);
+
+      if (!req.user?.institutionId) {
+        res.status(400).json({
+          success: false,
+          message: 'Institution context required'
+        });
+        return;
+      }
+
+      if (isNaN(semesterId)) {
+        res.status(400).json({
+          success: false,
+          message: 'Invalid semester ID'
+        });
+        return;
+      }
+
+      const filters = req.query;
+      const result = await registrationService.getStudentsByRegistrationStatus(
+        req.user.institutionId,
+        semesterId,
+        filters as any
+      );
+
+      res.status(200).json({
+        success: true,
+        data: result
+      });
+    } catch (error) {
+      console.error('Error fetching students by registration status:', error);
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to fetch students by registration status'
+      });
+    }
+  }
 }
 
 // Export a singleton instance

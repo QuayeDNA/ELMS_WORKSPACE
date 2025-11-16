@@ -50,7 +50,7 @@ function ChartCard({ title, icon: Icon, value, trend, className }: ChartCardProp
           </div>
         )}
         {/* Placeholder for actual chart */}
-        <div className="mt-4 h-24 rounded-lg bg-gradient-to-br from-primary/5 to-primary/10 flex items-center justify-center">
+        <div className="mt-4 h-24 rounded-lg bg-linear-to-br from-primary/5 to-primary/10 flex items-center justify-center">
           <Icon className="h-8 w-8 text-primary/30" />
         </div>
       </CardContent>
@@ -82,7 +82,7 @@ export function InstitutionAnalyticsBentoGrid() {
                 <span className="text-sm font-medium">1,923 Students</span>
               </div>
               {/* Placeholder for line chart */}
-              <div className="h-48 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 flex items-center justify-center">
+              <div className="h-48 rounded-lg bg-linear-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 flex items-center justify-center">
                 <div className="text-center text-muted-foreground">
                   <BarChart3 className="h-12 w-12 mx-auto mb-2 opacity-30" />
                   <p className="text-xs">Chart: Enrollment over time</p>
@@ -117,7 +117,7 @@ export function InstitutionAnalyticsBentoGrid() {
           </CardHeader>
           <CardContent>
             {/* Placeholder for pie chart */}
-            <div className="h-32 rounded-lg bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 flex items-center justify-center">
+            <div className="h-32 rounded-lg bg-linear-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 flex items-center justify-center">
               <div className="text-center text-muted-foreground">
                 <PieChart className="h-10 w-10 mx-auto mb-2 opacity-30" />
                 <p className="text-xs">Chart: Student distribution</p>

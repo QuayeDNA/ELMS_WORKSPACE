@@ -157,7 +157,7 @@ export interface CourseRegistrationItem {
 			code: string;
 			creditHours: number;
 		};
-		instructor?: {
+		primaryLecturer?: {
 			id: number;
 			firstName: string;
 			lastName: string;

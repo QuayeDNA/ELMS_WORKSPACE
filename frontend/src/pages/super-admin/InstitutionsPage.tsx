@@ -31,6 +31,7 @@ import {
   InstitutionFormData,
   AdminFormData,
   InstitutionStatus,
+  InstitutionType,
   INSTITUTION_TYPE_OPTIONS,
   INSTITUTION_STATUS_OPTIONS,
 } from "@/types/institution";
@@ -213,10 +214,6 @@ export function InstitutionsPage() {
   // EVENT HANDLERS
   // ========================================
 
-  const handleFiltersChange = (newFilters: IFilters) => {
-    setFilters(newFilters);
-  };
-
   const handleClearFilters = () => {
     setFilters(DEFAULT_INSTITUTION_FILTERS);
   };
@@ -386,7 +383,7 @@ export function InstitutionsPage() {
       onChange: (value) => {
         setFilters({
           ...filters,
-          type: value === 'ALL' ? 'ALL' : (value as any),
+          type: value === 'ALL' ? 'ALL' : (value as InstitutionType),
         });
       },
     },
@@ -405,7 +402,7 @@ export function InstitutionsPage() {
       onChange: (value) => {
         setFilters({
           ...filters,
-          status: value === 'ALL' ? 'ALL' : (value as any),
+          status: value === 'ALL' ? 'ALL' : (value as InstitutionStatus),
         });
       },
     },
@@ -416,7 +413,7 @@ export function InstitutionsPage() {
   };
 
   const handleSortChange = (value: string) => {
-    const [sortBy, sortOrder] = value.split('-') as [any, 'asc' | 'desc'];
+    const [sortBy, sortOrder] = value.split('-') as ['name' | 'code' | 'createdAt' | 'updatedAt', 'asc' | 'desc'];
     setFilters({ ...filters, sortBy, sortOrder });
   };
 
@@ -481,7 +478,7 @@ export function InstitutionsPage() {
       return (
         <Card className="border-dashed border-2">
           <CardContent className="p-12 text-center">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 mb-4">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-linear-to-br from-blue-500 to-blue-600 mb-4">
               <Building2 className="h-10 w-10 text-white" />
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">No Institutions Found</h3>
@@ -519,7 +516,7 @@ export function InstitutionsPage() {
                       {analyticsState.data.totalInstitutions || 0}
                     </p>
                   </div>
-                  <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                  <div className="h-12 w-12 rounded-lg bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center">
                     <Building2 className="h-6 w-6 text-white" />
                   </div>
                 </div>
@@ -539,7 +536,7 @@ export function InstitutionsPage() {
                       {analyticsState.data.activeInstitutions || 0}
                     </p>
                   </div>
-                  <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
+                  <div className="h-12 w-12 rounded-lg bg-linear-to-br from-green-500 to-green-600 flex items-center justify-center">
                     <TrendingUp className="h-6 w-6 text-white" />
                   </div>
                 </div>
@@ -559,7 +556,7 @@ export function InstitutionsPage() {
                       {analyticsState.data.inactiveInstitutions || 0}
                     </p>
                   </div>
-                  <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center">
+                  <div className="h-12 w-12 rounded-lg bg-linear-to-br from-amber-500 to-amber-600 flex items-center justify-center">
                     <TrendingDown className="h-6 w-6 text-white" />
                   </div>
                 </div>
@@ -579,7 +576,7 @@ export function InstitutionsPage() {
                       {analyticsState.data.pendingInstitutions || 0}
                     </p>
                   </div>
-                  <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
+                  <div className="h-12 w-12 rounded-lg bg-linear-to-br from-purple-500 to-purple-600 flex items-center justify-center">
                     <Activity className="h-6 w-6 text-white" />
                   </div>
                 </div>
@@ -687,7 +684,7 @@ export function InstitutionsPage() {
                           variant={page === state.pagination.page ? 'default' : 'outline'}
                           size="sm"
                           onClick={() => handlePageChange(page)}
-                          className="min-w-[40px]"
+                          className="min-w-10"
                         >
                           {page}
                         </Button>
@@ -726,7 +723,7 @@ export function InstitutionsPage() {
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm">
+            <div className="h-12 w-12 rounded-lg bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm">
               <Building className="h-6 w-6 text-white" />
             </div>
             <div>
@@ -816,7 +813,7 @@ export function InstitutionsPage() {
           <ScrollArea className="max-h-[calc(90vh-180px)]">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                <div className="h-10 w-10 rounded-lg bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center">
                   {formState.mode === "edit" ? (
                     <Building2 className="h-5 w-5 text-white" />
                   ) : (

@@ -508,6 +508,204 @@ export class RegistrationService {
 
     return courseLevel <= studentLevel + 1;
   }
+
+  /**
+   * Bulk register students for courses (Institution Admin only)
+   */
+  async bulkRegisterStudents(
+    institutionId: number,
+    semesterId: number,
+    studentIds: number[],
+    courseOfferingIds: number[]
+  ): Promise<{
+    success: boolean;
+    message: string;
+    succeeded: Array<{ studentId: number; studentName: string; registeredCourses: number }>;
+    failed: Array<{ studentId: number; studentName: string; reason: string }>;
+    totalProcessed: number;
+  }> {
+    const succeeded: Array<{ studentId: number; studentName: string; registeredCourses: number }> = [];
+    const failed: Array<{ studentId: number; studentName: string; reason: string }> = [];
+
+    // Process each student
+    for (const studentId of studentIds) {
+      try {
+        // Verify student belongs to the institution
+        const student = await prisma.user.findUnique({
+          where: { id: studentId },
+          include: {
+            studentProfiles: true
+          }
+        });
+
+        if (!student || student.institutionId !== institutionId) {
+          failed.push({
+            studentId,
+            studentName: student ? `${student.firstName} ${student.lastName}` : 'Unknown',
+            reason: 'Student not found or does not belong to this institution'
+          });
+          continue;
+        }
+
+        if (!student.studentProfiles) {
+          failed.push({
+            studentId,
+            studentName: `${student.firstName} ${student.lastName}`,
+            reason: 'Student profile not found'
+          });
+          continue;
+        }
+
+        // Register student for courses
+        const result = await this.registerForCourses(studentId, semesterId, courseOfferingIds);
+
+        if (result.success) {
+          succeeded.push({
+            studentId,
+            studentName: `${student.firstName} ${student.lastName}`,
+            registeredCourses: courseOfferingIds.length
+          });
+        } else {
+          failed.push({
+            studentId,
+            studentName: `${student.firstName} ${student.lastName}`,
+            reason: result.message
+          });
+        }
+      } catch (error) {
+        failed.push({
+          studentId,
+          studentName: 'Unknown',
+          reason: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    }
+
+    return {
+      success: true,
+      message: `Bulk registration completed. ${succeeded.length} succeeded, ${failed.length} failed.`,
+      succeeded,
+      failed,
+      totalProcessed: studentIds.length
+    };
+  }
+
+  /**
+   * Get students by registration status for institution admin
+   */
+  async getStudentsByRegistrationStatus(
+    institutionId: number,
+    semesterId: number,
+    filters?: { programId?: string; departmentId?: string }
+  ): Promise<{
+    registered: Array<{
+      id: string;
+      studentId: string;
+      user: { firstName: string; lastName: string; email: string };
+      program?: { id: string; name: string; code: string; department: { id: string; name: string } };
+      level: number;
+      semester: number;
+    }>;
+    notRegistered: Array<{
+      id: string;
+      studentId: string;
+      user: { firstName: string; lastName: string; email: string };
+      program?: { id: string; name: string; code: string; department: { id: string; name: string } };
+      level: number;
+      semester: number;
+    }>;
+  }> {
+    // Get all students in the institution
+    const students = await prisma.studentProfile.findMany({
+      where: {
+        user: {
+          institutionId,
+          role: 'STUDENT'
+        },
+        ...(filters?.programId && { programId: parseInt(filters.programId) }),
+        ...(filters?.departmentId && {
+          program: {
+            departmentId: parseInt(filters.departmentId)
+          }
+        })
+      },
+      include: {
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        },
+        program: {
+          include: {
+            department: true
+          }
+        }
+      }
+    });
+
+    // Get registrations for this semester
+    const registrations = await prisma.courseRegistration.findMany({
+      where: {
+        semesterId,
+        status: { not: 'CANCELLED' },
+        student: {
+          institutionId
+        }
+      },
+      select: {
+        studentId: true
+      }
+    });
+
+    const registeredStudentIds = new Set(registrations.map(r => r.studentId));
+
+    const registered: Array<{
+      id: string;
+      studentId: string;
+      user: { firstName: string; lastName: string; email: string };
+      program?: { id: string; name: string; code: string; department: { id: string; name: string } };
+      level: number;
+      semester: number;
+    }> = [];
+
+    const notRegistered: Array<{
+      id: string;
+      studentId: string;
+      user: { firstName: string; lastName: string; email: string };
+      program?: { id: string; name: string; code: string; department: { id: string; name: string } };
+      level: number;
+      semester: number;
+    }> = [];
+
+    students.forEach(student => {
+      const studentData = {
+        id: student.id.toString(),
+        studentId: student.studentId,
+        user: student.user,
+        program: student.program ? {
+          id: student.program.id.toString(),
+          name: student.program.name,
+          code: student.program.code,
+          department: {
+            id: student.program.department.id.toString(),
+            name: student.program.department.name
+          }
+        } : undefined,
+        level: student.level,
+        semester: student.semester
+      };
+
+      if (registeredStudentIds.has(student.userId)) {
+        registered.push(studentData);
+      } else {
+        notRegistered.push(studentData);
+      }
+    });
+
+    return { registered, notRegistered };
+  }
 }
 
 export const registrationService = new RegistrationService();
