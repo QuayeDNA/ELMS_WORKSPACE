@@ -20,10 +20,17 @@ export const examTimetableController = {
    */
   async getTimetables(req: Request, res: Response) {
     try {
+      // Get user's institution from JWT token
+      const userInstitutionId = (req as any).user?.institutionId;
+      const userRole = (req as any).user?.role;
+
+      // Super admins can query across institutions, others are scoped to their institution
+      const institutionId = userRole === 'SUPER_ADMIN'
+        ? (req.query.institutionId ? parseInt(req.query.institutionId as string) : undefined)
+        : userInstitutionId;
+
       const query: TimetableQuery = {
-        institutionId: req.query.institutionId
-          ? parseInt(req.query.institutionId as string)
-          : undefined,
+        institutionId,
         facultyId: req.query.facultyId
           ? parseInt(req.query.facultyId as string)
           : undefined,

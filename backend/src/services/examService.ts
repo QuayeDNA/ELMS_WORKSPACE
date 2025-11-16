@@ -13,6 +13,7 @@ export const examService = {
   // Get all exams with pagination and filtering
   async getExams(query: ExamQuery) {
     const {
+      institutionId,
       facultyId,
       departmentId,
       courseId,
@@ -32,12 +33,24 @@ export const examService = {
     // Build where clause
     const where: any = {};
 
+    if (institutionId) {
+      where.course = {
+        ...where.course,
+        department: {
+          faculty: {
+            institutionId: institutionId,
+          },
+        },
+      };
+    }
+
     if (facultyId) {
       where.facultyId = facultyId;
     }
 
     if (departmentId) {
       where.course = {
+        ...where.course,
         departmentId: departmentId,
       };
     }

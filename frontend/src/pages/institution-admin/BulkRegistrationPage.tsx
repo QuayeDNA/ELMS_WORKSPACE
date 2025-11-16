@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { academicService } from '@/services/academic.service';
 import { studentService } from '@/services/student.service';
+import { registrationService } from '@/services/registration.service';
+import { courseService } from '@/services/course.service';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -106,20 +108,14 @@ export default function BulkRegistrationPage() {
 		queryFn: async () => {
 			if (!selectedSemesterId) return null;
 
-			// This endpoint should be added to the registration service
-			const response = await fetch(
-				`/api/registrations/students-by-status/${selectedSemesterId}?` +
-				new URLSearchParams({
-					...(selectedProgramId && { programId: selectedProgramId }),
-					...(selectedDepartmentId && { departmentId: selectedDepartmentId }),
-				})
+			const filters: { programId?: string; departmentId?: string } = {};
+			if (selectedProgramId) filters.programId = selectedProgramId;
+			if (selectedDepartmentId) filters.departmentId = selectedDepartmentId;
+
+			return await registrationService.getStudentsByRegistrationStatus(
+				selectedSemesterId,
+				filters
 			);
-
-			if (!response.ok) {
-				throw new Error('Failed to fetch students');
-			}
-
-			return await response.json();
 		},
 		enabled: !!selectedSemesterId,
 	});
@@ -130,17 +126,8 @@ export default function BulkRegistrationPage() {
 		queryFn: async () => {
 			if (!selectedSemesterId) return [];
 
-			// This should fetch course offerings for the semester
-			const response = await fetch(
-				`/api/course-offerings?semesterId=${selectedSemesterId}`
-			);
-
-			if (!response.ok) {
-				throw new Error('Failed to fetch course offerings');
-			}
-
-			const data = await response.json();
-			return data.data || [];
+			const response = await courseService.getCourseOfferings(Number(selectedSemesterId));
+			return response.data || [];
 		},
 		enabled: !!selectedSemesterId,
 	});
@@ -188,7 +175,7 @@ export default function BulkRegistrationPage() {
 	});
 
 	const handleSelectAll = (registered: boolean) => {
-		const students = registered ? studentsData?.data.registered : studentsData?.data.notRegistered;
+		const students = registered ? studentsData?.registered : studentsData?.notRegistered;
 		if (students) {
 			const ids = students.map((s: StudentWithRegistration) => s.id);
 			setSelectedStudentIds(ids);
@@ -396,28 +383,28 @@ export default function BulkRegistrationPage() {
 									Not Registered
 								</span>
 								<Badge variant="secondary">
-									{studentsData.data.notRegistered.length}
+									{studentsData.notRegistered.length}
 								</Badge>
 							</CardTitle>
 							<CardDescription>
 								Students who haven't registered for this semester
 							</CardDescription>
-						</CardHeader>
-						<CardContent>
-							{studentsData.data.notRegistered.length > 0 && (
-								<div className="mb-4">
-									<Button
-										variant="outline"
-										size="sm"
-										onClick={() => handleSelectAll(false)}
-									>
-										Select All
-									</Button>
-								</div>
-							)}
+					</CardHeader>
+					<CardContent>
+						{studentsData.notRegistered.length > 0 && (
+							<div className="mb-4">
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() => handleSelectAll(false)}
+								>
+									Select All
+								</Button>
+							</div>
+						)}
 
-							<div className="space-y-2 max-h-[400px] overflow-y-auto">
-								{studentsData.data.notRegistered.length === 0 ? (
+						<div className="space-y-2 max-h-[400px] overflow-y-auto">
+							{studentsData.notRegistered.length === 0 ? (
 									<Alert>
 										<CheckCircle className="h-4 w-4" />
 										<AlertDescription>
@@ -425,7 +412,7 @@ export default function BulkRegistrationPage() {
 										</AlertDescription>
 									</Alert>
 								) : (
-									studentsData.data.notRegistered.map((student: StudentWithRegistration) => (
+									studentsData.notRegistered.map((student: StudentWithRegistration) => (
 										<div
 											key={student.id}
 											className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50 cursor-pointer"
@@ -453,29 +440,29 @@ export default function BulkRegistrationPage() {
 					{/* Registered Students */}
 					<Card>
 						<CardHeader>
-							<CardTitle className="flex items-center justify-between">
-								<span className="flex items-center gap-2">
-									<CheckCircle className="h-5 w-5" />
-									Registered
-								</span>
-								<Badge variant="default">
-									{studentsData.data.registered.length}
-								</Badge>
-							</CardTitle>
+						<CardTitle className="flex items-center justify-between">
+							<span className="flex items-center gap-2">
+								<CheckCircle className="h-5 w-5" />
+								Registered
+							</span>
+							<Badge variant="default">
+								{studentsData.registered.length}
+							</Badge>
+						</CardTitle>
 							<CardDescription>
 								Students who have completed registration
 							</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<div className="space-y-2 max-h-[400px] overflow-y-auto">
-								{studentsData.data.registered.length === 0 ? (
+					</CardHeader>
+					<CardContent>
+						<div className="space-y-2 max-h-[400px] overflow-y-auto">
+							{studentsData.registered.length === 0 ? (
 									<Alert>
 										<AlertDescription>
 											No students have registered yet.
 										</AlertDescription>
 									</Alert>
 								) : (
-									studentsData.data.registered.map((student: StudentWithRegistration) => (
+									studentsData.registered.map((student: StudentWithRegistration) => (
 										<div
 											key={student.id}
 											className="p-3 border rounded-lg bg-muted/30"

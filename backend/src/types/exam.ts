@@ -97,6 +97,7 @@ export interface UpdateExamData {
 }
 
 export interface ExamQuery {
+  institutionId?: number;
   facultyId?: number;
   departmentId?: number;
   courseId?: number;

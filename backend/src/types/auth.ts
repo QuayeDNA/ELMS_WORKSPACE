@@ -6,6 +6,8 @@ export enum UserRole {
   SUPER_ADMIN = 'SUPER_ADMIN',      // System-wide control, manages all institutions
   ADMIN = 'ADMIN',                  // Institution-level admin, manages faculty admins
   FACULTY_ADMIN = 'FACULTY_ADMIN',  // Faculty-level admin, manages departments, exams, officers
+  DEAN = 'DEAN',                    // Dean of faculty
+  HOD = 'HOD',                      // Head of Department
   EXAMS_OFFICER = 'EXAMS_OFFICER',  // Handles exam logistics, incidents, scheduling
   SCRIPT_HANDLER = 'SCRIPT_HANDLER', // Manages script transit and handling
   INVIGILATOR = 'INVIGILATOR',      // Conducts exams, reports incidents

@@ -536,6 +536,7 @@ export class RegistrationController {
       const semesterId = parseInt(req.params.semesterId);
       const programId = req.query.programId ? parseInt(req.query.programId as string) : undefined;
       const departmentId = req.query.departmentId ? parseInt(req.query.departmentId as string) : undefined;
+      const institutionId = (req as any).user?.institutionId;
 
       if (isNaN(semesterId)) {
         res.status(400).json({
@@ -545,8 +546,17 @@ export class RegistrationController {
         return;
       }
 
+      if (!institutionId) {
+        res.status(400).json({
+          success: false,
+          message: 'Institution ID not found in user context'
+        });
+        return;
+      }
+
       const result = await registrationService.getStudentsByRegistrationStatus(
         semesterId,
+        institutionId,
         programId,
         departmentId
       );

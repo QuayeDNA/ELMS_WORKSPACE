@@ -183,6 +183,29 @@ class CourseService extends BaseService {
     const additionalParams = departmentId ? { departmentId } : undefined;
     return this.search<Course>(searchTerm, additionalParams);
   }
+
+  /**
+   * Get course offerings for a semester
+   */
+  async getCourseOfferings(semesterId: number): Promise<ApiResponse<any[]>> {
+    try {
+      const response = await apiService.get<any[]>(
+        `/api/course-offerings?semesterId=${semesterId}`
+      );
+
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to fetch course offerings');
+      }
+
+      return {
+        success: true,
+        data: response.data || [],
+      };
+    } catch (error) {
+      console.error(`Error fetching course offerings for semester ${semesterId}:`, error);
+      throw error;
+    }
+  }
 }
 
 export const courseService = new CourseService();

@@ -186,6 +186,38 @@ class RegistrationService {
 
 		return response.data;
 	}
+
+	/**
+	 * Get students by registration status for a semester
+	 */
+	async getStudentsByRegistrationStatus(
+		semesterId: string,
+		filters?: {
+			programId?: string;
+			departmentId?: string;
+		}
+	): Promise<{
+		registered: any[];
+		notRegistered: any[];
+	}> {
+		const params = new URLSearchParams();
+		if (filters?.programId) params.append('programId', filters.programId);
+		if (filters?.departmentId) params.append('departmentId', filters.departmentId);
+
+		const queryString = params.toString();
+		const url = `${this.basePath}/students-by-status/${semesterId}${queryString ? `?${queryString}` : ''}`;
+
+		const response = await apiService.get<{
+			registered: any[];
+			notRegistered: any[];
+		}>(url);
+
+		if (!response.success || !response.data) {
+			throw new Error(response.message || 'Failed to fetch students by registration status');
+		}
+
+		return response.data;
+	}
 }
 
 export const registrationService = new RegistrationService();

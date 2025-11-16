@@ -5,10 +5,17 @@ export const facultyController = {
   // Get all faculties with pagination and filtering
   async getFaculties(req: Request, res: Response) {
     try {
+      // Get user's institution from JWT token
+      const userInstitutionId = (req as any).user?.institutionId;
+      const userRole = (req as any).user?.role;
+
+      // Super admins can query across institutions, others are scoped to their institution
+      const institutionId = userRole === 'SUPER_ADMIN'
+        ? (req.query.institutionId ? parseInt(req.query.institutionId as string) : undefined)
+        : userInstitutionId;
+
       const query = {
-        institutionId: req.query.institutionId
-          ? parseInt(req.query.institutionId as string)
-          : undefined,
+        institutionId,
         page: parseInt(req.query.page as string) || 1,
         limit: parseInt(req.query.limit as string) || 10,
         search: (req.query.search as string) || "",

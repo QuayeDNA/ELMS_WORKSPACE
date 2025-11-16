@@ -6,10 +6,19 @@ export const programController = {
   // Get all programs with pagination and filtering
   async getPrograms(req: Request, res: Response) {
     try {
+      // Get user's institution from JWT token
+      const userInstitutionId = (req as any).user?.institutionId;
+      const userRole = (req as any).user?.role;
+
+      // Super admins can query across institutions, others are scoped to their institution
+      const institutionId = userRole === 'SUPER_ADMIN'
+        ? (req.query.institutionId ? parseInt(req.query.institutionId as string) : undefined)
+        : userInstitutionId;
+
       const query = {
         departmentId: req.query.departmentId ? parseInt(req.query.departmentId as string) : undefined,
         facultyId: req.query.facultyId ? parseInt(req.query.facultyId as string) : undefined,
-        institutionId: req.query.institutionId ? parseInt(req.query.institutionId as string) : undefined,
+        institutionId,
         type: req.query.type as any,
         level: req.query.level as any,
         isActive: req.query.isActive ? req.query.isActive === 'true' : undefined,
@@ -20,18 +29,7 @@ export const programController = {
         sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'desc'
       };
 
-      // Auto-filter by institution for institution admins
-      const user = req.user as any;
-      if (user && user.role === 'ADMIN' && user.institutionId && !query.institutionId) {
-        query.institutionId = user.institutionId;
-      }
-
-      // Auto-filter by faculty for faculty admins
-      if (user && user.role === 'FACULTY_ADMIN' && user.facultyId && !query.facultyId) {
-        query.facultyId = user.facultyId;
-      }
-
-      console.log('Fetching programs with query:', query, 'for user:', { id: user?.id, role: user?.role, institutionId: user?.institutionId });
+      console.log('Fetching programs with query:', query, 'for user:', { id: (req.user as any)?.id, role: userRole, institutionId: userInstitutionId });
       const result = await programService.getPrograms(query);
       console.log('Programs result:', { success: result.success, count: result.data?.programs?.length || 0, total: result.data?.total });
       res.json(result);

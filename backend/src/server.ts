@@ -17,6 +17,7 @@ import { userRoutes } from "./routes/userRoutes";
 import { departmentRoutes } from "./routes/departmentRoutes";
 import { programRoutes } from "./routes/programRoutes";
 import courseRoutes from "./routes/courseRoutes";
+import courseOfferingRoutes from "./routes/courseOfferingRoutes";
 import studentRoutes from "./routes/studentRoutes";
 import instructorRoutes from "./routes/instructorRoutes";
 import academicPeriodRoutes from "./routes/academicPeriodRoutes";
@@ -243,6 +244,9 @@ app.use("/api/program-prefixes", programPrefixRoutes);
 
 // Course routes
 app.use("/api/courses", courseRoutes);
+
+// Course offering routes
+app.use("/api/course-offerings", courseOfferingRoutes);
 
 // Student routes
 app.use("/api/students", studentRoutes);

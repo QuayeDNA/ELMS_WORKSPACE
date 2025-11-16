@@ -146,6 +146,100 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canViewSystemLogs: false,
   },
 
+  [UserRole.DEAN]: {
+    // User Management - Faculty level
+    canManageUsers: true,
+    canViewUsers: true,
+    canCreateUsers: true,
+    canUpdateUsers: true,
+    canDeleteUsers: false,
+
+    // Institution Management - Faculty only
+    canManageInstitutions: false,
+    canManageFaculties: false,
+    canManageDepartments: true,
+
+    // Exam Management - Faculty level
+    canCreateExams: true,
+    canScheduleExams: true,
+    canManageExams: true,
+    canViewExams: true,
+    canConductExams: false,
+
+    // Script Management - Faculty oversight
+    canGenerateScripts: true,
+    canTrackScripts: true,
+    canHandleScripts: false,
+    canScanQrCodes: false,
+    canGradeScripts: false,
+
+    // Incident Management - Faculty level
+    canReportIncidents: true,
+    canManageIncidents: true,
+    canInvestigateIncidents: true,
+    canResolveIncidents: true,
+
+    // Venue Management - Faculty level
+    canManageVenues: true,
+    canViewVenues: true,
+
+    // Analytics & Reporting - Faculty level
+    canViewAnalytics: true,
+    canExportData: true,
+    canViewAuditLogs: false,
+
+    // Administrative - None
+    canManageSettings: false,
+    canViewSystemLogs: false,
+  },
+
+  [UserRole.HOD]: {
+    // User Management - Department level
+    canManageUsers: true,
+    canViewUsers: true,
+    canCreateUsers: false,
+    canUpdateUsers: true,
+    canDeleteUsers: false,
+
+    // Institution Management - Department only
+    canManageInstitutions: false,
+    canManageFaculties: false,
+    canManageDepartments: false,
+
+    // Exam Management - Department level
+    canCreateExams: true,
+    canScheduleExams: true,
+    canManageExams: true,
+    canViewExams: true,
+    canConductExams: false,
+
+    // Script Management - Department oversight
+    canGenerateScripts: true,
+    canTrackScripts: true,
+    canHandleScripts: false,
+    canScanQrCodes: false,
+    canGradeScripts: false,
+
+    // Incident Management - Department level
+    canReportIncidents: true,
+    canManageIncidents: true,
+    canInvestigateIncidents: true,
+    canResolveIncidents: false,
+
+    // Venue Management - View and suggest
+    canManageVenues: false,
+    canViewVenues: true,
+
+    // Analytics & Reporting - Department level
+    canViewAnalytics: true,
+    canExportData: true,
+    canViewAuditLogs: false,
+
+    // Administrative - None
+    canManageSettings: false,
+    canViewSystemLogs: false,
+  },
+
   [UserRole.EXAMS_OFFICER]: {
     // User Management - Limited
     canManageUsers: false,
@@ -432,6 +526,32 @@ export const ROLE_HIERARCHY: Record<UserRole, RoleHierarchy> = {
     ],
   },
 
+  [UserRole.DEAN]: {
+    role: UserRole.DEAN,
+    permissions: ROLE_PERMISSIONS[UserRole.DEAN],
+    scope: 'FACULTY',
+    description: 'Dean of faculty who oversees all academic and administrative matters within the faculty.',
+    managedRoles: [
+      UserRole.HOD,
+      UserRole.EXAMS_OFFICER,
+      UserRole.SCRIPT_HANDLER,
+      UserRole.INVIGILATOR,
+      UserRole.LECTURER,
+      UserRole.STUDENT,
+    ],
+  },
+
+  [UserRole.HOD]: {
+    role: UserRole.HOD,
+    permissions: ROLE_PERMISSIONS[UserRole.HOD],
+    scope: 'DEPARTMENT',
+    description: 'Head of Department who manages department-specific exams, courses, and academic staff.',
+    managedRoles: [
+      UserRole.LECTURER,
+      UserRole.STUDENT,
+    ],
+  },
+
   [UserRole.EXAMS_OFFICER]: {
     role: UserRole.EXAMS_OFFICER,
     permissions: ROLE_PERMISSIONS[UserRole.EXAMS_OFFICER],
@@ -540,6 +660,30 @@ export const ROLE_DESCRIPTIONS = {
       'Appoint and manage exam officers',
       'Handle faculty-level academic policies',
       'Coordinate with institution administration',
+    ],
+  },
+
+  [UserRole.DEAN]: {
+    title: 'Dean',
+    summary: 'Faculty leadership and academic oversight',
+    responsibilities: [
+      'Provide academic leadership for the faculty',
+      'Oversee all departments within the faculty',
+      'Manage faculty-wide policies and procedures',
+      'Coordinate with HODs and faculty administration',
+      'Ensure quality of academic programs',
+    ],
+  },
+
+  [UserRole.HOD]: {
+    title: 'Head of Department',
+    summary: 'Department-level academic management',
+    responsibilities: [
+      'Manage department staff and lecturers',
+      'Oversee department-specific courses and exams',
+      'Coordinate with faculty administration',
+      'Handle department-level academic matters',
+      'Monitor departmental performance',
     ],
   },
 

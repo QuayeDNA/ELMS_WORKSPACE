@@ -12,7 +12,17 @@ export const incidentController = {
   // Get all incidents with pagination and filtering
   async getIncidents(req: Request, res: Response) {
     try {
+      // Get user's institution from JWT token
+      const userInstitutionId = (req as any).user?.institutionId;
+      const userRole = (req as any).user?.role;
+
+      // Super admins can query across institutions, others are scoped to their institution
+      const institutionId = userRole === 'SUPER_ADMIN'
+        ? (req.query.institutionId ? parseInt(req.query.institutionId as string) : undefined)
+        : userInstitutionId;
+
       const query: IncidentQuery = {
+        institutionId,
         examId: req.query.examId
           ? parseInt(req.query.examId as string)
           : undefined,

@@ -958,21 +958,29 @@ export class RegistrationService {
    */
   async getStudentsByRegistrationStatus(
     semesterId: number,
+    institutionId: number,
     programId?: number,
     departmentId?: number
   ): Promise<{
     registered: any[];
     notRegistered: any[];
   }> {
-    // Build where clause for students
+    // Build where clause for students with institution filtering
     const studentWhere: any = {
-      enrollmentStatus: 'ACTIVE'
+      enrollmentStatus: 'ACTIVE',
+      program: {
+        department: {
+          faculty: {
+            institutionId
+          }
+        }
+      }
     };
 
     if (programId) {
       studentWhere.programId = programId;
     } else if (departmentId) {
-      studentWhere.program = { departmentId };
+      studentWhere.program.departmentId = departmentId;
     }
 
     // Get all active students

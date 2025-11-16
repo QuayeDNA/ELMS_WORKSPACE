@@ -84,6 +84,7 @@ export interface UpdateIncidentData {
 }
 
 export interface IncidentQuery {
+  institutionId?: number;
   examId?: number;
   scriptId?: number;
   reportedById?: number;

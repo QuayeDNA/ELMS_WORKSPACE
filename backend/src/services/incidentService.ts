@@ -13,6 +13,7 @@ export const incidentService = {
   // Get all incidents with pagination and filtering
   async getIncidents(query: IncidentQuery) {
     const {
+      institutionId,
       examId,
       scriptId,
       reportedById,
@@ -33,6 +34,19 @@ export const incidentService = {
 
     // Build where clause
     const where: any = {};
+
+    if (institutionId) {
+      where.exam = {
+        ...where.exam,
+        course: {
+          department: {
+            faculty: {
+              institutionId: institutionId,
+            },
+          },
+        },
+      };
+    }
 
     if (examId) {
       where.examId = examId;
