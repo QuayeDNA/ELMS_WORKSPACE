@@ -23,11 +23,30 @@ export const examTimetableController = {
       // Get user's institution from JWT token
       const userInstitutionId = (req as any).user?.institutionId;
       const userRole = (req as any).user?.role;
+      const userId = (req as any).user?.userId;
+
+      console.log('🔍 Timetable query debug:', {
+        userId,
+        userRole,
+        userInstitutionId,
+        queryInstitutionId: req.query.institutionId,
+        isAuthenticated: !!(req as any).user
+      });
 
       // Super admins can query across institutions, others are scoped to their institution
-      const institutionId = userRole === 'SUPER_ADMIN'
-        ? (req.query.institutionId ? parseInt(req.query.institutionId as string) : undefined)
-        : userInstitutionId;
+      // If no user is authenticated, allow querying by institutionId if provided
+      let institutionId: number | undefined;
+
+      if (userRole === 'SUPER_ADMIN') {
+        institutionId = req.query.institutionId ? parseInt(req.query.institutionId as string) : undefined;
+      } else if (userInstitutionId) {
+        institutionId = userInstitutionId;
+      } else if (req.query.institutionId) {
+        // Allow querying by institutionId even if user is not authenticated or doesn't have institutionId
+        institutionId = parseInt(req.query.institutionId as string);
+      }
+
+      console.log('📋 Final institutionId for query:', institutionId);
 
       const query: TimetableQuery = {
         institutionId,
@@ -44,7 +63,7 @@ export const examTimetableController = {
           ? parseInt(req.query.academicPeriodId as string)
           : undefined,
         status: req.query.status as any,
-        isPublished: req.query.isPublished === "true",
+        isPublished: req.query.isPublished === "true" ? true : req.query.isPublished === "false" ? false : undefined,
         approvalStatus: req.query.approvalStatus as any,
         startDate: req.query.startDate as string,
         endDate: req.query.endDate as string,
@@ -55,7 +74,15 @@ export const examTimetableController = {
         sortOrder: (req.query.sortOrder as "asc" | "desc") || "desc",
       };
 
+      console.log('🔎 Final query object:', JSON.stringify(query, null, 2));
+
       const result = await examTimetableService.getTimetables(query);
+      console.log('📊 Query result:', {
+        success: result.success,
+        total: result.pagination?.total,
+        dataLength: result.data?.length
+      });
+
       res.json(result);
     } catch (error) {
       console.error("Error fetching timetables:", error);
