@@ -33,7 +33,6 @@ model User {
   calendarImports                                           AcademicCalendarImport[]
   academicPeriodsCreated                                    AcademicPeriod[]
   adminProfiles                                             AdminProfile?
-  auditLogs                                                 AuditLog[]
   batchScriptsAssigned                                      BatchScript[]            @relation("BatchScriptsAssigned")
   batchScriptsSealed                                        BatchScript[]            @relation("BatchScriptsSealed")
   courseLecturers                                           CourseLecturer[]
@@ -71,6 +70,17 @@ model User {
   department                                                Department?              @relation(fields: [departmentId], references: [id])
   faculty                                                   Faculty?                 @relation(fields: [facultyId], references: [id])
   institution                                               Institution?             @relation(fields: [institutionId], references: [id])
+  // Logistics relations
+  sessionLogsPerformed                                      ExamSessionLog[]
+  sessionLogsAsStudent                                      ExamSessionLog[]         @relation("SessionLogStudent")
+  sessionLogsAsInvigilator                                  ExamSessionLog[]         @relation("SessionLogInvigilator")
+  invigilatorAssignments                                    InvigilatorAssignment[]
+  assignmentsAssigned                                       InvigilatorAssignment[]  @relation("AssignmentAssignedBy")
+  studentVerifications                                      StudentVerification[]
+  verificationsPerformed                                    StudentVerification[]    @relation("VerificationVerifier")
+  examIncidentsReported                                     ExamIncident[]           @relation("IncidentReporter")
+  examIncidentsAssigned                                     ExamIncident[]           @relation("IncidentAssignee")
+  examIncidentsResolved                                     ExamIncident[]           @relation("IncidentResolver")
 
   @@index([institutionId, role])
   @@index([facultyId, role])
@@ -798,6 +808,11 @@ model ExamTimetableEntry {
   venue               Venue                    @relation(fields: [venueId], references: [id])
   conflictsAsEntry1   TimetableConflict[]      @relation("ConflictEntry1")
   conflictsAsEntry2   TimetableConflict[]      @relation("ConflictEntry2")
+  // Logistics relations
+  sessionLogs         ExamSessionLog[]
+  invigilatorAssignments InvigilatorAssignment[]
+  studentVerifications StudentVerification[]
+  examIncidents       ExamIncident[]
 
   @@index([timetableId, examDate])
   @@index([courseId])
@@ -875,6 +890,9 @@ model Venue {
   exams            Exam[]
   rooms            Room[]
   institution      Institution          @relation(fields: [institutionId], references: [id])
+  // Logistics relations
+  sessionLogs      ExamSessionLog[]
+  invigilatorAssignments InvigilatorAssignment[]
 
   @@map("venues")
 }
@@ -888,6 +906,7 @@ model Room {
   updatedAt DateTime @updatedAt
   exams     Exam[]
   venue     Venue    @relation(fields: [venueId], references: [id])
+  sessionLogs ExamSessionLog[]
 
   @@unique([venueId, name])
   @@map("rooms")
@@ -1028,21 +1047,162 @@ model Incident {
   @@map("incidents")
 }
 
-model AuditLog {
-  id        Int        @id @default(autoincrement())
-  userId    Int
-  action    ActionType
-  entity    String
-  entityId  String?
-  oldValues Json?
-  newValues Json?
-  ipAddress String?
-  userAgent String?
-  timestamp DateTime   @default(now())
-  user      User       @relation(fields: [userId], references: [id])
+model ExamSessionLog {
+  id           Int                   @id @default(autoincrement())
+  examEntryId  Int
+  action       ExamSessionAction
+  performedBy  Int
+  performedAt  DateTime              @default(now())
 
-  @@index([userId, timestamp])
-  @@map("audit_logs")
+  // Action details
+  details      Json
+
+  // Context
+  venueId      Int?
+  roomId       Int?
+  studentId    Int?
+  invigilatorId Int?
+
+  // Audit
+  ipAddress    String?
+  userAgent    String?
+  notes        String?
+
+  createdAt    DateTime              @default(now())
+
+  // Relations
+  examEntry    ExamTimetableEntry    @relation(fields: [examEntryId], references: [id], onDelete: Cascade)
+  performer    User                  @relation(fields: [performedBy], references: [id])
+  venue        Venue?                @relation(fields: [venueId], references: [id])
+  room         Room?                 @relation(fields: [roomId], references: [id])
+  student      User?                 @relation("SessionLogStudent", fields: [studentId], references: [id])
+  invigilator  User?                 @relation("SessionLogInvigilator", fields: [invigilatorId], references: [id])
+
+  @@index([examEntryId, performedAt])
+  @@index([performedBy, performedAt])
+  @@index([venueId, performedAt])
+  @@map("exam_session_logs")
+}
+
+model InvigilatorAssignment {
+  id                Int              @id @default(autoincrement())
+  examEntryId       Int
+  invigilatorId     Int
+  role              InvigilatorRole
+  assignedBy        Int
+  assignedAt        DateTime         @default(now())
+
+  // Status tracking
+  status            AssignmentStatus @default(ASSIGNED)
+  checkedInAt       DateTime?
+  checkedOutAt      DateTime?
+
+  // Assignment details
+  venueId           Int
+  roomIds           String? // JSON array of room IDs
+  duties            String?
+
+  // Reassignment tracking
+  reassignedFrom    Int?
+  reassignedAt      DateTime?
+  reassignmentReason String?
+
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  // Relations
+  examEntry         ExamTimetableEntry @relation(fields: [examEntryId], references: [id], onDelete: Cascade)
+  invigilator       User              @relation(fields: [invigilatorId], references: [id])
+  assignedByUser    User              @relation("AssignmentAssignedBy", fields: [assignedBy], references: [id])
+  venue             Venue             @relation(fields: [venueId], references: [id])
+  previousAssignment InvigilatorAssignment? @relation("ReassignmentChain", fields: [reassignedFrom], references: [id])
+  reassignments      InvigilatorAssignment[] @relation("ReassignmentChain")
+
+  @@index([examEntryId, status])
+  @@index([invigilatorId, assignedAt])
+  @@index([venueId, assignedAt])
+  @@unique([examEntryId, invigilatorId]) // Prevent duplicate assignments
+  @@map("invigilator_assignments")
+}
+
+model StudentVerification {
+  id                Int                @id @default(autoincrement())
+  examEntryId       Int
+  studentId         Int
+  verifiedBy        Int
+  verifiedAt        DateTime           @default(now())
+
+  // Verification details
+  status            VerificationStatus @default(PENDING)
+  method            VerificationMethod
+  seatNumber        String?
+  specialArrangement String?
+
+  // Biometric/QR verification
+  qrCode            String?
+  biometricMatch    Boolean?
+  confidenceScore   Float?
+
+  // Issues encountered
+  issues            String? // JSON array of VerificationIssue
+  notes             String?
+
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  // Relations
+  examEntry         ExamTimetableEntry @relation(fields: [examEntryId], references: [id], onDelete: Cascade)
+  student           User               @relation(fields: [studentId], references: [id])
+  verifier          User               @relation("VerificationVerifier", fields: [verifiedBy], references: [id])
+
+  @@index([examEntryId, verifiedAt])
+  @@index([studentId, examEntryId])
+  @@index([verifiedBy, verifiedAt])
+  @@unique([examEntryId, studentId]) // One verification per student per exam
+  @@map("student_verifications")
+}
+
+model ExamIncident {
+  id                  Int               @id @default(autoincrement())
+  examEntryId         Int
+  type                ExamIncidentType
+  severity            IncidentSeverity  @default(MEDIUM)
+  status              IncidentStatus    @default(REPORTED)
+
+  // Incident details
+  title               String
+  description         String
+  location            String?
+  affectedStudents    String? // JSON array of student IDs
+  affectedInvigilators String? // JSON array of invigilator IDs
+
+  // Reporting
+  reportedBy          Int
+  reportedAt          DateTime          @default(now())
+  assignedTo          Int?
+
+  // Resolution
+  resolution          String?
+  resolvedBy          Int?
+  resolvedAt          DateTime?
+
+  // Evidence
+  attachments         String? // JSON array of file URLs
+  witnesses           String? // JSON array of user IDs
+
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  // Relations
+  examEntry           ExamTimetableEntry @relation(fields: [examEntryId], references: [id], onDelete: Cascade)
+  reporter            User              @relation("IncidentReporter", fields: [reportedBy], references: [id])
+  assignee            User?             @relation("IncidentAssignee", fields: [assignedTo], references: [id])
+  resolver            User?             @relation("IncidentResolver", fields: [resolvedBy], references: [id])
+
+  @@index([examEntryId, status])
+  @@index([reportedBy, reportedAt])
+  @@index([assignedTo, status])
+  @@map("exam_incidents")
 }
 
 enum UserRole {
@@ -1317,4 +1477,99 @@ enum StudentIdYearPosition {
   PREFIX    // Year at the beginning
   MIDDLE    // Year in the middle
   SUFFIX    // Year at the end
+}
+
+// ========================================
+// EXAM LOGISTICS ENUMS
+// ========================================
+
+enum ExamSessionAction {
+  STUDENT_CHECK_IN
+  STUDENT_CHECK_OUT
+  INVIGILATOR_CHECK_IN
+  INVIGILATOR_CHECK_OUT
+  ROOM_CHANGE
+  INVIGILATOR_REASSIGNMENT
+  INCIDENT_REPORTED
+  INCIDENT_RESOLVED
+  SESSION_STARTED
+  SESSION_ENDED
+  VERIFICATION_OVERRIDE
+  EMERGENCY_ACTION
+}
+
+enum InvigilatorRole {
+  CHIEF_INVIGILATOR
+  INVIGILATOR
+  RELIEF_INVIGILATOR
+}
+
+enum AssignmentStatus {
+  ASSIGNED
+  CONFIRMED
+  CHECKED_IN
+  ACTIVE
+  CHECKED_OUT
+  COMPLETED
+  CANCELLED
+  REASSIGNED
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  FAILED
+  OVERRIDDEN
+  ABSENT
+}
+
+enum VerificationMethod {
+  QR_CODE
+  BIOMETRIC
+  MANUAL
+  PHOTO_ID
+}
+
+enum VerificationIssue {
+  INVALID_QR
+  BIOMETRIC_MISMATCH
+  WRONG_VENUE
+  WRONG_TIME
+  NO_REGISTRATION
+  LATE_ARRIVAL
+}
+
+enum ExamIncidentType {
+  STUDENT_ABSENCE
+  INVIGILATOR_ABSENCE
+  TECHNICAL_ISSUE
+  SECURITY_BREACH
+  MEDICAL_EMERGENCY
+  VENUE_ISSUE
+  ACADEMIC_MISCONDUCT
+  MATERIAL_MISSING
+  OTHER
+}
+
+enum ExamSessionStatusType {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  POSTPONED
+}
+
+enum RoomStatusType {
+  AVAILABLE
+  OCCUPIED
+  MAINTENANCE
+  CLOSED
+}
+
+enum PresenceStatus {
+  EXPECTED
+  PRESENT
+  LATE
+  ABSENT
+  RELIEVED
 }

@@ -1,0 +1,174 @@
+import { Router } from "express";
+import { examLogisticsController } from "../controllers/examLogisticsController";
+import { authenticateToken, requireRole } from "../middleware/auth";
+import { UserRole } from "../types/auth";
+
+const router = Router();
+
+// Apply authentication to all logistics routes
+router.use(authenticateToken);
+
+// ========================================
+// INVIGILATOR ASSIGNMENT ROUTES
+// ========================================
+
+/**
+ * POST /api/exam-logistics/assign-invigilator
+ * Assign an invigilator to an exam entry
+ * Requires: ADMIN, EXAMS_OFFICER, SUPER_ADMIN
+ */
+router.post(
+  "/assign-invigilator",
+  requireRole(UserRole.ADMIN, UserRole.EXAMS_OFFICER, UserRole.SUPER_ADMIN),
+  examLogisticsController.assignInvigilator
+);
+
+/**
+ * PUT /api/exam-logistics/reassign-invigilator
+ * Reassign an invigilator to a different exam entry or venue
+ * Requires: ADMIN, EXAMS_OFFICER, SUPER_ADMIN
+ */
+router.put(
+  "/reassign-invigilator",
+  requireRole(UserRole.ADMIN, UserRole.EXAMS_OFFICER, UserRole.SUPER_ADMIN),
+  examLogisticsController.reassignInvigilator
+);
+
+/**
+ * PUT /api/exam-logistics/invigilator-presence
+ * Update invigilator check-in/check-out status
+ * Requires: ADMIN, EXAMS_OFFICER, SUPER_ADMIN, INVIGILATOR
+ */
+router.put(
+  "/invigilator-presence",
+  requireRole(UserRole.ADMIN, UserRole.EXAMS_OFFICER, UserRole.SUPER_ADMIN, UserRole.INVIGILATOR),
+  examLogisticsController.updateInvigilatorPresence
+);
+
+// ========================================
+// STUDENT VERIFICATION ROUTES
+// ========================================
+
+/**
+ * POST /api/exam-logistics/check-in-student
+ * Check in a student for an exam
+ * Requires: ADMIN, EXAMS_OFFICER, SUPER_ADMIN, INVIGILATOR
+ */
+router.post(
+  "/check-in-student",
+  requireRole(UserRole.ADMIN, UserRole.EXAMS_OFFICER, UserRole.SUPER_ADMIN, UserRole.INVIGILATOR),
+  examLogisticsController.checkInStudent
+);
+
+/**
+ * PUT /api/exam-logistics/change-student-room
+ * Change a student's assigned room during exam
+ * Requires: ADMIN, EXAMS_OFFICER, SUPER_ADMIN
+ */
+router.put(
+  "/change-student-room",
+  requireRole(UserRole.ADMIN, UserRole.EXAMS_OFFICER, UserRole.SUPER_ADMIN),
+  examLogisticsController.changeStudentRoom
+);
+
+// ========================================
+// INCIDENT MANAGEMENT ROUTES
+// ========================================
+
+/**
+ * POST /api/exam-logistics/report-incident
+ * Report an exam incident
+ * Requires: ADMIN, EXAMS_OFFICER, SUPER_ADMIN, INVIGILATOR
+ */
+router.post(
+  "/report-incident",
+  requireRole(UserRole.ADMIN, UserRole.EXAMS_OFFICER, UserRole.SUPER_ADMIN, UserRole.INVIGILATOR),
+  examLogisticsController.reportExamIncident
+);
+
+/**
+ * PUT /api/exam-logistics/resolve-incident
+ * Resolve an exam incident
+ * Requires: ADMIN, EXAMS_OFFICER, SUPER_ADMIN
+ */
+router.put(
+  "/resolve-incident",
+  requireRole(UserRole.ADMIN, UserRole.EXAMS_OFFICER, UserRole.SUPER_ADMIN),
+  examLogisticsController.resolveExamIncident
+);
+
+// ========================================
+// DASHBOARD ROUTES
+// ========================================
+
+/**
+ * GET /api/exam-logistics/institution-dashboard
+ * Get institution-wide logistics dashboard
+ * Requires: ADMIN, EXAMS_OFFICER, SUPER_ADMIN
+ */
+router.get(
+  "/institution-dashboard",
+  requireRole(UserRole.ADMIN, UserRole.EXAMS_OFFICER, UserRole.SUPER_ADMIN),
+  examLogisticsController.getInstitutionDashboard
+);
+
+/**
+ * GET /api/exam-logistics/exams-officer-dashboard
+ * Get exams officer specific dashboard
+ * Requires: EXAMS_OFFICER, ADMIN, SUPER_ADMIN
+ */
+router.get(
+  "/exams-officer-dashboard",
+  requireRole(UserRole.EXAMS_OFFICER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  examLogisticsController.getExamsOfficerDashboard
+);
+
+// ========================================
+// LOGS AND AUDIT ROUTES
+// ========================================
+
+/**
+ * GET /api/exam-logistics/session-logs/:examEntryId
+ * Get session logs for a specific exam entry
+ * Requires: ADMIN, EXAMS_OFFICER, SUPER_ADMIN
+ */
+router.get(
+  "/session-logs/:examEntryId",
+  requireRole(UserRole.ADMIN, UserRole.EXAMS_OFFICER, UserRole.SUPER_ADMIN),
+  examLogisticsController.getSessionLogs
+);
+
+/**
+ * GET /api/exam-logistics/invigilator-assignments/:examEntryId
+ * Get invigilator assignments for a specific exam entry
+ * Requires: ADMIN, EXAMS_OFFICER, SUPER_ADMIN
+ */
+router.get(
+  "/invigilator-assignments/:examEntryId",
+  requireRole(UserRole.ADMIN, UserRole.EXAMS_OFFICER, UserRole.SUPER_ADMIN),
+  examLogisticsController.getInvigilatorAssignments
+);
+
+/**
+ * GET /api/exam-logistics/student-verifications/:examEntryId
+ * Get student verifications for a specific exam entry
+ * Requires: ADMIN, EXAMS_OFFICER, SUPER_ADMIN, INVIGILATOR
+ */
+router.get(
+  "/student-verifications/:examEntryId",
+  requireRole(UserRole.ADMIN, UserRole.EXAMS_OFFICER, UserRole.SUPER_ADMIN, UserRole.INVIGILATOR),
+  examLogisticsController.getStudentVerifications
+);
+
+/**
+ * GET /api/exam-logistics/incidents/:examEntryId
+ * Get exam incidents for a specific exam entry
+ * Requires: ADMIN, EXAMS_OFFICER, SUPER_ADMIN
+ */
+router.get(
+  "/incidents/:examEntryId",
+  requireRole(UserRole.ADMIN, UserRole.EXAMS_OFFICER, UserRole.SUPER_ADMIN),
+  examLogisticsController.getExamIncidents
+);
+
+export default router;

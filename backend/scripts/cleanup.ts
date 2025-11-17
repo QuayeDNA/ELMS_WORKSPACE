@@ -6,7 +6,8 @@ async function cleanDatabase() {
   console.log('🧹 Cleaning existing data...');
 
   // Delete in reverse dependency order to avoid foreign key constraints
-  await prisma.auditLog.deleteMany();
+  // Note: audit_logs table was removed, replaced with exam_session_logs
+  // await prisma.auditLog.deleteMany();
   await prisma.incident.deleteMany();
   await prisma.scriptMovement.deleteMany();
   await prisma.script.deleteMany();

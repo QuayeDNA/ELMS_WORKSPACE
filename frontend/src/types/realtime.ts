@@ -10,6 +10,7 @@ export enum RealtimeChannel {
   EXAM_TIMETABLE = 'exam_timetable',
   INCIDENT = 'incident',
   NOTIFICATION = 'notification',
+  EXAM_LOGISTICS = 'exam_logistics',
 }
 
 // Base Event Interface
@@ -237,10 +238,102 @@ export interface NewNotificationPayload {
   createdAt: string;
 }
 
-export interface NotificationReadPayload {
-  notificationId: number;
-  userId: number;
-  readAt: string;
+// ============================================
+// EXAM LOGISTICS EVENTS
+// ============================================
+
+export enum ExamLogisticsEvent {
+  STUDENT_CHECKED_IN = 'student_checked_in',
+  INVIGILATOR_CHECKED_IN = 'invigilator_checked_in',
+  INCIDENT_REPORTED = 'incident_reported',
+  INCIDENT_RESOLVED = 'incident_resolved',
+  DASHBOARD_UPDATED = 'dashboard_updated',
+  SESSION_STARTED = 'session_started',
+  SESSION_ENDED = 'session_ended',
+  VENUE_STATUS_CHANGED = 'venue_status_changed',
+}
+
+export interface StudentCheckedInPayload {
+  studentId: string;
+  examEntryId: string;
+  venueId: string;
+  checkInTime: string;
+  verifiedBy?: string;
+  institutionId: number;
+}
+
+export interface InvigilatorCheckedInPayload {
+  assignmentId: string;
+  invigilatorId: string;
+  venueId: string;
+  checkInTime: string;
+  verifiedBy?: string;
+  institutionId: number;
+}
+
+export interface LogisticsIncidentReportedPayload {
+  incidentId: string;
+  type: string;
+  severity: string;
+  description: string;
+  reportedBy: string;
+  reportedByName: string;
+  reportedAt: string;
+  examEntryId?: string;
+  venueId: string;
+  institutionId: number;
+}
+
+export interface LogisticsIncidentResolvedPayload {
+  incidentId: string;
+  resolution: string;
+  resolvedBy: string;
+  resolvedByName: string;
+  resolvedAt: string;
+  venueId: string;
+  institutionId: number;
+}
+
+export interface DashboardUpdatedPayload {
+  dashboardType: 'institution' | 'exams_officer';
+  venueId?: string;
+  updatedAt: string;
+  institutionId: number;
+}
+
+export interface SessionStartedPayload {
+  examEntryId: string;
+  venueId: string;
+  courseCode: string;
+  courseName: string;
+  expectedStudents: number;
+  startedAt: string;
+  startedBy: string;
+  startedByName: string;
+  institutionId: number;
+}
+
+export interface SessionEndedPayload {
+  examEntryId: string;
+  venueId: string;
+  courseCode: string;
+  courseName: string;
+  actualStudents: number;
+  endedAt: string;
+  endedBy: string;
+  endedByName: string;
+  institutionId: number;
+}
+
+export interface VenueStatusChangedPayload {
+  venueId: string;
+  venueName: string;
+  oldStatus: string;
+  newStatus: string;
+  changedAt: string;
+  changedBy: string;
+  changedByName: string;
+  institutionId: number;
 }
 
 // ============================================

@@ -1,6 +1,7 @@
 import React, { createContext, useEffect, useState, useCallback, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { RealtimeChannel, RealtimeEvent, RealtimeContextValue, RealtimeSubscription } from '../types/realtime';
+import { ExamLogisticsEvent, ExamLogisticsWebSocketData } from '../types/examLogistics';
 import { useAuthStore } from '../stores/auth.store';
 import { toast } from 'sonner';
 
@@ -120,6 +121,20 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
     Object.values(RealtimeChannel).forEach((channel) => {
       socketInstance.on(channel, (event: RealtimeEvent) => {
         handleEvent(event);
+      });
+    });
+
+    // Listen to exam logistics events specifically
+    Object.values(ExamLogisticsEvent).forEach((event) => {
+      socketInstance.on(event, (data: ExamLogisticsWebSocketData) => {
+        // Convert to RealtimeEvent format for consistency
+        const realtimeEvent: RealtimeEvent = {
+          channel: RealtimeChannel.EXAM_LOGISTICS,
+          event: event,
+          payload: data,
+          timestamp: new Date().toISOString()
+        };
+        handleEvent(realtimeEvent);
       });
     });
 

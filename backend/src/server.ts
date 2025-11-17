@@ -36,6 +36,7 @@ import examRegistrationRoutes from "./routes/examRegistrationRoutes";
 import batchScriptRoutes from "./routes/batchScriptRoutes";
 import scriptSubmissionRoutes from "./routes/scriptSubmissionRoutes";
 import qrCodeRoutes from "./routes/qrCodeRoutes";
+import examLogisticsRoutes from "./routes/examLogistics";
 
 // Load environment variables
 dotenv.config();
@@ -161,7 +162,8 @@ app.get("/api", (req, res) => {
       "batch-scripts": "/api/batch-scripts",
       "script-submissions": "/api/script-submissions",
       incidents: "/api/incidents",
-      venues: "/api/venues"
+      venues: "/api/venues",
+      "exam-logistics": "/api/exam-logistics"
     },
     timestamp: new Date().toISOString(),
   });
@@ -287,6 +289,9 @@ app.use("/api/incidents", incidentRoutes);
 
 // Venue routes
 app.use("/api/venues", venueRoutes);
+
+// Exam logistics routes (Phase 4 - Logistics Management)
+app.use("/api/exam-logistics", examLogisticsRoutes);
 
 // User routes
 app.use("/api/users", userRoutes);

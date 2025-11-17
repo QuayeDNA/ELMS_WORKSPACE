@@ -2,6 +2,7 @@
 export * from './api';
 export * from './auth.service';
 export * from './base.service';
+export * from './qrCode.service';
 export * from './storage.service';
 
 // Entity services
@@ -10,6 +11,7 @@ export * from './batchScript.service';
 export * from './course.service';
 export * from './department.service';
 export * from './exam.service';
+export * from './examLogistics.service';
 export * from './examRegistration.service';
 export * from './examTimetable.service';
 export * from './faculty.service';

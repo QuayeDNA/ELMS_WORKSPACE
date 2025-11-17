@@ -1,0 +1,210 @@
+import { BaseService } from './base.service';
+import { ApiResponse } from '@/types/shared/api';
+import {
+  InstitutionLogisticsDashboard,
+  ExamsOfficerDashboard,
+  AssignInvigilatorData,
+  ReassignInvigilatorData,
+  StudentCheckInData,
+  ChangeStudentRoomData,
+  ReportExamIncidentData,
+  InvigilatorAssignment,
+  StudentVerification,
+  ExamIncident,
+  ExamSessionLog,
+} from '@/types/examLogistics';
+
+interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export class ExamLogisticsService extends BaseService {
+  constructor() {
+    super('/exam-logistics');
+  }
+
+  // ========================================
+  // INVIGILATOR ASSIGNMENT ENDPOINTS
+  // ========================================
+
+  /**
+   * Assign an invigilator to an exam entry
+   */
+  async assignInvigilator(data: AssignInvigilatorData): Promise<ApiResponse<InvigilatorAssignment>> {
+    return this.create<InvigilatorAssignment>(data, '/assign-invigilator');
+  }
+
+  /**
+   * Reassign an invigilator
+   */
+  async reassignInvigilator(data: ReassignInvigilatorData): Promise<ApiResponse<InvigilatorAssignment>> {
+    return this.update<InvigilatorAssignment>(data.assignmentId, data, '/reassign-invigilator');
+  }
+
+  /**
+   * Update invigilator presence (check-in/check-out)
+   */
+  async updateInvigilatorPresence(
+    assignmentId: number,
+    action: 'check_in' | 'check_out'
+  ): Promise<ApiResponse<InvigilatorAssignment>> {
+    return this.update<InvigilatorAssignment>(
+      assignmentId,
+      { action },
+      '/invigilator-presence'
+    );
+  }
+
+  // ========================================
+  // STUDENT VERIFICATION ENDPOINTS
+  // ========================================
+
+  /**
+   * Check in a student for an exam
+   */
+  async checkInStudent(data: StudentCheckInData): Promise<ApiResponse<StudentVerification>> {
+    return this.create<StudentVerification>(data, '/check-in-student');
+  }
+
+  /**
+   * Change a student's assigned room
+   */
+  async changeStudentRoom(data: ChangeStudentRoomData): Promise<ApiResponse<StudentVerification>> {
+    return this.update<StudentVerification>(data.verificationId, data, '/change-student-room');
+  }
+
+  // ========================================
+  // INCIDENT MANAGEMENT ENDPOINTS
+  // ========================================
+
+  /**
+   * Report an exam incident
+   */
+  async reportExamIncident(data: ReportExamIncidentData): Promise<ApiResponse<ExamIncident>> {
+    return this.create<ExamIncident>(data, '/report-incident');
+  }
+
+  /**
+   * Resolve an exam incident
+   */
+  async resolveExamIncident(
+    incidentId: number,
+    resolution: string
+  ): Promise<ApiResponse<ExamIncident>> {
+    return this.update<ExamIncident>(incidentId, { resolution }, '/resolve-incident');
+  }
+
+  // ========================================
+  // DASHBOARD ENDPOINTS
+  // ========================================
+
+  /**
+   * Get institution logistics dashboard
+   */
+  async getInstitutionDashboard(date?: Date): Promise<ApiResponse<InstitutionLogisticsDashboard>> {
+    const params = date ? { date: date.toISOString() } : {};
+    return this.getStats<InstitutionLogisticsDashboard>('/institution-dashboard', params);
+  }
+
+  /**
+   * Get exams officer dashboard
+   */
+  async getExamsOfficerDashboard(date?: Date): Promise<ApiResponse<ExamsOfficerDashboard>> {
+    const params = date ? { date: date.toISOString() } : {};
+    return this.getStats<ExamsOfficerDashboard>('/exams-officer-dashboard', params);
+  }
+
+  // ========================================
+  // LOGS AND AUDIT ENDPOINTS
+  // ========================================
+
+  /**
+   * Get session logs for an exam entry
+   */
+  async getSessionLogs(
+    examEntryId: number,
+    query?: { page?: number; limit?: number }
+  ): Promise<ApiResponse<{ data: ExamSessionLog[]; pagination: PaginationMeta }>> {
+    const params = { ...query };
+    return this.getById<{ data: ExamSessionLog[]; pagination: PaginationMeta }>(
+      `/session-logs/${examEntryId}`,
+      params
+    );
+  }
+
+  /**
+   * Get invigilator assignments for an exam entry
+   */
+  async getInvigilatorAssignments(examEntryId: number): Promise<ApiResponse<InvigilatorAssignment[]>> {
+    return this.getById<InvigilatorAssignment[]>(`/invigilator-assignments/${examEntryId}`);
+  }
+
+  /**
+   * Get student verifications for an exam entry
+   */
+  async getStudentVerifications(
+    examEntryId: number,
+    query?: { page?: number; limit?: number }
+  ): Promise<ApiResponse<{ data: StudentVerification[]; pagination: PaginationMeta }>> {
+    const params = { ...query };
+    return this.getById<{ data: StudentVerification[]; pagination: PaginationMeta }>(
+      `/student-verifications/${examEntryId}`,
+      params
+    );
+  }
+
+  /**
+   * Get exam incidents for an exam entry
+   */
+  async getExamIncidents(examEntryId: number): Promise<ApiResponse<ExamIncident[]>> {
+    return this.getById<ExamIncident[]>(`/incidents/${examEntryId}`);
+  }
+
+  // ========================================
+  // UTILITY METHODS
+  // ========================================
+
+  /**
+   * Get real-time dashboard updates
+   */
+  async getRealtimeDashboard(institutionId: number): Promise<ApiResponse<InstitutionLogisticsDashboard>> {
+    return this.getStats<InstitutionLogisticsDashboard>('/realtime-dashboard', { institutionId });
+  }
+
+  /**
+   * Export logistics data
+   */
+  async exportLogisticsData(
+    type: 'assignments' | 'verifications' | 'incidents' | 'logs',
+    filters: Record<string, unknown> = {},
+    format: 'csv' | 'excel' = 'csv'
+  ): Promise<Blob> {
+    return this.export({ ...filters, type }, format);
+  }
+
+  /**
+   * Bulk operations for logistics
+   */
+  async bulkAssignInvigilators(
+    assignments: AssignInvigilatorData[]
+  ): Promise<ApiResponse<{ success: number; failed: number; errors: string[] }>> {
+    return this.bulkOperation('bulk-assign', { assignments });
+  }
+
+  /**
+   * Search logistics data
+   */
+  async searchLogistics(
+    searchTerm: string,
+    type: 'students' | 'invigilators' | 'incidents',
+    additionalParams?: Record<string, unknown>
+  ): Promise<ApiResponse<unknown[]>> {
+    return this.search(searchTerm, { ...additionalParams, type });
+  }
+}
+
+// Export singleton instance
+export const examLogisticsService = new ExamLogisticsService();

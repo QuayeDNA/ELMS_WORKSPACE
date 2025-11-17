@@ -456,15 +456,9 @@ export class AuthService {
 
   static async logAuditEvent(userId: number, action: string, entity: string, entityId: string): Promise<void> {
     try {
-      await prisma.auditLog.create({
-        data: {
-          userId,
-          action: action as any,
-          entity,
-          entityId,
-          timestamp: new Date(),
-        }
-      });
+      // TODO: Implement general audit logging system
+      // For now, we'll log to console instead of database
+      console.log(`AUDIT: User ${userId} performed ${action} on ${entity} ${entityId}`);
     } catch (error) {
       console.error('Failed to log audit event:', error);
     }
