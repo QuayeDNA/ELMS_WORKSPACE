@@ -506,16 +506,18 @@ export const examTimetableController = {
         !data.startTime ||
         !data.endTime ||
         !data.duration ||
-        !data.venueId
+        !data.venueId ||
+        !data.programIds ||
+        !Array.isArray(data.programIds) ||
+        data.programIds.length === 0
       ) {
         return res.status(400).json({
           success: false,
-          message: "Missing required fields: courseId, examDate, startTime, endTime, duration, venueId",
+          message: "Missing required fields: courseId, examDate, startTime, endTime, duration, venueId, programIds (must be non-empty array)",
         });
       }
 
       // Ensure arrays exist (can be empty)
-      if (!data.programIds) data.programIds = [];
       if (!data.roomIds) data.roomIds = [];
       if (!data.invigilatorIds) data.invigilatorIds = [];
 
@@ -808,6 +810,20 @@ export const examTimetableController = {
             notes: entry.notes,
             specialRequirements: entry.specialRequirements,
           };
+
+          // Validate required fields for each entry
+          if (
+            !entryData.courseId ||
+            !entryData.examDate ||
+            !entryData.startTime ||
+            !entryData.duration ||
+            !entryData.venueId ||
+            !entryData.programIds ||
+            !Array.isArray(entryData.programIds) ||
+            entryData.programIds.length === 0
+          ) {
+            throw new Error(`Missing required fields for entry at index ${i}: courseId, examDate, startTime, duration, venueId, programIds (must be non-empty array)`);
+          }
 
           const created = await examTimetableService.createTimetableEntry(entryData);
           createdEntries.push(created);

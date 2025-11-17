@@ -74,8 +74,6 @@ export default function ExamTimetableDetailPage() {
   const [actionLoading, setActionLoading] = useState(false);
 
   // Dialog states
-  const [deleteEntryDialogOpen, setDeleteEntryDialogOpen] = useState(false);
-  const [entryToDelete, setEntryToDelete] = useState<ExamTimetableEntry | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
@@ -167,23 +165,25 @@ export default function ExamTimetableDetailPage() {
     }
   };
 
-  const confirmDeleteEntry = async () => {
-    if (!entryToDelete || !timetable?.id) return;
+  const handleDeleteEntries = async (entryIds: number[]) => {
+    if (!timetable?.id) return;
 
     try {
       setActionLoading(true);
-      await examTimetableService.deleteTimetableEntry(timetable.id, entryToDelete.id);
+      // Delete multiple entries
+      await Promise.all(
+        entryIds.map(entryId => examTimetableService.deleteTimetableEntry(timetable.id, entryId))
+      );
 
-      toast.success('Entry deleted successfully');
+      toast.success(`Successfully deleted ${entryIds.length} entries`);
       fetchEntries();
       fetchTimetable(); // Refresh to update totalExams count
     } catch (error) {
-      console.error('Error deleting entry:', error);
-      toast.error('Failed to delete entry');
+      console.error('Error deleting entries:', error);
+      toast.error('Failed to delete some entries');
+      throw error;
     } finally {
       setActionLoading(false);
-      setDeleteEntryDialogOpen(false);
-      setEntryToDelete(null);
     }
   };
 
@@ -886,6 +886,7 @@ export default function ExamTimetableDetailPage() {
                   timetableId={id!}
                   entries={transformedEntries}
                   onSave={handleSpreadsheetSave}
+                  onDelete={handleDeleteEntries}
                   institutionId={timetable.institutionId?.toString()}
                   startDate={timetable.startDate}
                   endDate={timetable.endDate}
@@ -984,29 +985,6 @@ export default function ExamTimetableDetailPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Delete Entry Confirmation Dialog */}
-      <AlertDialog open={deleteEntryDialogOpen} onOpenChange={setDeleteEntryDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Exam Entry?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the exam entry for{' '}
-              <strong>{entryToDelete?.course?.code}</strong>.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={actionLoading}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDeleteEntry}
-              disabled={actionLoading}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {actionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Delete Entry
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Reject Timetable Dialog */}
       <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>

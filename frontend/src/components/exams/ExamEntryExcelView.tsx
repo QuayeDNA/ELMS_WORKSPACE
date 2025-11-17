@@ -15,7 +15,8 @@ import {
   Upload,
   Download,
   FileText,
-  Building
+  Building,
+  Users
 } from 'lucide-react';
 
 // Import external cell editors
@@ -25,6 +26,7 @@ import { LevelSelectorEditor } from './cell-editors/LevelSelectorEditor';
 import { TimePickerEditor } from './cell-editors/TimePickerEditor';
 import { VenueSearchEditor } from './cell-editors/VenueSearchEditor';
 import { RoomSearchEditor } from './cell-editors/RoomSearchEditor';
+import { ProgramSearchEditor } from './cell-editors/ProgramSearchEditor';
 
 // Import service and types
 import { examTimetableService, BulkUploadValidationResult } from '@/services/examTimetable.service';
@@ -48,6 +50,8 @@ export interface ExamEntryRow {
   roomIds?: string; // Comma-separated room IDs
   roomNames?: string; // Comma-separated room names
   roomCapacity?: number; // Total capacity of selected rooms
+  programIds?: string; // Comma-separated program IDs
+  programNames?: string; // Comma-separated program names
   level: string;
   notes: string;
   specialRequirements: string;
@@ -71,6 +75,7 @@ interface ExamEntryExcelViewProps {
   endDate?: string;
   entries?: ExamEntryRow[];
   onSave?: (entries: ExamEntryRow[]) => Promise<void>;
+  onDelete?: (entryIds: number[]) => Promise<void>;
 }
 
 // Main component
@@ -80,7 +85,8 @@ export default function ExamEntryExcelView({
   startDate,
   endDate,
   entries = [],
-  onSave
+  onSave,
+  onDelete
 }: ExamEntryExcelViewProps) {
   const [rowData, setRowData] = useState<ExamEntryRow[]>(() => {
     // If entries are provided, use them; otherwise start with one empty row
@@ -106,14 +112,14 @@ export default function ExamEntryExcelView({
         notes: '',
         specialRequirements: '',
         isValid: false,
-        errors: ['Course is required', 'Exam date is required', 'Start time is required', 'Venue is required'],
+        errors: ['Course is required', 'Exam date is required', 'Start time is required', 'Venue is required', 'At least one program is required'],
         warnings: [],
         isNew: true,
       },
     ];
   });
 
-  const [selectedRows, setSelectedRows] = useState(new Set());
+  const [selectedRows, setSelectedRows] = useState(new Set<string>());
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showBulkAddDialog, setShowBulkAddDialog] = useState(false);
   const [bulkAddCount, setBulkAddCount] = useState('5');
@@ -136,6 +142,7 @@ export default function ExamEntryExcelView({
     if (!row.examDate) errors.push('Exam date is required');
     if (!row.startTime) errors.push('Start time is required');
     if (!row.venueName) errors.push('Venue is required');
+    if (!row.programNames || row.programNames.trim() === '') errors.push('At least one program is required');
 
     // Room validation: If venue is selected, at least one room should be selected
     if (row.venueName && !row.roomNames) {
@@ -167,7 +174,7 @@ export default function ExamEntryExcelView({
       notes: '',
       specialRequirements: '',
       isValid: false,
-      errors: ['Course is required', 'Exam date is required', 'Start time is required', 'Venue is required'],
+      errors: ['Course is required', 'Exam date is required', 'Start time is required', 'Venue is required', 'At least one program is required'],
       warnings: [],
       isNew: true,
     }));
@@ -175,11 +182,47 @@ export default function ExamEntryExcelView({
   }, []);
 
   // Delete selected rows
-  const handleDeleteSelected = useCallback(() => {
-    setRowData((prev) => prev.filter((row) => !selectedRows.has(row.id)));
-    setSelectedRows(new Set());
-    setShowDeleteDialog(false);
-  }, [selectedRows]);
+  const handleDeleteSelected = useCallback(async () => {
+    if (!onDelete) {
+      // Fallback: just remove from local state if no delete handler provided
+      setRowData((prev) => prev.filter((row) => !selectedRows.has(row.id)));
+      setSelectedRows(new Set());
+      setShowDeleteDialog(false);
+      return;
+    }
+
+    try {
+      // Separate new entries from existing entries
+      const selectedRowsArray = Array.from(selectedRows);
+      const existingEntryIds: number[] = [];
+      const newEntryIds: string[] = [];
+
+      selectedRowsArray.forEach(rowId => {
+        const row = rowData.find(r => r.id === rowId);
+        if (row && !row.isNew && !isNaN(parseInt(row.id))) {
+          // This is an existing entry with a backend ID
+          const entryId = parseInt(row.id);
+          existingEntryIds.push(entryId);
+        } else {
+          // This is a new entry that hasn't been saved yet
+          newEntryIds.push(rowId);
+        }
+      });
+
+      // Delete existing entries from backend
+      if (existingEntryIds.length > 0) {
+        await onDelete(existingEntryIds);
+      }
+
+      // Remove all selected rows from local state (both existing and new)
+      setRowData((prev) => prev.filter((row) => !selectedRows.has(row.id)));
+      setSelectedRows(new Set());
+      setShowDeleteDialog(false);
+    } catch (error) {
+      console.error('Error deleting entries:', error);
+      alert('Failed to delete some entries. Please try again.');
+    }
+  }, [selectedRows, rowData, onDelete]);
 
   // Save changes
   const handleSave = useCallback(async () => {
@@ -398,6 +441,19 @@ export default function ExamEntryExcelView({
         width: 250,
         renderCell: ({ row }: { row: ExamEntryRow }) => (
           <div className="px-2 truncate text-sm text-gray-700">{row.courseName || '-'}</div>
+        ),
+      },
+      {
+        key: 'programNames',
+        name: 'Programs *',
+        width: 200,
+        editable: true,
+        renderEditCell: (props) => <ProgramSearchEditor {...props} institutionId={institutionId} />,
+        renderCell: ({ row }: { row: ExamEntryRow }) => (
+          <div className="flex items-center gap-2 h-full px-2">
+            <Users className="w-4 h-4 text-gray-400 shrink-0" />
+            <span className="text-sm truncate">{row.programNames || '-'}</span>
+          </div>
         ),
       },
       {
@@ -689,7 +745,7 @@ export default function ExamEntryExcelView({
 
       {/* Delete Dialog */}
       {showDeleteDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Delete Selected Entries?</h3>
             <p className="text-sm text-gray-600 mb-6">
