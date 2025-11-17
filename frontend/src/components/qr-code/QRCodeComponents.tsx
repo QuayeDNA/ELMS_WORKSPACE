@@ -1,45 +1,78 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/Loading';
-import { QrCode, Download, RefreshCw, Users, UserCheck, Clock } from 'lucide-react';
+import { QrCode, Download, RefreshCw, Users, UserCheck, Clock, XCircle } from 'lucide-react';
 import { qrCodeService } from '@/services/qrCode.service';
-import { QRCodeData, QRCodeType } from '@/types/examLogistics';
+import { QRCodeData } from '@/types/examLogistics';
 import { toast } from 'sonner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { CardDescription } from '@/components/ui/card';
+
+type QRCodeType = 'student_verification' | 'invigilator_checkin' | 'venue_access';
 
 interface QRCodeGeneratorProps {
   type: QRCodeType;
-  data: Record<string, unknown>;
+  examEntryId: number;
+  studentId?: number;
+  invigilatorId?: number;
+  venueId: number;
   title: string;
   description?: string;
 }
 
-export function QRCodeGenerator({ type, data, title, description }: QRCodeGeneratorProps) {
+export function QRCodeGenerator({
+  type,
+  examEntryId,
+  studentId,
+  invigilatorId,
+  venueId,
+  title,
+  description
+}: QRCodeGeneratorProps) {
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const generateQR = useCallback(async () => {
     try {
       setLoading(true);
-      const result = await qrCodeService.generateQRCode(type, data);
-      if (result.success && result.data) {
-        setQrCode(result.data.qrCodeUrl);
-      } else {
-        toast.error('Failed to generate QR code');
+
+      // Generate QR code data based on type
+      let qrData: QRCodeData;
+      switch (type) {
+        case 'student_verification':
+          if (!studentId) throw new Error('Student ID required for student verification');
+          qrData = qrCodeService.generateStudentQRCode(examEntryId, studentId, venueId);
+          break;
+        case 'invigilator_checkin':
+          if (!invigilatorId) throw new Error('Invigilator ID required for invigilator check-in');
+          qrData = qrCodeService.generateInvigilatorQRCode(examEntryId, invigilatorId, venueId);
+          break;
+        case 'venue_access':
+          qrData = qrCodeService.generateVenueAccessQRCode(examEntryId, venueId);
+          break;
+        default:
+          throw new Error('Invalid QR code type');
       }
+
+      // Generate QR code URL
+      const qrCodeUrl = await qrCodeService.generateQRCodeURL(qrData);
+      setQrCode(qrCodeUrl);
     } catch (error) {
       console.error('Error generating QR code:', error);
       toast.error('Failed to generate QR code');
     } finally {
       setLoading(false);
     }
-  }, [type, data]);
+  }, [type, examEntryId, studentId, invigilatorId, venueId]);
 
   const downloadQR = () => {
     if (!qrCode) return;
 
-    const id = (data as Record<string, unknown>).id as string || 'qrcode';
+    const id = studentId || invigilatorId || examEntryId;
     const link = document.createElement('a');
     link.href = qrCode;
     link.download = `${type}-${id}.png`;
@@ -114,21 +147,16 @@ export function QRCodeGenerator({ type, data, title, description }: QRCodeGenera
 
 // Student QR Code Generator
 export function StudentQRCodeGenerator({ studentId, examEntryId, venueId }: {
-  studentId: string;
-  examEntryId: string;
-  venueId: string;
+  studentId: number;
+  examEntryId: number;
+  venueId: number;
 }) {
-  const qrData = {
-    studentId,
-    examEntryId,
-    venueId,
-    timestamp: new Date().toISOString()
-  };
-
   return (
     <QRCodeGenerator
-      type="student_checkin"
-      data={qrData}
+      type="student_verification"
+      examEntryId={examEntryId}
+      studentId={studentId}
+      venueId={venueId}
       title="Student Check-in QR Code"
       description="Scan this QR code at the exam venue for check-in verification"
     />
@@ -137,21 +165,16 @@ export function StudentQRCodeGenerator({ studentId, examEntryId, venueId }: {
 
 // Invigilator QR Code Generator
 export function InvigilatorQRCodeGenerator({ assignmentId, invigilatorId, venueId }: {
-  assignmentId: string;
-  invigilatorId: string;
-  venueId: string;
+  assignmentId: number;
+  invigilatorId: number;
+  venueId: number;
 }) {
-  const qrData = {
-    assignmentId,
-    invigilatorId,
-    venueId,
-    timestamp: new Date().toISOString()
-  };
-
   return (
     <QRCodeGenerator
       type="invigilator_checkin"
-      data={qrData}
+      examEntryId={assignmentId}
+      invigilatorId={invigilatorId}
+      venueId={venueId}
       title="Invigilator Check-in QR Code"
       description="Scan this QR code to confirm invigilator presence at the venue"
     />
@@ -160,11 +183,11 @@ export function InvigilatorQRCodeGenerator({ assignmentId, invigilatorId, venueI
 
 // Bulk QR Code Generator for Students
 export function BulkStudentQRGenerator({ students, examEntryId, venueId }: {
-  students: Array<{ id: string; name: string; registrationNumber: string }>;
-  examEntryId: string;
-  venueId: string;
+  students: Array<{ id: number; name: string; registrationNumber: string }>;
+  examEntryId: number;
+  venueId: number;
 }) {
-  const [generatedQRs, setGeneratedQRs] = useState<Array<{ student: { id: string; name: string; registrationNumber: string }; qrCode: string }>>([]);
+  const [generatedQRs, setGeneratedQRs] = useState<Array<{ student: { id: number; name: string; registrationNumber: string }; qrCode: string }>>([]);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
 
@@ -176,20 +199,13 @@ export function BulkStudentQRGenerator({ students, examEntryId, venueId }: {
 
       for (let i = 0; i < students.length; i++) {
         const student = students[i];
-        const qrData = {
-          studentId: student.id,
-          examEntryId,
-          venueId,
-          timestamp: new Date().toISOString()
-        };
+        const qrData = qrCodeService.generateStudentQRCode(examEntryId, student.id, venueId);
+        const qrCodeUrl = await qrCodeService.generateQRCodeURL(qrData);
 
-        const result = await qrCodeService.generateQRCode('student_checkin', qrData);
-        if (result.success && result.data) {
-          results.push({
-            student,
-            qrCode: result.data.qrCodeUrl
-          });
-        }
+        results.push({
+          student,
+          qrCode: qrCodeUrl
+        });
 
         setProgress(((i + 1) / students.length) * 100);
       }
@@ -347,23 +363,15 @@ export function QRCodeValidator({ qrData, onValidate }: {
   onValidate: (isValid: boolean, data?: QRCodeData) => void;
 }) {
   const [validating, setValidating] = useState(false);
-  const [result, setResult] = useState<{ isValid: boolean; data?: QRCodeData } | null>(null);
 
   useEffect(() => {
     const validate = async () => {
       try {
         setValidating(true);
-        const validationResult = await qrCodeService.validateQRCode(qrData);
-        const result = {
-          isValid: validationResult.success,
-          data: validationResult.data
-        };
-        setResult(result);
-        onValidate(result.isValid, result.data);
+        const validationResult = qrCodeService.scanQRCode(qrData);
+        onValidate(validationResult.success, validationResult.data);
       } catch (error) {
         console.error('Error validating QR code:', error);
-        const result = { isValid: false };
-        setResult(result);
         onValidate(false);
       } finally {
         setValidating(false);
@@ -384,31 +392,112 @@ export function QRCodeValidator({ qrData, onValidate }: {
     );
   }
 
-  if (!result) return null;
+  return null; // The parent component will handle displaying the result
+}
+
+// Main QR Code Components Container
+export function QRCodeComponents() {
+  const [activeTab, setActiveTab] = useState<'generate' | 'bulk' | 'validate'>('generate');
+  const [qrData, setQrData] = useState('');
+  const [validationResult, setValidationResult] = useState<{ isValid: boolean; data?: QRCodeData } | null>(null);
+
+  const handleValidation = (isValid: boolean, data?: QRCodeData) => {
+    setValidationResult({ isValid, data });
+  };
 
   return (
-    <div className={`p-4 rounded-lg border ${result.isValid ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-      <div className="flex items-center gap-2">
-        {result.isValid ? (
-          <UserCheck className="h-5 w-5 text-green-600" />
-        ) : (
-          <XCircle className="h-5 w-5 text-red-600" />
-        )}
-        <span className={`font-medium ${result.isValid ? 'text-green-800' : 'text-red-800'}`}>
-          {result.isValid ? 'Valid QR Code' : 'Invalid QR Code'}
-        </span>
-      </div>
-      {result.isValid && result.data && (
-        <div className="mt-2 text-sm text-green-700">
-          <p>Type: {result.data.type}</p>
-          {result.data.type === 'student_checkin' && (
-            <p>Student ID: {result.data.data.studentId}</p>
-          )}
-          {result.data.type === 'invigilator_checkin' && (
-            <p>Assignment ID: {result.data.data.assignmentId}</p>
-          )}
-        </div>
-      )}
+    <div className="space-y-6">
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as typeof activeTab)}>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="generate">Generate QR Codes</TabsTrigger>
+          <TabsTrigger value="bulk">Bulk Generation</TabsTrigger>
+          <TabsTrigger value="validate">Validate QR Code</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="generate" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Student Check-in QR Code</h3>
+              <StudentQRCodeGenerator
+                studentId={1}
+                examEntryId={1}
+                venueId={1}
+              />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Invigilator Check-in QR Code</h3>
+              <InvigilatorQRCodeGenerator
+                assignmentId={1}
+                invigilatorId={1}
+                venueId={1}
+              />
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="bulk" className="space-y-6">
+          <BulkStudentQRGenerator
+            students={[
+              { id: 1, name: 'John Doe', registrationNumber: 'STU001' },
+              { id: 2, name: 'Jane Smith', registrationNumber: 'STU002' },
+              { id: 3, name: 'Bob Johnson', registrationNumber: 'STU003' },
+            ]}
+            examEntryId={1}
+            venueId={1}
+          />
+        </TabsContent>
+
+        <TabsContent value="validate" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>QR Code Validation</CardTitle>
+              <CardDescription>
+                Enter QR code data to validate its authenticity and extract information.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="qr-data">QR Code Data</Label>
+                <Textarea
+                  id="qr-data"
+                  placeholder="Paste QR code data here..."
+                  value={qrData}
+                  onChange={(e) => setQrData(e.target.value)}
+                  rows={4}
+                />
+              </div>
+              {qrData && (
+                <QRCodeValidator qrData={qrData} onValidate={handleValidation} />
+              )}
+              {validationResult && (
+                <div className={`p-4 rounded-lg border ${validationResult.isValid ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                  <div className="flex items-center gap-2">
+                    {validationResult.isValid ? (
+                      <UserCheck className="h-5 w-5 text-green-600" />
+                    ) : (
+                      <XCircle className="h-5 w-5 text-red-600" />
+                    )}
+                    <span className={`font-medium ${validationResult.isValid ? 'text-green-800' : 'text-red-800'}`}>
+                      {validationResult.isValid ? 'Valid QR Code' : 'Invalid QR Code'}
+                    </span>
+                  </div>
+                  {validationResult.isValid && validationResult.data && (
+                    <div className="mt-2 text-sm text-green-700">
+                      <p>Type: {validationResult.data.type}</p>
+                      {validationResult.data.type === 'student_verification' && validationResult.data.studentId && (
+                        <p>Student ID: {validationResult.data.studentId}</p>
+                      )}
+                      {validationResult.data.type === 'invigilator_checkin' && validationResult.data.invigilatorId && (
+                        <p>Invigilator ID: {validationResult.data.invigilatorId}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
