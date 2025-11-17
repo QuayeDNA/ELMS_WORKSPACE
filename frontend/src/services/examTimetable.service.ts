@@ -106,11 +106,7 @@ export interface ExamTimetable {
     examStartDate: string;
     examEndDate: string;
   };
-  institution?: {
-    id: number;
-    name: string;
-    code: string;
-  };
+  institution?: Institution;
   faculty?: {
     id: number;
     name: string;
@@ -305,9 +301,7 @@ export interface TimetableEntryPermissions {
   scope: 'ALL' | 'FACULTY' | 'DEPARTMENT' | 'NONE';
 }
 
-// ========================================
-// EXAM TIMETABLE SERVICE
-// ========================================
+import { Institution } from '@/types/institution';
 
 export const examTimetableService = {
   /**

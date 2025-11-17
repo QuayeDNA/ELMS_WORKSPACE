@@ -13,7 +13,7 @@ export const examLogisticsController = {
   async assignInvigilator(req: Request, res: Response) {
     try {
       const { examEntryId, invigilatorId, role, venueId, roomIds, duties } = req.body;
-      const assignedBy = req.user?.id;
+      const assignedBy = req.user?.userId;
 
       if (!assignedBy) {
         return res.status(401).json({ error: "Unauthorized" });
@@ -41,7 +41,7 @@ export const examLogisticsController = {
   async reassignInvigilator(req: Request, res: Response) {
     try {
       const { assignmentId, newExamEntryId, newVenueId, newRoomIds, reason } = req.body;
-      const reassignedBy = req.user?.id;
+      const reassignedBy = req.user?.userId;
 
       if (!reassignedBy) {
         return res.status(401).json({ error: "Unauthorized" });
@@ -68,7 +68,7 @@ export const examLogisticsController = {
   async updateInvigilatorPresence(req: Request, res: Response) {
     try {
       const { assignmentId, action } = req.body;
-      const performedBy = req.user?.id;
+      const performedBy = req.user?.userId;
 
       if (!performedBy) {
         return res.status(401).json({ error: "Unauthorized" });
@@ -100,7 +100,7 @@ export const examLogisticsController = {
   async checkInStudent(req: Request, res: Response) {
     try {
       const { examEntryId, studentId, verificationMethod, seatNumber, qrCode } = req.body;
-      const verifiedBy = req.user?.id;
+      const verifiedBy = req.user?.userId;
 
       if (!verifiedBy) {
         return res.status(401).json({ error: "Unauthorized" });
@@ -127,7 +127,7 @@ export const examLogisticsController = {
   async changeStudentRoom(req: Request, res: Response) {
     try {
       const { verificationId, newRoomId, reason } = req.body;
-      const changedBy = req.user?.id;
+      const changedBy = req.user?.userId;
 
       if (!changedBy) {
         return res.status(401).json({ error: "Unauthorized" });
@@ -167,7 +167,7 @@ export const examLogisticsController = {
         attachments,
         witnesses,
       } = req.body;
-      const reportedBy = req.user?.id;
+      const reportedBy = req.user?.userId;
 
       if (!reportedBy) {
         return res.status(401).json({ error: "Unauthorized" });
@@ -199,7 +199,7 @@ export const examLogisticsController = {
   async resolveExamIncident(req: Request, res: Response) {
     try {
       const { incidentId, resolution } = req.body;
-      const resolvedBy = req.user?.id;
+      const resolvedBy = req.user?.userId;
 
       if (!resolvedBy) {
         return res.status(401).json({ error: "Unauthorized" });
@@ -250,7 +250,7 @@ export const examLogisticsController = {
    */
   async getExamsOfficerDashboard(req: Request, res: Response) {
     try {
-      const officerId = req.user?.id;
+      const officerId = req.user?.userId;
       const { date } = req.query;
 
       if (!officerId) {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import {
@@ -15,6 +15,10 @@ import {
   Upload,
   AlertTriangle,
   Loader2,
+  Eye,
+  Settings,
+  History,
+  BarChart3,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -43,6 +47,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Skeleton } from '@/components/ui/skeleton';
 
 import {
   examTimetableService,
@@ -61,64 +66,64 @@ export default function ExamTimetableDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuthStore();
+
+  // State management
   const [timetable, setTimetable] = useState<ExamTimetable | null>(null);
+  const [entries, setEntries] = useState<ExamTimetableEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
 
-  // Entry management state
-  const [entries, setEntries] = useState<ExamTimetableEntry[]>([]);
+  // Dialog states
   const [deleteEntryDialogOpen, setDeleteEntryDialogOpen] = useState(false);
   const [entryToDelete, setEntryToDelete] = useState<ExamTimetableEntry | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-
-  // Transform entries to ExamEntryRow format for the spreadsheet component
-  const transformedEntries: ExamEntryRow[] = entries.map(entry => {
-    // Parse roomIds if it's a string, otherwise use the array directly
-    const roomIds = typeof entry.roomIds === 'string'
-      ? JSON.parse(entry.roomIds)
-      : (entry.roomIds || []);
-
-    // Get room names and calculate capacity from rooms array if available
-    interface EntryWithRooms {
-      rooms?: Array<{ id: number; name: string; capacity: number }>;
-    }
-    const rooms = (entry as EntryWithRooms).rooms || [];
-    const roomNames = rooms.length > 0
-      ? rooms.map(r => r.name).join(', ')
-      : '';
-    const roomCapacity = rooms.length > 0
-      ? rooms.reduce((sum, r) => sum + r.capacity, 0)
-      : entry.seatingCapacity || 0;
-
-    return {
-      id: entry.id.toString(),
-      courseCode: entry.course?.code || '',
-      courseId: entry.courseId,
-      courseName: entry.course?.name || '',
-      examDate: entry.examDate,
-      startTime: extractTimeFromISO(entry.startTime), // Extract time from ISO datetime
-      duration: entry.duration,
-      venueName: entry.venue?.name || '',
-      venueId: entry.venueId,
-      venueLocation: entry.venue?.location || '',
-      venueCapacity: entry.venue?.capacity,
-      roomIds: roomIds.length > 0 ? roomIds.join(',') : undefined,
-      roomNames: roomNames || undefined,
-      roomCapacity: roomCapacity || undefined,
-      level: entry.level?.toString() || '',
-      notes: entry.notes || '',
-      specialRequirements: entry.specialRequirements || '',
-      isNew: false,
-      isValid: true,
-      errors: [],
-      warnings: [],
-    };
-  });
-
-  // Approval state
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  // Memoized transformed entries for performance
+  const transformedEntries = useMemo((): ExamEntryRow[] => {
+    return entries.map(entry => {
+      const roomIds = typeof entry.roomIds === 'string'
+        ? JSON.parse(entry.roomIds)
+        : (entry.roomIds || []);
+
+      interface EntryWithRooms {
+        rooms?: Array<{ id: number; name: string; capacity: number }>;
+      }
+      const rooms = (entry as EntryWithRooms).rooms || [];
+      const roomNames = rooms.length > 0
+        ? rooms.map(r => r.name).join(', ')
+        : '';
+      const roomCapacity = rooms.length > 0
+        ? rooms.reduce((sum, r) => sum + r.capacity, 0)
+        : entry.seatingCapacity || 0;
+
+      return {
+        id: entry.id.toString(),
+        courseCode: entry.course?.code || '',
+        courseId: entry.courseId,
+        courseName: entry.course?.name || '',
+        examDate: entry.examDate,
+        startTime: extractTimeFromISO(entry.startTime),
+        duration: entry.duration,
+        venueName: entry.venue?.name || '',
+        venueId: entry.venueId,
+        venueLocation: entry.venue?.location || '',
+        venueCapacity: entry.venue?.capacity,
+        roomIds: roomIds.length > 0 ? roomIds.join(',') : undefined,
+        roomNames: roomNames || undefined,
+        roomCapacity: roomCapacity || undefined,
+        level: entry.level?.toString() || '',
+        notes: entry.notes || '',
+        specialRequirements: entry.specialRequirements || '',
+        isNew: false,
+        isValid: true,
+        errors: [],
+        warnings: [],
+      };
+    });
+  }, [entries]);
 
   useEffect(() => {
     if (id) {
@@ -147,7 +152,6 @@ export default function ExamTimetableDetailPage() {
     }
   };
 
-  // Fetch timetable entries
   const fetchEntries = async () => {
     if (!id) return;
 
@@ -425,21 +429,15 @@ export default function ExamTimetableDetailPage() {
     const Icon = config.icon;
 
     return (
-      <Badge variant={config.variant} className="flex items-center gap-1">
-        <Icon className="h-3 w-3" />
+      <Badge variant={config.variant} className="flex items-center gap-1.5 px-3 py-1">
+        <Icon className="h-3.5 w-3.5" />
         {config.label}
       </Badge>
     );
   };
 
   const getApprovalBadge = (approvalStatus: TimetableApprovalStatus) => {
-    type StatusConfigType = {
-      variant: 'secondary' | 'default' | 'destructive';
-      icon: React.ElementType;
-      label: string;
-    };
-
-    const statusConfig: Record<string, StatusConfigType> = {
+    const statusConfig: Record<string, { variant: 'secondary' | 'default' | 'destructive'; icon: React.ElementType; label: string }> = {
       [TimetableApprovalStatus.NOT_SUBMITTED]: { variant: 'secondary', icon: FileText, label: 'Not Submitted' },
       [TimetableApprovalStatus.PENDING]: { variant: 'secondary', icon: Clock, label: 'Pending' },
       [TimetableApprovalStatus.APPROVED]: { variant: 'default', icon: CheckCircle, label: 'Approved' },
@@ -451,24 +449,79 @@ export default function ExamTimetableDetailPage() {
     const Icon = config.icon;
 
     return (
-      <Badge variant={config.variant} className="flex items-center gap-1">
-        <Icon className="h-3 w-3" />
+      <Badge variant={config.variant} className="flex items-center gap-1.5 px-3 py-1">
+        <Icon className="h-3.5 w-3.5" />
         {config.label}
       </Badge>
     );
   };
 
+  // Permission checks
+  const canEdit = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'EXAMS_OFFICER';
+  const canDelete = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
+  const canPublish = (user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') &&
+    timetable?.status === ExamTimetableStatus.APPROVED;
+  const canSubmit = canEdit && timetable?.status === ExamTimetableStatus.DRAFT;
+  const canApprove = (user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'FACULTY_ADMIN') &&
+    timetable?.approvalStatus === TimetableApprovalStatus.PENDING;
+
   if (loading) {
     return (
-      <div className="container mx-auto p-6 flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="container mx-auto p-4 lg:p-6">
+        <div className="space-y-6">
+          {/* Header Skeleton */}
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+            <div className="space-y-2">
+              <Skeleton className="h-6 w-32" />
+              <Skeleton className="h-8 w-96" />
+              <Skeleton className="h-4 w-48" />
+            </div>
+            <div className="flex gap-2">
+              <Skeleton className="h-10 w-20" />
+              <Skeleton className="h-10 w-20" />
+              <Skeleton className="h-10 w-20" />
+            </div>
+          </div>
+
+          {/* Status Cards Skeleton */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Card key={i}>
+                <CardHeader className="pb-3">
+                  <Skeleton className="h-4 w-16" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-6 w-24" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Content Skeleton */}
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-32" />
+              <Skeleton className="h-4 w-64" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="space-y-2">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-5 w-32" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
 
   if (!timetable) {
     return (
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto p-4 lg:p-6">
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
             <FileText className="h-16 w-16 text-muted-foreground mb-4" />
@@ -476,7 +529,7 @@ export default function ExamTimetableDetailPage() {
             <p className="text-muted-foreground text-center mb-6">
               The timetable you're looking for doesn't exist or has been deleted
             </p>
-            <Button onClick={() => navigate('/admin/exams')}>
+            <Button onClick={() => navigate('/admin/exams')} variant="outline">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Timetables
             </Button>
@@ -486,37 +539,36 @@ export default function ExamTimetableDetailPage() {
     );
   }
 
-  const canEdit = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'EXAMS_OFFICER';
-  const canDelete = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
-  const canPublish = (user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') &&
-    timetable.status === ExamTimetableStatus.APPROVED;
-  const canSubmit = canEdit && timetable.status === ExamTimetableStatus.DRAFT;
-  const canApprove = (user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'FACULTY_ADMIN') &&
-    timetable.approvalStatus === TimetableApprovalStatus.PENDING;
-
   return (
-    <div className="container mx-auto space-y-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/admin/exams')}
-              className="gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </Button>
-          </div>
-          <h1 className="text-3xl font-bold">{timetable.title}</h1>
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+        <div className="space-y-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate('/admin/exams')}
+            className="gap-2 w-fit -ml-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Timetables
+          </Button>
+          <h1 className="text-2xl lg:text-3xl font-bold">{timetable.title}</h1>
           <p className="text-muted-foreground">
             {timetable.academicYear?.yearCode} - {timetable.semester?.name}
           </p>
+          <div className="space-y-1">
+            <div>
+              <p className="font-medium">{timetable.institution?.name}</p>
+              <p className="text-sm text-muted-foreground">{timetable.institution?.code}</p>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              <p>{timetable.institution?.city}, {timetable.institution?.country}</p>
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {canApprove && (
             <>
               <Button
@@ -585,10 +637,13 @@ export default function ExamTimetableDetailPage() {
       </div>
 
       {/* Status and Info Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Status</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Status
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {getStatusBadge(timetable.status)}
@@ -597,7 +652,10 @@ export default function ExamTimetableDetailPage() {
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Approval Status</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              Approval Status
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {getApprovalBadge(timetable.approvalStatus)}
@@ -606,7 +664,10 @@ export default function ExamTimetableDetailPage() {
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Exams</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Total Exams
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{timetable.totalExams || 0}</p>
@@ -615,7 +676,10 @@ export default function ExamTimetableDetailPage() {
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Conflicts</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              Conflicts
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-destructive">{timetable.totalConflicts || 0}</p>
@@ -625,156 +689,195 @@ export default function ExamTimetableDetailPage() {
 
       {/* Main Content Tabs */}
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="entries">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="overview" className="flex items-center gap-2">
+            <Eye className="h-4 w-4" />
+            Overview
+          </TabsTrigger>
+          <TabsTrigger value="entries" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
             Exams ({timetable.totalExams || 0})
           </TabsTrigger>
-          <TabsTrigger value="conflicts">
+          <TabsTrigger value="conflicts" className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" />
             Conflicts ({timetable.totalConflicts || 0})
           </TabsTrigger>
-          <TabsTrigger value="history">History</TabsTrigger>
+          <TabsTrigger value="history" className="flex items-center gap-2">
+            <History className="h-4 w-4" />
+            History
+          </TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
-        <TabsContent value="overview" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Details</CardTitle>
-              <CardDescription>General information about this exam timetable</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">Academic Year</label>
-                  <p className="text-sm">
-                    {timetable.academicYear?.yearCode} (
-                    {timetable.academicYear?.startDate && format(new Date(timetable.academicYear.startDate), 'yyyy')} -{' '}
-                    {timetable.academicYear?.endDate && format(new Date(timetable.academicYear.endDate), 'yyyy')})
-                  </p>
-                </div>
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Main Details Card */}
+            <div className="lg:col-span-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Settings className="h-5 w-5" />
+                    Details
+                  </CardTitle>
+                  <CardDescription>General information about this exam timetable</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <label className="text-sm font-medium text-muted-foreground">Academic Year</label>
+                      </div>
+                      <p className="text-sm font-medium">
+                        {timetable.academicYear?.yearCode}
+                        <span className="text-muted-foreground ml-2">
+                          ({timetable.academicYear?.startDate && format(new Date(timetable.academicYear.startDate), 'yyyy')} -
+                          {timetable.academicYear?.endDate && format(new Date(timetable.academicYear.endDate), 'yyyy')})
+                        </span>
+                      </p>
+                    </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">Semester</label>
-                  <p className="text-sm">{timetable.semester?.name}</p>
-                </div>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <label className="text-sm font-medium text-muted-foreground">Semester</label>
+                      </div>
+                      <p className="text-sm font-medium">{timetable.semester?.name}</p>
+                    </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-                    <Calendar className="h-4 w-4" />
-                    Start Date
-                  </label>
-                  <p className="text-sm">
-                    {timetable.startDate ? format(new Date(timetable.startDate), 'PPP') : 'N/A'}
-                  </p>
-                </div>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <label className="text-sm font-medium text-muted-foreground">Start Date</label>
+                      </div>
+                      <p className="text-sm font-medium">
+                        {timetable.startDate ? format(new Date(timetable.startDate), 'PPP') : 'N/A'}
+                      </p>
+                    </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-                    <Calendar className="h-4 w-4" />
-                    End Date
-                  </label>
-                  <p className="text-sm">
-                    {timetable.endDate ? format(new Date(timetable.endDate), 'PPP') : 'N/A'}
-                  </p>
-                </div>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <label className="text-sm font-medium text-muted-foreground">End Date</label>
+                      </div>
+                      <p className="text-sm font-medium">
+                        {timetable.endDate ? format(new Date(timetable.endDate), 'PPP') : 'N/A'}
+                      </p>
+                    </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-                    <Clock className="h-4 w-4" />
-                    Default Exam Duration
-                  </label>
-                  <p className="text-sm">{timetable.defaultExamDuration || 180} minutes</p>
-                </div>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <label className="text-sm font-medium text-muted-foreground">Default Exam Duration</label>
+                      </div>
+                      <p className="text-sm font-medium">{timetable.defaultExamDuration || 180} minutes</p>
+                    </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">Published</label>
-                  <p className="text-sm">
-                    {timetable.isPublished ? (
-                      <Badge variant="default" className="gap-1">
-                        <CheckCircle className="h-3 w-3" />
-                        Yes
-                      </Badge>
-                    ) : (
-                      <Badge variant="secondary" className="gap-1">
-                        <XCircle className="h-3 w-3" />
-                        No
-                      </Badge>
-                    )}
-                  </p>
-                </div>
-              </div>
-
-              <Separator />
-
-              {timetable.description && (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">Description</label>
-                  <p className="text-sm">{timetable.description}</p>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground">Configuration</label>
-                <div className="flex gap-4">
-                  <div className="flex items-center gap-2">
-                    <Badge variant={timetable.allowOverlaps ? 'default' : 'secondary'}>
-                      Allow Overlaps: {timetable.allowOverlaps ? 'Yes' : 'No'}
-                    </Badge>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                        <label className="text-sm font-medium text-muted-foreground">Published</label>
+                      </div>
+                      <div>
+                        {timetable.isPublished ? (
+                          <Badge variant="default" className="gap-1.5">
+                            <CheckCircle className="h-3 w-3" />
+                            Yes
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="gap-1.5">
+                            <XCircle className="h-3 w-3" />
+                            No
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={timetable.autoResolveConflicts ? 'default' : 'secondary'}>
-                      Auto-Resolve Conflicts: {timetable.autoResolveConflicts ? 'Yes' : 'No'}
-                    </Badge>
+
+                  <Separator />
+
+                  {timetable.description && (
+                    <>
+                      <div className="space-y-3">
+                        <label className="text-sm font-medium text-muted-foreground">Description</label>
+                        <p className="text-sm leading-relaxed">{timetable.description}</p>
+                      </div>
+                      <Separator />
+                    </>
+                  )}
+
+                  <div className="space-y-3">
+                    <label className="text-sm font-medium text-muted-foreground">Configuration</label>
+                    <div className="flex flex-wrap gap-3">
+                      <Badge variant={timetable.allowOverlaps ? 'default' : 'secondary'} className="gap-1.5">
+                        <Settings className="h-3 w-3" />
+                        Allow Overlaps: {timetable.allowOverlaps ? 'Yes' : 'No'}
+                      </Badge>
+                      <Badge variant={timetable.autoResolveConflicts ? 'default' : 'secondary'} className="gap-1.5">
+                        <AlertTriangle className="h-3 w-3" />
+                        Auto-Resolve Conflicts: {timetable.autoResolveConflicts ? 'Yes' : 'No'}
+                      </Badge>
+                    </div>
                   </div>
-                </div>
-              </div>
 
-              {timetable.publishedAt && (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">Published At</label>
-                  <p className="text-sm">
-                    {format(new Date(timetable.publishedAt), 'PPP p')}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                  {timetable.publishedAt && (
+                    <>
+                      <Separator />
+                      <div className="space-y-3">
+                        <label className="text-sm font-medium text-muted-foreground">Published At</label>
+                        <p className="text-sm font-medium">
+                          {format(new Date(timetable.publishedAt), 'PPP p')}
+                        </p>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
 
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Actions</CardTitle>
-              <CardDescription>Manage this exam timetable</CardDescription>
-            </CardHeader>
-            <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <Button variant="outline" className="gap-2">
-                <Upload className="h-4 w-4" />
-                Import Exams
-              </Button>
-              <Button variant="outline" className="gap-2">
-                <Download className="h-4 w-4" />
-                Export
-              </Button>
-              <Button variant="outline" className="gap-2">
-                <AlertTriangle className="h-4 w-4" />
-                Detect Conflicts
-              </Button>
-              <Button variant="outline" className="gap-2">
-                <Calendar className="h-4 w-4" />
-                Calendar View
-              </Button>
-            </CardContent>
-          </Card>
+            {/* Quick Actions Sidebar */}
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Settings className="h-5 w-5" />
+                    Quick Actions
+                  </CardTitle>
+                  <CardDescription>Manage this exam timetable</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Button variant="outline" className="w-full gap-2 justify-start">
+                    <Upload className="h-4 w-4" />
+                    Import Exams
+                  </Button>
+                  <Button variant="outline" className="w-full gap-2 justify-start">
+                    <Download className="h-4 w-4" />
+                    Export Data
+                  </Button>
+                  <Button variant="outline" className="w-full gap-2 justify-start">
+                    <AlertTriangle className="h-4 w-4" />
+                    Detect Conflicts
+                  </Button>
+                  <Button variant="outline" className="w-full gap-2 justify-start">
+                    <Calendar className="h-4 w-4" />
+                    Calendar View
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </TabsContent>
 
         {/* Entries Tab */}
-        <TabsContent value="entries">
+        <TabsContent value="entries" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Exam Entries</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Exam Entries
+              </CardTitle>
               <CardDescription>
-                Manage exam entries using the spreadsheet interface below
+                Manage exam entries using the spreadsheet interface below. Add, edit, or remove exam entries for this timetable.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -793,31 +896,65 @@ export default function ExamTimetableDetailPage() {
         </TabsContent>
 
         {/* Conflicts Tab */}
-        <TabsContent value="conflicts">
+        <TabsContent value="conflicts" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Conflicts</CardTitle>
-              <CardDescription>Detected scheduling conflicts</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5" />
+                Scheduling Conflicts
+              </CardTitle>
+              <CardDescription>
+                Detected scheduling conflicts and overlaps in the exam timetable
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground text-center py-8">
-                Conflict viewer component coming soon...
-              </p>
+              {timetable.totalConflicts === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <CheckCircle className="h-12 w-12 text-green-500 mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No Conflicts Detected</h3>
+                  <p className="text-muted-foreground max-w-md">
+                    Great! There are currently no scheduling conflicts in this exam timetable.
+                    All exams are properly scheduled without overlaps.
+                  </p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <AlertTriangle className="h-12 w-12 text-amber-500 mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Conflicts Detected</h3>
+                  <p className="text-muted-foreground max-w-md mb-4">
+                    There are {timetable.totalConflicts} scheduling conflicts that need to be resolved.
+                  </p>
+                  <Button variant="outline" className="gap-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    View Conflict Details
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
         {/* History Tab */}
-        <TabsContent value="history">
+        <TabsContent value="history" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>History</CardTitle>
-              <CardDescription>Timeline of changes and approvals</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <History className="h-5 w-5" />
+                Activity History
+              </CardTitle>
+              <CardDescription>
+                Timeline of changes, approvals, and modifications to this exam timetable
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground text-center py-8">
-                History timeline component coming soon...
-              </p>
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <History className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">History Timeline</h3>
+                <p className="text-muted-foreground max-w-md">
+                  Activity history and audit trail will be displayed here, showing all changes,
+                  approvals, and modifications made to this timetable.
+                </p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

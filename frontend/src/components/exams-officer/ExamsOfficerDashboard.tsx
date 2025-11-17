@@ -20,7 +20,9 @@ import {
 } from 'lucide-react';
 import { examLogisticsService } from '@/services/examLogistics.service';
 import { qrCodeService } from '@/services/qrCode.service';
-import { ExamsOfficerDashboard, VenueSessionOverview, ExamSessionStatus, ExamIncident } from '@/types/examLogistics';
+import type { ExamsOfficerDashboard, VenueSessionOverview, ExamSessionStatus, ExamIncident, QRCodeData } from '@/types/examLogistics';
+import { VerificationMethod } from '@/types/examLogistics';
+import { useAuth } from '@/hooks/useAuth';
 import { useRealtimeContext } from '@/contexts/RealtimeContext';
 import { useLogisticsDashboardRealtime } from '@/hooks/useExamLogisticsRealtime';
 import { toast } from 'sonner';
@@ -28,9 +30,10 @@ import { toast } from 'sonner';
 export function ExamsOfficerDashboard() {
   const [dashboard, setDashboard] = useState<ExamsOfficerDashboard | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedVenue, setSelectedVenue] = useState<string | null>(null);
+  const [selectedVenue, setSelectedVenue] = useState<number | null>(null);
   const [showQRScanner, setShowQRScanner] = useState(false);
   const { isConnected } = useRealtimeContext();
+  const { user } = useAuth();
 
   // Load dashboard data
   const loadDashboard = useCallback(async () => {
@@ -63,16 +66,21 @@ export function ExamsOfficerDashboard() {
     try {
       const result = await qrCodeService.scanQRCode(qrData);
       if (result.success && result.data) {
-        const { type, data } = result.data;
+        const qr = result.data as QRCodeData;
 
-        if (type === 'student_checkin') {
+        if (!user) {
+          toast.error('You must be signed in to perform check-ins');
+          return;
+        }
+
+        if (qr.type === 'student_verification') {
           // Handle student check-in
           const checkInResult = await examLogisticsService.checkInStudent({
-            examEntryId: data.examEntryId,
-            studentId: data.studentId,
-            venueId: data.venueId,
-            checkInTime: new Date(),
-            verificationMethod: 'qr_code'
+            examEntryId: qr.examEntryId,
+            studentId: qr.studentId!,
+            verificationMethod: VerificationMethod.QR_CODE,
+            verifiedBy: user.id,
+            qrCode: qr.examEntryId ? String(qr.examEntryId) : undefined,
           });
 
           if (checkInResult.success) {
@@ -81,10 +89,10 @@ export function ExamsOfficerDashboard() {
           } else {
             toast.error('Failed to check in student');
           }
-        } else if (type === 'invigilator_checkin') {
+        } else if (qr.type === 'invigilator_checkin') {
           // Handle invigilator check-in
           const checkInResult = await examLogisticsService.updateInvigilatorPresence(
-            data.assignmentId,
+            qr.invigilatorId!,
             'check_in'
           );
 
@@ -193,32 +201,45 @@ export function ExamsOfficerDashboard() {
 
       {/* Key Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          title="My Venues"
-          value={dashboard.venueOverviews.length.toString()}
-          icon={Building2}
-          description="Under supervision"
-        />
-        <StatCard
-          title="Total Students"
-          value={dashboard.todaysSessions.reduce((sum, session) => sum + session.expectedStudents, 0).toLocaleString()}
-          icon={Users}
-          description="Across all sessions"
-        />
-        <StatCard
-          title="Students Verified"
-          value={`${dashboard.todaysSessions.reduce((sum, session) => sum + session.verifiedStudents, 0).toLocaleString()} (${Math.round((dashboard.todaysSessions.reduce((sum, session) => sum + session.verifiedStudents, 0) / Math.max(dashboard.todaysSessions.reduce((sum, session) => sum + session.expectedStudents, 0), 1)) * 100)}%)`}
-          icon={UserCheck}
-          description="Check-in completed"
-          trend={dashboard.todaysSessions.reduce((sum, session) => sum + session.verifiedStudents, 0) / Math.max(dashboard.todaysSessions.reduce((sum, session) => sum + session.expectedStudents, 0), 1) >= 0.9 ? 'up' : dashboard.todaysSessions.reduce((sum, session) => sum + session.verifiedStudents, 0) / Math.max(dashboard.todaysSessions.reduce((sum, session) => sum + session.expectedStudents, 0), 1) >= 0.7 ? 'neutral' : 'down'}
-        />
-        <StatCard
-          title="Active Issues"
-          value={dashboard.pendingIncidents.length.toString()}
-          icon={AlertTriangle}
-          description={`${dashboard.pendingIncidents.filter(i => i.severity === 'critical').length} critical`}
-          trend={dashboard.pendingIncidents.length === 0 ? 'up' : dashboard.pendingIncidents.length <= 5 ? 'neutral' : 'down'}
-        />
+        {(() => {
+          const totalExpected = dashboard.todaysSessions.reduce((s, sess) => s + (sess.expectedStudents || 0), 0);
+          const totalVerified = dashboard.todaysSessions.reduce((s, sess) => s + (sess.verifiedStudents || 0), 0);
+          const attendancePercent = totalExpected > 0 ? Math.round((totalVerified / totalExpected) * 100) : 0;
+
+          return (
+            <>
+              <StatCard
+                title="My Venues"
+                value={dashboard.venueOverviews.length}
+                icon={Building2}
+                description="Under supervision"
+              />
+
+              <StatCard
+                title="Total Students"
+                value={totalExpected.toLocaleString()}
+                icon={Users}
+                description="Across all sessions"
+              />
+
+              <StatCard
+                title="Students Verified"
+                value={`${totalVerified.toLocaleString()} (${attendancePercent}%)`}
+                icon={UserCheck}
+                description="Check-in completed"
+                trend={{ value: attendancePercent, label: `${attendancePercent}%` }}
+              />
+
+              <StatCard
+                title="Active Issues"
+                value={dashboard.pendingIncidents.length}
+                icon={AlertTriangle}
+                description={`${dashboard.pendingIncidents.filter(i => i.severity === 'critical').length} critical`}
+                trend={{ value: -dashboard.pendingIncidents.length, label: 'Pending Issues' }}
+              />
+            </>
+          );
+        })()}
       </div>
 
       {/* Venue Management */}
@@ -381,8 +402,8 @@ function SessionCard({ session }: { session: ExamSessionStatus }) {
             <span>{session.expectedStudents} students expected</span>
           </div>
         </div>
-        <Badge variant={session.status === 'in_progress' ? "default" : session.status === 'completed' ? "secondary" : "outline"}>
-          {session.status.replace('_', ' ')}
+        <Badge variant={session.status === 'IN_PROGRESS' ? "default" : session.status === 'COMPLETED' ? "secondary" : "outline"}>
+          {String(session.status).replace('_', ' ')}
         </Badge>
       </div>
 
@@ -394,11 +415,11 @@ function SessionCard({ session }: { session: ExamSessionStatus }) {
           <div className="text-xs text-muted-foreground">Verified</div>
         </div>
         <div className="text-center">
-          <div className="text-lg font-bold">{session.invigilatorsPresent}/{session.invigilatorsAssigned}</div>
+          <div className="text-lg font-bold">{(session.presentInvigilators ?? 0)}/{(session.assignedInvigilators ?? 0)}</div>
           <div className="text-xs text-muted-foreground">Invigilators</div>
         </div>
         <div className="text-center">
-          <div className="text-lg font-bold">{session.incidents}</div>
+          <div className="text-lg font-bold">{session.incidentCount ?? 0}</div>
           <div className="text-xs text-muted-foreground">Incidents</div>
         </div>
       </div>

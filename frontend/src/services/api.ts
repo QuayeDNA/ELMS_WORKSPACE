@@ -24,8 +24,11 @@ class ApiService {
     // Request interceptor to add auth token
     this.api.interceptors.request.use(
       (config: InternalAxiosRequestConfig) => {
+        if (!config.headers) {
+          config.headers = {};
+        }
         const token = storageService.getToken();
-        if (token && config.headers) {
+        if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
         return config;
@@ -53,6 +56,9 @@ class ApiService {
             // Wait for the ongoing refresh to complete
             return new Promise((resolve) => {
               this.refreshSubscribers.push((token: string) => {
+                if (!originalRequest.headers) {
+                  originalRequest.headers = {};
+                }
                 originalRequest.headers.Authorization = `Bearer ${token}`;
                 resolve(this.api.request(originalRequest));
               });
@@ -81,6 +87,9 @@ class ApiService {
 
               // Update authorization header
               this.api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+              if (!originalRequest.headers) {
+                originalRequest.headers = {};
+              }
               originalRequest.headers.Authorization = `Bearer ${newToken}`;
 
               // Notify all waiting requests
