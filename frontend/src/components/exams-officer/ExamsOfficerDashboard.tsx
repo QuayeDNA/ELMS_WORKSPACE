@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { StatCard } from '@/components/ui/stat-card';
-import { Loading } from '@/components/ui/Loading';
+import { LoadingSpinner } from '@/components/ui/Loading';
 import {
   Users,
   UserCheck,
@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { examLogisticsService } from '@/services/examLogistics.service';
 import { qrCodeService } from '@/services/qrCode.service';
-import { ExamsOfficerDashboard, VenueSessionDetail, ExamIncident } from '@/types/examLogistics';
+import { ExamsOfficerDashboard, VenueSessionOverview, ExamSessionStatus, ExamIncident } from '@/types/examLogistics';
 import { useRealtimeContext } from '@/contexts/RealtimeContext';
 import { useLogisticsDashboardRealtime } from '@/hooks/useExamLogisticsRealtime';
 import { toast } from 'sonner';
@@ -83,11 +83,10 @@ export function ExamsOfficerDashboard() {
           }
         } else if (type === 'invigilator_checkin') {
           // Handle invigilator check-in
-          const checkInResult = await examLogisticsService.checkInInvigilator({
-            assignmentId: data.assignmentId,
-            checkInTime: new Date(),
-            verificationMethod: 'qr_code'
-          });
+          const checkInResult = await examLogisticsService.updateInvigilatorPresence(
+            data.assignmentId,
+            'check_in'
+          );
 
           if (checkInResult.success) {
             toast.success('Invigilator checked in successfully');
@@ -114,7 +113,7 @@ export function ExamsOfficerDashboard() {
             <p className="text-muted-foreground">Manage exam sessions and logistics</p>
           </div>
         </div>
-        <Loading />
+        <LoadingSpinner />
       </div>
     );
   }
@@ -196,29 +195,29 @@ export function ExamsOfficerDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="My Venues"
-          value={dashboard.venues.length.toString()}
+          value={dashboard.venueOverviews.length.toString()}
           icon={Building2}
           description="Under supervision"
         />
         <StatCard
           title="Total Students"
-          value={dashboard.totalStudentsExpected.toLocaleString()}
+          value={dashboard.todaysSessions.reduce((sum, session) => sum + session.expectedStudents, 0).toLocaleString()}
           icon={Users}
-          description="Across all venues"
+          description="Across all sessions"
         />
         <StatCard
           title="Students Verified"
-          value={`${dashboard.totalStudentsVerified.toLocaleString()} (${dashboard.overallAttendanceRate.toFixed(1)}%)`}
+          value={`${dashboard.todaysSessions.reduce((sum, session) => sum + session.verifiedStudents, 0).toLocaleString()} (${Math.round((dashboard.todaysSessions.reduce((sum, session) => sum + session.verifiedStudents, 0) / Math.max(dashboard.todaysSessions.reduce((sum, session) => sum + session.expectedStudents, 0), 1)) * 100)}%)`}
           icon={UserCheck}
           description="Check-in completed"
-          trend={dashboard.overallAttendanceRate >= 90 ? 'up' : dashboard.overallAttendanceRate >= 70 ? 'neutral' : 'down'}
+          trend={dashboard.todaysSessions.reduce((sum, session) => sum + session.verifiedStudents, 0) / Math.max(dashboard.todaysSessions.reduce((sum, session) => sum + session.expectedStudents, 0), 1) >= 0.9 ? 'up' : dashboard.todaysSessions.reduce((sum, session) => sum + session.verifiedStudents, 0) / Math.max(dashboard.todaysSessions.reduce((sum, session) => sum + session.expectedStudents, 0), 1) >= 0.7 ? 'neutral' : 'down'}
         />
         <StatCard
           title="Active Issues"
-          value={dashboard.totalUnresolvedIncidents.toString()}
+          value={dashboard.pendingIncidents.length.toString()}
           icon={AlertTriangle}
-          description={`${dashboard.criticalIncidents} critical`}
-          trend={dashboard.totalUnresolvedIncidents === 0 ? 'up' : dashboard.totalUnresolvedIncidents <= 5 ? 'neutral' : 'down'}
+          description={`${dashboard.pendingIncidents.filter(i => i.severity === 'critical').length} critical`}
+          trend={dashboard.pendingIncidents.length === 0 ? 'up' : dashboard.pendingIncidents.length <= 5 ? 'neutral' : 'down'}
         />
       </div>
 
@@ -233,7 +232,7 @@ export function ExamsOfficerDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {dashboard.venues.map((venue) => (
+              {dashboard.venueOverviews.map((venue) => (
                 <VenueManagementCard
                   key={venue.venueId}
                   venue={venue}
@@ -242,7 +241,7 @@ export function ExamsOfficerDashboard() {
                 />
               ))}
 
-              {dashboard.venues.length === 0 && (
+              {dashboard.venueOverviews.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
                   <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>No venues assigned to you today</p>
@@ -255,7 +254,9 @@ export function ExamsOfficerDashboard() {
         {/* Detailed Venue View */}
         {selectedVenue && (
           <VenueDetailView
-            venue={dashboard.venues.find(v => v.venueId === selectedVenue)!}
+            venue={dashboard.venueOverviews.find(v => v.venueId === selectedVenue)!}
+            sessions={dashboard.todaysSessions.filter(s => s.examEntryId && dashboard.venueOverviews.find(v => v.venueId === selectedVenue)?.activeSessions.some(as => as.examEntryId === s.examEntryId))}
+            incidents={dashboard.pendingIncidents.filter(i => dashboard.venueOverviews.find(v => v.venueId === selectedVenue)?.activeSessions.some(as => as.examEntryId === i.examEntryId))}
           />
         )}
       </div>
@@ -269,7 +270,7 @@ function VenueManagementCard({
   isSelected,
   onSelect
 }: {
-  venue: VenueSessionDetail;
+  venue: VenueSessionOverview;
   isSelected: boolean;
   onSelect: () => void;
 }) {
@@ -285,8 +286,8 @@ function VenueManagementCard({
           <h3 className="font-semibold">{venue.venueName}</h3>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant={venue.isActive ? "default" : "secondary"}>
-            {venue.isActive ? 'Active' : 'Inactive'}
+          <Badge variant={venue.activeSessions.length > 0 ? "default" : "secondary"}>
+            {venue.activeSessions.length > 0 ? 'Active' : 'Inactive'}
           </Badge>
         </div>
       </div>
@@ -307,23 +308,23 @@ function VenueManagementCard({
           <div className="text-xs text-muted-foreground">Invigilators</div>
         </div>
         <div className="text-center">
-          <div className={`text-lg font-bold ${venue.unresolvedIncidents === 0 ? 'text-green-600' : venue.unresolvedIncidents <= 2 ? 'text-yellow-600' : 'text-red-600'}`}>
-            {venue.unresolvedIncidents}
+          <div className={`text-lg font-bold ${venue.unresolvedIssues === 0 ? 'text-green-600' : venue.unresolvedIssues <= 2 ? 'text-yellow-600' : 'text-red-600'}`}>
+            {venue.unresolvedIssues}
           </div>
           <div className="text-xs text-muted-foreground">Issues</div>
         </div>
       </div>
 
       <div className="flex items-center justify-between text-sm text-muted-foreground">
-        <span>{venue.sessions.length} exam session{venue.sessions.length !== 1 ? 's' : ''}</span>
-        <span>Capacity: {venue.capacity}</span>
+        <span>{venue.activeSessions.length} exam session{venue.activeSessions.length !== 1 ? 's' : ''}</span>
+        <span>Capacity: {venue.rooms.reduce((sum, room) => sum + room.capacity, 0)}</span>
       </div>
     </div>
   );
 }
 
 // Venue Detail View Component
-function VenueDetailView({ venue }: { venue: VenueSessionDetail }) {
+function VenueDetailView({ venue, sessions, incidents }: { venue: VenueSessionOverview; sessions: ExamSessionStatus[]; incidents: ExamIncident[] }) {
   return (
     <Card>
       <CardHeader>
@@ -338,19 +339,19 @@ function VenueDetailView({ venue }: { venue: VenueSessionDetail }) {
           <div>
             <h3 className="text-lg font-semibold mb-4">Exam Sessions</h3>
             <div className="space-y-3">
-              {venue.sessions.map((session) => (
+              {sessions.map((session) => (
                 <SessionCard key={session.examEntryId} session={session} />
               ))}
             </div>
           </div>
 
           {/* Recent Incidents */}
-          {venue.recentIncidents.length > 0 && (
+          {incidents.length > 0 && (
             <div>
               <h3 className="text-lg font-semibold mb-4">Recent Incidents</h3>
               <div className="space-y-3">
-                {venue.recentIncidents.map((incident) => (
-                  <IncidentCard key={incident.incidentId} incident={incident} />
+                {incidents.map((incident) => (
+                  <IncidentCard key={incident.id} incident={incident} />
                 ))}
               </div>
             </div>

@@ -213,6 +213,27 @@ const getSidebarItemsForRole = (role: UserRole): SidebarContent[] => {
           ],
         },
         {
+          title: "Exam Logistics",
+          icon: ClipboardCheck,
+          roles: [UserRole.ADMIN],
+          items: [
+            {
+              title: "Logistics Dashboard",
+              href: "/admin/logistics",
+              icon: BarChart3,
+              roles: [UserRole.ADMIN],
+              description: "Real-time exam monitoring",
+            },
+            {
+              title: "QR Code Management",
+              href: "/admin/qr-codes",
+              icon: FileCheck,
+              roles: [UserRole.ADMIN],
+              description: "Generate and manage QR codes",
+            },
+          ],
+        },
+        {
           title: "System",
           icon: Cog,
           roles: [UserRole.ADMIN],

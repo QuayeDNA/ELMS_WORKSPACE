@@ -1,7 +1,7 @@
 import React, { createContext, useEffect, useState, useCallback, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { RealtimeChannel, RealtimeEvent, RealtimeContextValue, RealtimeSubscription } from '../types/realtime';
-import { ExamLogisticsEvent, ExamLogisticsWebSocketData } from '../types/examLogistics';
+import { ExamLogisticsEvent } from '../types/examLogistics';
 import { useAuthStore } from '../stores/auth.store';
 import { toast } from 'sonner';
 
@@ -126,7 +126,7 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
 
     // Listen to exam logistics events specifically
     Object.values(ExamLogisticsEvent).forEach((event) => {
-      socketInstance.on(event, (data: ExamLogisticsWebSocketData) => {
+      socketInstance.on(event, (data: any) => {
         // Convert to RealtimeEvent format for consistency
         const realtimeEvent: RealtimeEvent = {
           channel: RealtimeChannel.EXAM_LOGISTICS,
@@ -225,4 +225,13 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
   };
 
   return <RealtimeContext.Provider value={value}>{children}</RealtimeContext.Provider>;
+};
+
+// Custom hook to use the RealtimeContext
+export const useRealtimeContext = (): RealtimeContextValue => {
+  const context = React.useContext(RealtimeContext);
+  if (context === undefined) {
+    throw new Error('useRealtimeContext must be used within a RealtimeProvider');
+  }
+  return context;
 };

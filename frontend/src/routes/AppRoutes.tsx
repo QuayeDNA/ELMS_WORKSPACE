@@ -157,6 +157,17 @@ const BatchScriptDetailsPage = lazy(() =>
   import("@/pages/institution-admin/BatchScriptDetailsPage")
 );
 
+// Exam Logistics Pages
+const InstitutionLogisticsDashboardPage = lazy(() =>
+  import("@/pages/institution-admin/InstitutionLogisticsDashboardPage")
+);
+const ExamsOfficerDashboardPage = lazy(() =>
+  import("@/pages/exams-officer/ExamsOfficerDashboardPage")
+);
+const QRCodeManagementPage = lazy(() =>
+  import("@/pages/institution-admin/QRCodeManagementPage")
+);
+
 // Placeholder Pages
 const IncidentsPage = lazy(() =>
   import("@/pages/institution-admin/PlaceholderPages").then((module) => ({
@@ -570,6 +581,22 @@ export function AppRoutes() {
         }
       />
       <Route
+        path="/admin/logistics"
+        element={
+          <AdminLayout>
+            <InstitutionLogisticsDashboardPage />
+          </AdminLayout>
+        }
+      />
+      <Route
+        path="/admin/qr-codes"
+        element={
+          <AdminLayout>
+            <QRCodeManagementPage />
+          </AdminLayout>
+        }
+      />
+      <Route
         path="/admin/reports"
         element={
           <AdminLayout>
@@ -611,7 +638,7 @@ export function AppRoutes() {
         path="/exams-officer"
         element={
           <ExamsOfficerLayout>
-            <ExamsOfficerDashboard />
+            <ExamsOfficerDashboardPage />
           </ExamsOfficerLayout>
         }
       />

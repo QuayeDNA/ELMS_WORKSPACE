@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { StatCard } from '@/components/ui/stat-card';
-import { Loading } from '@/components/ui/Loading';
+import { LoadingSpinner } from '@/components/ui/Loading';
 import {
   Users,
   UserCheck,
@@ -16,9 +16,10 @@ import {
 import { examLogisticsService } from '@/services/examLogistics.service';
 import { InstitutionLogisticsDashboard, VenueSessionOverview } from '@/types/examLogistics';
 import { useLogisticsDashboardRealtime } from '@/hooks/useExamLogisticsRealtime';
+import { useRealtimeContext } from '@/contexts/RealtimeContext';
 import { toast } from 'sonner';
 
-export function InstitutionLogisticsDashboard() {
+export function InstitutionLogisticsDashboardView() {
   const [dashboard, setDashboard] = useState<InstitutionLogisticsDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const { isConnected } = useRealtimeContext();
@@ -60,7 +61,7 @@ export function InstitutionLogisticsDashboard() {
             <p className="text-muted-foreground">Real-time exam session monitoring</p>
           </div>
         </div>
-        <Loading />
+        <LoadingSpinner />
       </div>
     );
   }

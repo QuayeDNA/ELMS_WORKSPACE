@@ -23,7 +23,7 @@ interface PaginationMeta {
 
 export class ExamLogisticsService extends BaseService {
   constructor() {
-    super('/exam-logistics');
+    super('/api/exam-logistics');
   }
 
   // ========================================

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loading } from '@/components/ui/Loading';
+import { LoadingSpinner } from '@/components/ui/Loading';
 import { QrCode, Download, RefreshCw, Users, UserCheck, Clock } from 'lucide-react';
 import { qrCodeService } from '@/services/qrCode.service';
 import { QRCodeData, QRCodeType } from '@/types/examLogistics';
@@ -66,7 +66,7 @@ export function QRCodeGenerator({ type, data, title, description }: QRCodeGenera
       <CardContent className="space-y-4">
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <Loading />
+            <LoadingSpinner />
           </div>
         ) : qrCode ? (
           <div className="space-y-4">
@@ -378,7 +378,7 @@ export function QRCodeValidator({ qrData, onValidate }: {
   if (validating) {
     return (
       <div className="flex items-center justify-center py-4">
-        <Loading />
+        <LoadingSpinner />
         <span className="ml-2 text-sm">Validating QR code...</span>
       </div>
     );
