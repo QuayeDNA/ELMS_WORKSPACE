@@ -414,6 +414,11 @@ async function startServer() {
     realtimeService.initialize(server);
   });
 
+  // Initialize timetable status scheduler
+  import('./services/timetableStatusScheduler').then(({ timetableStatusScheduler }) => {
+    timetableStatusScheduler.start();
+  });
+
   return server;
 }
 
@@ -422,6 +427,10 @@ async function gracefulShutdown(signal: string) {
   console.log(`\n${signal} received, shutting down gracefully...`);
 
   try {
+    console.log('🔌 Stopping timetable status scheduler...');
+    const { timetableStatusScheduler } = await import('./services/timetableStatusScheduler');
+    timetableStatusScheduler.stop();
+
     console.log('🔌 Disconnecting from database...');
     await prisma.$disconnect();
     console.log('✅ Database disconnected successfully');

@@ -32,6 +32,13 @@ router.put(
   examTimetableController.updateTimetable
 );
 
+// Update timetable status (ADMIN only)
+router.put(
+  "/:id/status",
+  requireRole(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  examTimetableController.updateTimetableStatus
+);
+
 // Delete timetable (ADMIN only)
 router.delete(
   "/:id",

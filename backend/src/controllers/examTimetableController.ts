@@ -202,6 +202,83 @@ export const examTimetableController = {
   },
 
   /**
+   * PUT /api/timetables/:id/status
+   * Update timetable status (ADMIN only)
+   */
+  async updateTimetableStatus(req: Request, res: Response) {
+    try {
+      const id = parseInt(req.params.id);
+      const { status } = req.body;
+      const userId = req.user?.userId;
+      const userRole = req.user?.role;
+
+      if (isNaN(id)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid timetable ID",
+        });
+      }
+
+      if (!userId || !userRole) {
+        return res.status(401).json({
+          success: false,
+          message: "Authentication required",
+        });
+      }
+
+      if (!status) {
+        return res.status(400).json({
+          success: false,
+          message: "Status is required",
+        });
+      }
+
+      // Validate status enum
+      const validStatuses = [
+        'DRAFT',
+        'PENDING_APPROVAL',
+        'APPROVED',
+        'PUBLISHED',
+        'IN_PROGRESS',
+        'COMPLETED',
+        'ARCHIVED'
+      ];
+
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid status value",
+          validStatuses,
+        });
+      }
+
+      const result = await examTimetableService.updateTimetableStatus(
+        id,
+        status,
+        userId,
+        userRole
+      );
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error updating timetable status:", error);
+      const statusCode =
+        error instanceof Error && error.message.includes("not found")
+          ? 404
+          : error instanceof Error && error.message.includes("administrators")
+          ? 403
+          : error instanceof Error && error.message.includes("Invalid status")
+          ? 400
+          : 500;
+      res.status(statusCode).json({
+        success: false,
+        message: "Failed to update timetable status",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  },
+
+  /**
    * DELETE /api/timetables/:id
    * Delete a timetable
    */

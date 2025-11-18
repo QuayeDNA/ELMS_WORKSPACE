@@ -399,6 +399,17 @@ export const examTimetableService = {
   },
 
   /**
+   * Update timetable status (admin only)
+   */
+  async updateTimetableStatus(id: number, status: ExamTimetableStatus) {
+    return await apiService.put<{
+      success: boolean;
+      data: ExamTimetable;
+      message: string;
+    }>(`${API_ENDPOINTS.EXAM_TIMETABLES.BY_ID(id)}/status`, { status });
+  },
+
+  /**
    * Delete a timetable
    */
   async deleteTimetable(id: number) {

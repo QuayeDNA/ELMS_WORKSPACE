@@ -98,6 +98,7 @@ export const API_ENDPOINTS = {
     APPROVE: (id: number) => `/api/timetables/${id}/approve`,
     REJECT: (id: number) => `/api/timetables/${id}/reject`,
     STATISTICS: (id: number) => `/api/timetables/${id}/statistics`,
+    STATUS: (id: number) => `/api/timetables/${id}/status`,
 
     // Entries
     ENTRIES: (timetableId: number) => `/api/timetables/${timetableId}/entries`,

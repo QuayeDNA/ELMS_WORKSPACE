@@ -45,6 +45,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -78,6 +85,8 @@ export default function ExamTimetableDetailPage() {
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [statusUpdateDialogOpen, setStatusUpdateDialogOpen] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState<ExamTimetableStatus | "">("");
 
   // Memoized transformed entries for performance
   const transformedEntries = useMemo((): ExamEntryRow[] => {
@@ -414,6 +423,83 @@ export default function ExamTimetableDetailPage() {
     }
   };
 
+  const handleStatusUpdate = async () => {
+    if (!timetable?.id || !selectedStatus) return;
+
+    try {
+      setActionLoading(true);
+      const response = await examTimetableService.updateTimetableStatus(timetable.id, selectedStatus);
+
+      if (response.success) {
+        toast.success(`Timetable status updated to ${selectedStatus}`);
+        fetchTimetable();
+        setStatusUpdateDialogOpen(false);
+        setSelectedStatus("");
+      } else {
+        toast.error(response.message || 'Failed to update timetable status');
+      }
+    } catch (error) {
+      console.error('Error updating timetable status:', error);
+      toast.error('Failed to update timetable status');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const getValidStatusTransitions = (currentStatus: ExamTimetableStatus): ExamTimetableStatus[] => {
+    // Based on backend validation rules
+    const transitions: Record<ExamTimetableStatus, ExamTimetableStatus[]> = {
+      [ExamTimetableStatus.DRAFT]: [
+        ExamTimetableStatus.PENDING_APPROVAL,
+        ExamTimetableStatus.APPROVED,
+        ExamTimetableStatus.PUBLISHED,
+        ExamTimetableStatus.IN_PROGRESS,
+        ExamTimetableStatus.COMPLETED,
+        ExamTimetableStatus.ARCHIVED,
+      ],
+      [ExamTimetableStatus.PENDING_APPROVAL]: [
+        ExamTimetableStatus.DRAFT,
+        ExamTimetableStatus.APPROVED,
+        ExamTimetableStatus.PUBLISHED,
+        ExamTimetableStatus.IN_PROGRESS,
+        ExamTimetableStatus.COMPLETED,
+        ExamTimetableStatus.ARCHIVED,
+      ],
+      [ExamTimetableStatus.APPROVED]: [
+        ExamTimetableStatus.DRAFT,
+        ExamTimetableStatus.PENDING_APPROVAL,
+        ExamTimetableStatus.PUBLISHED,
+        ExamTimetableStatus.IN_PROGRESS,
+        ExamTimetableStatus.COMPLETED,
+        ExamTimetableStatus.ARCHIVED,
+      ],
+      [ExamTimetableStatus.PUBLISHED]: [
+        ExamTimetableStatus.COMPLETED,
+        ExamTimetableStatus.ARCHIVED,
+      ],
+      [ExamTimetableStatus.IN_PROGRESS]: [
+        ExamTimetableStatus.COMPLETED,
+        ExamTimetableStatus.ARCHIVED,
+      ],
+      [ExamTimetableStatus.COMPLETED]: [
+        ExamTimetableStatus.ARCHIVED,
+      ],
+      [ExamTimetableStatus.ARCHIVED]: [], // Terminal state
+    };
+
+    return transitions[currentStatus] || [];
+  };
+
+  const getStatusOptions = () => {
+    if (!timetable) return [];
+
+    const validStatuses = getValidStatusTransitions(timetable.status);
+    return validStatuses.map(status => ({
+      value: status,
+      label: status.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase()),
+    }));
+  };
+
   const getStatusBadge = (status: ExamTimetableStatus) => {
     const statusConfig = {
       [ExamTimetableStatus.DRAFT]: { variant: 'secondary' as const, icon: FileText, label: 'Draft' },
@@ -464,6 +550,7 @@ export default function ExamTimetableDetailPage() {
   const canSubmit = canEdit && timetable?.status === ExamTimetableStatus.DRAFT;
   const canApprove = (user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'FACULTY_ADMIN') &&
     timetable?.approvalStatus === TimetableApprovalStatus.PENDING;
+  const canUpdateStatus = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
 
   if (loading) {
     return (
@@ -610,6 +697,17 @@ export default function ExamTimetableDetailPage() {
             >
               <CheckCircle className="h-4 w-4" />
               Publish
+            </Button>
+          )}
+          {canUpdateStatus && (
+            <Button
+              variant="outline"
+              onClick={() => setStatusUpdateDialogOpen(true)}
+              disabled={actionLoading}
+              className="gap-2"
+            >
+              <Settings className="h-4 w-4" />
+              Update Status
             </Button>
           )}
           {canEdit && (
@@ -1042,6 +1140,64 @@ export default function ExamTimetableDetailPage() {
           loading={actionLoading}
         />
       )}
+
+      {/* Status Update Dialog */}
+      <Dialog open={statusUpdateDialogOpen} onOpenChange={setStatusUpdateDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Update Timetable Status</DialogTitle>
+            <DialogDescription>
+              Change the status of this exam timetable. Only valid status transitions are allowed.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="status">New Status</Label>
+              <Select
+                value={selectedStatus}
+                onValueChange={(value) => setSelectedStatus(value as ExamTimetableStatus)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {getStatusOptions().map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {timetable && (
+              <div className="text-sm text-muted-foreground">
+                Current status: <span className="font-medium">{getStatusBadge(timetable.status)}</span>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setStatusUpdateDialogOpen(false);
+                setSelectedStatus("");
+              }}
+              disabled={actionLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleStatusUpdate}
+              disabled={actionLoading || !selectedStatus}
+            >
+              {actionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Update Status
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

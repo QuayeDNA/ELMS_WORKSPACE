@@ -489,7 +489,106 @@ export const examTimetableService = {
   },
 
   /**
-   * Update an existing timetable
+   * Update timetable status with validation rules
+   */
+  async updateTimetableStatus(
+    id: number,
+    newStatus: ExamTimetableStatus,
+    updatedBy: number,
+    userRole: string
+  ) {
+    // Check if timetable exists
+    const timetable = await prisma.examTimetable.findUnique({
+      where: { id },
+      include: {
+        entries: {
+          select: {
+            id: true,
+            endTime: true,
+            examDate: true,
+          },
+        },
+      },
+    });
+
+    if (!timetable) {
+      throw new Error("Timetable not found");
+    }
+
+    // Authorization check: Only institution admins can update status
+    if (!['ADMIN', 'SUPER_ADMIN'].includes(userRole)) {
+      throw new Error("Only institution administrators can update timetable status");
+    }
+
+    // Status transition validation
+    const currentStatus = timetable.status;
+
+    // If already published, can only change to COMPLETED or ARCHIVED
+    if (currentStatus === ExamTimetableStatus.PUBLISHED) {
+      if (![ExamTimetableStatus.COMPLETED, ExamTimetableStatus.ARCHIVED].includes(newStatus)) {
+        throw new Error("Published timetables can only be changed to COMPLETED or ARCHIVED status");
+      }
+    }
+
+    // Prevent invalid status transitions
+    const invalidTransitions: Record<ExamTimetableStatus, ExamTimetableStatus[]> = {
+      [ExamTimetableStatus.DRAFT]: [], // Can transition to any status
+      [ExamTimetableStatus.PENDING_APPROVAL]: [ExamTimetableStatus.DRAFT], // Can only go back to draft
+      [ExamTimetableStatus.APPROVED]: [ExamTimetableStatus.DRAFT, ExamTimetableStatus.PENDING_APPROVAL], // Can go back
+      [ExamTimetableStatus.PUBLISHED]: [ExamTimetableStatus.COMPLETED, ExamTimetableStatus.ARCHIVED], // Limited transitions
+      [ExamTimetableStatus.IN_PROGRESS]: [ExamTimetableStatus.COMPLETED], // Can only complete
+      [ExamTimetableStatus.COMPLETED]: [ExamTimetableStatus.ARCHIVED], // Can only archive
+      [ExamTimetableStatus.ARCHIVED]: [], // Terminal state, no transitions allowed
+    };
+
+    if (invalidTransitions[currentStatus]?.includes(newStatus)) {
+      throw new Error(`Invalid status transition from ${currentStatus} to ${newStatus}`);
+    }
+
+    // Update the timetable status
+    const updated = await prisma.examTimetable.update({
+      where: { id },
+      data: {
+        status: newStatus,
+        // Set timestamps based on status
+        ...(newStatus === ExamTimetableStatus.PUBLISHED && !timetable.publishedAt && {
+          publishedAt: new Date(),
+          publishedBy: updatedBy,
+        }),
+      },
+      include: {
+        academicYear: true,
+        semester: true,
+        institution: true,
+        faculty: true,
+        creator: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        publisher: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    return {
+      success: true,
+      message: `Timetable status updated to ${newStatus}`,
+      data: updated,
+    };
+  },
+
+  /**
+   * Update an existing timetable (general fields, not status)
    */
   async updateTimetable(id: number, data: UpdateTimetableData) {
     // Check if timetable exists
@@ -521,7 +620,6 @@ export const examTimetableService = {
         description: data.description,
         startDate: data.startDate ? new Date(data.startDate) : undefined,
         endDate: data.endDate ? new Date(data.endDate) : undefined,
-        status: data.status,
         allowOverlaps: data.allowOverlaps,
         autoResolveConflicts: data.autoResolveConflicts,
         defaultExamDuration: data.defaultExamDuration,
