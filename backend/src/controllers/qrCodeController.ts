@@ -22,9 +22,15 @@ export const verifyQRCode = async (req: Request, res: Response) => {
       });
     }
 
-    // Verify student exists and data matches
-    const student = await prisma.studentProfile.findUnique({
-      where: { studentId: sid },
+    // Verify student exists via roleProfile
+    const studentRole = await prisma.roleProfile.findFirst({
+      where: {
+        role: 'STUDENT',
+        metadata: {
+          path: ['studentId'],
+          equals: sid
+        }
+      },
       include: {
         user: {
           select: {
@@ -36,41 +42,21 @@ export const verifyQRCode = async (req: Request, res: Response) => {
             phone: true,
             status: true,
           },
-        },
-        program: {
-          select: {
-            id: true,
-            name: true,
-            code: true,
-            department: {
-              select: {
-                name: true,
-                faculty: {
-                  select: {
-                    name: true,
-                    institution: {
-                      select: {
-                        name: true,
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
+        }
       },
     });
 
-    if (!student) {
+    if (!studentRole) {
       return res.status(404).json({
         success: false,
         message: 'Student not found',
       });
     }
 
+    const metadata = studentRole.metadata as any;
+
     // Verify user ID matches
-    if (student.userId !== parseInt(uid)) {
+    if (studentRole.userId !== parseInt(uid)) {
       return res.status(400).json({
         success: false,
         message: 'Invalid QR code data',
@@ -78,7 +64,7 @@ export const verifyQRCode = async (req: Request, res: Response) => {
     }
 
     // Verify program ID matches
-    if (student.programId !== parseInt(pid)) {
+    if (metadata.programId !== parseInt(pid)) {
       return res.status(400).json({
         success: false,
         message: 'Invalid QR code data',
@@ -90,21 +76,16 @@ export const verifyQRCode = async (req: Request, res: Response) => {
       success: true,
       message: 'QR code verified successfully',
       data: {
-        studentId: student.studentId,
-        indexNumber: student.indexNumber,
-        fullName: `${student.user.firstName} ${student.user.middleName || ''} ${student.user.lastName}`.trim(),
-        email: student.user.email,
-        phone: student.user.phone,
-        program: student.program?.name,
-        programCode: student.program?.code,
-        department: student.program?.department?.name,
-        faculty: student.program?.department?.faculty?.name,
-        institution: student.program?.department?.faculty?.institution?.name,
-        level: student.level,
-        semester: student.semester,
-        enrollmentStatus: student.enrollmentStatus,
-        academicStatus: student.academicStatus,
-        userStatus: student.user.status,
+        studentId: metadata.studentId || '',
+        indexNumber: metadata.indexNumber || '',
+        fullName: `${studentRole.user.firstName} ${studentRole.user.middleName || ''} ${studentRole.user.lastName}`.trim(),
+        email: studentRole.user.email,
+        phone: studentRole.user.phone,
+        level: metadata.level || 100,
+        semester: metadata.semester || 1,
+        enrollmentStatus: metadata.enrollmentStatus || 'UNKNOWN',
+        academicStatus: metadata.academicStatus || 'UNKNOWN',
+        userStatus: studentRole.user.status,
       },
     });
   } catch (error: unknown) {
@@ -125,14 +106,17 @@ export const quickStudentLookup = async (req: Request, res: Response) => {
   try {
     const { studentId } = req.params;
 
-    const student = await prisma.studentProfile.findUnique({
-      where: { studentId },
+    const studentRole = await prisma.roleProfile.findFirst({
+      where: {
+        role: 'STUDENT',
+        metadata: {
+          path: ['studentId'],
+          equals: studentId
+        }
+      },
       select: {
-        studentId: true,
-        indexNumber: true,
-        level: true,
-        semester: true,
-        enrollmentStatus: true,
+        id: true,
+        metadata: true,
         user: {
           select: {
             firstName: true,
@@ -140,25 +124,29 @@ export const quickStudentLookup = async (req: Request, res: Response) => {
             status: true,
           },
         },
-        program: {
-          select: {
-            name: true,
-            code: true,
-          },
-        },
       },
     });
 
-    if (!student) {
+    if (!studentRole) {
       return res.status(404).json({
         success: false,
         message: 'Student not found',
       });
     }
 
+    const metadata = studentRole.metadata as any;
+
     return res.json({
       success: true,
-      data: student,
+      data: {
+        studentId: metadata.studentId || '',
+        indexNumber: metadata.indexNumber || '',
+        fullName: `${studentRole.user.firstName} ${studentRole.user.lastName}`,
+        level: metadata.level || 100,
+        semester: metadata.semester || 1,
+        enrollmentStatus: metadata.enrollmentStatus || 'UNKNOWN',
+        userStatus: studentRole.user.status,
+      },
     });
   } catch (error: unknown) {
     console.error('Error looking up student:', error);

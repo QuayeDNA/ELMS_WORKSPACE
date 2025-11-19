@@ -1,15 +1,14 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, UserRole, UserStatus } from '@prisma/client';
 import {
   LoginRequest,
   RegisterRequest,
   AuthResponse,
-  User,
-  UserRole,
-  UserStatus
+  JwtPayload
 } from '../types/auth';
-import { getRolePermissions } from '../config/roles';
+import { StudentMetadata, LecturerMetadata, RoleMetadata } from '../types/roleProfile';
+import { getRoleProfile, upsertRoleProfile, DEFAULT_PERMISSIONS } from '../utils/profileHelpers';
 
 const prisma = new PrismaClient();
 
@@ -43,7 +42,8 @@ export class AuthService {
       }
 
       // Validate role assignment permissions
-      await this.validateRoleAssignment(data.role, data);
+      const userRole = data.role || UserRole.STUDENT;
+      await this.validateRoleAssignment(userRole, data);
 
       // Hash password
       const saltRounds = 12;
@@ -56,11 +56,18 @@ export class AuthService {
           password: hashedPassword,
           firstName: data.firstName,
           lastName: data.lastName,
-          role: data.role,
+          middleName: data.middleName || null,
+          title: data.title || null,
+          phone: data.phone || null,
+          dateOfBirth: data.dateOfBirth || null,
+          gender: data.gender || null,
+          nationality: data.nationality || null,
+          address: data.address || null,
+          role: userRole, // Required by Prisma schema
           status: UserStatus.PENDING_VERIFICATION,
-          institutionId: data.institutionId,
-          facultyId: data.facultyId,
-          departmentId: data.departmentId,
+          institutionId: data.institutionId || null,
+          facultyId: data.facultyId || null,
+          departmentId: data.departmentId || null,
         },
         include: {
           institution: true,
@@ -69,20 +76,54 @@ export class AuthService {
         }
       });
 
-      // Create role-specific profile
-      await this.createRoleProfile(user.id, data.role, data);
+      // Create role-specific profile using new RoleProfile system
+      const roleMetadata = this.buildRoleMetadata(user.id, userRole, data);
+      const rolePermissions = DEFAULT_PERMISSIONS[userRole];
 
-      // Generate tokens
-      const { token, refreshToken } = await this.generateTokens(user);
+      await upsertRoleProfile(
+        user.id,
+        userRole,
+        rolePermissions,
+        roleMetadata,
+        true, // isPrimary
+        prisma
+      );
+
+      // Get user's role profile for response
+      const roleProfile = await getRoleProfile(user.id, userRole, prisma);
+
+      // Generate tokens with multi-role support
+      const { token, refreshToken } = await this.generateTokens(user, roleProfile);
 
       // Create user session
       await this.createUserSession(user.id, token, refreshToken);
 
       return {
-        user: this.transformUserResponse(user),
         token,
         refreshToken,
         expiresIn: this.getTokenExpirationTime(),
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          middleName: user.middleName || undefined,
+          title: user.title || undefined,
+          status: user.status,
+          institutionId: user.institutionId || undefined,
+          facultyId: user.facultyId || undefined,
+          departmentId: user.departmentId || undefined,
+          emailVerified: user.emailVerified,
+        },
+        primaryRole: roleProfile.role as UserRole,
+        roles: [{
+          role: roleProfile.role as UserRole,
+          isActive: roleProfile.isActive,
+          isPrimary: roleProfile.isPrimary,
+          permissions: roleProfile.permissions as any,
+          metadata: roleProfile.metadata as any,
+        }],
+        permissions: roleProfile.permissions as any,
       };
 
     } catch (error) {
@@ -166,8 +207,22 @@ export class AuthService {
         data: { lastLogin: new Date() }
       });
 
-      // Generate tokens
-      const { token, refreshToken } = await this.generateTokens(user);
+      // Get all user's role profiles
+      const roleProfiles = await prisma.roleProfile.findMany({
+        where: {
+          userId: user.id,
+          isActive: true,
+        },
+        orderBy: { isPrimary: 'desc' },
+      });
+
+      const primaryProfile = roleProfiles.find(rp => rp.isPrimary) || roleProfiles[0];
+      if (!primaryProfile) {
+        throw new Error('No active role profile found for user');
+      }
+
+      // Generate tokens with multi-role support
+      const { token, refreshToken } = await this.generateTokens(user, primaryProfile);
 
       // Create user session
       await this.createUserSession(user.id, token, refreshToken);
@@ -176,10 +231,31 @@ export class AuthService {
       await this.logAuditEvent(user.id, 'LOGIN', 'user', user.id.toString());
 
       return {
-        user: this.transformUserResponse(user),
         token,
         refreshToken,
         expiresIn: this.getTokenExpirationTime(),
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          middleName: user.middleName || undefined,
+          title: user.title || undefined,
+          status: user.status,
+          institutionId: user.institutionId || undefined,
+          facultyId: user.facultyId || undefined,
+          departmentId: user.departmentId || undefined,
+          emailVerified: user.emailVerified,
+        },
+        primaryRole: primaryProfile.role as UserRole,
+        roles: roleProfiles.map(rp => ({
+          role: rp.role as UserRole,
+          isActive: rp.isActive,
+          isPrimary: rp.isPrimary,
+          permissions: rp.permissions as any,
+          metadata: rp.metadata as any,
+        })),
+        permissions: primaryProfile.permissions as any,
       };
 
     } catch (error) {
@@ -191,17 +267,26 @@ export class AuthService {
   // TOKEN MANAGEMENT
   // ========================================
 
-  static async generateTokens(user: any): Promise<{ token: string; refreshToken: string }> {
-    const permissions = getRolePermissions(user.role);
+  static async generateTokens(user: any, primaryProfile: any): Promise<{ token: string; refreshToken: string }> {
+    // Get all active roles for JWT
+    const allProfiles = await prisma.roleProfile.findMany({
+      where: {
+        userId: user.id,
+        isActive: true,
+      },
+      select: { role: true },
+    });
 
-    const payload = {
+    const payload: JwtPayload = {
+      id: user.id, // Backward compatibility
       userId: user.id,
       email: user.email,
-      role: user.role,
-      institutionId: user.institutionId,
-      facultyId: user.facultyId,
-      departmentId: user.departmentId,
-      permissions,
+      primaryRole: primaryProfile.role as UserRole,
+      roles: allProfiles.map(p => p.role as UserRole),
+      institutionId: user.institutionId || undefined,
+      facultyId: user.facultyId || undefined,
+      departmentId: user.departmentId || undefined,
+      permissions: primaryProfile.permissions as any,
     };
 
     // Create main access token
@@ -248,14 +333,56 @@ export class AuthService {
         throw new Error('User not found or inactive');
       }
 
+      // Get user's primary role profile
+      const primaryProfile = await prisma.roleProfile.findFirst({
+        where: {
+          userId: user.id,
+          isPrimary: true,
+          isActive: true,
+        },
+      });
+
+      if (!primaryProfile) {
+        throw new Error('No active role profile found');
+      }
+
+      // Get all role profiles
+      const roleProfiles = await prisma.roleProfile.findMany({
+        where: {
+          userId: user.id,
+          isActive: true,
+        },
+      });
+
       // Generate new tokens
-      const { token: newToken, refreshToken: newRefreshToken } = await this.generateTokens(user);
+      const { token: newToken, refreshToken: newRefreshToken } = await this.generateTokens(user, primaryProfile);
 
       return {
-        user: this.transformUserResponse(user),
         token: newToken,
         refreshToken: newRefreshToken,
         expiresIn: this.getTokenExpirationTime(),
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          middleName: user.middleName || undefined,
+          title: user.title || undefined,
+          status: user.status,
+          institutionId: user.institutionId || undefined,
+          facultyId: user.facultyId || undefined,
+          departmentId: user.departmentId || undefined,
+          emailVerified: user.emailVerified,
+        },
+        primaryRole: primaryProfile.role as UserRole,
+        roles: roleProfiles.map(rp => ({
+          role: rp.role as UserRole,
+          isActive: rp.isActive,
+          isPrimary: rp.isPrimary,
+          permissions: rp.permissions as any,
+          metadata: rp.metadata as any,
+        })),
+        permissions: primaryProfile.permissions as any,
       };
 
     } catch (error) {
@@ -264,97 +391,38 @@ export class AuthService {
   }
 
   // ========================================
-  // USER PROFILE MANAGEMENT
+  // ROLE METADATA BUILDER
   // ========================================
 
-  static async createRoleProfile(userId: number, role: UserRole, data: RegisterRequest): Promise<void> {
+  static buildRoleMetadata(userId: number, role: UserRole, data: RegisterRequest): RoleMetadata {
     switch (role) {
-      case UserRole.ADMIN:
-        await prisma.adminProfile.create({
-          data: {
-            userId,
-            permissions: {},
-            canManageFaculties: true,
-            canManageUsers: true,
-            canViewAnalytics: true,
-          }
-        });
-        break;
-
-      case UserRole.FACULTY_ADMIN:
-        await prisma.facultyAdminProfile.create({
-          data: {
-            userId,
-            permissions: {},
-            canManageDepartments: true,
-            canCreateExams: true,
-            canManageOfficers: true,
-            canViewFacultyData: true,
-          }
-        });
-        break;
-
-      case UserRole.EXAMS_OFFICER:
-        await prisma.examOfficerProfile.create({
-          data: {
-            userId,
-            permissions: {},
-            canScheduleExams: true,
-            canManageIncidents: true,
-            canAssignInvigilators: true,
-            canManageVenues: true,
-          }
-        });
-        break;
-
-      case UserRole.SCRIPT_HANDLER:
-        await prisma.scriptHandlerProfile.create({
-          data: {
-            userId,
-            permissions: {},
-            canReceiveScripts: true,
-            canDispatchScripts: true,
-            canScanQrCodes: true,
-            canReportIncidents: true,
-          }
-        });
-        break;
-
-      case UserRole.INVIGILATOR:
-        await prisma.invigilatorProfile.create({
-          data: {
-            userId,
-            permissions: {},
-            canConductExams: true,
-            canReportIncidents: true,
-            canManageScripts: true,
-          }
-        });
-        break;
+      case UserRole.STUDENT:
+        const studentMetadata: StudentMetadata = {
+          studentId: data.studentId || `STU${userId}${Date.now()}`,
+          indexNumber: data.indexNumber,
+          level: data.level || 100,
+          semester: data.semester || 1,
+          programId: data.programId,
+          enrollmentStatus: 'ACTIVE',
+          academicStatus: 'GOOD_STANDING',
+        };
+        return studentMetadata;
 
       case UserRole.LECTURER:
-        await prisma.lecturerProfile.create({
-          data: {
-            userId,
-            staffId: data.staffId || `STAFF${userId}${Date.now()}`,
-            permissions: {},
-            canCreateExams: true,
-            canGradeScripts: true,
-            canViewResults: true,
-            canTeachCourses: true,
-          }
-        });
-        break;
+        const lecturerMetadata: LecturerMetadata = {
+          staffId: data.staffId || `STAFF${userId}${Date.now()}`,
+          employmentType: 'FULL_TIME',
+          employmentStatus: 'ACTIVE',
+        };
+        return lecturerMetadata;
 
-      case UserRole.STUDENT:
-        await prisma.studentProfile.create({
-          data: {
-            userId,
-            studentId: data.studentId || `STU${userId}${Date.now()}`,
-            level: 100, // Default level as number
-          }
-        });
-        break;
+      case UserRole.ADMIN:
+      case UserRole.FACULTY_ADMIN:
+      case UserRole.EXAMS_OFFICER:
+      case UserRole.SCRIPT_HANDLER:
+      case UserRole.INVIGILATOR:
+      default:
+        return {}; // Empty metadata for other roles
     }
   }
 
@@ -425,21 +493,48 @@ export class AuthService {
     }
   }
 
-  static transformUserResponse(user: any): User {
+  static async getUserWithRoles(userId: number): Promise<any> {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        roleProfiles: {
+          where: { isActive: true },
+          orderBy: { isPrimary: 'desc' },
+        },
+        institution: true,
+        faculty: true,
+        department: true,
+      },
+    });
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const primaryProfile = user.roleProfiles.find(rp => rp.isPrimary) || user.roleProfiles[0];
+
     return {
       id: user.id,
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      role: user.role,
+      middleName: user.middleName,
+      title: user.title,
       status: user.status,
+      primaryRole: primaryProfile?.role || UserRole.STUDENT,
+      roles: user.roleProfiles.map(rp => ({
+        role: rp.role as UserRole,
+        isActive: rp.isActive,
+        isPrimary: rp.isPrimary,
+        permissions: rp.permissions as any,
+        metadata: rp.metadata as any,
+      })),
       institutionId: user.institutionId,
       facultyId: user.facultyId,
       departmentId: user.departmentId,
-      permissions: getRolePermissions(user.role),
-      lastLogin: user.lastLogin,
       emailVerified: user.emailVerified,
       twoFactorEnabled: user.twoFactorEnabled,
+      lastLogin: user.lastLogin,
     };
   }
 

@@ -1,10 +1,21 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, UserRole } from "@prisma/client";
 import {
   CreateInstructorData,
   UpdateInstructorData,
   InstructorQueryParams,
   InstructorStatsParams,
 } from "../types/instructor";
+import { LecturerMetadata, RolePermissions } from "../types/roleProfile";
+import {
+  upsertRoleProfile,
+  getRoleProfile,
+  DEFAULT_PERMISSIONS,
+} from "../utils/profileHelpers";
+import {
+  transformToInstructorDTO,
+  transformToInstructorListItem,
+  transformInstructorsToListItems,
+} from "../utils/dtoTransformers";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
@@ -30,53 +41,33 @@ export const instructorService = {
     const skip = (page - 1) * limit;
 
     const where: any = {
-      AND: [
-        academicRank ? { academicRank } : {},
-        employmentType ? { employmentType } : {},
-        employmentStatus ? { employmentStatus } : {},
-        specialization
-          ? {
-              specialization: { contains: specialization, mode: "insensitive" },
-            }
-          : {},
-        search
-          ? {
-              OR: [
-                { staffId: { contains: search, mode: "insensitive" } },
-                { specialization: { contains: search, mode: "insensitive" } },
-                {
-                  user: {
-                    OR: [
-                      { firstName: { contains: search, mode: "insensitive" } },
-                      { lastName: { contains: search, mode: "insensitive" } },
-                      { email: { contains: search, mode: "insensitive" } },
-                    ],
-                  },
-                },
-              ],
-            }
-          : {},
-        // Filter by institutional hierarchy through user relationships
-        departmentId
-          ? {
-              user: { departmentId },
-            }
-          : {},
-        facultyId
-          ? {
-              user: { facultyId },
-            }
-          : {},
-        institutionId
-          ? {
-              user: { institutionId },
-            }
-          : {},
-      ],
+      role: UserRole.LECTURER,
+      isActive: true,
+      user: {},
     };
 
-    const [instructors, total] = await Promise.all([
-      prisma.lecturerProfile.findMany({
+    // Filter by institutional hierarchy
+    if (departmentId) {
+      where.user.departmentId = departmentId;
+    }
+    if (facultyId) {
+      where.user.facultyId = facultyId;
+    }
+    if (institutionId) {
+      where.user.institutionId = institutionId;
+    }
+
+    // Search by name, email
+    if (search) {
+      where.OR = [
+        { user: { firstName: { contains: search, mode: "insensitive" } } },
+        { user: { lastName: { contains: search, mode: "insensitive" } } },
+        { user: { email: { contains: search, mode: "insensitive" } } },
+      ];
+    }
+
+    const [profiles, total] = await Promise.all([
+      prisma.roleProfile.findMany({
         where,
         skip,
         take: limit,
@@ -97,21 +88,33 @@ export const instructorService = {
               departmentId: true,
               facultyId: true,
               institutionId: true,
-              department: {
-                include: {
-                  faculty: {
-                    include: {
-                      institution: true,
-                    },
-                  },
-                },
-              },
             },
           },
         },
       }),
-      prisma.lecturerProfile.count({ where }),
+      prisma.roleProfile.count({ where }),
     ]);
+
+    // Transform and filter by metadata
+    let instructors = transformInstructorsToListItems(profiles as any);
+
+    // Client-side filtering for metadata fields
+    if (academicRank) {
+      instructors = instructors.filter((i) => i.academicRank === academicRank);
+    }
+    if (employmentType) {
+      instructors = instructors.filter((i) => i.employmentType === employmentType);
+    }
+    if (employmentStatus) {
+      instructors = instructors.filter((i) => i.employmentStatus === employmentStatus);
+    }
+    if (specialization) {
+      instructors = instructors.filter((i) =>
+        i.specialization?.toLowerCase().includes(specialization.toLowerCase())
+      );
+    }
+
+    const filteredTotal = instructors.length;
 
     return {
       success: true,
@@ -119,96 +122,61 @@ export const instructorService = {
       pagination: {
         page,
         limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-        hasNext: page < Math.ceil(total / limit),
+        total: filteredTotal,
+        totalPages: Math.ceil(filteredTotal / limit),
+        hasNext: page < Math.ceil(filteredTotal / limit),
         hasPrev: page > 1,
       },
       filters: params,
     };
   },
 
-  // Get single instructor by ID
-  async getInstructorById(id: number) {
-    return await prisma.lecturerProfile.findUnique({
-      where: { id },
+  // Get single instructor by user ID
+  async getInstructorById(userId: number) {
+    const profile = await prisma.roleProfile.findFirst({
+      where: {
+        userId,
+        role: UserRole.LECTURER,
+        isActive: true,
+      },
       include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            middleName: true,
-            title: true,
-            phone: true,
-            dateOfBirth: true,
-            gender: true,
-            nationality: true,
-            address: true,
-            status: true,
-            createdAt: true,
-            updatedAt: true,
-            departmentId: true,
-            facultyId: true,
-            institutionId: true,
-            department: {
-              include: {
-                faculty: {
-                  include: {
-                    institution: true,
-                  },
-                },
-              },
-            },
-          },
-        },
+        user: true,
       },
     });
+
+    if (!profile) {
+      return null;
+    }
+
+    return transformToInstructorDTO(profile as any);
   },
 
-  // Get instructor by staff ID
+  // Get instructor by staff ID (from metadata)
   async getInstructorByStaffId(staffId: string) {
-    return await prisma.lecturerProfile.findUnique({
-      where: { staffId },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            middleName: true,
-            title: true,
-            phone: true,
-            dateOfBirth: true,
-            gender: true,
-            nationality: true,
-            address: true,
-            status: true,
-            createdAt: true,
-            updatedAt: true,
-            departmentId: true,
-            facultyId: true,
-            institutionId: true,
-            department: {
-              include: {
-                faculty: {
-                  include: {
-                    institution: true,
-                  },
-                },
-              },
-            },
-          },
+    const profile = await prisma.roleProfile.findFirst({
+      where: {
+        role: UserRole.LECTURER,
+        isActive: true,
+        metadata: {
+          path: ['staffId'],
+          equals: staffId,
         },
       },
+      include: {
+        user: true,
+      },
     });
+
+    if (!profile) {
+      return null;
+    }
+
+    return transformToInstructorDTO(profile as any);
   },
 
   // Create new instructor
   async createInstructor(data: CreateInstructorData) {
-    const { user: userData, profile: profileData } = data;
+    const { user: userData, profile: profileData, permissions, institutionId, facultyId } = data;
 
     // Hash password
     const hashedPassword = await bcrypt.hash(userData.password, 12);
@@ -217,285 +185,234 @@ export const instructorService = {
       // Create user
       const user = await tx.user.create({
         data: {
-          ...userData,
+          email: userData.email,
           password: hashedPassword,
-          role: "LECTURER",
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          middleName: userData.middleName || null,
+          title: userData.title || null,
+          phone: userData.phone || null,
+          dateOfBirth: userData.dateOfBirth || null,
+          gender: userData.gender || null,
+          nationality: userData.nationality || null,
+          address: userData.address || null,
+          institutionId: institutionId || null,
+          facultyId: facultyId || null,
+          departmentId: null,
+          role: UserRole.LECTURER,
+          status: 'ACTIVE',
         },
       });
 
-      // Create lecturer profile
-      const lecturerProfile = await tx.lecturerProfile.create({
-        data: {
-          userId: user.id,
-          permissions: {}, // Required JSON field - empty object for now
-          ...profileData,
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              firstName: true,
-              lastName: true,
-              middleName: true,
-              title: true,
-              phone: true,
-              gender: true,
-              status: true,
-              createdAt: true,
-              departmentId: true,
-              facultyId: true,
-              institutionId: true,
-              department: {
-                include: {
-                  faculty: {
-                    include: {
-                      institution: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      });
+      // Build lecturer metadata
+      const metadata: LecturerMetadata = {
+        staffId: profileData.staffId,
+        academicRank: profileData.academicRank,
+        employmentType: profileData.employmentType || 'FULL_TIME',
+        employmentStatus: profileData.employmentStatus || 'ACTIVE',
+        hireDate: profileData.hireDate?.toISOString(),
+        highestQualification: profileData.highestQualification,
+        specialization: profileData.specialization,
+        researchInterests: profileData.researchInterests,
+        officeLocation: profileData.officeLocation,
+        officeHours: profileData.officeHours,
+        biography: profileData.biography,
+        profileImageUrl: profileData.profileImageUrl,
+      };
 
-      return lecturerProfile;
+      // Create RoleProfile for lecturer
+      const rolePermissions = permissions || DEFAULT_PERMISSIONS[UserRole.LECTURER];
+      await upsertRoleProfile(
+        user.id,
+        UserRole.LECTURER,
+        rolePermissions as RolePermissions,
+        metadata as any,
+        true,
+        tx as any
+      );
+
+      // Return the created instructor profile
+      return await this.getInstructorById(user.id);
     });
   },
 
-  // Update instructor
-  async updateInstructor(id: number, data: UpdateInstructorData) {
-    const { user: userData, profile: profileData } = data;
+  // Update instructor (by userId)
+  async updateInstructor(userId: number, data: UpdateInstructorData) {
+    const { user: userData, profile: profileData, permissions, isActive } = data;
 
     return await prisma.$transaction(async (tx) => {
-      // Get lecturer profile first
-      const lecturerProfile = await tx.lecturerProfile.findUnique({
-        where: { id },
-        include: { user: true },
+      // Get lecturer role profile first
+      const roleProfile = await tx.roleProfile.findFirst({
+        where: {
+          userId,
+          role: UserRole.LECTURER,
+        },
       });
 
-      if (!lecturerProfile) {
-        throw new Error("Instructor not found");
+      if (!roleProfile) {
+        throw new Error("Instructor profile not found");
       }
 
       // Update user if user data provided
       if (userData) {
         await tx.user.update({
-          where: { id: lecturerProfile.userId },
-          data: userData,
+          where: { id: userId },
+          data: userData as any,
         });
       }
 
-      // Update lecturer profile if profile data provided
-      if (profileData) {
-        await tx.lecturerProfile.update({
-          where: { id },
-          data: profileData,
-        });
+      // Update RoleProfile metadata/permissions if provided
+      if (profileData || permissions !== undefined || isActive !== undefined) {
+        const currentMetadata = roleProfile.metadata as any;
+        const currentPermissions = roleProfile.permissions as RolePermissions;
+
+        const updateData: any = {};
+
+        if (profileData) {
+          updateData.metadata = {
+            ...currentMetadata,
+            ...profileData,
+            ...(profileData.hireDate && { hireDate: profileData.hireDate.toISOString() }),
+          };
+        }
+
+        if (permissions) {
+          updateData.permissions = {
+            ...currentPermissions,
+            ...permissions,
+          };
+        }
+
+        if (isActive !== undefined) {
+          updateData.isActive = isActive;
+        }
+
+        if (Object.keys(updateData).length > 0) {
+          await tx.roleProfile.update({
+            where: { id: roleProfile.id },
+            data: updateData,
+          });
+        }
       }
 
-      // Return updated profile with user data
-      return await tx.lecturerProfile.findUnique({
-        where: { id },
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              firstName: true,
-              lastName: true,
-              middleName: true,
-              title: true,
-              phone: true,
-              gender: true,
-              status: true,
-              createdAt: true,
-              departmentId: true,
-              facultyId: true,
-              institutionId: true,
-              department: {
-                include: {
-                  faculty: {
-                    include: {
-                      institution: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      });
+      // Return updated profile
+      return await this.getInstructorById(userId);
     });
   },
 
-  // Delete instructor
-  async deleteInstructor(id: number) {
+  // Delete instructor (by userId)
+  async deleteInstructor(userId: number) {
     return await prisma.$transaction(async (tx) => {
-      // Get lecturer profile first
-      const lecturerProfile = await tx.lecturerProfile.findUnique({
-        where: { id },
+      // Get lecturer role profile first
+      const roleProfile = await tx.roleProfile.findFirst({
+        where: {
+          userId,
+          role: UserRole.LECTURER,
+        },
       });
 
-      if (!lecturerProfile) {
-        throw new Error("Instructor not found");
+      if (!roleProfile) {
+        throw new Error("Instructor profile not found");
       }
 
-      // Delete lecturer profile (this will cascade delete the user)
-      await tx.lecturerProfile.delete({
-        where: { id },
+      // Delete role profile
+      await tx.roleProfile.delete({
+        where: { id: roleProfile.id },
       });
 
-      // Delete associated user
-      await tx.user.delete({
-        where: { id: lecturerProfile.userId },
+      // Delete user (if no other role profiles exist)
+      const otherProfiles = await tx.roleProfile.count({
+        where: { userId },
       });
+
+      if (otherProfiles === 0) {
+        await tx.user.delete({
+          where: { id: userId },
+        });
+      }
     });
   },
 
-  // Update instructor status
-  async updateInstructorStatus(id: number, employmentStatus: any) {
-    return await prisma.lecturerProfile.update({
-      where: { id },
-      data: { employmentStatus },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            middleName: true,
-            title: true,
-            phone: true,
-            gender: true,
-            status: true,
-            createdAt: true,
-            departmentId: true,
-            facultyId: true,
-            institutionId: true,
-            department: {
-              include: {
-                faculty: {
-                  include: {
-                    institution: true,
-                  },
-                },
-              },
-            },
+  // Update instructor status (by userId)
+  async updateInstructorStatus(userId: number, employmentStatus: any) {
+    return await prisma.$transaction(async (tx) => {
+      const roleProfile = await tx.roleProfile.findFirst({
+        where: {
+          userId,
+          role: UserRole.LECTURER,
+        },
+      });
+
+      if (!roleProfile) {
+        throw new Error("Instructor profile not found");
+      }
+
+      const currentMetadata = roleProfile.metadata as any;
+
+      await tx.roleProfile.update({
+        where: { id: roleProfile.id },
+        data: {
+          metadata: {
+            ...currentMetadata,
+            employmentStatus,
           },
         },
-      },
+      });
+
+      return await this.getInstructorById(userId);
     });
   },
 
   // Assign instructor to department (simplified - via user relationship)
   async assignToDepartment(
-    instructorId: number,
+    userId: number,
     departmentId: number,
     isPrimary: boolean = false
   ) {
-    // Get the instructor first
-    const instructor = await prisma.lecturerProfile.findUnique({
-      where: { id: instructorId },
-      include: { user: true },
+    // Verify instructor exists
+    const roleProfile = await prisma.roleProfile.findFirst({
+      where: {
+        userId,
+        role: UserRole.LECTURER,
+      },
     });
 
-    if (!instructor) {
+    if (!roleProfile) {
       throw new Error("Instructor not found");
     }
 
     // Update user's department
     await prisma.user.update({
-      where: { id: instructor.userId },
+      where: { id: userId },
       data: { departmentId },
     });
 
     // Return updated instructor
-    return await prisma.lecturerProfile.findUnique({
-      where: { id: instructorId },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            middleName: true,
-            title: true,
-            phone: true,
-            gender: true,
-            status: true,
-            createdAt: true,
-            departmentId: true,
-            facultyId: true,
-            institutionId: true,
-            department: {
-              include: {
-                faculty: {
-                  include: {
-                    institution: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
+    return await this.getInstructorById(userId);
   },
 
   // Remove instructor from department
-  async removeFromDepartment(instructorId: number, departmentId: number) {
-    // Get the instructor first
-    const instructor = await prisma.lecturerProfile.findUnique({
-      where: { id: instructorId },
-      include: { user: true },
+  async removeFromDepartment(userId: number, departmentId: number) {
+    // Verify instructor exists
+    const roleProfile = await prisma.roleProfile.findFirst({
+      where: {
+        userId,
+        role: UserRole.LECTURER,
+      },
     });
 
-    if (!instructor) {
+    if (!roleProfile) {
       throw new Error("Instructor not found");
     }
 
     // Remove department assignment
     await prisma.user.update({
-      where: { id: instructor.userId },
+      where: { id: userId },
       data: { departmentId: null },
     });
 
     // Return updated instructor
-    return await prisma.lecturerProfile.findUnique({
-      where: { id: instructorId },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            middleName: true,
-            title: true,
-            phone: true,
-            gender: true,
-            status: true,
-            createdAt: true,
-            departmentId: true,
-            facultyId: true,
-            institutionId: true,
-            department: {
-              include: {
-                faculty: {
-                  include: {
-                    institution: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
+    return await this.getInstructorById(userId);
   },
 
   // Bulk import instructors
@@ -524,81 +441,84 @@ export const instructorService = {
   async getInstructorStats(params: InstructorStatsParams) {
     const { institutionId, facultyId, departmentId } = params;
 
-    const baseWhere: any = {};
+    const baseWhere: any = {
+      role: UserRole.LECTURER,
+      isActive: true,
+      user: {},
+    };
 
     if (departmentId) {
-      baseWhere.user = { departmentId };
+      baseWhere.user.departmentId = departmentId;
     } else if (facultyId) {
-      baseWhere.user = { facultyId };
+      baseWhere.user.facultyId = facultyId;
     } else if (institutionId) {
-      baseWhere.user = { institutionId };
+      baseWhere.user.institutionId = institutionId;
     }
 
-    const [
-      totalInstructors,
-      activeInstructors,
-      onLeaveInstructors,
-      retiredInstructors,
-      instructorsByRank,
-      instructorsByEmploymentType,
-      instructorsByDepartment,
-    ] = await Promise.all([
-      // Total instructors
-      prisma.lecturerProfile.count({ where: baseWhere }),
-
-      // Active instructors
-      prisma.lecturerProfile.count({
-        where: { ...baseWhere, employmentStatus: "ACTIVE" },
-      }),
-
-      // On leave instructors
-      prisma.lecturerProfile.count({
-        where: { ...baseWhere, employmentStatus: "ON_LEAVE" },
-      }),
-
-      // Retired instructors
-      prisma.lecturerProfile.count({
-        where: { ...baseWhere, employmentStatus: "RETIRED" },
-      }),
-
-      // Instructors by academic rank
-      prisma.lecturerProfile.groupBy({
-        by: ["academicRank"],
-        where: baseWhere,
-        _count: true,
-      }),
-
-      // Instructors by employment type
-      prisma.lecturerProfile.groupBy({
-        by: ["employmentType"],
-        where: baseWhere,
-        _count: true,
-      }),
-
-      // Instructors by department
-      prisma.user.groupBy({
-        by: ["departmentId"],
-        where: {
-          lecturerProfiles: { isNot: null },
-          ...(departmentId ? { departmentId } : {}),
-          ...(facultyId ? { facultyId } : {}),
-          ...(institutionId ? { institutionId } : {}),
+    // Get all instructor profiles
+    const instructorProfiles = await prisma.roleProfile.findMany({
+      where: baseWhere,
+      include: {
+        user: {
+          select: {
+            departmentId: true,
+          },
         },
-        _count: true,
-      }),
-    ]);
-
-    // Calculate average experience (simplified - using hire date)
-    const instructorsWithHireDate = await prisma.lecturerProfile.findMany({
-      where: { ...baseWhere, hireDate: { not: null } },
-      select: { hireDate: true },
+      },
     });
 
+    const metadataList = instructorProfiles.map((p) => p.metadata as any);
+
+    const totalInstructors = instructorProfiles.length;
+    const activeInstructors = metadataList.filter(
+      (m) => m.employmentStatus === "ACTIVE"
+    ).length;
+    const onLeaveInstructors = metadataList.filter(
+      (m) => m.employmentStatus === "ON_LEAVE"
+    ).length;
+    const retiredInstructors = metadataList.filter(
+      (m) => m.employmentStatus === "RETIRED"
+    ).length;
+
+    // Group by academic rank
+    const instructorsByRank = metadataList.reduce((acc: any, m: any) => {
+      const rank = m.academicRank || "UNSPECIFIED";
+      if (!acc[rank]) {
+        acc[rank] = { academicRank: rank, _count: 0 };
+      }
+      acc[rank]._count++;
+      return acc;
+    }, {});
+
+    // Group by employment type
+    const instructorsByEmploymentType = metadataList.reduce((acc: any, m: any) => {
+      const type = m.employmentType || "FULL_TIME";
+      if (!acc[type]) {
+        acc[type] = { employmentType: type, _count: 0 };
+      }
+      acc[type]._count++;
+      return acc;
+    }, {});
+
+    // Group by department
+    const instructorsByDepartment = instructorProfiles.reduce((acc: any, p: any) => {
+      const deptId = p.user.departmentId;
+      if (deptId) {
+        if (!acc[deptId]) {
+          acc[deptId] = { departmentId: deptId, _count: 0 };
+        }
+        acc[deptId]._count++;
+      }
+      return acc;
+    }, {});
+
+    // Calculate average experience
+    const instructorsWithHireDate = metadataList.filter((m) => m.hireDate);
     const averageExperience =
       instructorsWithHireDate.length > 0
-        ? instructorsWithHireDate.reduce((sum, instructor) => {
-            const years = instructor.hireDate
-              ? new Date().getFullYear() - instructor.hireDate.getFullYear()
+        ? instructorsWithHireDate.reduce((sum, m) => {
+            const years = m.hireDate
+              ? new Date().getFullYear() - new Date(m.hireDate).getFullYear()
               : 0;
             return sum + years;
           }, 0) / instructorsWithHireDate.length
@@ -610,54 +530,55 @@ export const instructorService = {
       onLeaveInstructors,
       retiredInstructors,
       averageExperience: Math.round(averageExperience * 10) / 10,
-      instructorsByRank: instructorsByRank.map((item) => ({
+      instructorsByRank: Object.values(instructorsByRank).map((item: any) => ({
         rank: item.academicRank,
         count: item._count,
       })),
       instructorsByDepartment: await Promise.all(
-        instructorsByDepartment
-          .filter((item) => item.departmentId !== null)
-          .map(async (item) => {
+        Object.values(instructorsByDepartment)
+          .map(async (item: any) => {
             const department = await prisma.department.findUnique({
-              where: { id: item.departmentId! },
+              where: { id: item.departmentId },
               select: { name: true },
             });
             return {
-              departmentId: item.departmentId!,
+              departmentId: item.departmentId,
               departmentName: department?.name || "Unknown",
               count: item._count,
             };
           })
       ),
-      instructorsByEmploymentType: instructorsByEmploymentType.map((item) => ({
+      instructorsByEmploymentType: Object.values(instructorsByEmploymentType).map((item: any) => ({
         type: item.employmentType,
         count: item._count,
       })),
     };
   },
 
-  // Get instructor workload
-  async getInstructorWorkload(instructorId: number) {
-    const instructor = await prisma.lecturerProfile.findUnique({
-      where: { id: instructorId },
-      include: { user: true },
+  // Get instructor workload (by userId)
+  async getInstructorWorkload(userId: number) {
+    const roleProfile = await prisma.roleProfile.findFirst({
+      where: {
+        userId,
+        role: UserRole.LECTURER,
+      },
     });
 
-    if (!instructor) {
+    if (!roleProfile) {
       throw new Error("Instructor not found");
     }
 
     // Get courses assigned to this instructor
     const coursesAssigned = await prisma.courseLecturer.count({
-      where: { lecturerId: instructor.userId },
+      where: { lecturerId: userId },
     });
 
     // Get students enrolled in instructor's courses
-    const studentsEnrolled = await prisma.enrollment.count({
+    const studentsEnrolled = await prisma.courseEnrollment.count({
       where: {
         courseOffering: {
           courseLecturers: {
-            some: { lecturerId: instructor.userId },
+            some: { lecturerId: userId },
           },
         },
       },
@@ -673,7 +594,7 @@ export const instructorService = {
     const administrativeRoles = 0;
 
     return {
-      instructorId,
+      instructorId: userId,
       coursesAssigned,
       studentsEnrolled,
       contactHours,
@@ -707,16 +628,16 @@ export const instructorService = {
 
       const rows = instructors.data.map((instructor) => [
         instructor.staffId,
-        instructor.user.firstName,
-        instructor.user.lastName,
-        instructor.user.email,
+        instructor.firstName,
+        instructor.lastName,
+        instructor.email,
         instructor.academicRank || "",
         instructor.employmentType,
         instructor.employmentStatus,
         instructor.specialization || "",
-        instructor.user.department?.name || "",
-        instructor.user.department?.faculty?.name || "",
-        instructor.user.department?.faculty?.institution?.name || "",
+        instructor.departmentNames.join(", ") || "",
+        "", // Faculty - not directly available in list DTO
+        "", // Institution - not directly available in list DTO
       ]);
 
       return [headers, ...rows];
@@ -747,32 +668,23 @@ export const instructorService = {
     const skip = (page - 1) * limit;
 
     const where: any = {
-      lecturerDepartments: {
-        some: {
-          departmentId,
-        },
+      role: UserRole.LECTURER,
+      isActive: true,
+      user: {
+        departmentId,
       },
-      ...(search
-        ? {
-            OR: [
-              { staffId: { contains: search, mode: "insensitive" } },
-              { specialization: { contains: search, mode: "insensitive" } },
-              {
-                user: {
-                  OR: [
-                    { firstName: { contains: search, mode: "insensitive" } },
-                    { lastName: { contains: search, mode: "insensitive" } },
-                    { email: { contains: search, mode: "insensitive" } },
-                  ],
-                },
-              },
-            ],
-          }
-        : {}),
     };
 
-    const [instructors, total] = await Promise.all([
-      prisma.lecturerProfile.findMany({
+    if (search) {
+      where.OR = [
+        { user: { firstName: { contains: search, mode: "insensitive" } } },
+        { user: { lastName: { contains: search, mode: "insensitive" } } },
+        { user: { email: { contains: search, mode: "insensitive" } } },
+      ];
+    }
+
+    const [profiles, total] = await Promise.all([
+      prisma.roleProfile.findMany({
         where,
         include: {
           user: {
@@ -783,22 +695,6 @@ export const instructorService = {
               lastName: true,
               status: true,
             },
-            include: {
-              lecturerDepartments: {
-                where: {
-                  departmentId,
-                },
-                include: {
-                  department: {
-                    select: {
-                      id: true,
-                      name: true,
-                      code: true,
-                    },
-                  },
-                },
-              },
-            },
           },
         },
         skip,
@@ -807,9 +703,10 @@ export const instructorService = {
           [sortBy]: sortOrder,
         },
       }),
-      prisma.lecturerProfile.count({ where }),
+      prisma.roleProfile.count({ where }),
     ]);
 
+    const instructors = transformInstructorsToListItems(profiles as any);
     const totalPages = Math.ceil(total / limit);
 
     return {

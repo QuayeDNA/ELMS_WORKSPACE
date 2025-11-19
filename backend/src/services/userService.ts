@@ -164,7 +164,7 @@ export class UserService {
       ]);
 
       return createPaginatedResponse(
-        users as User[],
+        users.map(u => ({ ...u, primaryRole: u.role })) as User[],
         page,
         limit,
         total,

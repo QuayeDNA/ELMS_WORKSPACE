@@ -286,7 +286,7 @@ export const courseService = {
   async deleteCourse(id: number): Promise<boolean> {
     try {
       // Check if course has enrollments through course offerings
-      const enrollmentCount = await prisma.enrollment.count({
+      const enrollmentCount = await prisma.courseEnrollment.count({
         where: {
           courseOffering: {
             courseId: id

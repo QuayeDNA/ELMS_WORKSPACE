@@ -117,6 +117,7 @@ export class QRCodeService {
         `${data.batchId}-${data.courseId}-${data.timestamp}`
       );
 
+      
       if (data.securityHash !== expectedHash) {
         return {
           isValid: false,

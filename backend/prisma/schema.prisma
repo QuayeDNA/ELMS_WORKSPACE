@@ -8,196 +8,108 @@ datasource db {
 }
 
 model User {
-  id                                                        Int                      @id @default(autoincrement())
-  email                                                     String                   @unique
-  password                                                  String
-  firstName                                                 String
-  lastName                                                  String
-  middleName                                                String?
-  title                                                     String?
-  role                                                      UserRole
-  status                                                    UserStatus               @default(PENDING_VERIFICATION)
-  lastLogin                                                 DateTime?
-  emailVerified                                             Boolean                  @default(false)
-  twoFactorEnabled                                          Boolean                  @default(false)
-  phone                                                     String?
-  dateOfBirth                                               DateTime?
-  gender                                                    String?
-  nationality                                               String?
-  address                                                   String?
-  createdAt                                                 DateTime                 @default(now())
-  updatedAt                                                 DateTime                 @updatedAt
-  institutionId                                             Int?
-  facultyId                                                 Int?
-  departmentId                                              Int?
-  calendarImports                                           AcademicCalendarImport[]
-  academicPeriodsCreated                                    AcademicPeriod[]
-  adminProfiles                                             AdminProfile?
-  batchScriptsAssigned                                      BatchScript[]            @relation("BatchScriptsAssigned")
-  batchScriptsSealed                                        BatchScript[]            @relation("BatchScriptsSealed")
-  courseLecturers                                           CourseLecturer[]
-  courseOfferings                                           CourseOffering[]
-  registrationsAdvised                                      CourseRegistration[]     @relation("RegistrationAdvisors")
-  registrationsApproved                                     CourseRegistration[]     @relation("RegistrationApprovers")
-  courseRegistrations                                       CourseRegistration[]     @relation("StudentRegistrations")
-  departmentsAsHOD                                          Department[]             @relation("DepartmentHOD")
-  enrollments                                               Enrollment[]
-  examOfficerProfiles                                       ExamOfficerProfile?
-  attendanceMarked                                          ExamRegistration[]       @relation("AttendanceMarkers")
-  examRegistrations                                         ExamRegistration[]       @relation("StudentExamRegistrations")
-  scriptsSubmittedTo                                        ExamRegistration[]       @relation("ScriptSubmittedTo")
-  timetablesApproved                                        ExamTimetable[]          @relation("TimetableApprover")
-  timetablesCreated                                         ExamTimetable[]          @relation("TimetableCreator")
-  timetablesPublished                                       ExamTimetable[]          @relation("TimetablePublisher")
-  facultiesAsDean                                           Faculty[]                @relation("FacultyDean")
-  facultyProfiles                                           FacultyAdminProfile?
-  incidentsAssigned                                         Incident[]               @relation("AssignedTo")
-  incidentsReported                                         Incident[]               @relation("ReportedBy")
-  invigilatorProfiles                                       InvigilatorProfile?
-  lecturerDepartments                                       LecturerDepartment[]
-  lecturerProfiles                                          LecturerProfile?
-  scriptHandlerProfiles                                     ScriptHandlerProfile?
-  movementsTo                                               ScriptMovement[]         @relation("MovementTo")
-  scriptsHolding                                            Script[]                 @relation("ScriptsHolding")
-  scriptsGraded                                             Script[]                 @relation("ScriptsGraded")
-  academicHistory                                           StudentAcademicHistory?  @relation("StudentAcademicHistory")
-  assessmentsGraded                                         StudentAssessment[]      @relation("GradedBy")
-  studentAssessments                                        StudentAssessment[]
-  studentProfiles                                           StudentProfile?
-  semesterRecords                                           StudentSemesterRecord[]  @relation("StudentSemesterRecords")
-  conflictsResolved                                         TimetableConflict[]
-  timetableImports                                          TimetableImport[]
-  department                                                Department?              @relation(fields: [departmentId], references: [id])
-  faculty                                                   Faculty?                 @relation(fields: [facultyId], references: [id])
-  institution                                               Institution?             @relation(fields: [institutionId], references: [id])
+  id                       Int                        @id @default(autoincrement())
+  email                    String                     @unique
+  password                 String
+  firstName                String
+  lastName                 String
+  middleName               String?
+  title                    String?
+  role                     UserRole
+  status                   UserStatus                 @default(PENDING_VERIFICATION)
+  lastLogin                DateTime?
+  emailVerified            Boolean                    @default(false)
+  twoFactorEnabled         Boolean                    @default(false)
+  phone                    String?
+  dateOfBirth              DateTime?
+  gender                   String?
+  nationality              String?
+  address                  String?
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @updatedAt
+  institutionId            Int?
+  facultyId                Int?
+  departmentId             Int?
+  calendarImports          AcademicCalendarImport[]
+  academicPeriodsCreated   AcademicPeriod[]
+  roleProfiles             RoleProfile[]
+  batchScriptsAssigned     BatchScript[]              @relation("BatchScriptsAssigned")
+  batchScriptsSealed       BatchScript[]              @relation("BatchScriptsSealed")
+  courseLecturers          CourseLecturer[]
+  courseOfferings          CourseOffering[]
+  registrationsAdvised     CourseRegistration[]       @relation("RegistrationAdvisors")
+  registrationsApproved    CourseRegistration[]       @relation("RegistrationApprovers")
+  courseRegistrations      CourseRegistration[]       @relation("StudentRegistrations")
+  departmentsAsHOD         Department[]               @relation("DepartmentHOD")
+  courseEnrollments        CourseEnrollment[]         @relation("StudentEnrollments")
+  enrollmentsAdvised       CourseEnrollment[]         @relation("EnrollmentAdvisors")
+  enrollmentsApproved      CourseEnrollment[]         @relation("EnrollmentApprovers")
+  attendanceMarked         ExamRegistration[]         @relation("AttendanceMarkers")
+  examRegistrations        ExamRegistration[]         @relation("StudentExamRegistrations")
+  scriptsSubmittedTo       ExamRegistration[]         @relation("ScriptSubmittedTo")
+  timetablesApproved       ExamTimetable[]            @relation("TimetableApprover")
+  timetablesCreated        ExamTimetable[]            @relation("TimetableCreator")
+  timetablesPublished      ExamTimetable[]            @relation("TimetablePublisher")
+  facultiesAsDean          Faculty[]                  @relation("FacultyDean")
+  incidentsAssigned        Incident[]                 @relation("AssignedTo")
+  incidentsReported        Incident[]                 @relation("ReportedBy")
+  lecturerDepartments      LecturerDepartment[]
+  movementsTo              ScriptMovement[]           @relation("MovementTo")
+  scriptsHolding           Script[]                   @relation("ScriptsHolding")
+  scriptsGraded            Script[]                   @relation("ScriptsGraded")
+  academicHistory          StudentAcademicHistory?    @relation("StudentAcademicHistory")
+  assessmentsGraded        StudentAssessment[]        @relation("GradedBy")
+  studentAssessments       StudentAssessment[]
+  semesterRecords          StudentSemesterRecord[]    @relation("StudentSemesterRecords")
+  conflictsResolved        TimetableConflict[]
+  timetableImports         TimetableImport[]
+  department               Department?                @relation(fields: [departmentId], references: [id])
+  faculty                  Faculty?                   @relation(fields: [facultyId], references: [id])
+  institution              Institution?               @relation(fields: [institutionId], references: [id])
   // Logistics relations
-  sessionLogsPerformed                                      ExamSessionLog[]
-  sessionLogsAsStudent                                      ExamSessionLog[]         @relation("SessionLogStudent")
-  sessionLogsAsInvigilator                                  ExamSessionLog[]         @relation("SessionLogInvigilator")
-  invigilatorAssignments                                    InvigilatorAssignment[]
-  assignmentsAssigned                                       InvigilatorAssignment[]  @relation("AssignmentAssignedBy")
-  studentVerifications                                      StudentVerification[]
-  verificationsPerformed                                    StudentVerification[]    @relation("VerificationVerifier")
-  examIncidentsReported                                     ExamIncident[]           @relation("IncidentReporter")
-  examIncidentsAssigned                                     ExamIncident[]           @relation("IncidentAssignee")
-  examIncidentsResolved                                     ExamIncident[]           @relation("IncidentResolver")
+  sessionLogsPerformed     ExamSessionLog[]
+  sessionLogsAsStudent     ExamSessionLog[]           @relation("SessionLogStudent")
+  sessionLogsAsInvigilator ExamSessionLog[]           @relation("SessionLogInvigilator")
+  invigilatorAssignments   InvigilatorAssignment[]
+  assignmentsAssigned      InvigilatorAssignment[]    @relation("AssignmentAssignedBy")
+  studentVerifications     StudentVerification[]
+  verificationsPerformed   StudentVerification[]      @relation("VerificationVerifier")
+  examIncidentsReported    ExamIncident[]             @relation("IncidentReporter")
+  examIncidentsAssigned    ExamIncident[]             @relation("IncidentAssignee")
+  examIncidentsResolved    ExamIncident[]             @relation("IncidentResolver")
+  timetableInvigilators    ExamTimetableInvigilator[] @relation("TimetableInvigilators")
 
   @@index([institutionId, role])
   @@index([facultyId, role])
   @@index([email, status])
+  @@index([role, status])
+  @@index([departmentId, role])
+  @@index([status, lastLogin])
   @@map("users")
 }
 
-model AdminProfile {
-  id                 Int     @id @default(autoincrement())
-  userId             Int     @unique
-  permissions        Json
-  canManageFaculties Boolean @default(true)
-  canManageUsers     Boolean @default(true)
-  canViewAnalytics   Boolean @default(true)
-  user               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+// Unified profile model replacing all individual profile tables
+model RoleProfile {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  role        UserRole
+  permissions Json // Unified permissions schema
+  metadata    Json? // Role-specific data (staffId, indexNumber, academicRank, etc.)
+  isActive    Boolean  @default(true)
+  isPrimary   Boolean  @default(false) // For users with multiple roles
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  @@map("admin_profiles")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role])
+  @@index([userId, role, isActive])
+  @@index([role, isActive])
+  @@map("role_profiles")
 }
 
-model FacultyAdminProfile {
-  id                   Int     @id @default(autoincrement())
-  userId               Int     @unique
-  permissions          Json
-  canManageDepartments Boolean @default(true)
-  canCreateExams       Boolean @default(true)
-  canManageOfficers    Boolean @default(true)
-  canViewFacultyData   Boolean @default(true)
-  user                 User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("faculty_admin_profiles")
-}
-
-model ExamOfficerProfile {
-  id                    Int     @id @default(autoincrement())
-  userId                Int     @unique
-  permissions           Json
-  canScheduleExams      Boolean @default(true)
-  canManageIncidents    Boolean @default(true)
-  canAssignInvigilators Boolean @default(true)
-  canManageVenues       Boolean @default(true)
-  user                  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("exam_officer_profiles")
-}
-
-model ScriptHandlerProfile {
-  id                 Int     @id @default(autoincrement())
-  userId             Int     @unique
-  permissions        Json
-  canReceiveScripts  Boolean @default(true)
-  canDispatchScripts Boolean @default(true)
-  canScanQrCodes     Boolean @default(true)
-  canReportIncidents Boolean @default(true)
-  user               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("script_handler_profiles")
-}
-
-model InvigilatorProfile {
-  id                 Int     @id @default(autoincrement())
-  userId             Int     @unique
-  permissions        Json
-  canConductExams    Boolean @default(true)
-  canReportIncidents Boolean @default(true)
-  canManageScripts   Boolean @default(true)
-  user               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("invigilator_profiles")
-}
-
-model LecturerProfile {
-  id                   Int                @id @default(autoincrement())
-  userId               Int                @unique
-  staffId              String             @unique
-  academicRank         AcademicRankLevel?
-  employmentType       EmploymentType     @default(FULL_TIME)
-  employmentStatus     EmploymentStatus   @default(ACTIVE)
-  hireDate             DateTime?
-  highestQualification String?
-  specialization       String?
-  researchInterests    String?
-  officeLocation       String?
-  officeHours          String?
-  biography            String?
-  profileImageUrl      String?
-  permissions          Json
-  canCreateExams       Boolean            @default(true)
-  canGradeScripts      Boolean            @default(true)
-  canViewResults       Boolean            @default(true)
-  canTeachCourses      Boolean            @default(true)
-  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("lecturer_profiles")
-}
-
-model StudentProfile {
-  id                 Int              @id @default(autoincrement())
-  userId             Int              @unique
-  studentId          String           @unique
-  indexNumber        String?          @unique
-  level              Int
-  semester           Int              @default(1)
-  academicYear       String?
-  programId          Int?
-  admissionDate      DateTime?
-  expectedGraduation DateTime?
-  enrollmentStatus   EnrollmentStatus @default(ACTIVE)
-  academicStatus     AcademicStatus   @default(GOOD_STANDING)
-  guardianName       String?
-  guardianPhone      String?
-  guardianEmail      String?
-  emergencyContact   String?
-  program            Program?         @relation(fields: [programId], references: [id])
-  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("student_profiles")
-}
+// Note: Student and Lecturer specific data now stored in RoleProfile.metadata as JSON
+// For quick access to critical fields, keep separate indexes or materialized views
 
 model Institution {
   id              Int                      @id @default(autoincrement())
@@ -229,21 +141,21 @@ model Institution {
 }
 
 model StudentIdConfig {
-  id              Int                  @id @default(autoincrement())
-  institutionId   Int                  @unique
-  format          StudentIdFormat      // SEQUENTIAL, ACADEMIC_YEAR, CUSTOM
-  prefix          String?              // e.g., "0721" or "BT/ITS"
-  useAcademicYear Boolean              @default(false) // Include academic year in ID
+  id              Int                    @id @default(autoincrement())
+  institutionId   Int                    @unique
+  format          StudentIdFormat // SEQUENTIAL, ACADEMIC_YEAR, CUSTOM
+  prefix          String? // e.g., "0721" or "BT/ITS"
+  useAcademicYear Boolean                @default(false) // Include academic year in ID
   academicYearPos StudentIdYearPosition? // PREFIX, MIDDLE, SUFFIX
-  separator       String?              // e.g., "/" for "BT/ITS/24/001"
-  paddingLength   Int                  @default(6) // e.g., 6 for "000001"
-  startNumber     Int                  @default(1) // Starting sequence number
-  currentNumber   Int                  @default(1) // Current sequence (auto-increments)
-  pattern         String?              // Custom pattern: {PREFIX}/{YEAR}/{SEQ}
-  example         String?              // Example ID for preview
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
-  institution     Institution          @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  separator       String? // e.g., "/" for "BT/ITS/24/001"
+  paddingLength   Int                    @default(6) // e.g., 6 for "000001"
+  startNumber     Int                    @default(1) // Starting sequence number
+  currentNumber   Int                    @default(1) // Current sequence (auto-increments)
+  pattern         String? // Custom pattern: {PREFIX}/{YEAR}/{SEQ}
+  example         String? // Example ID for preview
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  institution     Institution            @relation(fields: [institutionId], references: [id], onDelete: Cascade)
 
   @@map("student_id_configs")
 }
@@ -293,7 +205,7 @@ model Department {
 }
 
 model Program {
-  id                    Int              @id @default(autoincrement())
+  id                    Int                    @id @default(autoincrement())
   name                  String
   code                  String
   type                  ProgramType
@@ -302,13 +214,13 @@ model Program {
   creditHours           Int?
   description           String?
   admissionRequirements String?
-  isActive              Boolean          @default(true)
+  isActive              Boolean                @default(true)
   departmentId          Int
-  createdAt             DateTime         @default(now())
-  updatedAt             DateTime         @updatedAt
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
   programCourses        ProgramCourse[]
-  department            Department       @relation(fields: [departmentId], references: [id])
-  students              StudentProfile[]
+  department            Department             @relation(fields: [departmentId], references: [id])
+  examTimetablePrograms ExamTimetableProgram[]
 
   @@unique([departmentId, code])
   @@map("programs")
@@ -348,7 +260,6 @@ model Course {
   batchScripts      BatchScript[]
   courseOfferings   CourseOffering[]
   department        Department           @relation(fields: [departmentId], references: [id])
-  enrollments       Enrollment[]
   timetableEntries  ExamTimetableEntry[]
   exams             Exam[]
   programCourses    ProgramCourse[]
@@ -404,7 +315,7 @@ model Semester {
   academicPeriod      AcademicPeriod?
   courseOfferings     CourseOffering[]
   courseRegistrations CourseRegistration[]
-  enrollments         Enrollment[]
+  courseEnrollments   CourseEnrollment[]
   examTimetables      ExamTimetable[]
   academicYear        AcademicYear            @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
   semesterRecords     StudentSemesterRecord[]
@@ -467,26 +378,29 @@ model AcademicCalendarImport {
 }
 
 model CourseOffering {
-  id                Int                @id @default(autoincrement())
+  id                Int                      @id @default(autoincrement())
   courseId          Int
   semesterId        Int
   primaryLecturerId Int?
   maxEnrollment     Int?
-  currentEnrollment Int                @default(0)
+  currentEnrollment Int                      @default(0)
   classroom         String?
   schedule          String?
-  status            String             @default("active")
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
+  status            String                   @default("active")
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
   assessments       Assessment[]
   courseLecturers   CourseLecturer[]
-  course            Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  primaryLecturer   User?              @relation(fields: [primaryLecturerId], references: [id])
-  semester          Semester           @relation(fields: [semesterId], references: [id], onDelete: Cascade)
-  enrollments       Enrollment[]
+  course            Course                   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  primaryLecturer   User?                    @relation(fields: [primaryLecturerId], references: [id])
+  semester          Semester                 @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  enrollments       CourseEnrollment[]
   registeredItems   CourseRegistrationItem[]
 
   @@unique([courseId, semesterId])
+  @@index([semesterId, status])
+  @@index([courseId, status])
+  @@index([primaryLecturerId])
   @@map("course_offerings")
 }
 
@@ -517,42 +431,67 @@ model LecturerDepartment {
   @@map("lecturer_departments")
 }
 
-model Enrollment {
-  id                   Int            @id @default(autoincrement())
-  studentId            Int
-  courseOfferingId     Int
-  enrollmentDate       DateTime       @default(now())
-  status               String         @default("enrolled")
-  grade                String?
-  gradePoints          Float?
-  attendancePercentage Float?
-  createdAt            DateTime       @default(now())
-  updatedAt            DateTime       @updatedAt
-  courseId             Int
-  semesterId           Int
-  course               Course         @relation(fields: [courseId], references: [id])
-  courseOffering       CourseOffering @relation(fields: [courseOfferingId], references: [id], onDelete: Cascade)
-  semester             Semester       @relation(fields: [semesterId], references: [id])
-  student              User           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+// Unified model replacing both Enrollment and CourseRegistration/CourseRegistrationItem
+model CourseEnrollment {
+  id               Int @id @default(autoincrement())
+  studentId        Int
+  courseOfferingId Int
+  semesterId       Int
+
+  // Registration tracking
+  registeredAt DateTime               @default(now())
+  status       EnrollmentStatus       @default(ACTIVE)
+  itemStatus   RegistrationItemStatus @default(REGISTERED)
+
+  // Approval workflow
+  advisorId          Int?
+  advisorApprovedAt  DateTime?
+  approverId         Int?
+  approverApprovedAt DateTime?
+
+  // Academic tracking
+  grade       String?
+  gradePoints Float?
+  attendance  Float?
+
+  // Drop tracking
+  droppedAt  DateTime?
+  dropReason String?
+
+  // Audit
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  student        User           @relation("StudentEnrollments", fields: [studentId], references: [id], onDelete: Cascade)
+  courseOffering CourseOffering @relation(fields: [courseOfferingId], references: [id], onDelete: Cascade)
+  semester       Semester       @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  advisor        User?          @relation("EnrollmentAdvisors", fields: [advisorId], references: [id])
+  approver       User?          @relation("EnrollmentApprovers", fields: [approverId], references: [id])
 
   @@unique([studentId, courseOfferingId])
-  @@map("enrollments")
+  @@index([studentId, semesterId])
+  @@index([semesterId, status])
+  @@index([courseOfferingId, status])
+  @@index([studentId, status])
+  @@index([advisorId, status])
+  @@map("course_enrollments")
 }
 
 model CourseRegistration {
-  id           Int      @id @default(autoincrement())
+  id           Int                      @id @default(autoincrement())
   studentId    Int
   semesterId   Int
   advisorId    Int?
   approverId   Int?
-  status       RegistrationStatus @default(ACTIVE)
-  totalCredits Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  advisor      User?    @relation("RegistrationAdvisors", fields: [advisorId], references: [id])
-  approver     User?    @relation("RegistrationApprovers", fields: [approverId], references: [id])
-  student      User     @relation("StudentRegistrations", fields: [studentId], references: [id], onDelete: Cascade)
-  semester     Semester @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  status       RegistrationStatus       @default(ACTIVE)
+  totalCredits Int                      @default(0)
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+  advisor      User?                    @relation("RegistrationAdvisors", fields: [advisorId], references: [id])
+  approver     User?                    @relation("RegistrationApprovers", fields: [approverId], references: [id])
+  student      User                     @relation("StudentRegistrations", fields: [studentId], references: [id], onDelete: Cascade)
+  semester     Semester                 @relation(fields: [semesterId], references: [id], onDelete: Cascade)
   courses      CourseRegistrationItem[]
 
   @@unique([studentId, semesterId])
@@ -562,16 +501,16 @@ model CourseRegistration {
 }
 
 model CourseRegistrationItem {
-  id               Int      @id @default(autoincrement())
+  id               Int                    @id @default(autoincrement())
   registrationId   Int
   courseOfferingId Int
   status           RegistrationItemStatus @default(REGISTERED)
   droppedAt        DateTime?
   dropReason       String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  registration     CourseRegistration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
-  courseOffering   CourseOffering     @relation(fields: [courseOfferingId], references: [id], onDelete: Cascade)
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  registration     CourseRegistration     @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  courseOffering   CourseOffering         @relation(fields: [courseOfferingId], references: [id], onDelete: Cascade)
 
   @@unique([registrationId, courseOfferingId])
   @@index([registrationId])
@@ -712,6 +651,11 @@ model Exam {
   incidents           Incident[]
   scripts             Script[]
 
+  @@index([examDate, status])
+  @@index([courseId, examDate])
+  @@index([facultyId, examDate])
+  @@index([venueId, examDate])
+  @@index([status, examDate])
   @@map("exams")
 }
 
@@ -781,7 +725,6 @@ model ExamTimetableEntry {
   timetableId         Int
   examId              Int?
   courseId            Int
-  programIds          String
   level               Int?
   studentCount        Int?
   examDate            DateTime
@@ -789,9 +732,7 @@ model ExamTimetableEntry {
   endTime             DateTime
   duration            Int
   venueId             Int
-  roomIds             String
   seatingCapacity     Int?
-  invigilatorIds      String
   chiefInvigilatorId  Int?
   status              ExamTimetableEntryStatus @default(DRAFT)
   notes               String?
@@ -800,25 +741,83 @@ model ExamTimetableEntry {
   conflictDetails     String?
   createdAt           DateTime                 @default(now())
   updatedAt           DateTime                 @updatedAt
-  batchScripts        BatchScript[]
-  examRegistrations   ExamRegistration[]
-  course              Course                   @relation(fields: [courseId], references: [id])
-  exam                Exam?                    @relation(fields: [examId], references: [id])
-  timetable           ExamTimetable            @relation(fields: [timetableId], references: [id], onDelete: Cascade)
-  venue               Venue                    @relation(fields: [venueId], references: [id])
-  conflictsAsEntry1   TimetableConflict[]      @relation("ConflictEntry1")
-  conflictsAsEntry2   TimetableConflict[]      @relation("ConflictEntry2")
+
+  // Relations
+  batchScripts      BatchScript[]
+  examRegistrations ExamRegistration[]
+  course            Course              @relation(fields: [courseId], references: [id])
+  exam              Exam?               @relation(fields: [examId], references: [id])
+  timetable         ExamTimetable       @relation(fields: [timetableId], references: [id], onDelete: Cascade)
+  venue             Venue               @relation(fields: [venueId], references: [id])
+  conflictsAsEntry1 TimetableConflict[] @relation("ConflictEntry1")
+  conflictsAsEntry2 TimetableConflict[] @relation("ConflictEntry2")
+
+  // Many-to-many relations via junction tables
+  programs     ExamTimetableProgram[]
+  rooms        ExamTimetableRoom[]
+  invigilators ExamTimetableInvigilator[]
+
   // Logistics relations
-  sessionLogs         ExamSessionLog[]
+  sessionLogs            ExamSessionLog[]
   invigilatorAssignments InvigilatorAssignment[]
-  studentVerifications StudentVerification[]
-  examIncidents       ExamIncident[]
+  studentVerifications   StudentVerification[]
+  examIncidents          ExamIncident[]
 
   @@index([timetableId, examDate])
   @@index([courseId])
   @@index([venueId, examDate, startTime])
   @@index([status, hasConflicts])
   @@map("exam_timetable_entries")
+}
+
+// Junction table for ExamTimetableEntry and Program many-to-many relationship
+model ExamTimetableProgram {
+  id               Int      @id @default(autoincrement())
+  timetableEntryId Int
+  programId        Int
+  createdAt        DateTime @default(now())
+
+  timetableEntry ExamTimetableEntry @relation(fields: [timetableEntryId], references: [id], onDelete: Cascade)
+  program        Program            @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@unique([timetableEntryId, programId])
+  @@index([timetableEntryId])
+  @@index([programId])
+  @@map("exam_timetable_programs")
+}
+
+// Junction table for ExamTimetableEntry and Room many-to-many relationship
+model ExamTimetableRoom {
+  id               Int      @id @default(autoincrement())
+  timetableEntryId Int
+  roomId           Int
+  capacity         Int? // Capacity allocated for this exam in this room
+  createdAt        DateTime @default(now())
+
+  timetableEntry ExamTimetableEntry @relation(fields: [timetableEntryId], references: [id], onDelete: Cascade)
+  room           Room               @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@unique([timetableEntryId, roomId])
+  @@index([timetableEntryId])
+  @@index([roomId])
+  @@map("exam_timetable_rooms")
+}
+
+// Junction table for ExamTimetableEntry and Invigilator assignment
+model ExamTimetableInvigilator {
+  id               Int             @id @default(autoincrement())
+  timetableEntryId Int
+  invigilatorId    Int
+  role             InvigilatorRole @default(INVIGILATOR)
+  assignedAt       DateTime        @default(now())
+
+  timetableEntry ExamTimetableEntry @relation(fields: [timetableEntryId], references: [id], onDelete: Cascade)
+  invigilator    User               @relation("TimetableInvigilators", fields: [invigilatorId], references: [id], onDelete: Cascade)
+
+  @@unique([timetableEntryId, invigilatorId])
+  @@index([timetableEntryId])
+  @@index([invigilatorId])
+  @@map("exam_timetable_invigilators")
 }
 
 model TimetableConflict {
@@ -879,34 +878,35 @@ model TimetableImport {
 }
 
 model Venue {
-  id               Int                  @id @default(autoincrement())
-  name             String
-  location         String
-  capacity         Int
-  institutionId    Int
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
-  timetableEntries ExamTimetableEntry[]
-  exams            Exam[]
-  rooms            Room[]
-  institution      Institution          @relation(fields: [institutionId], references: [id])
+  id                     Int                     @id @default(autoincrement())
+  name                   String
+  location               String
+  capacity               Int
+  institutionId          Int
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  timetableEntries       ExamTimetableEntry[]
+  exams                  Exam[]
+  rooms                  Room[]
+  institution            Institution             @relation(fields: [institutionId], references: [id])
   // Logistics relations
-  sessionLogs      ExamSessionLog[]
+  sessionLogs            ExamSessionLog[]
   invigilatorAssignments InvigilatorAssignment[]
 
   @@map("venues")
 }
 
 model Room {
-  id        Int      @id @default(autoincrement())
-  name      String
-  capacity  Int
-  venueId   Int
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  exams     Exam[]
-  venue     Venue    @relation(fields: [venueId], references: [id])
-  sessionLogs ExamSessionLog[]
+  id                 Int                 @id @default(autoincrement())
+  name               String
+  capacity           Int
+  venueId            Int
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  exams              Exam[]
+  venue              Venue               @relation(fields: [venueId], references: [id])
+  sessionLogs        ExamSessionLog[]
+  examTimetableRooms ExamTimetableRoom[]
 
   @@unique([venueId, name])
   @@map("rooms")
@@ -938,6 +938,10 @@ model Script {
   @@index([examId, status])
   @@index([batchScriptId])
   @@index([currentHolderId])
+  @@index([status, currentHolderId])
+  @@index([examId, status, updatedAt])
+  @@index([studentId, examId])
+  @@index([status, gradedAt])
   @@map("scripts")
 }
 
@@ -956,6 +960,10 @@ model ScriptMovement {
   toUser        User?        @relation("MovementTo", fields: [toUserId], references: [id])
 
   @@index([batchScriptId])
+  @@index([scriptId, timestamp])
+  @@index([type, timestamp])
+  @@index([toUserId, timestamp])
+  @@index([fromUserId, timestamp])
   @@map("script_movements")
 }
 
@@ -988,6 +996,9 @@ model ExamRegistration {
   @@index([examEntryId, scriptSubmitted])
   @@index([studentId])
   @@index([batchScriptId], map: "idx_exam_registrations_batch_script_id")
+  @@index([examEntryId, isPresent])
+  @@index([studentId, scriptSubmitted])
+  @@index([attendanceMarkedBy, attendanceMarkedAt])
   @@map("exam_registrations")
 }
 
@@ -1020,6 +1031,9 @@ model BatchScript {
   @@unique([examEntryId, courseId])
   @@index([courseId, status])
   @@index([assignedLecturerId])
+  @@index([status, createdAt])
+  @@index([examEntryId, status])
+  @@index([assignedLecturerId, status])
   @@map("batch_scripts")
 }
 
@@ -1044,164 +1058,175 @@ model Incident {
   script       Script?          @relation(fields: [scriptId], references: [id])
 
   @@index([examId, status])
+  @@index([status, severity])
+  @@index([reportedById, createdAt])
+  @@index([assignedToId, status])
+  @@index([type, status])
   @@map("incidents")
 }
 
 model ExamSessionLog {
-  id           Int                   @id @default(autoincrement())
-  examEntryId  Int
-  action       ExamSessionAction
-  performedBy  Int
-  performedAt  DateTime              @default(now())
+  id          Int               @id @default(autoincrement())
+  examEntryId Int
+  action      ExamSessionAction
+  performedBy Int
+  performedAt DateTime          @default(now())
 
   // Action details
-  details      Json
+  details Json
 
   // Context
-  venueId      Int?
-  roomId       Int?
-  studentId    Int?
+  venueId       Int?
+  roomId        Int?
+  studentId     Int?
   invigilatorId Int?
 
   // Audit
-  ipAddress    String?
-  userAgent    String?
-  notes        String?
+  ipAddress String?
+  userAgent String?
+  notes     String?
 
-  createdAt    DateTime              @default(now())
+  createdAt DateTime @default(now())
 
   // Relations
-  examEntry    ExamTimetableEntry    @relation(fields: [examEntryId], references: [id], onDelete: Cascade)
-  performer    User                  @relation(fields: [performedBy], references: [id])
-  venue        Venue?                @relation(fields: [venueId], references: [id])
-  room         Room?                 @relation(fields: [roomId], references: [id])
-  student      User?                 @relation("SessionLogStudent", fields: [studentId], references: [id])
-  invigilator  User?                 @relation("SessionLogInvigilator", fields: [invigilatorId], references: [id])
+  examEntry   ExamTimetableEntry @relation(fields: [examEntryId], references: [id], onDelete: Cascade)
+  performer   User               @relation(fields: [performedBy], references: [id])
+  venue       Venue?             @relation(fields: [venueId], references: [id])
+  room        Room?              @relation(fields: [roomId], references: [id])
+  student     User?              @relation("SessionLogStudent", fields: [studentId], references: [id])
+  invigilator User?              @relation("SessionLogInvigilator", fields: [invigilatorId], references: [id])
 
   @@index([examEntryId, performedAt])
   @@index([performedBy, performedAt])
   @@index([venueId, performedAt])
+  @@index([action, performedAt])
+  @@index([studentId, examEntryId])
+  @@index([invigilatorId, examEntryId])
   @@map("exam_session_logs")
 }
 
 model InvigilatorAssignment {
-  id                Int              @id @default(autoincrement())
-  examEntryId       Int
-  invigilatorId     Int
-  role              InvigilatorRole
-  assignedBy        Int
-  assignedAt        DateTime         @default(now())
+  id            Int             @id @default(autoincrement())
+  examEntryId   Int
+  invigilatorId Int
+  role          InvigilatorRole
+  assignedBy    Int
+  assignedAt    DateTime        @default(now())
 
   // Status tracking
-  status            AssignmentStatus @default(ASSIGNED)
-  checkedInAt       DateTime?
-  checkedOutAt      DateTime?
+  status       AssignmentStatus @default(ASSIGNED)
+  checkedInAt  DateTime?
+  checkedOutAt DateTime?
 
   // Assignment details
-  venueId           Int
-  roomIds           String? // JSON array of room IDs
-  duties            String?
+  venueId Int
+  duties  String?
 
   // Reassignment tracking
-  reassignedFrom    Int?
-  reassignedAt      DateTime?
+  reassignedFrom     Int?
+  reassignedAt       DateTime?
   reassignmentReason String?
 
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  examEntry         ExamTimetableEntry @relation(fields: [examEntryId], references: [id], onDelete: Cascade)
-  invigilator       User              @relation(fields: [invigilatorId], references: [id])
-  assignedByUser    User              @relation("AssignmentAssignedBy", fields: [assignedBy], references: [id])
-  venue             Venue             @relation(fields: [venueId], references: [id])
-  previousAssignment InvigilatorAssignment? @relation("ReassignmentChain", fields: [reassignedFrom], references: [id])
+  examEntry          ExamTimetableEntry      @relation(fields: [examEntryId], references: [id], onDelete: Cascade)
+  invigilator        User                    @relation(fields: [invigilatorId], references: [id])
+  assignedByUser     User                    @relation("AssignmentAssignedBy", fields: [assignedBy], references: [id])
+  venue              Venue                   @relation(fields: [venueId], references: [id])
+  previousAssignment InvigilatorAssignment?  @relation("ReassignmentChain", fields: [reassignedFrom], references: [id])
   reassignments      InvigilatorAssignment[] @relation("ReassignmentChain")
 
+  @@unique([examEntryId, invigilatorId]) // Prevent duplicate assignments
   @@index([examEntryId, status])
   @@index([invigilatorId, assignedAt])
   @@index([venueId, assignedAt])
-  @@unique([examEntryId, invigilatorId]) // Prevent duplicate assignments
+  @@index([status, assignedAt])
+  @@index([invigilatorId, status])
   @@map("invigilator_assignments")
 }
 
 model StudentVerification {
-  id                Int                @id @default(autoincrement())
-  examEntryId       Int
-  studentId         Int
-  verifiedBy        Int
-  verifiedAt        DateTime           @default(now())
+  id          Int      @id @default(autoincrement())
+  examEntryId Int
+  studentId   Int
+  verifiedBy  Int
+  verifiedAt  DateTime @default(now())
 
   // Verification details
-  status            VerificationStatus @default(PENDING)
-  method            VerificationMethod
-  seatNumber        String?
+  status             VerificationStatus @default(PENDING)
+  method             VerificationMethod
+  seatNumber         String?
   specialArrangement String?
 
   // Biometric/QR verification
-  qrCode            String?
-  biometricMatch    Boolean?
-  confidenceScore   Float?
+  qrCode          String?
+  biometricMatch  Boolean?
+  confidenceScore Float?
 
   // Issues encountered
-  issues            String? // JSON array of VerificationIssue
-  notes             String?
+  issues String? // JSON array of VerificationIssue
+  notes  String?
 
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  examEntry         ExamTimetableEntry @relation(fields: [examEntryId], references: [id], onDelete: Cascade)
-  student           User               @relation(fields: [studentId], references: [id])
-  verifier          User               @relation("VerificationVerifier", fields: [verifiedBy], references: [id])
+  examEntry ExamTimetableEntry @relation(fields: [examEntryId], references: [id], onDelete: Cascade)
+  student   User               @relation(fields: [studentId], references: [id])
+  verifier  User               @relation("VerificationVerifier", fields: [verifiedBy], references: [id])
 
+  @@unique([examEntryId, studentId]) // One verification per student per exam
   @@index([examEntryId, verifiedAt])
   @@index([studentId, examEntryId])
   @@index([verifiedBy, verifiedAt])
-  @@unique([examEntryId, studentId]) // One verification per student per exam
+  @@index([status, method])
+  @@index([examEntryId, status])
   @@map("student_verifications")
 }
 
 model ExamIncident {
-  id                  Int               @id @default(autoincrement())
-  examEntryId         Int
-  type                ExamIncidentType
-  severity            IncidentSeverity  @default(MEDIUM)
-  status              IncidentStatus    @default(REPORTED)
+  id          Int              @id @default(autoincrement())
+  examEntryId Int
+  type        ExamIncidentType
+  severity    IncidentSeverity @default(MEDIUM)
+  status      IncidentStatus   @default(REPORTED)
 
   // Incident details
-  title               String
-  description         String
-  location            String?
-  affectedStudents    String? // JSON array of student IDs
-  affectedInvigilators String? // JSON array of invigilator IDs
+  title            String
+  description      String
+  location         String?
+  affectedStudents String? // JSON array of student IDs - TODO: Convert to junction table
 
   // Reporting
-  reportedBy          Int
-  reportedAt          DateTime          @default(now())
-  assignedTo          Int?
+  reportedBy Int
+  reportedAt DateTime @default(now())
+  assignedTo Int?
 
   // Resolution
-  resolution          String?
-  resolvedBy          Int?
-  resolvedAt          DateTime?
+  resolution String?
+  resolvedBy Int?
+  resolvedAt DateTime?
 
   // Evidence
-  attachments         String? // JSON array of file URLs
-  witnesses           String? // JSON array of user IDs
+  attachments String? // JSON array of file URLs
+  witnesses   String? // JSON array of user IDs
 
-  createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  examEntry           ExamTimetableEntry @relation(fields: [examEntryId], references: [id], onDelete: Cascade)
-  reporter            User              @relation("IncidentReporter", fields: [reportedBy], references: [id])
-  assignee            User?             @relation("IncidentAssignee", fields: [assignedTo], references: [id])
-  resolver            User?             @relation("IncidentResolver", fields: [resolvedBy], references: [id])
+  examEntry ExamTimetableEntry @relation(fields: [examEntryId], references: [id], onDelete: Cascade)
+  reporter  User               @relation("IncidentReporter", fields: [reportedBy], references: [id])
+  assignee  User?              @relation("IncidentAssignee", fields: [assignedTo], references: [id])
+  resolver  User?              @relation("IncidentResolver", fields: [resolvedBy], references: [id])
 
   @@index([examEntryId, status])
   @@index([reportedBy, reportedAt])
   @@index([assignedTo, status])
+  @@index([type, severity, status])
+  @@index([status, reportedAt])
   @@map("exam_incidents")
 }
 
@@ -1468,15 +1493,15 @@ enum BatchScriptStatus {
 }
 
 enum StudentIdFormat {
-  SEQUENTIAL        // e.g., 0721000001
-  ACADEMIC_YEAR     // e.g., BT/ITS/24/001
-  CUSTOM            // Custom pattern defined by institution
+  SEQUENTIAL // e.g., 0721000001
+  ACADEMIC_YEAR // e.g., BT/ITS/24/001
+  CUSTOM // Custom pattern defined by institution
 }
 
 enum StudentIdYearPosition {
-  PREFIX    // Year at the beginning
-  MIDDLE    // Year in the middle
-  SUFFIX    // Year at the end
+  PREFIX // Year at the beginning
+  MIDDLE // Year in the middle
+  SUFFIX // Year at the end
 }
 
 // ========================================

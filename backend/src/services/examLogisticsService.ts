@@ -73,7 +73,6 @@ export const examLogisticsService = {
         role: data.role,
         assignedBy: data.assignedBy,
         venueId: data.venueId,
-        roomIds: data.roomIds ? JSON.stringify(data.roomIds) : null,
         duties: data.duties,
       },
       include: {
@@ -165,7 +164,6 @@ export const examLogisticsService = {
           role: existingAssignment.role,
           assignedBy: data.reassignedBy,
           venueId: data.newVenueId || existingAssignment.venueId,
-          roomIds: data.newRoomIds ? JSON.stringify(data.newRoomIds) : existingAssignment.roomIds,
           duties: existingAssignment.duties,
           reassignedFrom: data.assignmentId,
         },
@@ -448,7 +446,7 @@ export const examLogisticsService = {
         action: ExamSessionAction.ROOM_CHANGE,
         description: "Student room change",
         metadata: {
-          oldRoomId: verification.examEntry.roomIds ? JSON.parse(verification.examEntry.roomIds as string) : null,
+          oldRoomId: null, // Room info available via examEntry.rooms junction table
           newRoomId: data.newRoomId,
           reason: data.reason,
         },
@@ -480,7 +478,6 @@ export const examLogisticsService = {
         description: data.description,
         location: data.location,
         affectedStudents: data.affectedStudents ? JSON.stringify(data.affectedStudents) : null,
-        affectedInvigilators: data.affectedInvigilators ? JSON.stringify(data.affectedInvigilators) : null,
         reportedBy: data.reportedBy,
         attachments: data.attachments ? JSON.stringify(data.attachments) : null,
         witnesses: data.witnesses ? JSON.stringify(data.witnesses) : null,
@@ -652,6 +649,7 @@ export const examLogisticsService = {
         course: true,
         studentVerifications: true,
         invigilatorAssignments: true,
+        rooms: { include: { room: true } },
         examIncidents: {
           where: {
             status: {
@@ -704,25 +702,20 @@ export const examLogisticsService = {
         totalInvigilatorsPresent: venueAssignments.filter(a => a.status === AssignmentStatus.CHECKED_IN || a.status === AssignmentStatus.ACTIVE).length,
         pendingIncidents: venueIncidents.filter(i => i.status === IncidentStatus.REPORTED).length,
         unresolvedIssues: venueIncidents.length,
-        rooms: venue.rooms.map(room => ({
-          roomId: room.id,
-          roomName: room.name,
-          capacity: room.capacity,
-          examEntryId: venueEntries.find(e => {
-            const roomIds = JSON.parse(e.roomIds as string);
-            return roomIds.includes(room.id);
-          })?.id,
-          courseCode: venueEntries.find(e => {
-            const roomIds = JSON.parse(e.roomIds as string);
-            return roomIds.includes(room.id);
-          })?.course.code,
-          verifiedStudents: venueEntries
-            .filter(e => {
-              const roomIds = JSON.parse(e.roomIds as string);
-              return roomIds.includes(room.id);
-            })
-            .reduce((sum, e) => sum + e.studentVerifications.length, 0),
-        })),
+        rooms: venue.rooms.map(room => {
+          // Find entry that uses this room via junction table
+          const entryForRoom = venueEntries.find(e =>
+            e.rooms?.some((r: any) => r.roomId === room.id)
+          );
+          return {
+            roomId: room.id,
+            roomName: room.name,
+            capacity: room.capacity,
+            examEntryId: entryForRoom?.id,
+            courseCode: entryForRoom?.course.code,
+            verifiedStudents: entryForRoom?.studentVerifications?.length || 0,
+          };
+        }),
       };
     });
 

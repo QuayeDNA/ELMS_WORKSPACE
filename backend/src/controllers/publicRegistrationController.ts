@@ -137,19 +137,27 @@ export const registerStudent = async (req: Request, res: Response) => {
         },
       });
 
-      // Create student profile
-      const studentProfile = await tx.studentProfile.create({
+      // Create student role profile with metadata
+      const studentMetadata = {
+        studentId,
+        indexNumber: studentId,
+        programId,
+        level: entryLevel || 100,
+        semester: 1,
+        admissionDate: new Date().toISOString(),
+        enrollmentStatus: 'ACTIVE',
+        academicStatus: 'GOOD_STANDING'
+      };
+
+      const roleProfile = await tx.roleProfile.create({
         data: {
           userId: user.id,
-          studentId,
-          indexNumber: studentId, // Same as student ID
-          programId,
-          level: entryLevel || 100,
-          semester: 1,
-          admissionDate: new Date(),
-          enrollmentStatus: 'ACTIVE',
-          academicStatus: 'GOOD_STANDING',
-        },
+          role: 'STUDENT',
+          isPrimary: true,
+          isActive: true,
+          permissions: {},
+          metadata: studentMetadata
+        }
       });
 
       // Create academic history
@@ -167,7 +175,7 @@ export const registerStudent = async (req: Request, res: Response) => {
         },
       });
 
-      return { user, studentProfile };
+      return { user, roleProfile };
     });
 
     // Return success with credentials
@@ -185,9 +193,9 @@ export const registerStudent = async (req: Request, res: Response) => {
           email: result.user.email,
         },
         studentProfile: {
-          studentId: result.studentProfile.studentId,
-          indexNumber: result.studentProfile.indexNumber,
-          programId: result.studentProfile.programId,
+          studentId: (result.roleProfile.metadata as any).studentId,
+          indexNumber: (result.roleProfile.metadata as any).indexNumber,
+          programId: (result.roleProfile.metadata as any).programId,
         },
         loginInstructions: {
           message: 'Please save your credentials. You can use them to login to the student dashboard.',

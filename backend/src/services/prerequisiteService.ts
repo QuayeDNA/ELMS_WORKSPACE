@@ -45,13 +45,20 @@ export class PrerequisiteService {
     const student = await prisma.user.findUnique({
       where: { id: studentId },
       include: {
-        enrollments: {
+        courseEnrollments: {
           where: {
-            grade: { not: null }
+            grade: { not: null },
+            status: 'ACTIVE'
           },
-          include: { course: true }
+          include: {
+            courseOffering: {
+              include: {
+                course: true
+              }
+            }
+          }
         },
-        studentProfiles: true,
+        roleProfiles: true,
         academicHistory: true
       }
     });
@@ -60,9 +67,10 @@ export class PrerequisiteService {
       throw new Error('Student not found');
     }
 
-    // Get program ID from student profiles (first profile)
-    const studentProfile = student.studentProfiles;
-    const effectiveProgramId = programId || studentProfile?.programId;
+    // Get program ID from student role profile
+    const studentRoleProfile = student.roleProfiles?.find(rp => rp.role === 'STUDENT');
+    const studentMetadata = studentRoleProfile?.metadata as any;
+    const effectiveProgramId = programId || studentMetadata?.programId;
 
     if (!effectiveProgramId) {
       throw new Error('Program not found for student');
@@ -103,8 +111,8 @@ export class PrerequisiteService {
       if (!prereqCourse) continue;
 
       // Check if student has completed this prerequisite
-      const enrollment = student.enrollments?.find(
-        e => e.courseId === prereqId && e.grade && !['F', 'W'].includes(e.grade)
+      const enrollment = student.courseEnrollments?.find(
+        (e: any) => e.courseOffering.courseId === prereqId && e.grade && !['F', 'W'].includes(e.grade)
       );
 
       if (enrollment) {

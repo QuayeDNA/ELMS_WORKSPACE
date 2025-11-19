@@ -36,7 +36,7 @@ export class BatchScriptService {
           course: true,
           assignedLecturer: {
             include: {
-              lecturerProfiles: true
+              roleProfiles: true
             }
           },
           sealedByUser: true,
@@ -72,7 +72,7 @@ export class BatchScriptService {
           course: true,
           assignedLecturer: {
             include: {
-              lecturerProfiles: true
+              roleProfiles: true
             }
           },
           sealedByUser: true,
@@ -123,7 +123,7 @@ export class BatchScriptService {
           course: true,
           assignedLecturer: {
             include: {
-              lecturerProfiles: true
+              roleProfiles: true
             }
           }
         },
@@ -267,7 +267,7 @@ export class BatchScriptService {
           course: true,
           assignedLecturer: {
             include: {
-              lecturerProfiles: true
+              roleProfiles: true
             }
           }
         }
@@ -281,7 +281,7 @@ export class BatchScriptService {
           type: 'BATCH_TRANSFERRED',
           toUserId: lecturerId,
           location: 'Lecturer Office',
-          notes: `Batch assigned to ${batchScript.assignedLecturer?.firstName} ${batchScript.assignedLecturer?.lastName}`
+          notes: `Batch assigned to ${batchScript.assignedLecturer?.firstName || ''} ${batchScript.assignedLecturer?.lastName || ''}`
         }
       });
 

@@ -42,7 +42,7 @@ export class ScriptSubmissionService {
         include: {
           student: {
             include: {
-              studentProfiles: true
+              roleProfiles: true
             }
           },
           examEntry: {
@@ -198,11 +198,11 @@ export class ScriptSubmissionService {
       const student = await prisma.user.findUnique({
         where: { id: studentId },
         include: {
-          studentProfiles: true
+          roleProfiles: true
         }
       });
 
-      if (!student || !student.studentProfiles) {
+      if (!student || !student.roleProfiles || student.roleProfiles.length === 0) {
         return {
           success: false,
           studentInfo: {} as any,
@@ -212,7 +212,8 @@ export class ScriptSubmissionService {
         };
       }
 
-      const studentProfile = student.studentProfiles;
+      const studentRoleProfile = student.roleProfiles.find(rp => rp.role === 'STUDENT');
+      const studentMetadata = studentRoleProfile?.metadata as any;
 
       // Get active exams for this student
       const activeExams = await ExamRegistrationService.getActiveExamsForStudent(studentId!);
@@ -225,9 +226,9 @@ export class ScriptSubmissionService {
           studentId: student.id,
           firstName: student.firstName,
           lastName: student.lastName,
-          indexNumber: (studentProfile as any).indexNumber || '',
-          programId: (studentProfile as any).programId || 0,
-          level: (studentProfile as any).level
+          indexNumber: studentMetadata?.indexNumber || '',
+          programId: studentMetadata?.programId || 0,
+          level: studentMetadata?.level
         },
         activeExams,
         canSubmit,

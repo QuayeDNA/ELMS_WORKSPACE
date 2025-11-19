@@ -210,7 +210,7 @@ export const examTimetableController = {
       const id = parseInt(req.params.id);
       const { status } = req.body;
       const userId = req.user?.userId;
-      const userRole = req.user?.role;
+      const userRole = req.user?.primaryRole;
 
       if (isNaN(id)) {
         return res.status(400).json({
@@ -705,7 +705,7 @@ export const examTimetableController = {
     try {
       const entryId = parseInt(req.params.entryId);
       const userId = req.user?.userId;
-      const userRole = req.user?.role;
+      const userRole = req.user?.primaryRole;
 
       if (isNaN(entryId)) {
         return res.status(400).json({
@@ -753,7 +753,7 @@ export const examTimetableController = {
     try {
       const entryId = parseInt(req.params.entryId);
       const userId = req.user?.userId;
-      const userRole = req.user?.role;
+      const userRole = req.user?.primaryRole;
 
       if (isNaN(entryId)) {
         return res.status(400).json({
@@ -798,7 +798,7 @@ export const examTimetableController = {
     try {
       const entryId = parseInt(req.params.entryId);
       const userId = req.user?.userId;
-      const userRole = req.user?.role;
+      const userRole = req.user?.primaryRole;
 
       if (isNaN(entryId)) {
         return res.status(400).json({

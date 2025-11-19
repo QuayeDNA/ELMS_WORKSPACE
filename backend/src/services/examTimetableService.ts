@@ -320,6 +320,40 @@ export const examTimetableService = {
                 status: true,
               },
             },
+            programs: {
+              include: {
+                program: {
+                  select: {
+                    id: true,
+                    name: true,
+                    code: true,
+                  },
+                },
+              },
+            },
+            rooms: {
+              include: {
+                room: {
+                  select: {
+                    id: true,
+                    name: true,
+                    capacity: true,
+                  },
+                },
+              },
+            },
+            invigilators: {
+              include: {
+                invigilator: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                  },
+                },
+              },
+            },
           },
         },
         conflicts: {
@@ -371,22 +405,22 @@ export const examTimetableService = {
       throw new Error("Timetable not found");
     }
 
-    // Transform entries to include parsed room details
+    // Transform entries to include ID arrays from junction tables
     const transformedEntries = timetable.entries.map((entry) => {
-      // Parse JSON strings to arrays
-      const roomIds = JSON.parse(entry.roomIds as string) as number[];
-      const programIds = JSON.parse(entry.programIds as string) as number[];
-      const invigilatorIds = JSON.parse(entry.invigilatorIds as string) as number[];
+      // Extract IDs from junction tables
+      const roomIds = entry.rooms.map((r) => r.room.id);
+      const programIds = entry.programs.map((p) => p.program.id);
+      const invigilatorIds = entry.invigilators.map((i) => i.invigilator.id);
 
-      // Filter venue rooms to get only the rooms assigned to this entry
-      const assignedRooms = entry.venue.rooms.filter((room) => roomIds.includes(room.id));
+      // Get room objects from junction table
+      const assignedRooms = entry.rooms.map((r) => r.room);
 
       return {
         ...entry,
-        roomIds, // Parsed array
-        programIds, // Parsed array
-        invigilatorIds, // Parsed array
-        rooms: assignedRooms, // Include actual room objects
+        roomIds, // ID array from junction table
+        programIds, // ID array from junction table
+        invigilatorIds, // ID array from junction table
+        rooms: assignedRooms, // Room objects from junction table
       };
     });
 
@@ -945,41 +979,13 @@ export const examTimetableService = {
       ];
     }
 
-    // Filter by program ID (stored as JSON array)
+    // Filter by program ID using junction table
     if (programId) {
-      const entries = await prisma.examTimetableEntry.findMany({
-        where,
-      });
-
-      // Filter in memory for JSON array contains
-      const filtered = entries.filter((entry) => {
-        try {
-          const programIds = JSON.parse(entry.programIds);
-          return programIds.includes(programId);
-        } catch {
-          return false;
-        }
-      });
-
-      // Get IDs of filtered entries
-      const ids = filtered.map((e) => e.id);
-      if (ids.length > 0) {
-        where.id = { in: ids };
-      } else {
-        // No matching entries
-        return {
-          success: true,
-          data: [],
-          pagination: {
-            page,
-            limit,
-            total: 0,
-            totalPages: 0,
-            hasNext: false,
-            hasPrev: false,
-          },
-        };
-      }
+      where.programs = {
+        some: {
+          programId: programId,
+        },
+      };
     }
 
     const total = await prisma.examTimetableEntry.count({ where });
@@ -1073,6 +1079,33 @@ export const examTimetableService = {
           },
         },
         exam: true,
+        programs: {
+          include: {
+            program: {
+              include: {
+                department: true,
+              },
+            },
+          },
+        },
+        rooms: {
+          include: {
+            room: true,
+          },
+        },
+        invigilators: {
+          include: {
+            invigilator: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                title: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -1080,33 +1113,10 @@ export const examTimetableService = {
       throw new Error("Timetable entry not found");
     }
 
-    // Parse JSON fields
-    const programIds = JSON.parse(entry.programIds);
-    const roomIds = JSON.parse(entry.roomIds);
-    const invigilatorIds = JSON.parse(entry.invigilatorIds);
-
-    // Fetch related data
-    const [programs, rooms, invigilators] = await Promise.all([
-      prisma.program.findMany({
-        where: { id: { in: programIds } },
-        include: {
-          department: true,
-        },
-      }),
-      prisma.room.findMany({
-        where: { id: { in: roomIds } },
-      }),
-      prisma.user.findMany({
-        where: { id: { in: invigilatorIds } },
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          email: true,
-          title: true,
-        },
-      }),
-    ]);
+    // Extract data from junction tables
+    const programs = entry.programs.map((p: any) => p.program);
+    const rooms = entry.rooms.map((r: any) => r.room);
+    const invigilators = entry.invigilators.map((i: any) => i.invigilator);
 
     const chiefInvigilator = entry.chiefInvigilatorId
       ? await prisma.user.findUnique({
@@ -1212,34 +1222,45 @@ export const examTimetableService = {
       throw new Error("Exam date must be within timetable date range");
     }
 
-    // Store as JSON arrays
-    const programIdsJson = JSON.stringify(data.programIds);
-    const roomIdsJson = JSON.stringify(data.roomIds);
-    const invigilatorIdsJson = JSON.stringify(data.invigilatorIds || []);
-
-    // Create entry
+    // Create entry with junction table records
     const entry = await prisma.examTimetableEntry.create({
       data: {
         timetableId: data.timetableId,
         courseId: data.courseId,
-        programIds: programIdsJson,
         level: data.level,
         examDate,
         startTime,
         endTime,
         duration: data.duration,
         venueId: data.venueId,
-        roomIds: roomIdsJson,
         seatingCapacity,
-        invigilatorIds: invigilatorIdsJson,
         chiefInvigilatorId: data.chiefInvigilatorId,
         notes: data.notes,
         specialRequirements: data.specialRequirements,
+        programs: {
+          create: data.programIds.map((programId) => ({
+            programId,
+          })),
+        },
+        rooms: {
+          create: data.roomIds.map((roomId) => ({
+            roomId,
+          })),
+        },
+        invigilators: {
+          create: (data.invigilatorIds || []).map((invigilatorId) => ({
+            invigilatorId,
+            role: 'INVIGILATOR' as any,
+          })),
+        },
       },
       include: {
         timetable: true,
         course: true,
         venue: true,
+        programs: { include: { program: true } },
+        rooms: { include: { room: true } },
+        invigilators: { include: { invigilator: true } },
       },
     });
 
@@ -1437,19 +1458,32 @@ export const examTimetableService = {
     if (data.specialRequirements !== undefined) updateData.specialRequirements = data.specialRequirements;
     if (data.chiefInvigilatorId !== undefined) updateData.chiefInvigilatorId = data.chiefInvigilatorId;
 
+    // Handle junction table updates separately
     if (data.programIds) {
-      updateData.programIds = JSON.stringify(data.programIds);
+      updateData.programs = {
+        deleteMany: {}, // Clear existing
+        create: data.programIds.map((programId: number) => ({ programId })),
+      };
     }
     if (data.roomIds) {
-      updateData.roomIds = JSON.stringify(data.roomIds);
       // Recalculate seating capacity
       const rooms = await prisma.room.findMany({
         where: { id: { in: data.roomIds } },
       });
       updateData.seatingCapacity = rooms.reduce((sum, room) => sum + room.capacity, 0);
+      updateData.rooms = {
+        deleteMany: {}, // Clear existing
+        create: data.roomIds.map((roomId: number) => ({ roomId })),
+      };
     }
     if (data.invigilatorIds) {
-      updateData.invigilatorIds = JSON.stringify(data.invigilatorIds);
+      updateData.invigilators = {
+        deleteMany: {}, // Clear existing
+        create: data.invigilatorIds.map((invigilatorId: number) => ({
+          invigilatorId,
+          role: 'INVIGILATOR' as any,
+        })),
+      };
     }
 
     if (data.examDate) updateData.examDate = new Date(data.examDate);
@@ -1554,6 +1588,9 @@ export const examTimetableService = {
       include: {
         course: true,
         venue: true,
+        programs: { select: { programId: true } },
+        rooms: { select: { roomId: true } },
+        invigilators: { select: { invigilatorId: true } },
       },
     });
 
@@ -1582,8 +1619,8 @@ export const examTimetableService = {
         if (timeOverlap) {
           // Check venue conflict
           if (entry1.venueId === entry2.venueId) {
-            const rooms1 = JSON.parse(entry1.roomIds);
-            const rooms2 = JSON.parse(entry2.roomIds);
+            const rooms1 = entry1.rooms.map(r => r.roomId);
+            const rooms2 = entry2.rooms.map(r => r.roomId);
             const roomOverlap = rooms1.some((r: number) => rooms2.includes(r));
 
             if (roomOverlap) {
@@ -1600,8 +1637,8 @@ export const examTimetableService = {
           }
 
           // Check student conflict (program overlap)
-          const programs1 = JSON.parse(entry1.programIds);
-          const programs2 = JSON.parse(entry2.programIds);
+          const programs1 = entry1.programs.map(p => p.programId);
+          const programs2 = entry2.programs.map(p => p.programId);
           const programOverlap = programs1.some((p: number) => programs2.includes(p));
 
           if (programOverlap) {
@@ -1618,8 +1655,8 @@ export const examTimetableService = {
           }
 
           // Check invigilator conflict
-          const invigs1 = JSON.parse(entry1.invigilatorIds);
-          const invigs2 = JSON.parse(entry2.invigilatorIds);
+          const invigs1 = entry1.invigilators.map(i => i.invigilatorId);
+          const invigs2 = entry2.invigilators.map(i => i.invigilatorId);
           const invigilatorOverlap = invigs1.some((i: number) => invigs2.includes(i));
 
           if (invigilatorOverlap || entry1.chiefInvigilatorId === entry2.chiefInvigilatorId) {

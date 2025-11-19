@@ -1,15 +1,15 @@
 import { Router } from 'express';
-import { 
-  AuthController, 
-  validateLogin, 
-  validateRegister, 
-  validatePasswordChange 
+import {
+  AuthController,
+  validateLogin,
+  validateRegister,
+  validatePasswordChange
 } from '../controllers/authController';
-import { 
-  authenticateToken, 
-  requireRole, 
+import {
+  authenticateToken,
+  requireRole,
   requirePermission,
-  requireHierarchicalAccess 
+  requireHierarchicalAccess
 } from '../middleware/auth';
 import { UserRole } from '../types/auth';
 
@@ -98,9 +98,9 @@ router.post('/logout', authenticateToken, AuthController.logout);
  * @desc    Change user password
  * @access  Private
  */
-router.post('/change-password', 
-  authenticateToken, 
-  validatePasswordChange, 
+router.post('/change-password',
+  authenticateToken,
+  validatePasswordChange,
   AuthController.changePassword
 );
 
@@ -116,7 +116,7 @@ router.post('/change-password',
 router.post('/admin/create-user',
   authenticateToken,
   requireRole(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.FACULTY_ADMIN),
-  requirePermission('canCreateUsers'),
+  requirePermission('users', 'create'),
   validateRegister,
   AuthController.register
 );
@@ -155,9 +155,9 @@ router.post('/admin/create-exam-officer',
 router.post('/admin/create-script-handler',
   authenticateToken,
   requireRole(
-    UserRole.SUPER_ADMIN, 
-    UserRole.ADMIN, 
-    UserRole.FACULTY_ADMIN, 
+    UserRole.SUPER_ADMIN,
+    UserRole.ADMIN,
+    UserRole.FACULTY_ADMIN,
     UserRole.EXAMS_OFFICER
   ),
   requireHierarchicalAccess(UserRole.SCRIPT_HANDLER),
@@ -173,9 +173,9 @@ router.post('/admin/create-script-handler',
 router.post('/admin/create-invigilator',
   authenticateToken,
   requireRole(
-    UserRole.SUPER_ADMIN, 
-    UserRole.ADMIN, 
-    UserRole.FACULTY_ADMIN, 
+    UserRole.SUPER_ADMIN,
+    UserRole.ADMIN,
+    UserRole.FACULTY_ADMIN,
     UserRole.EXAMS_OFFICER
   ),
   requireHierarchicalAccess(UserRole.INVIGILATOR),
@@ -260,7 +260,7 @@ router.get('/my-permissions',
     res.json({
       success: true,
       data: {
-        role: user.role,
+        role: user.primaryRole,
         permissions: user.permissions,
         scope: {
           institutionId: user.institutionId,

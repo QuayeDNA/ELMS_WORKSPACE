@@ -6,473 +6,111 @@ import { UserRole, RolePermissions, RoleHierarchy } from '../types/auth';
 
 export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
   [UserRole.SUPER_ADMIN]: {
-    // User Management - Full control
-    canManageUsers: true,
-    canViewUsers: true,
-    canCreateUsers: true,
-    canUpdateUsers: true,
-    canDeleteUsers: true,
-
-    // Institution Management - Full control
-    canManageInstitutions: true,
-    canManageFaculties: true,
-    canManageDepartments: true,
-
-    // Exam Management - Full oversight
-    canCreateExams: true,
-    canScheduleExams: true,
-    canManageExams: true,
-    canViewExams: true,
-    canConductExams: true,
-
-    // Script Management - Full oversight
-    canGenerateScripts: true,
-    canTrackScripts: true,
-    canHandleScripts: true,
-    canScanQrCodes: true,
-    canGradeScripts: true,
-
-    // Incident Management - Full oversight
-    canReportIncidents: true,
-    canManageIncidents: true,
-    canInvestigateIncidents: true,
-    canResolveIncidents: true,
-
-    // Venue Management - Full control
-    canManageVenues: true,
-    canViewVenues: true,
-
-    // Analytics & Reporting - Full access
-    canViewAnalytics: true,
-    canExportData: true,
-    canViewAuditLogs: true,
-
-    // Administrative - Full control
-    canManageSettings: true,
-    canViewSystemLogs: true,
+    all: { all: true },
+    users: { create: true, read: true, update: true, delete: true, manage: true },
+    institutions: { create: true, read: true, update: true, delete: true, manage: true },
+    faculties: { create: true, read: true, update: true, delete: true, manage: true },
+    departments: { create: true, read: true, update: true, delete: true, manage: true },
+    programs: { create: true, read: true, update: true, delete: true, manage: true },
+    courses: { create: true, read: true, update: true, delete: true, manage: true },
+    exams: { create: true, read: true, update: true, delete: true, schedule: true, manage: true, conduct: true },
+    scripts: { create: true, read: true, update: true, delete: true, generate: true, track: true, handle: true, scan: true, grade: true },
+    incidents: { create: true, read: true, update: true, delete: true, report: true, manage: true, investigate: true, resolve: true },
+    venues: { create: true, read: true, update: true, delete: true, manage: true },
+    analytics: { view: true, export: true },
+    reports: { view: true, create: true, export: true },
+    students: { create: true, read: true, update: true, delete: true, manage: true },
+    lecturers: { create: true, read: true, update: true, delete: true, manage: true },
   },
 
   [UserRole.ADMIN]: {
-    // User Management - Institution level
-    canManageUsers: true,
-    canViewUsers: true,
-    canCreateUsers: true,
-    canUpdateUsers: true,
-    canDeleteUsers: false, // Can suspend but not delete
-
-    // Institution Management - Limited to their institution
-    canManageInstitutions: false,
-    canManageFaculties: true,
-    canManageDepartments: true,
-
-    // Exam Management - Institution oversight
-    canCreateExams: true,
-    canScheduleExams: true,
-    canManageExams: true,
-    canViewExams: true,
-    canConductExams: false, // Admins don't conduct exams
-
-    // Script Management - Oversight
-    canGenerateScripts: true,
-    canTrackScripts: true,
-    canHandleScripts: false,
-    canScanQrCodes: false,
-    canGradeScripts: false,
-
-    // Incident Management - Institution level
-    canReportIncidents: true,
-    canManageIncidents: true,
-    canInvestigateIncidents: true,
-    canResolveIncidents: true,
-
-    // Venue Management - Institution level
-    canManageVenues: true,
-    canViewVenues: true,
-
-    // Analytics & Reporting - Institution level
-    canViewAnalytics: true,
-    canExportData: true,
-    canViewAuditLogs: true,
-
-    // Administrative - Limited
-    canManageSettings: false,
-    canViewSystemLogs: false,
+    users: { create: true, read: true, update: true, manage: true },
+    faculties: { create: true, read: true, update: true, manage: true },
+    departments: { create: true, read: true, update: true, manage: true },
+    programs: { create: true, read: true, update: true, manage: true },
+    courses: { read: true, update: true },
+    exams: { create: true, read: true, update: true, schedule: true, manage: true },
+    scripts: { read: true, generate: true, track: true },
+    incidents: { create: true, read: true, update: true, report: true, manage: true, investigate: true, resolve: true },
+    venues: { create: true, read: true, update: true, manage: true },
+    analytics: { view: true, export: true },
+    reports: { view: true, create: true, export: true },
+    students: { create: true, read: true, update: true, manage: true },
+    lecturers: { read: true, update: true },
   },
 
   [UserRole.FACULTY_ADMIN]: {
-    // User Management - Faculty level
-    canManageUsers: true,
-    canViewUsers: true,
-    canCreateUsers: true,
-    canUpdateUsers: true,
-    canDeleteUsers: false,
-
-    // Institution Management - Faculty only
-    canManageInstitutions: false,
-    canManageFaculties: false,
-    canManageDepartments: true,
-
-    // Exam Management - Faculty level
-    canCreateExams: true,
-    canScheduleExams: true,
-    canManageExams: true,
-    canViewExams: true,
-    canConductExams: false,
-
-    // Script Management - Faculty oversight
-    canGenerateScripts: true,
-    canTrackScripts: true,
-    canHandleScripts: false,
-    canScanQrCodes: false,
-    canGradeScripts: false,
-
-    // Incident Management - Faculty level
-    canReportIncidents: true,
-    canManageIncidents: true,
-    canInvestigateIncidents: true,
-    canResolveIncidents: true,
-
-    // Venue Management - Faculty level
-    canManageVenues: true,
-    canViewVenues: true,
-
-    // Analytics & Reporting - Faculty level
-    canViewAnalytics: true,
-    canExportData: true,
-    canViewAuditLogs: false,
-
-    // Administrative - None
-    canManageSettings: false,
-    canViewSystemLogs: false,
+    users: { create: true, read: true, update: true },
+    departments: { create: true, read: true, update: true, manage: true },
+    programs: { create: true, read: true, update: true },
+    courses: { read: true },
+    exams: { create: true, read: true, update: true, schedule: true, manage: true },
+    scripts: { read: true, generate: true, track: true },
+    incidents: { create: true, read: true, report: true, manage: true },
+    venues: { read: true, update: true, manage: true },
+    analytics: { view: true, export: true },
+    reports: { view: true, export: true },
+    students: { read: true, update: true },
+    lecturers: { read: true },
   },
 
   [UserRole.DEAN]: {
-    // User Management - Faculty level
-    canManageUsers: true,
-    canViewUsers: true,
-    canCreateUsers: true,
-    canUpdateUsers: true,
-    canDeleteUsers: false,
-
-    // Institution Management - Faculty only
-    canManageInstitutions: false,
-    canManageFaculties: false,
-    canManageDepartments: true,
-
-    // Exam Management - Faculty level
-    canCreateExams: true,
-    canScheduleExams: true,
-    canManageExams: true,
-    canViewExams: true,
-    canConductExams: false,
-
-    // Script Management - Faculty oversight
-    canGenerateScripts: true,
-    canTrackScripts: true,
-    canHandleScripts: false,
-    canScanQrCodes: false,
-    canGradeScripts: false,
-
-    // Incident Management - Faculty level
-    canReportIncidents: true,
-    canManageIncidents: true,
-    canInvestigateIncidents: true,
-    canResolveIncidents: true,
-
-    // Venue Management - Faculty level
-    canManageVenues: true,
-    canViewVenues: true,
-
-    // Analytics & Reporting - Faculty level
-    canViewAnalytics: true,
-    canExportData: true,
-    canViewAuditLogs: false,
-
-    // Administrative - None
-    canManageSettings: false,
-    canViewSystemLogs: false,
+    departments: { read: true, update: true, manage: true },
+    programs: { read: true, update: true, manage: true },
+    courses: { read: true },
+    exams: { create: true, read: true, schedule: true, manage: true },
+    scripts: { read: true, track: true },
+    incidents: { create: true, read: true, report: true },
+    venues: { read: true },
+    analytics: { view: true },
+    students: { read: true },
+    lecturers: { read: true },
   },
 
   [UserRole.HOD]: {
-    // User Management - Department level
-    canManageUsers: true,
-    canViewUsers: true,
-    canCreateUsers: false,
-    canUpdateUsers: true,
-    canDeleteUsers: false,
-
-    // Institution Management - Department only
-    canManageInstitutions: false,
-    canManageFaculties: false,
-    canManageDepartments: false,
-
-    // Exam Management - Department level
-    canCreateExams: true,
-    canScheduleExams: true,
-    canManageExams: true,
-    canViewExams: true,
-    canConductExams: false,
-
-    // Script Management - Department oversight
-    canGenerateScripts: true,
-    canTrackScripts: true,
-    canHandleScripts: false,
-    canScanQrCodes: false,
-    canGradeScripts: false,
-
-    // Incident Management - Department level
-    canReportIncidents: true,
-    canManageIncidents: true,
-    canInvestigateIncidents: true,
-    canResolveIncidents: false,
-
-    // Venue Management - View and suggest
-    canManageVenues: false,
-    canViewVenues: true,
-
-    // Analytics & Reporting - Department level
-    canViewAnalytics: true,
-    canExportData: true,
-    canViewAuditLogs: false,
-
-    // Administrative - None
-    canManageSettings: false,
-    canViewSystemLogs: false,
+    departments: { read: true, update: true },
+    courses: { read: true, update: true, manage: true },
+    exams: { create: true, read: true, schedule: true },
+    scripts: { read: true, track: true },
+    incidents: { create: true, read: true, report: true, manage: true },
+    venues: { read: true },
+    analytics: { view: true },
+    students: { read: true },
+    lecturers: { read: true },
   },
 
   [UserRole.EXAMS_OFFICER]: {
-    // User Management - Limited
-    canManageUsers: false,
-    canViewUsers: true,
-    canCreateUsers: false,
-    canUpdateUsers: false,
-    canDeleteUsers: false,
-
-    // Institution Management - None
-    canManageInstitutions: false,
-    canManageFaculties: false,
-    canManageDepartments: false,
-
-    // Exam Management - Core functionality
-    canCreateExams: true,
-    canScheduleExams: true,
-    canManageExams: true,
-    canViewExams: true,
-    canConductExams: false,
-
-    // Script Management - Logistics
-    canGenerateScripts: true,
-    canTrackScripts: true,
-    canHandleScripts: false,
-    canScanQrCodes: false,
-    canGradeScripts: false,
-
-    // Incident Management - Core functionality
-    canReportIncidents: true,
-    canManageIncidents: true,
-    canInvestigateIncidents: true,
-    canResolveIncidents: true,
-
-    // Venue Management - Scheduling
-    canManageVenues: true,
-    canViewVenues: true,
-
-    // Analytics & Reporting - Exam focused
-    canViewAnalytics: true,
-    canExportData: true,
-    canViewAuditLogs: false,
-
-    // Administrative - None
-    canManageSettings: false,
-    canViewSystemLogs: false,
+    exams: { create: true, read: true, update: true, schedule: true, manage: true, conduct: true },
+    scripts: { read: true, generate: true, track: true, handle: true, scan: true },
+    incidents: { create: true, read: true, update: true, report: true, manage: true },
+    venues: { read: true, update: true, manage: true },
+    students: { read: true },
+    lecturers: { read: true },
   },
 
   [UserRole.SCRIPT_HANDLER]: {
-    // User Management - None
-    canManageUsers: false,
-    canViewUsers: false,
-    canCreateUsers: false,
-    canUpdateUsers: false,
-    canDeleteUsers: false,
-
-    // Institution Management - None
-    canManageInstitutions: false,
-    canManageFaculties: false,
-    canManageDepartments: false,
-
-    // Exam Management - View only
-    canCreateExams: false,
-    canScheduleExams: false,
-    canManageExams: false,
-    canViewExams: true,
-    canConductExams: false,
-
-    // Script Management - Core functionality
-    canGenerateScripts: false,
-    canTrackScripts: true,
-    canHandleScripts: true,
-    canScanQrCodes: true,
-    canGradeScripts: false,
-
-    // Incident Management - Report only
-    canReportIncidents: true,
-    canManageIncidents: false,
-    canInvestigateIncidents: false,
-    canResolveIncidents: false,
-
-    // Venue Management - View only
-    canManageVenues: false,
-    canViewVenues: true,
-
-    // Analytics & Reporting - Script focused
-    canViewAnalytics: false,
-    canExportData: false,
-    canViewAuditLogs: false,
-
-    // Administrative - None
-    canManageSettings: false,
-    canViewSystemLogs: false,
+    scripts: { read: true, handle: true, scan: true, track: true },
+    incidents: { create: true, read: true, report: true },
+    exams: { read: true },
   },
 
   [UserRole.INVIGILATOR]: {
-    // User Management - None
-    canManageUsers: false,
-    canViewUsers: false,
-    canCreateUsers: false,
-    canUpdateUsers: false,
-    canDeleteUsers: false,
-
-    // Institution Management - None
-    canManageInstitutions: false,
-    canManageFaculties: false,
-    canManageDepartments: false,
-
-    // Exam Management - Conduct only
-    canCreateExams: false,
-    canScheduleExams: false,
-    canManageExams: false,
-    canViewExams: true,
-    canConductExams: true,
-
-    // Script Management - Collection & basic handling
-    canGenerateScripts: false,
-    canTrackScripts: true,
-    canHandleScripts: true,
-    canScanQrCodes: true,
-    canGradeScripts: false,
-
-    // Incident Management - Report incidents
-    canReportIncidents: true,
-    canManageIncidents: false,
-    canInvestigateIncidents: false,
-    canResolveIncidents: false,
-
-    // Venue Management - View only
-    canManageVenues: false,
-    canViewVenues: true,
-
-    // Analytics & Reporting - None
-    canViewAnalytics: false,
-    canExportData: false,
-    canViewAuditLogs: false,
-
-    // Administrative - None
-    canManageSettings: false,
-    canViewSystemLogs: false,
+    exams: { read: true, conduct: true },
+    scripts: { read: true, handle: true },
+    incidents: { create: true, read: true, report: true },
+    students: { read: true },
   },
 
   [UserRole.LECTURER]: {
-    // User Management - None
-    canManageUsers: false,
-    canViewUsers: false,
-    canCreateUsers: false,
-    canUpdateUsers: false,
-    canDeleteUsers: false,
-
-    // Institution Management - None
-    canManageInstitutions: false,
-    canManageFaculties: false,
-    canManageDepartments: false,
-
-    // Exam Management - Create & view for their courses
-    canCreateExams: true,
-    canScheduleExams: false,
-    canManageExams: true, // Only for their courses
-    canViewExams: true,
-    canConductExams: false,
-
-    // Script Management - Grading
-    canGenerateScripts: false,
-    canTrackScripts: true,
-    canHandleScripts: false,
-    canScanQrCodes: false,
-    canGradeScripts: true,
-
-    // Incident Management - Report only
-    canReportIncidents: true,
-    canManageIncidents: false,
-    canInvestigateIncidents: false,
-    canResolveIncidents: false,
-
-    // Venue Management - View only
-    canManageVenues: false,
-    canViewVenues: true,
-
-    // Analytics & Reporting - Course specific
-    canViewAnalytics: true, // Only for their courses
-    canExportData: true, // Only for their courses
-    canViewAuditLogs: false,
-
-    // Administrative - None
-    canManageSettings: false,
-    canViewSystemLogs: false,
+    courses: { read: true },
+    exams: { read: true },
+    scripts: { read: true, grade: true },
+    students: { read: true },
   },
 
   [UserRole.STUDENT]: {
-    // User Management - None
-    canManageUsers: false,
-    canViewUsers: false,
-    canCreateUsers: false,
-    canUpdateUsers: false,
-    canDeleteUsers: false,
-
-    // Institution Management - None
-    canManageInstitutions: false,
-    canManageFaculties: false,
-    canManageDepartments: false,
-
-    // Exam Management - View only (their exams)
-    canCreateExams: false,
-    canScheduleExams: false,
-    canManageExams: false,
-    canViewExams: true, // Only their exams
-    canConductExams: false,
-
-    // Script Management - View only (their scripts)
-    canGenerateScripts: false,
-    canTrackScripts: true, // Only their scripts
-    canHandleScripts: false,
-    canScanQrCodes: false,
-    canGradeScripts: false,
-
-    // Incident Management - Report only
-    canReportIncidents: true,
-    canManageIncidents: false,
-    canInvestigateIncidents: false,
-    canResolveIncidents: false,
-
-    // Venue Management - View only
-    canManageVenues: false,
-    canViewVenues: true,
-
-    // Analytics & Reporting - Personal only
-    canViewAnalytics: false,
-    canExportData: false,
-    canViewAuditLogs: false,
-
-    // Administrative - None
-    canManageSettings: false,
-    canViewSystemLogs: false,
+    exams: { read: true },
+    courses: { read: true },
   },
 };
 
@@ -612,8 +250,22 @@ export function getRoleHierarchy(role: UserRole): RoleHierarchy {
   return ROLE_HIERARCHY[role];
 }
 
-export function hasPermission(role: UserRole, permission: keyof RolePermissions): boolean {
-  return ROLE_PERMISSIONS[role][permission];
+export function hasPermission(role: UserRole, resource: string, action: string): boolean {
+  const permissions = ROLE_PERMISSIONS[role];
+
+  // Check if role has all permissions
+  if (permissions.all?.all) {
+    return true;
+  }
+
+  // Check specific resource permission
+  const resourcePermissions = permissions[resource];
+  if (!resourcePermissions) {
+    return false;
+  }
+
+  // Check specific action or 'all' action
+  return resourcePermissions[action] === true || resourcePermissions.all === true;
 }
 
 export function getRolesByScope(scope: 'SYSTEM' | 'INSTITUTION' | 'FACULTY' | 'DEPARTMENT' | 'COURSE'): UserRole[] {

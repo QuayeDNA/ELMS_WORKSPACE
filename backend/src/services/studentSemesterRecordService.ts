@@ -126,11 +126,11 @@ export class StudentSemesterRecordService {
             firstName: true,
             lastName: true,
             email: true,
-            studentProfiles: {
+            roleProfiles: {
               select: {
-                studentId: true,
-                level: true,
-                programId: true
+                id: true,
+                role: true,
+                metadata: true
               }
             }
           }
@@ -240,20 +240,24 @@ export class StudentSemesterRecordService {
    */
   async calculateSemesterGPA(studentId: number, semesterId: number) {
     // Get all completed enrollments for the semester
-    const enrollments = await prisma.enrollment.findMany({
+    const enrollments = await prisma.courseEnrollment.findMany({
       where: {
         studentId,
         semesterId,
-        status: 'COMPLETED',
+        status: 'ACTIVE',
         grade: { not: null }
       },
       include: {
-        course: {
-          select: {
-            id: true,
-            name: true,
-            code: true,
-            creditHours: true
+        courseOffering: {
+          include: {
+            course: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+                creditHours: true
+              }
+            }
           }
         }
       }
@@ -275,7 +279,7 @@ export class StudentSemesterRecordService {
 
     for (const enrollment of enrollments) {
       const grade = enrollment.grade;
-      const credits = enrollment.course.creditHours;
+      const credits = enrollment.courseOffering.course.creditHours;
 
       if (grade && grade in GRADE_POINTS) {
         const gradePoint = GRADE_POINTS[grade];
@@ -440,18 +444,22 @@ export class StudentSemesterRecordService {
     const record = await this.getSemesterRecord(studentId, semesterId);
 
     // Get detailed enrollment information
-    const enrollments = await prisma.enrollment.findMany({
+    const enrollments = await prisma.courseEnrollment.findMany({
       where: {
         studentId,
         semesterId
       },
       include: {
-        course: {
-          select: {
-            id: true,
-            name: true,
-            code: true,
-            creditHours: true
+        courseOffering: {
+          include: {
+            course: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+                creditHours: true
+              }
+            }
           }
         }
       }
@@ -476,11 +484,11 @@ export class StudentSemesterRecordService {
         total: enrollments.length,
         byStatus,
         byGrade,
-        courses: enrollments.map(e => ({
-          courseId: e.course.id,
-          courseName: e.course.name,
-          courseCode: e.course.code,
-          credits: e.course.creditHours,
+        courses: enrollments.map((e: any) => ({
+          courseId: e.courseOffering.course.id,
+          courseName: e.courseOffering.course.name,
+          courseCode: e.courseOffering.course.code,
+          credits: e.courseOffering.course.creditHours,
           grade: e.grade,
           status: e.status
         }))

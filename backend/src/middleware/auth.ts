@@ -32,28 +32,22 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
 
     // Verify JWT token
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload;
-    
+
     // Add user data to request
     req.user = decoded;
-    
-    // Create access context
+
+    // Create access context with flat properties matching AccessContext interface
     req.accessContext = {
-      user: {
-        id: decoded.userId,
-        email: decoded.email,
-        firstName: '', // Will be populated from DB if needed
-        lastName: '',
-        role: decoded.role,
-        status: UserStatus.ACTIVE, // Default, should be checked from DB
+      userId: decoded.userId,
+      role: decoded.primaryRole, // Use primaryRole from new JWT structure
+      permissions: decoded.permissions,
+      resource: '',
+      action: '',
+      scope: {
         institutionId: decoded.institutionId,
         facultyId: decoded.facultyId,
-        departmentId: decoded.departmentId,
-        permissions: decoded.permissions,
-        emailVerified: true,
-        twoFactorEnabled: false
-      },
-      resource: '',
-      action: ''
+        departmentId: decoded.departmentId
+      }
     };
 
     next();
@@ -65,7 +59,7 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
         code: 'TOKEN_EXPIRED'
       });
     }
-    
+
     if (error instanceof jwt.JsonWebTokenError) {
       return res.status(401).json({
         success: false,
@@ -96,13 +90,13 @@ export const requireRole = (...allowedRoles: UserRole[]) => {
       });
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
+    if (!allowedRoles.includes(req.user.primaryRole)) {
       return res.status(403).json({
         success: false,
         message: 'Insufficient role privileges',
         code: 'INSUFFICIENT_ROLE',
         required: allowedRoles,
-        current: req.user.role
+        current: req.user.primaryRole
       });
     }
 
@@ -114,7 +108,7 @@ export const requireRole = (...allowedRoles: UserRole[]) => {
 // PERMISSION-BASED ACCESS CONTROL
 // ========================================
 
-export const requirePermission = (...requiredPermissions: (keyof RolePermissions)[]) => {
+export const requirePermission = (resource: string, action: string) => {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res.status(401).json({
@@ -124,18 +118,13 @@ export const requirePermission = (...requiredPermissions: (keyof RolePermissions
       });
     }
 
-    const userPermissions = getRolePermissions(req.user.role);
-    const missingPermissions = requiredPermissions.filter(
-      permission => !userPermissions[permission]
-    );
-
-    if (missingPermissions.length > 0) {
+    if (!hasPermission(req.user.primaryRole, resource, action)) {
       return res.status(403).json({
         success: false,
         message: 'Insufficient permissions',
         code: 'INSUFFICIENT_PERMISSIONS',
-        required: requiredPermissions,
-        missing: missingPermissions
+        required: `${resource}:${action}`,
+        role: req.user.primaryRole
       });
     }
 
@@ -161,7 +150,7 @@ export const requireScope = (scopeType: 'institution' | 'faculty' | 'department'
     const userScopeId = req.user[`${scopeType}Id` as keyof JwtPayload] as number | undefined;
 
     // Super Admin and Admin can access any scope
-    if ([UserRole.SUPER_ADMIN, UserRole.ADMIN].includes(req.user.role)) {
+    if (([UserRole.SUPER_ADMIN, UserRole.ADMIN] as UserRole[]).includes(req.user.primaryRole)) {
       return next();
     }
 
@@ -209,20 +198,20 @@ export const requireOwnership = (resourceType: 'script' | 'exam' | 'incident') =
     }
 
     // Super Admin and Admin can access any resource
-    if ([UserRole.SUPER_ADMIN, UserRole.ADMIN].includes(req.user.role)) {
+    if (([UserRole.SUPER_ADMIN, UserRole.ADMIN] as UserRole[]).includes(req.user.primaryRole)) {
       return next();
     }
 
     try {
       const resourceId = parseInt(req.params.id);
-      
+
       // This would typically involve a database check
       // For now, we'll implement basic logic
-      
+
       switch (resourceType) {
         case 'script':
           // Students can only access their own scripts
-          if (req.user.role === UserRole.STUDENT) {
+          if (req.user.primaryRole === UserRole.STUDENT) {
             // Would check if script belongs to the student
             // const script = await prisma.script.findFirst({
             //   where: { id: resourceId, studentId: req.user.studentId }
@@ -230,14 +219,14 @@ export const requireOwnership = (resourceType: 'script' | 'exam' | 'incident') =
             // if (!script) return res.status(403).json({ ... });
           }
           break;
-          
+
         case 'exam':
           // Lecturers can only access exams for their courses
-          if (req.user.role === UserRole.LECTURER) {
+          if (req.user.primaryRole === UserRole.LECTURER) {
             // Would check if exam belongs to lecturer's courses
           }
           break;
-          
+
         case 'incident':
           // Users can access incidents they reported or are assigned to
           break;
@@ -268,12 +257,12 @@ export const requireHierarchicalAccess = (targetRole: UserRole) => {
       });
     }
 
-    if (!canManageRole(req.user.role, targetRole)) {
+    if (!canManageRole(req.user.primaryRole, targetRole)) {
       return res.status(403).json({
         success: false,
         message: 'Cannot manage users of this role level',
         code: 'HIERARCHICAL_ACCESS_DENIED',
-        userRole: req.user.role,
+        userRole: req.user.primaryRole,
         targetRole: targetRole
       });
     }
@@ -292,50 +281,17 @@ export const checkPermission = (
   action: string,
   context?: any
 ): PermissionCheck => {
-  const permissions = getRolePermissions(user.role);
-  
-  // Map resource + action to permission
-  const permissionMap: Record<string, keyof RolePermissions> = {
-    'user:create': 'canCreateUsers',
-    'user:read': 'canViewUsers',
-    'user:update': 'canUpdateUsers',
-    'user:delete': 'canDeleteUsers',
-    'exam:create': 'canCreateExams',
-    'exam:schedule': 'canScheduleExams',
-    'exam:manage': 'canManageExams',
-    'exam:conduct': 'canConductExams',
-    'script:generate': 'canGenerateScripts',
-    'script:track': 'canTrackScripts',
-    'script:handle': 'canHandleScripts',
-    'script:scan': 'canScanQrCodes',
-    'script:grade': 'canGradeScripts',
-    'incident:report': 'canReportIncidents',
-    'incident:manage': 'canManageIncidents',
-    'venue:manage': 'canManageVenues',
-    'analytics:view': 'canViewAnalytics',
-  };
-
-  const permissionKey = `${resource}:${action}`;
-  const requiredPermission = permissionMap[permissionKey];
-
-  if (!requiredPermission) {
-    return {
-      granted: false,
-      reason: 'Unknown permission',
-    };
-  }
-
-  const granted = permissions[requiredPermission];
+  const granted = hasPermission(user.primaryRole, resource, action);
 
   return {
     granted,
-    reason: granted ? undefined : `Missing permission: ${requiredPermission}`,
-    requiredPermission,
+    reason: granted ? undefined : `Missing permission: ${resource}:${action}`,
+    requiredPermission: `${resource}:${action}` as any,
   };
 };
 
 export const hasAnyRole = (user: JwtPayload, roles: UserRole[]): boolean => {
-  return roles.includes(user.role);
+  return roles.includes(user.primaryRole);
 };
 
 export const isHigherOrEqualRole = (userRole: UserRole, targetRole: UserRole): boolean => {
@@ -345,10 +301,11 @@ export const isHigherOrEqualRole = (userRole: UserRole, targetRole: UserRole): b
     UserRole.INVIGILATOR,
     UserRole.SCRIPT_HANDLER,
     UserRole.EXAMS_OFFICER,
+    UserRole.DEAN,
     UserRole.FACULTY_ADMIN,
     UserRole.ADMIN,
     UserRole.SUPER_ADMIN,
-  ];
+  ] as UserRole[];
 
   const userIndex = roleHierarchy.indexOf(userRole);
   const targetIndex = roleHierarchy.indexOf(targetRole);

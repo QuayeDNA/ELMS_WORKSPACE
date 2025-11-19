@@ -1,10 +1,21 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, UserRole } from "@prisma/client";
 import {
   CreateStudentData,
   UpdateStudentData,
   StudentQueryParams,
   StudentStatsParams,
 } from "../types/student";
+import { StudentMetadata, RolePermissions } from "../types/roleProfile";
+import {
+  upsertRoleProfile,
+  getRoleProfile,
+  DEFAULT_PERMISSIONS,
+} from "../utils/profileHelpers";
+import {
+  transformToStudentDTO,
+  transformToStudentListItem,
+  transformStudentsToListItems,
+} from "../utils/dtoTransformers";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
@@ -25,57 +36,40 @@ export const studentService = {
       page = 1,
       limit = 10,
       search = "",
-      sortBy = "admissionDate",
+      sortBy = "createdAt",
       sortOrder = "desc",
     } = params;
 
     const skip = (page - 1) * limit;
 
+    // Build where clause for RoleProfile queries
     const where: any = {
-      AND: [
-        programId ? { programId } : {},
-        level ? { level } : {},
-        semester ? { semester } : {},
-        academicYear ? { academicYear } : {},
-        enrollmentStatus ? { enrollmentStatus } : {},
-        academicStatus ? { academicStatus } : {},
-        search
-          ? {
-              OR: [
-                { studentId: { contains: search, mode: "insensitive" } },
-                { indexNumber: { contains: search, mode: "insensitive" } },
-                {
-                  user: {
-                    OR: [
-                      { firstName: { contains: search, mode: "insensitive" } },
-                      { lastName: { contains: search, mode: "insensitive" } },
-                      { email: { contains: search, mode: "insensitive" } },
-                    ],
-                  },
-                },
-              ],
-            }
-          : {},
-        // Filter by institutional hierarchy
-        departmentId
-          ? {
-              program: { departmentId },
-            }
-          : {},
-        facultyId
-          ? {
-              program: { department: { facultyId } },
-            }
-          : {},
-        institutionId
-          ? {
-              program: { department: { faculty: { institutionId } } },
-            }
-          : {},
-      ],
+      role: UserRole.STUDENT,
+      isActive: true,
+      user: {},
     };
 
-    // Handle sorting - properly handle user-related fields
+    // Filter by institutional hierarchy through user relations
+    if (departmentId) {
+      where.user.departmentId = departmentId;
+    }
+    if (facultyId) {
+      where.user.facultyId = facultyId;
+    }
+    if (institutionId) {
+      where.user.institutionId = institutionId;
+    }
+
+    // Search by name, email, or metadata studentId/indexNumber
+    if (search) {
+      where.OR = [
+        { user: { firstName: { contains: search, mode: "insensitive" } } },
+        { user: { lastName: { contains: search, mode: "insensitive" } } },
+        { user: { email: { contains: search, mode: "insensitive" } } },
+      ];
+    }
+
+    // Handle sorting
     let orderBy: any;
     const userFields = [
       "firstName",
@@ -89,15 +83,13 @@ export const studentService = {
     ];
 
     if (userFields.includes(sortBy)) {
-      // Sort by user relation fields
       orderBy = { user: { [sortBy]: sortOrder } };
     } else {
-      // Sort by studentProfile fields
       orderBy = { [sortBy]: sortOrder };
     }
 
-    const [students, total] = await Promise.all([
-      prisma.studentProfile.findMany({
+    const [profiles, total] = await Promise.all([
+      prisma.roleProfile.findMany({
         where,
         skip,
         take: limit,
@@ -117,23 +109,41 @@ export const studentService = {
               createdAt: true,
             },
           },
-          program: {
-            include: {
-              department: {
-                include: {
-                  faculty: {
-                    include: {
-                      institution: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
         },
       }),
-      prisma.studentProfile.count({ where }),
+      prisma.roleProfile.count({ where }),
     ]);
+
+    // Transform to DTOs and filter by metadata if needed
+    let students = transformStudentsToListItems(profiles as any);
+
+    // Client-side filtering for metadata fields (programId, level, semester, etc.)
+    if (programId !== undefined) {
+      students = students.filter((s: any) => {
+        const profile = profiles.find(p => p.userId === s.userId);
+        const meta = profile?.metadata as any;
+        return meta?.programId === programId;
+      });
+    }
+    if (level !== undefined) {
+      students = students.filter((s) => s.level === level);
+    }
+    if (semester !== undefined) {
+      students = students.filter((s) => s.semester === semester);
+    }
+    if (enrollmentStatus) {
+      students = students.filter((s) => s.enrollmentStatus === enrollmentStatus);
+    }
+    if (academicStatus) {
+      students = students.filter((s) => s.academicStatus === academicStatus);
+    }
+    if (academicYear) {
+      students = students.filter(
+        (s) => (s as any).academicYear === academicYear
+      );
+    }
+
+    const filteredTotal = students.length;
 
     return {
       success: true,
@@ -141,137 +151,65 @@ export const studentService = {
       pagination: {
         page,
         limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-        hasNext: page < Math.ceil(total / limit),
+        total: filteredTotal,
+        totalPages: Math.ceil(filteredTotal / limit),
+        hasNext: page < Math.ceil(filteredTotal / limit),
         hasPrev: page > 1,
       },
     };
   },
 
-  // Get single student by ID
-  async getStudentById(id: number) {
-    return await prisma.studentProfile.findUnique({
-      where: { id },
+  // Get single student by user ID
+  async getStudentById(userId: number) {
+    const profile = await prisma.roleProfile.findFirst({
+      where: {
+        userId,
+        role: UserRole.STUDENT,
+        isActive: true,
+      },
       include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            middleName: true,
-            title: true,
-            phone: true,
-            dateOfBirth: true,
-            gender: true,
-            nationality: true,
-            address: true,
-            status: true,
-            createdAt: true,
-            updatedAt: true,
-          },
-        },
-        program: {
-          include: {
-            department: {
-              include: {
-                faculty: {
-                  include: {
-                    institution: true,
-                  },
-                },
-              },
-            },
-          },
-        },
+        user: true,
       },
     });
+
+    if (!profile) {
+      return null;
+    }
+
+    return transformToStudentDTO(profile as any);
   },
 
-  // Get student by student ID
+  // Get student by student ID (from metadata)
   async getStudentByStudentId(studentId: string) {
-    return await prisma.studentProfile.findUnique({
-      where: { studentId },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            middleName: true,
-            title: true,
-            phone: true,
-            dateOfBirth: true,
-            gender: true,
-            nationality: true,
-            address: true,
-            status: true,
-            createdAt: true,
-            updatedAt: true,
-          },
-        },
-        program: {
-          include: {
-            department: {
-              include: {
-                faculty: {
-                  include: {
-                    institution: true,
-                  },
-                },
-              },
-            },
-          },
+    const profile = await prisma.roleProfile.findFirst({
+      where: {
+        role: UserRole.STUDENT,
+        isActive: true,
+        metadata: {
+          path: ['studentId'],
+          equals: studentId,
         },
       },
+      include: {
+        user: true,
+      },
     });
+
+    if (!profile) {
+      return null;
+    }
+
+    return transformToStudentDTO(profile as any);
   },
 
   // Get student by user ID
   async getStudentByUserId(userId: number) {
-    return await prisma.studentProfile.findUnique({
-      where: { userId },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            middleName: true,
-            title: true,
-            phone: true,
-            dateOfBirth: true,
-            gender: true,
-            nationality: true,
-            address: true,
-            status: true,
-            createdAt: true,
-            updatedAt: true,
-          },
-        },
-        program: {
-          include: {
-            department: {
-              include: {
-                faculty: {
-                  include: {
-                    institution: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
+    return await this.getStudentById(userId);
   },
 
   // Create new student
   async createStudent(data: CreateStudentData) {
-    const { user: userData, profile: profileData } = data;
+    const { user: userData, profile: profileData, permissions, institutionId, facultyId, departmentId } = data;
 
     // Hash password
     const hashedPassword = await bcrypt.hash(userData.password, 12);
@@ -294,7 +232,7 @@ export const studentService = {
 
           if (prefixRecord) {
             // Generate index number: PREFIX/PROGRAM_CODE/YEAR/SEQUENTIAL
-            const currentYear = new Date().getFullYear().toString().slice(-2); // Last 2 digits
+            const currentYear = new Date().getFullYear().toString().slice(-2);
             const prefix = prefixRecord.prefix;
 
             // Extract program code part (everything after the first dash/hyphen)
@@ -304,27 +242,37 @@ export const studentService = {
               programCode = program.code.substring(dashIndex + 1);
             }
 
-            // Find the highest sequential number for this prefix, program code, and year
-            const existingNumbers = await tx.studentProfile.findMany({
+            // Find existing index numbers with this pattern
+            const existingProfiles = await tx.roleProfile.findMany({
               where: {
-                indexNumber: {
-                  startsWith: `${prefix}/${programCode}/${currentYear}/`,
+                role: UserRole.STUDENT,
+                metadata: {
+                  path: ['indexNumber'],
+                  string_starts_with: `${prefix}/${programCode}/${currentYear}/`,
                 },
               },
-              select: { indexNumber: true },
-              orderBy: { indexNumber: "desc" },
-              take: 1,
+              select: { metadata: true },
+              take: 100,
             });
 
             let sequentialNumber = 1;
-            if (existingNumbers.length > 0 && existingNumbers[0].indexNumber) {
-              const lastIndexNumber = existingNumbers[0].indexNumber;
-              const parts = lastIndexNumber.split("/");
-              if (parts.length === 4) {
-                const lastSequential = parseInt(parts[3]);
-                if (!isNaN(lastSequential)) {
-                  sequentialNumber = lastSequential + 1;
-                }
+            if (existingProfiles.length > 0) {
+              const numbers = existingProfiles
+                .map((p) => {
+                  const meta = p.metadata as any;
+                  const idx = meta?.indexNumber as string;
+                  if (idx) {
+                    const parts = idx.split('/');
+                    if (parts.length === 4) {
+                      return parseInt(parts[3]);
+                    }
+                  }
+                  return 0;
+                })
+                .filter((n) => !isNaN(n));
+
+              if (numbers.length > 0) {
+                sequentialNumber = Math.max(...numbers) + 1;
               }
             }
 
@@ -337,185 +285,188 @@ export const studentService = {
       // Create user
       const user = await tx.user.create({
         data: {
-          ...userData,
+          email: userData.email,
           password: hashedPassword,
-          role: "STUDENT",
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          middleName: userData.middleName || null,
+          title: userData.title || null,
+          phone: userData.phone || null,
+          dateOfBirth: userData.dateOfBirth || null,
+          gender: userData.gender || null,
+          nationality: userData.nationality || null,
+          address: userData.address || null,
+          institutionId: institutionId || null,
+          facultyId: facultyId || null,
+          departmentId: departmentId || null,
+          role: UserRole.STUDENT,
+          status: 'ACTIVE',
         },
       });
 
-      // Create student profile
-      const studentProfile = await tx.studentProfile.create({
-        data: {
-          userId: user.id,
-          ...profileData,
-          indexNumber: indexNumber || profileData.indexNumber,
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              firstName: true,
-              lastName: true,
-              middleName: true,
-              title: true,
-              phone: true,
-              gender: true,
-              status: true,
-              createdAt: true,
-            },
-          },
-          program: {
-            include: {
-              department: {
-                include: {
-                  faculty: {
-                    include: {
-                      institution: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      });
+      // Build student metadata
+      const metadata: StudentMetadata = {
+        studentId: profileData.studentId,
+        indexNumber: indexNumber || profileData.indexNumber,
+        level: profileData.level,
+        semester: profileData.semester || 1,
+        programId: profileData.programId,
+        academicYear: profileData.academicYear,
+        admissionDate: profileData.admissionDate?.toISOString(),
+        expectedGraduation: profileData.expectedGraduation?.toISOString(),
+        enrollmentStatus: profileData.enrollmentStatus || 'ACTIVE',
+        academicStatus: profileData.academicStatus || 'GOOD_STANDING',
+        guardianName: profileData.guardianName,
+        guardianPhone: profileData.guardianPhone,
+        guardianEmail: profileData.guardianEmail,
+        emergencyContact: profileData.emergencyContact,
+      };
 
-      return studentProfile;
+      // Create RoleProfile for student
+      const rolePermissions = permissions || DEFAULT_PERMISSIONS[UserRole.STUDENT];
+      await upsertRoleProfile(
+        user.id,
+        UserRole.STUDENT,
+        rolePermissions as RolePermissions,
+        metadata as any,
+        true,
+        tx as any
+      );
+
+      // Return the created student profile
+      return await this.getStudentById(user.id);
     });
   },
 
-  // Update student
-  async updateStudent(id: number, data: UpdateStudentData) {
-    const { user: userData, profile: profileData } = data;
+  // Update student (by userId)
+  async updateStudent(userId: number, data: UpdateStudentData) {
+    const { user: userData, profile: profileData, permissions, isActive } = data;
 
     return await prisma.$transaction(async (tx) => {
-      // Get student profile first
-      const studentProfile = await tx.studentProfile.findUnique({
-        where: { id },
-        include: { user: true },
+      // Get student role profile first
+      const roleProfile = await tx.roleProfile.findFirst({
+        where: {
+          userId,
+          role: UserRole.STUDENT,
+        },
       });
 
-      if (!studentProfile) {
-        throw new Error("Student not found");
+      if (!roleProfile) {
+        throw new Error("Student profile not found");
       }
 
       // Update user if user data provided
       if (userData) {
         await tx.user.update({
-          where: { id: studentProfile.userId },
-          data: userData,
+          where: { id: userId },
+          data: userData as any,
         });
       }
 
-      // Update student profile if profile data provided
-      if (profileData) {
-        await tx.studentProfile.update({
-          where: { id },
-          data: profileData,
-        });
+      // Update RoleProfile metadata/permissions if provided
+      if (profileData || permissions !== undefined || isActive !== undefined) {
+        const currentMetadata = roleProfile.metadata as any;
+        const currentPermissions = roleProfile.permissions as RolePermissions;
+
+        const updateData: any = {};
+
+        if (profileData) {
+          updateData.metadata = {
+            ...currentMetadata,
+            ...profileData,
+          };
+        }
+
+        if (permissions) {
+          updateData.permissions = {
+            ...currentPermissions,
+            ...permissions,
+          };
+        }
+
+        if (isActive !== undefined) {
+          updateData.isActive = isActive;
+        }
+
+        if (Object.keys(updateData).length > 0) {
+          await tx.roleProfile.update({
+            where: { id: roleProfile.id },
+            data: updateData,
+          });
+        }
       }
 
-      // Return updated profile with user data
-      return await tx.studentProfile.findUnique({
-        where: { id },
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              firstName: true,
-              lastName: true,
-              middleName: true,
-              title: true,
-              phone: true,
-              gender: true,
-              status: true,
-              createdAt: true,
-            },
-          },
-          program: {
-            include: {
-              department: {
-                include: {
-                  faculty: {
-                    include: {
-                      institution: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
+      // Return updated profile
+      return await this.getStudentById(userId);
+    });
+  },
+
+  // Delete student (by userId)
+  async deleteStudent(userId: number) {
+    return await prisma.$transaction(async (tx) => {
+      // Get student role profile first
+      const roleProfile = await tx.roleProfile.findFirst({
+        where: {
+          userId,
+          role: UserRole.STUDENT,
         },
       });
-    });
-  },
 
-  // Delete student
-  async deleteStudent(id: number) {
-    return await prisma.$transaction(async (tx) => {
-      // Get student profile first
-      const studentProfile = await tx.studentProfile.findUnique({
-        where: { id },
-      });
-
-      if (!studentProfile) {
-        throw new Error("Student not found");
+      if (!roleProfile) {
+        throw new Error("Student profile not found");
       }
 
-      // Delete student profile (this will cascade delete the user)
-      await tx.studentProfile.delete({
-        where: { id },
+      // Delete role profile
+      await tx.roleProfile.delete({
+        where: { id: roleProfile.id },
       });
 
-      // Delete associated user
-      await tx.user.delete({
-        where: { id: studentProfile.userId },
+      // Delete user (if no other role profiles exist)
+      const otherProfiles = await tx.roleProfile.count({
+        where: { userId },
       });
+
+      if (otherProfiles === 0) {
+        await tx.user.delete({
+          where: { id: userId },
+        });
+      }
     });
   },
 
-  // Update student status
+  // Update student status (by userId)
   async updateStudentStatus(
-    id: number,
+    userId: number,
     statusData: {
       enrollmentStatus?: any;
       academicStatus?: any;
     }
   ) {
-    return await prisma.studentProfile.update({
-      where: { id },
-      data: statusData,
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            middleName: true,
-            title: true,
-            phone: true,
-            gender: true,
-            status: true,
-            createdAt: true,
+    return await prisma.$transaction(async (tx) => {
+      const roleProfile = await tx.roleProfile.findFirst({
+        where: {
+          userId,
+          role: UserRole.STUDENT,
+        },
+      });
+
+      if (!roleProfile) {
+        throw new Error("Student profile not found");
+      }
+
+      const currentMetadata = roleProfile.metadata as any;
+
+      await tx.roleProfile.update({
+        where: { id: roleProfile.id },
+        data: {
+          metadata: {
+            ...currentMetadata,
+            ...statusData,
           },
         },
-        program: {
-          include: {
-            department: {
-              include: {
-                faculty: {
-                  include: {
-                    institution: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
+      });
+
+      return await this.getStudentById(userId);
     });
   },
 
@@ -545,64 +496,74 @@ export const studentService = {
   async getStudentStats(params: StudentStatsParams) {
     const { institutionId, facultyId, departmentId } = params;
 
-    const baseWhere: any = {};
+    const baseWhere: any = {
+      role: UserRole.STUDENT,
+      isActive: true,
+      user: {},
+    };
 
     if (departmentId) {
-      baseWhere.program = { departmentId };
+      baseWhere.user.departmentId = departmentId;
     } else if (facultyId) {
-      baseWhere.program = { department: { facultyId } };
+      baseWhere.user.facultyId = facultyId;
     } else if (institutionId) {
-      baseWhere.program = { department: { faculty: { institutionId } } };
+      baseWhere.user.institutionId = institutionId;
     }
 
-    const [
-      totalStudents,
-      activeStudents,
-      graduatedStudents,
-      suspendedStudents,
-      enrollmentsByStatus,
-      studentsByLevel,
-      studentsByProgram,
-    ] = await Promise.all([
-      // Total students
-      prisma.studentProfile.count({ where: baseWhere }),
+    // Get all student profiles for this scope
+    const studentProfiles = await prisma.roleProfile.findMany({
+      where: baseWhere,
+      include: {
+        user: true,
+      },
+    });
 
-      // Active students
-      prisma.studentProfile.count({
-        where: { ...baseWhere, enrollmentStatus: "ACTIVE" },
-      }),
+    // Process metadata for statistics
+    const metadataList = studentProfiles.map((p) => p.metadata as any);
 
-      // Graduated students
-      prisma.studentProfile.count({
-        where: { ...baseWhere, enrollmentStatus: "GRADUATED" },
-      }),
+    const totalStudents = studentProfiles.length;
+    const activeStudents = metadataList.filter(
+      (m) => m.enrollmentStatus === "ACTIVE"
+    ).length;
+    const graduatedStudents = metadataList.filter(
+      (m) => m.enrollmentStatus === "GRADUATED"
+    ).length;
+    const suspendedStudents = metadataList.filter(
+      (m) => m.enrollmentStatus === "SUSPENDED"
+    ).length;
 
-      // Suspended students
-      prisma.studentProfile.count({
-        where: { ...baseWhere, enrollmentStatus: "SUSPENDED" },
-      }),
+    // Group by enrollment status
+    const enrollmentsByStatus = metadataList.reduce((acc: any, m: any) => {
+      const status = m.enrollmentStatus || "ACTIVE";
+      if (!acc[status]) {
+        acc[status] = { enrollmentStatus: status, _count: 0 };
+      }
+      acc[status]._count++;
+      return acc;
+    }, {});
 
-      // Students by enrollment status
-      prisma.studentProfile.groupBy({
-        by: ["enrollmentStatus"],
-        where: baseWhere,
-        _count: true,
-      }),
+    // Group by level
+    const studentsByLevel = metadataList.reduce((acc: any, m: any) => {
+      const level = m.level || 1;
+      if (!acc[level]) {
+        acc[level] = { level, _count: 0 };
+      }
+      acc[level]._count++;
+      return acc;
+    }, {});
 
-      // Students by level
-      prisma.studentProfile.groupBy({
-        by: ["level"],
-        where: baseWhere,
-        _count: true,
-      }),
-
-      // Students by program
-      prisma.studentProfile.groupBy({
-        by: ["programId"],
-        where: baseWhere,
-        _count: true,
-      }),
-    ]);
+    // Group by program
+    const studentsByProgram = studentProfiles.reduce((acc: any, p: any) => {
+      const metadata = p.metadata as any;
+      const programId = metadata.programId;
+      if (programId) {
+        if (!acc[programId]) {
+          acc[programId] = { programId, _count: 0 };
+        }
+        acc[programId]._count++;
+      }
+      return acc;
+    }, {});
 
     return {
       overview: {
@@ -611,9 +572,9 @@ export const studentService = {
         graduated: graduatedStudents,
         suspended: suspendedStudents,
       },
-      byEnrollmentStatus: enrollmentsByStatus,
-      byLevel: studentsByLevel,
-      byProgram: studentsByProgram,
+      byEnrollmentStatus: Object.values(enrollmentsByStatus),
+      byLevel: Object.values(studentsByLevel),
+      byProgram: Object.values(studentsByProgram),
     };
   },
 
@@ -724,37 +685,30 @@ export const studentService = {
       page = 1,
       limit = 10,
       search = "",
-      sortBy = "admissionDate",
+      sortBy = "createdAt",
       sortOrder = "desc",
     } = params;
 
     const skip = (page - 1) * limit;
 
     const where: any = {
-      program: {
+      role: UserRole.STUDENT,
+      isActive: true,
+      user: {
         departmentId,
       },
-      ...(search
-        ? {
-            OR: [
-              { studentId: { contains: search, mode: "insensitive" } },
-              { indexNumber: { contains: search, mode: "insensitive" } },
-              {
-                user: {
-                  OR: [
-                    { firstName: { contains: search, mode: "insensitive" } },
-                    { lastName: { contains: search, mode: "insensitive" } },
-                    { email: { contains: search, mode: "insensitive" } },
-                  ],
-                },
-              },
-            ],
-          }
-        : {}),
     };
 
-    const [students, total] = await Promise.all([
-      prisma.studentProfile.findMany({
+    if (search) {
+      where.OR = [
+        { user: { firstName: { contains: search, mode: "insensitive" } } },
+        { user: { lastName: { contains: search, mode: "insensitive" } } },
+        { user: { email: { contains: search, mode: "insensitive" } } },
+      ];
+    }
+
+    const [profiles, total] = await Promise.all([
+      prisma.roleProfile.findMany({
         where,
         include: {
           user: {
@@ -766,20 +720,6 @@ export const studentService = {
               status: true,
             },
           },
-          program: {
-            select: {
-              id: true,
-              name: true,
-              code: true,
-              department: {
-                select: {
-                  id: true,
-                  name: true,
-                  code: true,
-                },
-              },
-            },
-          },
         },
         skip,
         take: limit,
@@ -787,9 +727,10 @@ export const studentService = {
           [sortBy]: sortOrder,
         },
       }),
-      prisma.studentProfile.count({ where }),
+      prisma.roleProfile.count({ where }),
     ]);
 
+    const students = transformStudentsToListItems(profiles as any);
     const totalPages = Math.ceil(total / limit);
 
     return {

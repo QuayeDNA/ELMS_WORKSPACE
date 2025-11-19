@@ -79,6 +79,7 @@ export class ExamRegistrationService {
         where: { id: examEntryId },
         include: {
           course: true,
+          programs: { select: { programId: true } },
           timetable: {
             include: {
               semester: true
@@ -91,35 +92,40 @@ export class ExamRegistrationService {
         throw new Error('Exam entry not found');
       }
 
-      // Parse program IDs from the exam entry
-      const programIds = JSON.parse(examEntry.programIds) as number[];
+      // Get program IDs from junction table
+      const programIds = examEntry.programs?.map((p: any) => p.programId) || [];
 
-      // Get all students enrolled in this course for these programs
-      const enrolledStudents = await prisma.enrollment.findMany({
+      // Get all students enrolled in this course for these programs via CourseEnrollment
+      const enrolledStudents = await prisma.courseEnrollment.findMany({
         where: {
-          courseId: examEntry.courseId,
-          semesterId: examEntry.timetable.semesterId,
-          student: {
-            studentProfiles: {
-              programId: {
-                in: programIds
-              }
-            }
-          }
+          courseOffering: {
+            courseId: examEntry.courseId,
+            semesterId: examEntry.timetable.semesterId,
+          },
+          status: 'ACTIVE',
         },
         include: {
           student: {
             include: {
-              studentProfiles: true
+              roleProfiles: true
             }
           }
         }
       });
 
+      // Filter students by program
+      const filteredEnrollments = programIds.length > 0
+        ? enrolledStudents.filter(enrollment => {
+            const studentProfile = enrollment.student.roleProfiles?.find((rp: any) => rp.role === 'STUDENT');
+            const metadata = studentProfile?.metadata as any;
+            return programIds.includes(metadata?.programId);
+          })
+        : enrolledStudents;
+
       const registrations: CreateExamRegistrationData[] = [];
 
       // Create registration data for each student
-      for (const enrollment of enrolledStudents) {
+      for (const enrollment of filteredEnrollments) {
         const studentQRCode = QRCodeService.generateStudentQRCode({
           studentId: enrollment.studentId,
           examEntryId: examEntry.id,
@@ -198,7 +204,7 @@ export class ExamRegistrationService {
         include: {
           student: {
             include: {
-              studentProfiles: true
+              roleProfiles: true
             }
           },
           examEntry: {
@@ -232,7 +238,7 @@ export class ExamRegistrationService {
         include: {
           student: {
             include: {
-              studentProfiles: true
+              roleProfiles: true
             }
           },
           examEntry: {
@@ -274,7 +280,7 @@ export class ExamRegistrationService {
         include: {
           student: {
             include: {
-              studentProfiles: true
+              roleProfiles: true
             }
           },
           examEntry: {
@@ -393,7 +399,7 @@ export class ExamRegistrationService {
         include: {
           student: {
             include: {
-              studentProfiles: true
+              roleProfiles: true
             }
           }
         },
@@ -404,15 +410,19 @@ export class ExamRegistrationService {
         }
       });
 
-      return registrations.map(reg => ({
-        registrationId: reg.id,
-        studentId: reg.studentId,
-        firstName: reg.student.firstName,
-        lastName: reg.student.lastName,
-        indexNumber: reg.student.studentProfiles?.indexNumber,
-        seatNumber: reg.seatNumber,
-        attendanceMarkedAt: reg.attendanceMarkedAt
-      }));
+      return registrations.map(reg => {
+        const studentProfile = reg.student.roleProfiles?.find(rp => rp.role === 'STUDENT');
+        const metadata = studentProfile?.metadata as any;
+        return {
+          registrationId: reg.id,
+          studentId: reg.studentId,
+          firstName: reg.student.firstName,
+          lastName: reg.student.lastName,
+          indexNumber: metadata?.indexNumber,
+          seatNumber: reg.seatNumber,
+          attendanceMarkedAt: reg.attendanceMarkedAt
+        };
+      });
     } catch (error) {
       console.error('Error in getMissingScripts:', error);
       throw error;

@@ -24,7 +24,7 @@ export class RegistrationService {
     // Validate student exists and is active
     const student = await prisma.user.findUnique({
       where: { id: studentId },
-      include: { studentProfiles: true }
+      include: { roleProfiles: true }
     });
 
     if (!student || student.status !== 'ACTIVE') {
@@ -172,15 +172,38 @@ export class RegistrationService {
     studentId: number,
     semesterId: number
   ): Promise<any[]> {
-    // Get student's program and level
-    const studentProfile = await prisma.studentProfile.findUnique({
-      where: { userId: studentId },
+    // Get student's program and level from roleProfile
+    const student = await prisma.user.findUnique({
+      where: { id: studentId },
       include: {
-        program: {
+        roleProfiles: {
+          where: { role: 'STUDENT' }
+        }
+      }
+    });
+
+    if (!student || student.roleProfiles.length === 0) {
+      return [];
+    }
+
+    const studentProfile = student.roleProfiles[0];
+    const metadata = studentProfile.metadata as any;
+    const programId = metadata.programId;
+    const studentLevel = metadata.level;
+
+    if (!programId) {
+      throw new Error('Student program not found');
+    }
+
+    // Get program to find institution
+    const program = await prisma.program.findUnique({
+      where: { id: programId },
+      include: {
+        department: {
           include: {
-            department: {
-              include: {
-                faculty: true
+            faculty: {
+              select: {
+                institutionId: true
               }
             }
           }
@@ -188,20 +211,17 @@ export class RegistrationService {
       }
     });
 
-    if (!studentProfile?.programId) {
-      throw new Error('Student program not found');
+    if (!program) {
+      throw new Error('Program not found');
     }
 
-    const institutionId = studentProfile.program?.department?.faculty?.institutionId;
-    if (!institutionId) {
-      throw new Error('Student institution not found');
-    }
+    const institutionId = program.department.faculty.institutionId;
 
     // Get program courses for student's level
     const programCourses = await prisma.programCourse.findMany({
       where: {
-        programId: studentProfile.programId,
-        level: studentProfile.level
+        programId,
+        level: studentLevel
       },
       include: { course: true }
     });
@@ -493,18 +513,23 @@ export class RegistrationService {
       return false;
     }
 
-    // Get student's academic level
-    const studentProfile = await prisma.studentProfile.findUnique({
-      where: { userId: studentId }
+    // Get student's academic level from roleProfile
+    const studentRole = await prisma.roleProfile.findFirst({
+      where: {
+        userId: studentId,
+        role: 'STUDENT'
+      }
     });
 
-    if (!studentProfile) {
+    if (!studentRole) {
       return false;
     }
 
+    const metadata = studentRole.metadata as any;
+    const studentLevel = metadata.level || 100;
+
     // Basic level check (course level should not be more than 1 level ahead)
     const courseLevel = courseOffering.course.level;
-    const studentLevel = studentProfile.level;
 
     return courseLevel <= studentLevel + 1;
   }
@@ -534,7 +559,7 @@ export class RegistrationService {
         const student = await prisma.user.findUnique({
           where: { id: studentId },
           include: {
-            studentProfiles: true
+            roleProfiles: true
           }
         });
 
@@ -547,7 +572,8 @@ export class RegistrationService {
           continue;
         }
 
-        if (!student.studentProfiles) {
+        const studentRoleProfile = student.roleProfiles?.find(rp => rp.role === 'STUDENT');
+        if (!studentRoleProfile) {
           failed.push({
             studentId,
             studentName: `${student.firstName} ${student.lastName}`,
@@ -615,17 +641,17 @@ export class RegistrationService {
       semester: number;
     }>;
   }> {
-    // Get all students in the institution
-    const students = await prisma.studentProfile.findMany({
+    // Get all students via roleProfiles
+    const studentRoles = await prisma.roleProfile.findMany({
       where: {
+        role: 'STUDENT',
         user: {
-          institutionId,
-          role: 'STUDENT'
+          institutionId
         },
-        ...(filters?.programId && { programId: parseInt(filters.programId) }),
-        ...(filters?.departmentId && {
-          program: {
-            departmentId: parseInt(filters.departmentId)
+        ...(filters?.programId && {
+          metadata: {
+            path: ['programId'],
+            equals: parseInt(filters.programId)
           }
         })
       },
@@ -635,11 +661,6 @@ export class RegistrationService {
             firstName: true,
             lastName: true,
             email: true
-          }
-        },
-        program: {
-          include: {
-            department: true
           }
         }
       }
@@ -679,25 +700,17 @@ export class RegistrationService {
       semester: number;
     }> = [];
 
-    students.forEach(student => {
+    studentRoles.forEach((studentRole: any) => {
+      const metadata = studentRole.metadata || {};
       const studentData = {
-        id: student.id.toString(),
-        studentId: student.studentId,
-        user: student.user,
-        program: student.program ? {
-          id: student.program.id.toString(),
-          name: student.program.name,
-          code: student.program.code,
-          department: {
-            id: student.program.department.id.toString(),
-            name: student.program.department.name
-          }
-        } : undefined,
-        level: student.level,
-        semester: student.semester
+        id: studentRole.id.toString(),
+        studentId: metadata.studentId || '',
+        user: studentRole.user,
+        level: metadata.level || 100,
+        semester: metadata.semester || 1
       };
 
-      if (registeredStudentIds.has(student.userId)) {
+      if (registeredStudentIds.has(studentRole.userId)) {
         registered.push(studentData);
       } else {
         notRegistered.push(studentData);

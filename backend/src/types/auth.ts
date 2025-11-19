@@ -1,77 +1,13 @@
 // ========================================
-// USER ROLES & PERMISSIONS
+// IMPORTS - Using new RoleProfile types
 // ========================================
 
-export enum UserRole {
-  SUPER_ADMIN = 'SUPER_ADMIN',      // System-wide control, manages all institutions
-  ADMIN = 'ADMIN',                  // Institution-level admin, manages faculty admins
-  FACULTY_ADMIN = 'FACULTY_ADMIN',  // Faculty-level admin, manages departments, exams, officers
-  DEAN = 'DEAN',                    // Dean of faculty
-  HOD = 'HOD',                      // Head of Department
-  EXAMS_OFFICER = 'EXAMS_OFFICER',  // Handles exam logistics, incidents, scheduling
-  SCRIPT_HANDLER = 'SCRIPT_HANDLER', // Manages script transit and handling
-  INVIGILATOR = 'INVIGILATOR',      // Conducts exams, reports incidents
-  LECTURER = 'LECTURER',            // Creates exams, grades scripts
-  STUDENT = 'STUDENT'               // Takes exams
-}
+import { UserRole, UserStatus } from "@prisma/client";
+import { RolePermissions, RoleMetadata } from './roleProfile';
 
-export enum UserStatus {
-  ACTIVE = 'ACTIVE',
-  INACTIVE = 'INACTIVE',
-  SUSPENDED = 'SUSPENDED',
-  PENDING_VERIFICATION = 'PENDING_VERIFICATION'
-}
-
-// ========================================
-// ROLE-BASED PERMISSIONS
-// ========================================
-
-export interface RolePermissions {
-  // User Management
-  canManageUsers: boolean;
-  canViewUsers: boolean;
-  canCreateUsers: boolean;
-  canUpdateUsers: boolean;
-  canDeleteUsers: boolean;
-
-  // Institution Management
-  canManageInstitutions: boolean;
-  canManageFaculties: boolean;
-  canManageDepartments: boolean;
-
-  // Exam Management
-  canCreateExams: boolean;
-  canScheduleExams: boolean;
-  canManageExams: boolean;
-  canViewExams: boolean;
-  canConductExams: boolean;
-
-  // Script Management
-  canGenerateScripts: boolean;
-  canTrackScripts: boolean;
-  canHandleScripts: boolean;
-  canScanQrCodes: boolean;
-  canGradeScripts: boolean;
-
-  // Incident Management
-  canReportIncidents: boolean;
-  canManageIncidents: boolean;
-  canInvestigateIncidents: boolean;
-  canResolveIncidents: boolean;
-
-  // Venue Management
-  canManageVenues: boolean;
-  canViewVenues: boolean;
-
-  // Analytics & Reporting
-  canViewAnalytics: boolean;
-  canExportData: boolean;
-  canViewAuditLogs: boolean;
-
-  // Administrative
-  canManageSettings: boolean;
-  canViewSystemLogs: boolean;
-}
+// Re-export for convenience
+export { UserRole, UserStatus } from "@prisma/client";
+export type { RolePermissions } from './roleProfile';
 
 // ========================================
 // ROLE HIERARCHY & SCOPE
@@ -86,7 +22,7 @@ export interface RoleHierarchy {
 }
 
 // ========================================
-// AUTHENTICATION INTERFACES
+// AUTHENTICATION REQUEST DTOs
 // ========================================
 
 export interface LoginRequest {
@@ -99,49 +35,101 @@ export interface LoginRequest {
 export interface RegisterRequest {
   email: string;
   password: string;
+  confirmPassword: string;
   firstName: string;
   lastName: string;
-  role: UserRole;
+  middleName?: string;
+  title?: string;
+  phone?: string;
+  dateOfBirth?: Date;
+  gender?: string;
+  nationality?: string;
+  address?: string;
   institutionId?: number;
   facultyId?: number;
   departmentId?: number;
-  studentId?: string; // For students
-  staffId?: string; // For lecturers and staff
+  role?: UserRole;
+  // Role-specific metadata - flexible JSON structure
+  metadata?: Partial<RoleMetadata>;
+  // Student-specific fields for convenience (will be mapped to metadata)
+  studentId?: string;
+  indexNumber?: string;
+  level?: number;
+  semester?: number;
+  programId?: number;
+  // Staff fields for convenience (will be mapped to metadata)
+  staffId?: string;
   inviteToken?: string; // For invited users
 }
 
-export interface User {
+// ========================================
+// USER DTOs
+// ========================================
+
+export interface UserDTO {
   id: number;
   email: string;
   firstName: string;
   lastName: string;
-  role: UserRole;
+  middleName?: string;
+  title?: string;
   status: UserStatus;
+  primaryRole: UserRole;
+  roles: Array<{
+    role: UserRole;
+    isActive: boolean;
+    isPrimary: boolean;
+    permissions: RolePermissions;
+    metadata: RoleMetadata;
+  }>;
   institutionId?: number;
   facultyId?: number;
   departmentId?: number;
-  permissions: RolePermissions;
   lastLogin?: Date;
   emailVerified: boolean;
   twoFactorEnabled: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface AuthResponse {
-  user: User;
   token: string;
-  refreshToken: string;
-  expiresIn: number;
+  refreshToken?: string;
+  expiresIn?: number;
+  user: {
+    id: number;
+    email: string;
+    firstName: string;
+    lastName: string;
+    middleName?: string;
+    title?: string;
+    status: UserStatus;
+    institutionId?: number;
+    facultyId?: number;
+    departmentId?: number;
+    emailVerified: boolean;
+  };
+  primaryRole: UserRole;
+  roles: Array<{
+    role: UserRole;
+    isActive: boolean;
+    isPrimary: boolean;
+    permissions: RolePermissions;
+    metadata: RoleMetadata;
+  }>;
+  permissions: RolePermissions; // Primary role permissions for quick access
 }
 
 export interface JwtPayload {
   id: number; // User ID for backward compatibility (same as userId)
   userId: number;
   email: string;
-  role: UserRole;
+  primaryRole: UserRole;
+  roles: UserRole[]; // All active roles
   institutionId?: number;
   facultyId?: number;
   departmentId?: number;
-  permissions: RolePermissions;
+  permissions: RolePermissions; // Primary role permissions
   iat?: number;
   exp?: number;
 }
@@ -151,7 +139,9 @@ export interface JwtPayload {
 // ========================================
 
 export interface AccessContext {
-  user: User;
+  userId: number;
+  role: UserRole;
+  permissions: RolePermissions;
   resource: string;
   action: string;
   resourceId?: string | number;
@@ -167,7 +157,42 @@ export interface PermissionCheck {
   granted: boolean;
   reason?: string;
   requiredRole?: UserRole;
-  requiredPermission?: keyof RolePermissions;
+  requiredPermission?: string;
+  matchedRole?: UserRole;
+}
+
+// ========================================
+// PASSWORD MANAGEMENT
+// ========================================
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+export interface ResetPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordConfirmRequest {
+  token: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+// ========================================
+// TOKEN MANAGEMENT
+// ========================================
+
+export interface RefreshTokenRequest {
+  refreshToken: string;
+}
+
+export interface RefreshTokenResponse {
+  token: string;
+  refreshToken: string;
+  expiresIn: number;
 }
 
 // ========================================

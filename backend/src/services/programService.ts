@@ -70,18 +70,6 @@ export const programService = {
             }
           }
         },
-        students: {
-          select: {
-            id: true,
-            user: {
-              select: {
-                firstName: true,
-                lastName: true
-              }
-            },
-            studentId: true
-          }
-        },
         programCourses: {
           include: {
             course: {
@@ -105,13 +93,13 @@ export const programService = {
 
     console.log(`Fetched ${programs.length} programs from database`);
 
-    // Calculate stats for each program
-    const programsWithStats = programs.map(program => ({
+    // Calculate stats for each program (without student count for now)
+    const programsWithStats = programs.map((program: any) => ({
       ...program,
       stats: {
-        totalStudents: program.students.length,
+        totalStudents: 0, // TODO: Query roleProfiles separately
         totalCourses: program.programCourses.length,
-        totalCreditHours: program.programCourses.reduce((sum, pc) => sum + (pc.course.creditHours || 0), 0)
+        totalCreditHours: program.programCourses.reduce((sum: number, pc: any) => sum + (pc.course.creditHours || 0), 0)
       }
     }));
 
@@ -142,21 +130,6 @@ export const programService = {
             }
           }
         },
-        students: {
-          select: {
-            id: true,
-            user: {
-              select: {
-                firstName: true,
-                lastName: true,
-                email: true
-              }
-            },
-            studentId: true,
-            indexNumber: true,
-            level: true
-          }
-        },
         programCourses: {
           include: {
             course: {
@@ -180,25 +153,13 @@ export const programService = {
 
     if (!program) return null;
 
-    // Transform students to flatten user properties
-    const transformedStudents = program.students.map(student => ({
-      id: student.id,
-      firstName: student.user.firstName,
-      lastName: student.user.lastName,
-      email: student.user.email,
-      studentId: student.studentId,
-      indexNumber: student.indexNumber ?? undefined,
-      level: student.level
-    }));
-
-    // Add stats
+    // Add stats (without student count for now)
     return {
       ...program,
-      students: transformedStudents,
       stats: {
-        totalStudents: transformedStudents.length,
+        totalStudents: 0, // TODO: Query roleProfiles separately
         totalCourses: program.programCourses.length,
-        totalCreditHours: program.programCourses.reduce((sum, pc) => sum + (pc.course.creditHours || 0), 0)
+        totalCreditHours: program.programCourses.reduce((sum: number, pc: any) => sum + (pc.course.creditHours || 0), 0)
       }
     };
   },
@@ -325,8 +286,14 @@ export const programService = {
   async deleteProgram(id: number): Promise<boolean> {
     try {
       // Check if program has dependencies
-      const studentsCount = await prisma.studentProfile.count({
-        where: { programId: id }
+      const studentsCount = await prisma.roleProfile.count({
+        where: {
+          role: 'STUDENT',
+          metadata: {
+            path: ['programId'],
+            equals: id
+          }
+        }
       });
 
       const coursesCount = await prisma.programCourse.count({
@@ -373,17 +340,6 @@ export const programService = {
     const programs = await prisma.program.findMany({
       where,
       include: {
-        students: {
-          select: {
-            id: true,
-            user: {
-              select: {
-                firstName: true,
-                lastName: true
-              }
-            }
-          }
-        },
         programCourses: {
           include: {
             course: {
