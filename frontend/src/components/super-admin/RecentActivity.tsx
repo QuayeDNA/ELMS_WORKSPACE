@@ -1,7 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Clock, UserPlus, Building2, Settings, Shield } from "lucide-react";
+import { Clock, Building2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { institutionService } from "@/services/institution.service";
+import { formatDistanceToNow } from "date-fns";
 
 interface Activity {
   id: string;
@@ -17,54 +20,28 @@ interface Activity {
 }
 
 export function RecentActivity() {
-  // TODO: Replace with actual API data
-  const activities: Activity[] = [
-    {
-      id: "1",
-      type: "institution",
+  // Fetch recent institutions
+  const { data: institutionStats, isLoading } = useQuery({
+    queryKey: ['institutionStats'],
+    queryFn: async () => {
+      const response = await institutionService.getOverallAnalytics();
+      return response.data;
+    },
+    staleTime: 60000,
+  });
+
+  // Map recent institutions to activities
+  const activities: Activity[] = (
+    institutionStats?.recentInstitutions?.slice(0, 5).map((inst, idx) => ({
+      id: String(inst.id || idx),
+      type: "institution" as const,
       title: "New Institution Added",
-      description: "Ghana Institute of Technology registered",
+      description: `${inst.name} registered`,
       user: { name: "System", initials: "SY" },
-      timestamp: "10 minutes ago",
+      timestamp: inst.createdAt ? formatDistanceToNow(new Date(inst.createdAt), { addSuffix: true }) : "Recently",
       icon: Building2,
-    },
-    {
-      id: "2",
-      type: "user",
-      title: "Admin User Created",
-      description: "John Administrator added to GIT",
-      user: { name: "Super Admin", initials: "SA" },
-      timestamp: "25 minutes ago",
-      icon: UserPlus,
-    },
-    {
-      id: "3",
-      type: "security",
-      title: "Security Settings Updated",
-      description: "Two-factor authentication enabled system-wide",
-      user: { name: "Super Admin", initials: "SA" },
-      timestamp: "1 hour ago",
-      icon: Shield,
-    },
-    {
-      id: "4",
-      type: "system",
-      title: "System Configuration Changed",
-      description: "Email notification settings updated",
-      user: { name: "System", initials: "SY" },
-      timestamp: "2 hours ago",
-      icon: Settings,
-    },
-    {
-      id: "5",
-      type: "user",
-      title: "Bulk User Import",
-      description: "145 student accounts created",
-      user: { name: "John Administrator", initials: "JA" },
-      timestamp: "3 hours ago",
-      icon: UserPlus,
-    },
-  ];
+    })) || []
+  );
 
   const getActivityColor = (type: Activity["type"]) => {
     switch (type) {
@@ -91,7 +68,12 @@ export function RecentActivity() {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {activities.map((activity) => {
+          {isLoading ? (
+            <div className="text-sm text-muted-foreground">Loading recent activities...</div>
+          ) : activities.length === 0 ? (
+            <div className="text-sm text-muted-foreground">No recent activities to display</div>
+          ) : (
+            activities.map((activity) => {
             const Icon = activity.icon;
             return (
               <div
@@ -111,7 +93,7 @@ export function RecentActivity() {
                         {activity.description}
                       </p>
                     </div>
-                    <Badge variant="secondary" className="text-xs flex-shrink-0">
+                    <Badge variant="secondary" className="text-xs shrink-0">
                       {activity.type}
                     </Badge>
                   </div>
@@ -130,7 +112,8 @@ export function RecentActivity() {
                 </div>
               </div>
             );
-          })}
+          })
+        )}
         </div>
       </CardContent>
     </Card>

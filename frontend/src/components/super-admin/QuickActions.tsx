@@ -7,22 +7,44 @@ import {
   Shield,
   Database,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { institutionService } from "@/services/institution.service";
+import { userService } from "@/services/user.service";
 
 export function QuickActions() {
+  // Fetch stats for badges
+  const { data: institutionStats } = useQuery({
+    queryKey: ['institutionStats'],
+    queryFn: async () => {
+      const response = await institutionService.getOverallAnalytics();
+      return response.data;
+    },
+    staleTime: 60000,
+  });
+
+  const { data: userStats } = useQuery({
+    queryKey: ['userStats'],
+    queryFn: async () => {
+      const response = await userService.getUsers({ limit: 1 });
+      return response.pagination;
+    },
+    staleTime: 60000,
+  });
+
   const actions = [
     {
       title: "Manage Institutions",
       description: "View, add, or edit registered institutions",
       icon: Building2,
       href: "/institutions",
-      badge: "12 Active",
+      badge: `${institutionStats?.activeInstitutions || 0} Active`,
     },
     {
       title: "System Users",
       description: "Manage all user accounts and permissions",
       icon: Users,
       href: "/users",
-      badge: "2,847 Users",
+      badge: `${userStats?.total?.toLocaleString() || 0} Users`,
     },
     {
       title: "System Analytics",

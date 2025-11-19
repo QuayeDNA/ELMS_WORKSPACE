@@ -21,11 +21,6 @@ const LoginPage = lazy(() =>
     default: module.LoginPage,
   }))
 );
-const DashboardPage = lazy(() =>
-  import("@/pages/dashboard/DashboardPage").then((module) => ({
-    default: module.DashboardPage,
-  }))
-);
 const SettingsPage = lazy(() =>
   import("@/pages/SettingsPage").then((module) => ({
     default: module.SettingsPage,
@@ -40,6 +35,11 @@ const ComponentShowcase = lazy(() =>
 );
 
 // Super Admin Pages
+const SuperAdminDashboard = lazy(() =>
+  import("@/pages/super-admin/SuperAdminDashboard").then((module) => ({
+    default: module.SuperAdminDashboard,
+  }))
+);
 const InstitutionsPage = lazy(() =>
   import("@/pages/super-admin/InstitutionsPage").then((module) => ({
     default: module.InstitutionsPage,
@@ -72,11 +72,11 @@ const HodDashboard = lazy(() =>
 );
 
 // Exams Officer Pages
-const ExamsOfficerDashboard = lazy(() =>
-  import("@/pages/exams-officer").then((module) => ({
-    default: module.ExamsOfficerDashboard,
-  }))
-);
+// const ExamsOfficerDashboard = lazy(() =>
+//   import("@/pages/exams-officer").then((module) => ({
+//     default: module.ExamsOfficerDashboard,
+//   }))
+// );
 
 // Lecturer Pages
 const LecturerDashboard = lazy(() =>
@@ -308,7 +308,7 @@ export function AppRoutes() {
         }
       />
 
-      {/* Root Redirect */}
+      {/* Dashboard Routes */}
       <Route path="/" element={<RootRedirect />} />
 
       {/* Super Admin Routes */}
@@ -316,7 +316,7 @@ export function AppRoutes() {
         path="/dashboard"
         element={
           <SuperAdminLayout>
-            <DashboardPage />
+            <SuperAdminDashboard />
           </SuperAdminLayout>
         }
       />

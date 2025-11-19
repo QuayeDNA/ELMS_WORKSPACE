@@ -39,7 +39,7 @@ export function StatCard({
       <CardContent>
         <div className="text-3xl font-bold">{value}</div>
         {(description || trend) && (
-          <div className="flex items-center gap-2 mt-2">
+          <div className="flex flex-col items-center gap-2 mt-2">
             {trend && (
               <>
                 {trend.value !== 0 && (

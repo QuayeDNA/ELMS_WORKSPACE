@@ -12,6 +12,11 @@ const queryClient = new QueryClient({
       retry: 3,
       staleTime: 5 * 60 * 1000, // 5 minutes
       refetchOnWindowFocus: false,
+      refetchOnMount: true, // Refetch when component mounts
+      refetchOnReconnect: true, // Refetch when reconnecting
+    },
+    mutations: {
+      retry: 1, // Retry failed mutations once
     },
   },
 })
@@ -20,7 +25,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <App />
-      <ReactQueryDevtools initialIsOpen={false} />
+      <ReactQueryDevtools
+        initialIsOpen={false}
+        position="bottom-right"
+        buttonPosition="bottom-right"
+      />
     </QueryClientProvider>
   </React.StrictMode>,
 )

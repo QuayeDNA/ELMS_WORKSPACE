@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
@@ -9,17 +9,8 @@ interface AuthGuardProps {
 }
 
 export function AuthGuard({ children, redirectTo = '/login' }: Readonly<AuthGuardProps>) {
-  const { isAuthenticated, isLoading, initializeAuth } = useAuthStore();
+  const { isAuthenticated, isLoading } = useAuthStore();
   const location = useLocation();
-  const initialized = useRef(false);
-
-  useEffect(() => {
-    // Always initialize auth on first mount to check for stored credentials
-    if (!initialized.current) {
-      initialized.current = true;
-      initializeAuth();
-    }
-  }, [initializeAuth]);
 
   // Show loading spinner while checking authentication
   if (isLoading) {
