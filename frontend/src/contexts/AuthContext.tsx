@@ -51,7 +51,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (!user) return false;
 
       const roleArray = Array.isArray(roles) ? roles : [roles];
-      return roleArray.includes(user.role);
+
+      // Check primary role for backward compatibility
+      if (roleArray.includes(user.role)) return true;
+
+      // Check roleProfiles if available
+      if (user.roleProfiles && user.roleProfiles.length > 0) {
+        return user.roleProfiles.some(rp =>
+          rp.isActive && roleArray.includes(rp.role)
+        );
+      }
+
+      return false;
     },
     [user]
   );
@@ -116,12 +127,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
         ],
       };
 
-      const userPermissions = rolePermissions[user.role] || [];
+      // Check all active roles the user has
+      const allRoles = user.roleProfiles && user.roleProfiles.length > 0
+        ? user.roleProfiles.filter(rp => rp.isActive).map(rp => rp.role)
+        : [user.role];
 
-      // Super admin has all permissions
-      if (userPermissions.includes('*')) return true;
+      // Check if any role has the required permission
+      for (const role of allRoles) {
+        const permissions = rolePermissions[role] || [];
+        if (permissions.includes('*') || permissions.includes(permission)) {
+          return true;
+        }
+      }
 
-      return userPermissions.includes(permission);
+      return false;
     },
     [user]
   );

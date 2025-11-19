@@ -37,7 +37,7 @@ export function StudentIdCard({ student, className = '' }: StudentIdCardProps) {
   const generateQRData = (): string => {
     const qrData = {
       sid: student.studentId, // Student ID
-      uid: student.userId, // User ID
+      uid: student.id, // User ID
       pid: student.programId, // Program ID
     };
     return JSON.stringify(qrData);
@@ -52,7 +52,7 @@ export function StudentIdCard({ student, className = '' }: StudentIdCardProps) {
     student.program?.department?.faculty?.institution?.code || '';
 
   // Get full name
-  const fullName = `${student.user.firstName} ${student.user.middleName || ''} ${student.user.lastName}`.trim();
+  const fullName = `${student.firstName} ${student.middleName || ''} ${student.lastName}`.trim();
 
   return (
     <Card className={`relative overflow-hidden w-full gap-0 py-0 ${className}`}>

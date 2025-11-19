@@ -17,15 +17,15 @@ export function RoleGuard({
   fallbackComponent,
   redirectTo = '/unauthorized'
 }: Readonly<RoleGuardProps>) {
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated, hasRole } = useAuthStore();
 
   // If not authenticated, redirect will be handled by AuthGuard
   if (!isAuthenticated || !user) {
     return null;
   }
 
-  // Check if user's role is in the allowed roles
-  const hasPermission = allowedRoles.includes(user.role);
+  // Check if user has any of the allowed roles
+  const hasPermission = hasRole(allowedRoles);
 
   if (!hasPermission) {
     if (fallbackComponent) {

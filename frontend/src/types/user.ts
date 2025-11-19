@@ -2,6 +2,18 @@
 // USER TYPES FOR FRONTEND
 // ========================================
 
+export interface RoleProfile {
+  id: number;
+  userId: number;
+  role: UserRole;
+  permissions: Record<string, unknown>;
+  metadata: Record<string, unknown>;
+  isActive: boolean;
+  isPrimary: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface User {
   id: number;
   email: string;
@@ -22,6 +34,7 @@ export interface User {
   lastLogin?: string;
   emailVerified: boolean;
   twoFactorEnabled: boolean;
+  roleProfiles?: RoleProfile[]; // New: Multiple role profiles
   createdAt: string;
   updatedAt: string;
   institution?: {

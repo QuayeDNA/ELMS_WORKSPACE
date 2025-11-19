@@ -2,9 +2,22 @@
 // STUDENT TYPES FOR FRONTEND
 // ========================================
 
+import { RoleProfile } from './auth';
+
 export interface Student {
-  id: number;
-  userId: number;
+  id: number; // User ID
+  email: string;
+  firstName: string;
+  lastName: string;
+  middleName?: string;
+  phone?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  nationality?: string;
+  address?: string;
+  status: string;
+
+  // Student-specific data from roleProfile metadata
   studentId: string;
   indexNumber?: string;
   level: number;
@@ -15,38 +28,22 @@ export interface Student {
   expectedGraduation?: string;
   enrollmentStatus: EnrollmentStatus;
   academicStatus: AcademicStatus;
+
+  // Guardian/Emergency info (stored in metadata)
   guardianName?: string;
   guardianPhone?: string;
   guardianEmail?: string;
   emergencyContact?: string;
-  createdAt: string;
-  updatedAt: string;
 
-  // Additional computed/display properties
+  // Computed properties
   section?: string;
   credits?: number;
   cgpa?: number;
-  enrollmentDate?: string;
-  graduationDate?: string;
+
+  createdAt: string;
+  updatedAt: string;
 
   // Relations
-  user: {
-    id: number;
-    email: string;
-    firstName: string;
-    lastName: string;
-    middleName?: string;
-    title?: string;
-    phone?: string;
-    dateOfBirth?: string;
-    gender?: string;
-    nationality?: string;
-    address?: string;
-    status: string;
-    createdAt: string;
-    updatedAt: string;
-  };
-
   program?: {
     id: number;
     name: string;
@@ -75,6 +72,9 @@ export interface Student {
       };
     };
   };
+
+  // Optional roleProfile for advanced use
+  roleProfile?: RoleProfile;
 }
 
 export enum EnrollmentStatus {
@@ -97,64 +97,59 @@ export enum AcademicStatus {
 }
 
 export interface CreateStudentRequest {
-  user: {
-    email: string;
-    password: string;
-    firstName: string;
-    lastName: string;
-    middleName?: string;
-    title?: string;
-    phone?: string;
-    dateOfBirth?: string;
-    gender?: string;
-    nationality?: string;
-    address?: string;
-  };
-  profile: {
-    studentId: string;
-    indexNumber?: string;
-    level: number;
-    semester?: number;
-    academicYear?: string;
-    programId: number;
-    admissionDate?: string;
-    expectedGraduation?: string;
-    enrollmentStatus?: EnrollmentStatus;
-    academicStatus?: AcademicStatus;
-    guardianName?: string;
-    guardianPhone?: string;
-    guardianEmail?: string;
-    emergencyContact?: string;
-  };
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  middleName?: string;
+  phone?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  nationality?: string;
+  address?: string;
+
+  // Student-specific fields (will be stored in roleProfile metadata)
+  studentId: string;
+  indexNumber?: string;
+  level: number;
+  semester?: number;
+  academicYear?: string;
+  programId: number;
+  admissionDate?: string;
+  expectedGraduation?: string;
+  enrollmentStatus?: EnrollmentStatus;
+  academicStatus?: AcademicStatus;
+  guardianName?: string;
+  guardianPhone?: string;
+  guardianEmail?: string;
+  emergencyContact?: string;
 }
 
 export interface UpdateStudentRequest {
-  user?: {
-    firstName?: string;
-    lastName?: string;
-    middleName?: string;
-    title?: string;
-    phone?: string;
-    dateOfBirth?: string;
-    gender?: string;
-    nationality?: string;
-    address?: string;
-  };
-  profile?: {
-    indexNumber?: string;
-    level?: number;
-    semester?: number;
-    academicYear?: string;
-    programId?: number;
-    admissionDate?: string;
-    expectedGraduation?: string;
-    enrollmentStatus?: EnrollmentStatus;
-    academicStatus?: AcademicStatus;
-    guardianName?: string;
-    guardianPhone?: string;
-    guardianEmail?: string;
-    emergencyContact?: string;
-  };
+  // User fields
+  firstName?: string;
+  lastName?: string;
+  middleName?: string;
+  phone?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  nationality?: string;
+  address?: string;
+
+  // Student metadata fields
+  indexNumber?: string;
+  level?: number;
+  semester?: number;
+  academicYear?: string;
+  programId?: number;
+  admissionDate?: string;
+  expectedGraduation?: string;
+  enrollmentStatus?: EnrollmentStatus;
+  academicStatus?: AcademicStatus;
+  guardianName?: string;
+  guardianPhone?: string;
+  guardianEmail?: string;
+  emergencyContact?: string;
 }
 
 export interface StudentFilters {

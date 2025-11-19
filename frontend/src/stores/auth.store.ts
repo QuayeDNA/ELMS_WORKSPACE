@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { authService } from '@/services/auth.service';
 import { storageService } from '@/services/storage.service';
-import type { AuthState, LoginRequest, RegisterRequest } from '@/types/auth';
+import type { AuthState, LoginRequest, RegisterRequest, RoleProfile, UserRole } from '@/types/auth';
 
 interface AuthActions {
   login: (credentials: LoginRequest) => Promise<void>;
@@ -16,6 +16,12 @@ interface AuthActions {
   updateUser: (user: AuthState['user']) => void;
   startTokenRefresh: () => void;
   stopTokenRefresh: () => void;
+  // RoleProfile helpers
+  getCurrentRole: () => UserRole | null;
+  getPrimaryRole: () => RoleProfile | null;
+  hasRole: (role: UserRole | UserRole[]) => boolean;
+  getRoleMetadata: (role?: UserRole) => Record<string, unknown> | null;
+  getAllRoles: () => UserRole[];
 }
 
 type AuthStore = AuthState & AuthActions;
@@ -309,6 +315,60 @@ export const useAuthStore = create<AuthStore>()(
 
         setLoading: (loading: boolean) => {
           set({ isLoading: loading });
+        },
+
+        // RoleProfile Helper Methods
+        getCurrentRole: () => {
+          const state = get();
+          return state.user?.role || null;
+        },
+
+        getPrimaryRole: () => {
+          const state = get();
+          if (!state.user?.roleProfiles) return null;
+          return state.user.roleProfiles.find(rp => rp.isPrimary) || state.user.roleProfiles[0] || null;
+        },
+
+        hasRole: (role: UserRole | UserRole[]) => {
+          const state = get();
+          if (!state.user) return false;
+
+          const roles = Array.isArray(role) ? role : [role];
+
+          // Check primary role for backward compatibility
+          if (roles.includes(state.user.role)) return true;
+
+          // Check roleProfiles if available
+          if (state.user.roleProfiles && state.user.roleProfiles.length > 0) {
+            return state.user.roleProfiles.some(rp =>
+              rp.isActive && roles.includes(rp.role)
+            );
+          }
+
+          return false;
+        },
+
+        getRoleMetadata: (role?: UserRole) => {
+          const state = get();
+          if (!state.user?.roleProfiles) return null;
+
+          // If role specified, find that specific role profile
+          if (role) {
+            const roleProfile = state.user.roleProfiles.find(rp => rp.role === role && rp.isActive);
+            return roleProfile?.metadata || null;
+          }
+
+          // Otherwise return primary role metadata
+          const primaryRole = state.user.roleProfiles.find(rp => rp.isPrimary);
+          return primaryRole?.metadata || state.user.roleProfiles[0]?.metadata || null;
+        },
+
+        getAllRoles: () => {
+          const state = get();
+          if (!state.user?.roleProfiles) return state.user?.role ? [state.user.role] : [];
+          return state.user.roleProfiles
+            .filter(rp => rp.isActive)
+            .map(rp => rp.role);
         },
       }),
       {

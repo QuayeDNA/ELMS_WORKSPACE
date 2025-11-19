@@ -26,7 +26,7 @@ export function AuthGuard({ children, redirectTo = '/login' }: Readonly<AuthGuar
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-dark" />
           <p className="text-muted-foreground">Checking authentication...</p>
         </div>
       </div>

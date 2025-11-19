@@ -17,6 +17,7 @@ import {
   ERROR_MESSAGES,
   STORAGE_KEYS,
 } from "@/constants";
+import { transformBackendStudent, transformBackendStudents } from '@/utils/studentHelpers';
 
 /**
  * Student Service Class
@@ -83,9 +84,11 @@ class StudentService {
 
       // Early return for full backend response structure
       if (apiData && typeof apiData === 'object' && 'success' in apiData) {
+        // Transform backend users to frontend students
+        const transformedData = transformBackendStudents(apiData.data || []);
         return {
           success: apiData.success,
-          data: apiData.data || [],
+          data: transformedData,
           pagination: apiData.pagination || {
             page: 1,
             limit: 20,
@@ -100,13 +103,14 @@ class StudentService {
 
       // Handle array response (fallback)
       const studentsArray = Array.isArray(apiData) ? apiData : [];
+      const transformedStudents = transformBackendStudents(studentsArray);
       return {
         success: true,
-        data: studentsArray,
+        data: transformedStudents,
         pagination: {
           page: 1,
           limit: 20,
-          total: studentsArray.length,
+          total: transformedStudents.length,
           totalPages: 1,
           hasNext: false,
           hasPrev: false,
@@ -162,15 +166,19 @@ class StudentService {
         throw new Error(ERROR_MESSAGES.NOT_FOUND);
       }
 
-      // Handle the response structure
+      // Handle the response structure and transform to Student
       const apiData = response.data;
 
       // Early return for nested response structure
       if (apiData && typeof apiData === 'object' && 'success' in apiData) {
-        return apiData.data;
+        const student = transformBackendStudent(apiData.data);
+        if (!student) throw new Error(ERROR_MESSAGES.NOT_FOUND);
+        return student;
       }
 
-      return apiData as Student;
+      const student = transformBackendStudent(apiData);
+      if (!student) throw new Error(ERROR_MESSAGES.NOT_FOUND);
+      return student;
     } catch (error) {
       console.error(
         `Error fetching student by student ID ${studentId}:`,
@@ -194,15 +202,19 @@ class StudentService {
         throw new Error(ERROR_MESSAGES.NOT_FOUND);
       }
 
-      // Handle the response structure
+      // Handle the response structure and transform to Student
       const apiData = response.data;
 
       // Early return for nested response structure
       if (apiData && typeof apiData === 'object' && 'success' in apiData) {
-        return apiData.data;
+        const student = transformBackendStudent(apiData.data);
+        if (!student) throw new Error(ERROR_MESSAGES.NOT_FOUND);
+        return student;
       }
 
-      return apiData as Student;
+      const student = transformBackendStudent(apiData);
+      if (!student) throw new Error(ERROR_MESSAGES.NOT_FOUND);
+      return student;
     } catch (error) {
       console.error(
         `Error fetching student by user ID ${userId}:`,
@@ -229,15 +241,19 @@ class StudentService {
         throw new Error(ERROR_MESSAGES.SERVER);
       }
 
-      // Handle the response structure
+      // Handle the response structure and transform to Student
       const apiData = response.data;
 
       // Early return for nested response structure
       if (apiData && typeof apiData === 'object' && 'success' in apiData) {
-        return apiData.data;
+        const student = transformBackendStudent(apiData.data);
+        if (!student) throw new Error(ERROR_MESSAGES.SERVER);
+        return student;
       }
 
-      return apiData as Student;
+      const student = transformBackendStudent(apiData);
+      if (!student) throw new Error(ERROR_MESSAGES.SERVER);
+      return student;
     } catch (error) {
       console.error("Error creating student:", error);
       throw error;
@@ -261,15 +277,19 @@ class StudentService {
         throw new Error(ERROR_MESSAGES.SERVER);
       }
 
-      // Handle the response structure
+      // Handle the response structure and transform to Student
       const apiData = response.data;
 
       // Early return for nested response structure
       if (apiData && typeof apiData === 'object' && 'success' in apiData) {
-        return apiData.data;
+        const student = transformBackendStudent(apiData.data);
+        if (!student) throw new Error(ERROR_MESSAGES.SERVER);
+        return student;
       }
 
-      return apiData as Student;
+      const student = transformBackendStudent(apiData);
+      if (!student) throw new Error(ERROR_MESSAGES.SERVER);
+      return student;
     } catch (error) {
       console.error(`Error updating student ${id}:`, error);
       throw error;
@@ -325,7 +345,9 @@ class StudentService {
 
       // Early return for direct Student response
       if (response.data && !('success' in response.data)) {
-        return response.data as Student;
+        const student = transformBackendStudent(response.data);
+        if (!student) throw new Error(ERROR_MESSAGES.SERVER);
+        return student;
       }
 
       // Handle nested ApiResponse structure
@@ -334,7 +356,9 @@ class StudentService {
         throw new Error(ERROR_MESSAGES.SERVER);
       }
 
-      return apiResponse.data;
+      const student = transformBackendStudent(apiResponse.data);
+      if (!student) throw new Error(ERROR_MESSAGES.SERVER);
+      return student;
     } catch (error) {
       console.error(`Error updating student status ${id}:`, error);
       throw error;
@@ -539,32 +563,29 @@ class StudentService {
   private validateStudentData(data: CreateStudentRequest): void {
     const errors: string[] = [];
 
-    // Validate user data
-    if (!data.user.email) errors.push("Email is required");
-    if (!data.user.firstName) errors.push("First name is required");
-    if (!data.user.lastName) errors.push("Last name is required");
-    if (!data.user.password) errors.push("Password is required");
+    // Validate basic user data
+    if (!data.email) errors.push("Email is required");
+    if (!data.firstName) errors.push("First name is required");
+    if (!data.lastName) errors.push("Last name is required");
+    if (!data.password) errors.push("Password is required");
 
-    // Validate profile data
-    if (!data.profile.studentId) errors.push("Student ID is required");
-    if (!data.profile.programId) errors.push("Program is required");
-    if (!data.profile.level || data.profile.level <= 0)
+    // Validate student-specific data
+    if (!data.studentId) errors.push("Student ID is required");
+    if (!data.programId) errors.push("Program is required");
+    if (!data.level || data.level <= 0)
       errors.push("Valid level is required");
-    if (!data.profile.semester || data.profile.semester <= 0)
-      errors.push("Valid semester is required");
-    if (!data.profile.academicYear) errors.push("Academic year is required");
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (data.user.email && !emailRegex.test(data.user.email)) {
+    if (data.email && !emailRegex.test(data.email)) {
       errors.push("Invalid email format");
     }
 
     // Validate gender
     if (
-      data.user.gender &&
+      data.gender &&
       !Object.values(STUDENT_CONSTANTS.GENDER).includes(
-        data.user.gender as keyof typeof STUDENT_CONSTANTS.GENDER
+        data.gender as keyof typeof STUDENT_CONSTANTS.GENDER
       )
     ) {
       errors.push("Invalid gender");
@@ -572,9 +593,9 @@ class StudentService {
 
     // Validate level
     if (
-      data.profile.level &&
+      data.level &&
       !STUDENT_CONSTANTS.LEVELS.some(
-        (level) => level.value === data.profile.level.toString()
+        (level) => level.value === data.level.toString()
       )
     ) {
       errors.push("Invalid level");
@@ -582,16 +603,16 @@ class StudentService {
 
     // Validate semester
     if (
-      data.profile.semester &&
+      data.semester &&
       !STUDENT_CONSTANTS.SEMESTERS.some(
-        (semester) => semester.value === data.profile.semester!.toString()
+        (semester) => semester.value === data.semester!.toString()
       )
     ) {
       errors.push("Invalid semester");
     }
 
     // Validate password strength
-    if (data.user.password && data.user.password.length < 8) {
+    if (data.password && data.password.length < 8) {
       errors.push("Password must be at least 8 characters long");
     }
 
