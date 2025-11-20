@@ -114,13 +114,56 @@ export const studentService = {
       prisma.roleProfile.count({ where }),
     ]);
 
+    // Extract programIds from metadata and fetch programs
+    const programIds = profiles
+      .map(p => {
+        const metadata = p.metadata as any;
+        return metadata?.programId;
+      })
+      .filter((id): id is number => id !== null && id !== undefined);
+
+    const uniqueProgramIds = [...new Set(programIds)];
+    const programs = await prisma.program.findMany({
+      where: {
+        id: { in: uniqueProgramIds },
+      },
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        department: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
+      },
+    });
+
+    // Create program lookup map
+    const programMap = new Map(programs.map(p => [p.id, p]));
+
+    // Attach programs to profiles
+    const profilesWithPrograms = profiles.map(profile => {
+      const metadata = profile.metadata as any;
+      const programId = metadata?.programId;
+      return {
+        ...profile,
+        user: {
+          ...profile.user,
+          program: programId ? programMap.get(programId) : undefined,
+        },
+      };
+    });
+
     // Transform to DTOs and filter by metadata if needed
-    let students = transformStudentsToListItems(profiles as any);
+    let students = transformStudentsToListItems(profilesWithPrograms as any);
 
     // Client-side filtering for metadata fields (programId, level, semester, etc.)
     if (programId !== undefined) {
       students = students.filter((s: any) => {
-        const profile = profiles.find(p => p.userId === s.userId);
+        const profile = profilesWithPrograms.find(p => p.userId === s.userId);
         const meta = profile?.metadata as any;
         return meta?.programId === programId;
       });

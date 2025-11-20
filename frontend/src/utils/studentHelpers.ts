@@ -141,11 +141,90 @@ export function transformUserToStudent(user: User): Student | null {
 }
 
 /**
- * Transform backend User response to frontend Student object
- * Handles both single user and arrays of users
+ * Transform backend API response to frontend Student object
+ * Handles both User objects with roleProfiles and flattened student objects from API
  */
 export function transformBackendStudent(data: unknown): Student | null {
-  if (!data) return null;
+  if (!data || typeof data !== 'object') return null;
+
+  const record = data as any;
+
+  // Check if this is a flattened student response from the API (has userId and studentId)
+  if (record.userId && record.studentId) {
+    // Construct program object from programName and programCode if available
+    let program = record.program;
+    if (!program && (record.programName || record.programCode)) {
+      program = {
+        id: record.programId || 0,
+        name: record.programName || '',
+        code: record.programCode || '',
+        type: '',
+        level: '',
+        durationYears: 0,
+        isActive: true,
+        department: {
+          id: 0,
+          name: record.departmentName || '',
+          code: '',
+          faculty: {
+            id: 0,
+            name: '',
+            code: '',
+            institution: {
+              id: 0,
+              name: '',
+              code: ''
+            }
+          }
+        }
+      };
+    }
+
+    return {
+      id: record.userId,
+      email: record.email || '',
+      firstName: record.firstName || '',
+      lastName: record.lastName || '',
+      middleName: record.middleName,
+      phone: record.phone,
+      dateOfBirth: record.dateOfBirth,
+      gender: record.gender,
+      nationality: record.nationality,
+      address: record.address,
+      status: record.status || 'ACTIVE',
+
+      // Student-specific data
+      studentId: record.studentId,
+      indexNumber: record.indexNumber || record.studentId,
+      level: record.level || 1,
+      semester: record.semester || 1,
+      academicYear: record.academicYear,
+      programId: record.programId,
+      admissionDate: record.admissionDate,
+      expectedGraduation: record.expectedGraduation,
+      enrollmentStatus: record.enrollmentStatus || EnrollmentStatus.ENROLLED,
+      academicStatus: record.academicStatus || AcademicStatus.GOOD_STANDING,
+
+      // Guardian/Emergency info
+      guardianName: record.guardianName,
+      guardianPhone: record.guardianPhone,
+      guardianEmail: record.guardianEmail,
+      emergencyContact: record.emergencyContact,
+
+      // Computed properties
+      section: record.section,
+      credits: record.credits,
+      cgpa: record.cgpa,
+
+      createdAt: record.createdAt || new Date().toISOString(),
+      updatedAt: record.updatedAt || new Date().toISOString(),
+
+      // Relations
+      program: program
+    };
+  }
+
+  // Otherwise, treat as User object with roleProfiles
   return transformUserToStudent(data as User);
 }
 

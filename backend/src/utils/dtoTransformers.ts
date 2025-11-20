@@ -85,7 +85,7 @@ export function transformToStudentDTO(
 export function transformToStudentListItem(
   profile: PrismaRoleProfile & {
     user: PrismaUser & {
-      program?: { name: string; code: string } | null;
+      program?: { name: string; code: string; department?: { name: string } } | null;
     };
   }
 ): StudentListItemDTO {
@@ -106,6 +106,7 @@ export function transformToStudentListItem(
     academicStatus: metadata.academicStatus,
     programName: profile.user.program?.name,
     programCode: profile.user.program?.code,
+    departmentName: profile.user.program?.department?.name,
     isActive: profile.isActive,
   };
 }
@@ -132,6 +133,17 @@ export function transformToInstructorDTO(
           };
         };
       }>;
+      department?: {
+        id: number;
+        name: string;
+        code: string;
+        faculty: {
+          id: number;
+          name: string;
+          code: string;
+          institution: { id: number; name: string; code: string };
+        };
+      } | null;
     };
   }
 ): InstructorProfileResponse {
@@ -173,10 +185,19 @@ export function transformToInstructorListItem(
       lecturerDepartments?: Array<{
         department: { name: string };
       }>;
+      department?: { name: string } | null;
     };
   }
 ): InstructorListItemDTO {
   const metadata = profile.metadata as unknown as LecturerMetadata;
+
+  // Get department names from lecturerDepartments relation, fallback to direct department
+  let departmentNames: string[] = [];
+  if (profile.user.lecturerDepartments && profile.user.lecturerDepartments.length > 0) {
+    departmentNames = profile.user.lecturerDepartments.map((d) => d.department.name);
+  } else if (profile.user.department?.name) {
+    departmentNames = [profile.user.department.name];
+  }
 
   return {
     userId: profile.userId,
@@ -191,8 +212,7 @@ export function transformToInstructorListItem(
     employmentType: metadata.employmentType,
     employmentStatus: metadata.employmentStatus,
     specialization: metadata.specialization,
-    departmentNames:
-      profile.user.lecturerDepartments?.map((d) => d.department.name) || [],
+    departmentNames,
     isActive: profile.isActive,
   };
 }
@@ -367,6 +387,7 @@ export function transformInstructorsToListItems(
         lecturerDepartments?: Array<{
           department: { name: string };
         }>;
+        department?: { name: string } | null;
       };
     }
   >

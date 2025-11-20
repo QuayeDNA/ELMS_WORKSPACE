@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -111,13 +110,21 @@ const VIEW_MODES: ViewMode[] = [
 const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
 
   // Local State
   const [viewMode, setViewMode] = useState<"grid" | "table">("table");
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+
+  // Data State
+  const [student, setStudent] = useState<Student | null>(null);
+  const [studentsData, setStudentsData] = useState<StudentsResponse | null>(null);
+  const [stats, setStats] = useState<BackendStudentStats | null>(null);
+  const [isLoadingStudent, setIsLoadingStudent] = useState(false);
+  const [isLoadingStudents, setIsLoadingStudents] = useState(false);
+  const [studentError, setStudentError] = useState<Error | null>(null);
+  const [studentsError, setStudentsError] = useState<Error | null>(null);
 
   // Filters State with Constants
   const [filters, setFilters] = useState<StudentFilters>(() => {
@@ -170,129 +177,125 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
     }
   }, [viewMode]);
 
-  // Query: Single Student (for view mode)
-  const {
-    data: student,
-    isLoading: isLoadingStudent,
-    error: studentError,
-  } = useQuery({
-    queryKey: ["student", id],
-    queryFn: () => studentService.getStudentById(Number(id!)),
-    enabled: mode === "view" && !!id,
-    retry: 2,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
+  // Fetch Single Student (for view mode)
+  useEffect(() => {
+    if (mode === "view" && id) {
+      setIsLoadingStudent(true);
+      setStudentError(null);
+      studentService.getStudentById(Number(id))
+        .then((data) => {
+          setStudent(data);
+          setIsLoadingStudent(false);
+        })
+        .catch((error) => {
+          setStudentError(error);
+          setIsLoadingStudent(false);
+        });
+    }
+  }, [mode, id]);
 
-  // Query: Students List (for list mode)
-  const {
-    data: studentsData,
-    isLoading: isLoadingStudents,
-    error: studentsError,
-    refetch: refetchStudents,
-  } = useQuery<StudentsResponse>({
-    queryKey: ["students", filters],
-    queryFn: () => studentService.getStudents(filters),
-    enabled: mode === "list",
-    placeholderData: (previousData: StudentsResponse | undefined) =>
-      previousData,
-    retry: 2,
-    staleTime: 2 * 60 * 1000, // 2 minutes
-  });
+  // Fetch Students List (for list mode)
+  const fetchStudents = useCallback(() => {
+    if (mode === "list") {
+      setIsLoadingStudents(true);
+      setStudentsError(null);
+      studentService.getStudents(filters)
+        .then((data) => {
+          setStudentsData(data);
+          setIsLoadingStudents(false);
+        })
+        .catch((error) => {
+          setStudentsError(error);
+          setIsLoadingStudents(false);
+        });
+    }
+  }, [mode, filters]);
 
-  // Query: Student Statistics
-  const { data: stats } = useQuery<BackendStudentStats>({
-    queryKey: ["students", "stats", filters],
-    queryFn: () => studentService.getStudentStats(filters),
-    enabled: mode === "list",
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
+  useEffect(() => {
+    fetchStudents();
+  }, [fetchStudents]);
 
-  // Mutation: Create Student
-  const createMutation = useMutation({
-    mutationFn: (data: CreateStudentRequest) =>
-      studentService.createStudent(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["students"] });
-      toast.success(SUCCESS_MESSAGES.STUDENT.CREATED);
-      navigate(ROUTES.STUDENTS.BASE);
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || ERROR_MESSAGES.SERVER);
-    },
-  });
+  // Fetch Student Statistics
+  useEffect(() => {
+    if (mode === "list") {
+      studentService.getStudentStats(filters)
+        .then((data) => setStats(data))
+        .catch((error) => console.error("Failed to load stats:", error));
+    }
+  }, [mode, filters]);
 
-  // Mutation: Update Student
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: UpdateStudentRequest }) =>
-      studentService.updateStudent(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["student", id] });
-      queryClient.invalidateQueries({ queryKey: ["students"] });
-      setIsEditDialogOpen(false);
-      toast.success(SUCCESS_MESSAGES.STUDENT.UPDATED);
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || ERROR_MESSAGES.SERVER);
-    },
-  });
-
-  // Mutation: Delete Student
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) => studentService.deleteStudent(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["students"] });
-      setSelectedStudent(null);
-      toast.success(SUCCESS_MESSAGES.STUDENT.DELETED);
-      if (mode === "view") {
-        navigate(ROUTES.STUDENTS.BASE);
-      }
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || ERROR_MESSAGES.SERVER);
-    },
-  });
+  // Refetch function for manual refresh
+  const refetchStudents = useCallback(() => {
+    fetchStudents();
+  }, [fetchStudents]);
 
   // Handlers
   const handleCreate = useCallback(
     async (
       data: CreateStudentRequest | UpdateStudentRequest
     ): Promise<void> => {
-      // Type guard to ensure we have CreateStudentRequest for creation
-      if (
-        "user" in data &&
-        "profile" in data &&
-        data.user &&
-        "password" in data.user
-      ) {
-        await createMutation.mutateAsync(data as CreateStudentRequest);
+      try {
+        // Type guard to ensure we have CreateStudentRequest for creation
+        if (
+          "user" in data &&
+          "profile" in data &&
+          data.user &&
+          "password" in data.user
+        ) {
+          await studentService.createStudent(data as CreateStudentRequest);
+          toast.success(SUCCESS_MESSAGES.STUDENT.CREATED);
+          navigate(ROUTES.STUDENTS.BASE);
+          fetchStudents();
+        }
+      } catch (error: any) {
+        toast.error(error.message || ERROR_MESSAGES.SERVER);
       }
     },
-    [createMutation]
+    [navigate, fetchStudents]
   );
 
   const handleUpdate = useCallback(
     async (
       data: CreateStudentRequest | UpdateStudentRequest
     ): Promise<void> => {
-      if (student) {
-        await updateMutation.mutateAsync({
-          id: student.id,
-          data: data as UpdateStudentRequest,
-        });
+      try {
+        if (student) {
+          await studentService.updateStudent(student.id, data as UpdateStudentRequest);
+          setIsEditDialogOpen(false);
+          toast.success(SUCCESS_MESSAGES.STUDENT.UPDATED);
+          fetchStudents();
+          if (mode === "view" && id) {
+            const updatedStudent = await studentService.getStudentById(Number(id));
+            setStudent(updatedStudent);
+          }
+        }
+      } catch (error: any) {
+        toast.error(error.message || ERROR_MESSAGES.SERVER);
       }
     },
-    [updateMutation, student]
+    [student, fetchStudents, mode, id]
   );
 
   const handleDelete = useCallback((studentToDelete: Student) => {
     setSelectedStudent(studentToDelete);
   }, []);
 
-  const confirmDelete = useCallback(() => {
+  const confirmDelete = useCallback(async () => {
     if (selectedStudent) {
-      deleteMutation.mutate(selectedStudent.id);
+      try {
+        await studentService.deleteStudent(selectedStudent.id);
+        setSelectedStudent(null);
+        toast.success(SUCCESS_MESSAGES.STUDENT.DELETED);
+        if (mode === "view") {
+          navigate(ROUTES.STUDENTS.BASE);
+        } else {
+          fetchStudents();
+        }
+      } catch (error: any) {
+        toast.error(error.message || ERROR_MESSAGES.SERVER);
+      }
     }
-  }, [deleteMutation, selectedStudent]);
+  }, [selectedStudent, mode, navigate, fetchStudents]);
 
   const handleEdit = useCallback((studentToEdit: Student) => {
     setSelectedStudent(studentToEdit);
@@ -383,7 +386,7 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
 
   // Helper function to get student initials
   const getStudentInitials = (student: Student) => {
-    return `${student.user.firstName.charAt(0)}${student.user.lastName.charAt(
+    return `${student.firstName.charAt(0)}${student.lastName.charAt(
       0
     )}`.toUpperCase();
   };
@@ -933,7 +936,7 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
               </div>
             </CardContent>
           </Card>
-        ) : studentsData ? (
+        ) : studentsData && studentsData.data && studentsData.data.length > 0 ? (
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -960,7 +963,7 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {studentsData.data?.map((student: Student) => (
+                    {studentsData.data.map((student: Student) => (
                       <TableRow key={student.id}>
                         <TableCell>
                           <div className="flex items-center space-x-3">
@@ -975,10 +978,10 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
                             </Avatar>
                             <div>
                               <div className="font-medium">
-                                {student.user.firstName} {student.user.lastName}
+                                {student.firstName} {student.lastName}
                               </div>
                               <div className="text-sm text-muted-foreground">
-                                {student.user.email}
+                                {student.email}
                               </div>
                             </div>
                           </div>
@@ -1059,7 +1062,7 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
               ) : (
                 <div className="p-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {studentsData.data?.map((student: Student) => (
+                    {studentsData.data.map((student: Student) => (
                       <Card
                         key={student.id}
                         className="hover:shadow-md transition-shadow"
@@ -1078,8 +1081,8 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
                               </Avatar>
                               <div>
                                 <h3 className="font-medium">
-                                  {student.user.firstName}{" "}
-                                  {student.user.lastName}
+                                  {student.firstName}{" "}
+                                  {student.lastName}
                                 </h3>
                                 <p className="text-sm text-muted-foreground font-mono">
                                   {student.studentId}
@@ -1201,7 +1204,7 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
         {/* No Data State */}
         {studentsData &&
           !isLoadingStudents &&
-          studentsData.data?.length === 0 && (
+          (!studentsData.data || studentsData.data.length === 0) && (
             <Card>
               <CardContent className="p-12 text-center">
                 <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />

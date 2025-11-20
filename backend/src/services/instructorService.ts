@@ -88,6 +88,27 @@ export const instructorService = {
               departmentId: true,
               facultyId: true,
               institutionId: true,
+              department: {
+                select: {
+                  id: true,
+                  name: true,
+                  code: true,
+                },
+              },
+              lecturerDepartments: {
+                select: {
+                  id: true,
+                  departmentId: true,
+                  isPrimary: true,
+                  department: {
+                    select: {
+                      id: true,
+                      name: true,
+                      code: true,
+                    },
+                  },
+                },
+              },
             },
           },
         },
@@ -140,12 +161,37 @@ export const instructorService = {
         isActive: true,
       },
       include: {
-        user: true,
+        user: {
+          include: {
+            lecturerDepartments: {
+              include: {
+                department: {
+                  include: {
+                    faculty: {
+                      include: {
+                        institution: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            department: {
+              include: {
+                faculty: {
+                  include: {
+                    institution: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
 
     if (!profile) {
-      return null;
+      throw new Error("Instructor not found");
     }
 
     return transformToInstructorDTO(profile as any);
@@ -163,7 +209,32 @@ export const instructorService = {
         },
       },
       include: {
-        user: true,
+        user: {
+          include: {
+            lecturerDepartments: {
+              include: {
+                department: {
+                  include: {
+                    faculty: {
+                      include: {
+                        institution: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            department: {
+              include: {
+                faculty: {
+                  include: {
+                    institution: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
 

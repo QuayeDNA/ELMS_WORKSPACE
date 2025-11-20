@@ -127,14 +127,16 @@ export const InstructorsList: React.FC<InstructorsListProps> = ({
       .replace(/\b\w/g, (l) => l.toUpperCase());
   };
 
-  const formatEmploymentType = (type: string) => {
+  const formatEmploymentType = (type: string | null | undefined) => {
+    if (!type) return "Unknown";
     return type
       .replace(/_/g, " ")
       .toLowerCase()
       .replace(/\b\w/g, (l) => l.toUpperCase());
   };
 
-  const getStatusBadgeVariant = (status: string) => {
+  const getStatusBadgeVariant = (status: string | null | undefined) => {
+    if (!status) return "outline";
     switch (status) {
       case "ACTIVE":
         return "default";
@@ -278,20 +280,20 @@ export const InstructorsList: React.FC<InstructorsListProps> = ({
         <div className="space-y-4">
           {/* Instructors Grid */}
           <div className="grid gap-4">
-            {instructors.map((instructor) => (
-              <Card key={instructor.id} className="hover:shadow-md transition-shadow">
+            {instructors.map((instructor: any) => (
+              <Card key={instructor.userId} className="hover:shadow-md transition-shadow">
                 <CardContent className="pt-6">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start space-x-4">
                       <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                         <span className="text-blue-600 font-semibold">
-                          {instructor.user.firstName[0]}{instructor.user.lastName[0]}
+                          {(instructor.firstName?.[0] || '')}{(instructor.lastName?.[0] || '')}
                         </span>
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center space-x-2">
                           <h3 className="font-semibold">
-                            {instructor.user.title} {instructor.user.firstName} {instructor.user.lastName}
+                            {instructor.title} {instructor.firstName} {instructor.lastName}
                           </h3>
                           <Badge variant={getStatusBadgeVariant(instructor.employmentStatus)}>
                             {formatEmploymentType(instructor.employmentStatus)}
@@ -301,7 +303,7 @@ export const InstructorsList: React.FC<InstructorsListProps> = ({
                           Staff ID: {instructor.staffId}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          {instructor.user.email}
+                          {instructor.email}
                         </p>
                         <div className="flex flex-wrap gap-2 mt-2">
                           <Badge variant="outline">
@@ -316,14 +318,16 @@ export const InstructorsList: React.FC<InstructorsListProps> = ({
                             </Badge>
                           )}
                         </div>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {instructor.user.department?.name} • {instructor.user.department?.faculty?.name}
-                        </p>
+                        {instructor.departmentNames && instructor.departmentNames.length > 0 && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {instructor.departmentNames.join(', ')}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Button
-                        onClick={() => navigate(`/admin/instructors/${instructor.id}`)}
+                        onClick={() => navigate(`/admin/instructors/${instructor.userId}`)}
                         variant="outline"
                         size="sm"
                       >

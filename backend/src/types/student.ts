@@ -89,6 +89,7 @@ export interface StudentListItemDTO {
   academicStatus: AcademicStatus;
   programName?: string;
   programCode?: string;
+  departmentName?: string;
   isActive: boolean;
 }
 
