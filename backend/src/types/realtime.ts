@@ -10,6 +10,7 @@ export enum RealtimeChannel {
   SCRIPT_SUBMISSION = 'script:submission',
   BATCH_UPDATE = 'batch:update',
   EXAM_TIMETABLE = 'exam:timetable',
+  EXAM_LOGISTICS = 'exam-logistics',
   INCIDENT = 'incident',
   NOTIFICATION = 'notification',
 }

@@ -74,10 +74,13 @@ model User {
   assignmentsAssigned      InvigilatorAssignment[]    @relation("AssignmentAssignedBy")
   studentVerifications     StudentVerification[]
   verificationsPerformed   StudentVerification[]      @relation("VerificationVerifier")
-  examIncidentsReported    ExamIncident[]             @relation("IncidentReporter")
-  examIncidentsAssigned    ExamIncident[]             @relation("IncidentAssignee")
-  examIncidentsResolved    ExamIncident[]             @relation("IncidentResolver")
-  timetableInvigilators    ExamTimetableInvigilator[] @relation("TimetableInvigilators")
+  examIncidentsReported       ExamIncident[]             @relation("IncidentReporter")
+  examIncidentsAssigned       ExamIncident[]             @relation("IncidentAssignee")
+  examIncidentsResolved       ExamIncident[]             @relation("IncidentResolver")
+  timetableInvigilators       ExamTimetableInvigilator[] @relation("TimetableInvigilators")
+  incidentAffectedAsStudent   ExamIncidentStudent[]      @relation("IncidentAffectedStudents")
+  incidentAffectedAsInvigilator ExamIncidentInvigilator[] @relation("IncidentAffectedInvigilators")
+  incidentWitness             ExamIncidentWitness[]      @relation("IncidentWitnesses")
 
   @@index([institutionId, role])
   @@index([facultyId, role])
@@ -762,6 +765,7 @@ model ExamTimetableEntry {
   invigilatorAssignments InvigilatorAssignment[]
   studentVerifications   StudentVerification[]
   examIncidents          ExamIncident[]
+  examLogistics          ExamLogistics?
 
   @@index([timetableId, examDate])
   @@index([courseId])
@@ -1194,10 +1198,9 @@ model ExamIncident {
   status      IncidentStatus   @default(REPORTED)
 
   // Incident details
-  title            String
-  description      String
-  location         String?
-  affectedStudents String? // JSON array of student IDs - TODO: Convert to junction table
+  title       String
+  description String
+  location    String?
 
   // Reporting
   reportedBy Int
@@ -1211,16 +1214,18 @@ model ExamIncident {
 
   // Evidence
   attachments String? // JSON array of file URLs
-  witnesses   String? // JSON array of user IDs
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
-  examEntry ExamTimetableEntry @relation(fields: [examEntryId], references: [id], onDelete: Cascade)
-  reporter  User               @relation("IncidentReporter", fields: [reportedBy], references: [id])
-  assignee  User?              @relation("IncidentAssignee", fields: [assignedTo], references: [id])
-  resolver  User?              @relation("IncidentResolver", fields: [resolvedBy], references: [id])
+  examEntry          ExamTimetableEntry       @relation(fields: [examEntryId], references: [id], onDelete: Cascade)
+  reporter           User                     @relation("IncidentReporter", fields: [reportedBy], references: [id])
+  assignee           User?                    @relation("IncidentAssignee", fields: [assignedTo], references: [id])
+  resolver           User?                    @relation("IncidentResolver", fields: [resolvedBy], references: [id])
+  affectedStudents   ExamIncidentStudent[]
+  affectedInvigilators ExamIncidentInvigilator[]
+  witnesses          ExamIncidentWitness[]
 
   @@index([examEntryId, status])
   @@index([reportedBy, reportedAt])
@@ -1228,6 +1233,108 @@ model ExamIncident {
   @@index([type, severity, status])
   @@index([status, reportedAt])
   @@map("exam_incidents")
+}
+
+// Junction tables for ExamIncident relationships
+model ExamIncidentStudent {
+  id         Int          @id @default(autoincrement())
+  incidentId Int
+  studentId  Int
+  notes      String?
+  createdAt  DateTime     @default(now())
+
+  incident ExamIncident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  student  User         @relation("IncidentAffectedStudents", fields: [studentId], references: [id])
+
+  @@unique([incidentId, studentId])
+  @@index([incidentId])
+  @@index([studentId])
+  @@map("exam_incident_students")
+}
+
+model ExamIncidentInvigilator {
+  id            Int          @id @default(autoincrement())
+  incidentId    Int
+  invigilatorId Int
+  notes         String?
+  createdAt     DateTime     @default(now())
+
+  incident    ExamIncident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  invigilator User         @relation("IncidentAffectedInvigilators", fields: [invigilatorId], references: [id])
+
+  @@unique([incidentId, invigilatorId])
+  @@index([incidentId])
+  @@index([invigilatorId])
+  @@map("exam_incident_invigilators")
+}
+
+model ExamIncidentWitness {
+  id         Int          @id @default(autoincrement())
+  incidentId Int
+  witnessId  Int
+  statement  String?
+  createdAt  DateTime     @default(now())
+
+  incident ExamIncident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  witness  User         @relation("IncidentWitnesses", fields: [witnessId], references: [id])
+
+  @@unique([incidentId, witnessId])
+  @@index([incidentId])
+  @@index([witnessId])
+  @@map("exam_incident_witnesses")
+}
+
+// Exam Logistics Aggregate Model - Central logistics data for each exam entry
+model ExamLogistics {
+  id          Int      @id @default(autoincrement())
+  examEntryId Int      @unique
+
+  // Student metrics
+  totalExpected      Int      @default(0)
+  totalPresent       Int      @default(0)
+  totalAbsent        Int      @default(0)
+  totalLateArrivals  Int      @default(0)
+
+  // Script tracking metrics
+  scriptsSubmitted   Int      @default(0)
+  scriptsCollected   Int      @default(0)
+  scriptsPending     Int      @default(0)
+
+  // Invigilator metrics
+  invigilatorsAssigned Int    @default(0)
+  invigilatorsPresent  Int    @default(0)
+  invigilatorsAbsent   Int    @default(0)
+
+  // Status flags
+  sessionStatus       ExamSessionStatusType @default(NOT_STARTED)
+  dataVerificationStatus VerificationStatus @default(PENDING)
+  hasIncidents        Boolean  @default(false)
+  hasUnresolvedIncidents Boolean @default(false)
+  capacityExceeded    Boolean  @default(false)
+
+  // Tracking timestamps
+  sessionStartedAt    DateTime?
+  sessionEndedAt      DateTime?
+  lastVerificationAt  DateTime?
+  lastIncidentAt      DateTime?
+
+  // Metadata
+  notes               String?
+  metadata            Json?    // For additional flexible data
+
+  // Audit
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  lastSyncedAt        DateTime @default(now())
+
+  // Relations
+  examEntry ExamTimetableEntry @relation(fields: [examEntryId], references: [id], onDelete: Cascade)
+
+  @@index([examEntryId])
+  @@index([sessionStatus, examEntryId])
+  @@index([hasUnresolvedIncidents, examEntryId])
+  @@index([dataVerificationStatus, examEntryId])
+  @@map("exam_logistics")
 }
 
 enum UserRole {

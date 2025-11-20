@@ -25,6 +25,14 @@ import {
   ExamSessionActionDetails,
   ExamTimetableEntry,
 } from "../types/examLogistics";
+import {
+  incrementStudentPresence,
+  updateInvigilatorPresence,
+  updateIncidentFlags,
+  getExamLogistics,
+  syncExamLogistics
+} from "../utils/examLogisticsHelpers";
+import { examLogisticsRealtimeService } from "./examLogisticsRealtimeService";
 
 const prisma = new PrismaClient();
 
@@ -212,6 +220,16 @@ export const examLogisticsService = {
             lastName: true,
           },
         },
+        examEntry: {
+          include: {
+            timetable: {
+              select: {
+                institutionId: true
+              }
+            },
+            venue: true
+          }
+        }
       },
     });
 
@@ -232,17 +250,24 @@ export const examLogisticsService = {
       updateData.status = AssignmentStatus.CHECKED_IN;
       sessionAction = ExamSessionAction.INVIGILATOR_CHECK_IN;
       statusUpdate = AssignmentStatus.CHECKED_IN;
+      // Increment invigilator presence
+      await updateInvigilatorPresence(assignment.examEntryId, true);
     } else {
       updateData.checkedOutAt = new Date();
       updateData.status = AssignmentStatus.CHECKED_OUT;
       sessionAction = ExamSessionAction.INVIGILATOR_CHECK_OUT;
       statusUpdate = AssignmentStatus.CHECKED_OUT;
+      // Decrement invigilator presence
+      await updateInvigilatorPresence(assignment.examEntryId, false);
     }
 
     const updated = await prisma.invigilatorAssignment.update({
       where: { id: assignmentId },
       data: updateData,
     });
+
+    // Get updated logistics
+    const logistics = await getExamLogistics(assignment.examEntryId);
 
     // Log the action
     await this.logSessionAction({
@@ -260,6 +285,24 @@ export const examLogisticsService = {
       },
       notes: `Invigilator ${assignment.invigilator.firstName} ${assignment.invigilator.lastName} ${action === 'check_in' ? 'checked in' : 'checked out'}`,
     });
+
+    // Broadcast real-time event
+    const eventData = {
+      examEntryId: assignment.examEntryId,
+      institutionId: assignment.examEntry.timetable.institutionId,
+      venueId: assignment.venueId,
+      invigilatorId: assignment.invigilatorId,
+      invigilatorName: `${assignment.invigilator.firstName} ${assignment.invigilator.lastName}`,
+      role: assignment.role,
+      invigilatorsPresent: logistics?.invigilatorsPresent || 0,
+      invigilatorsAssigned: logistics?.invigilatorsAssigned || 0
+    };
+
+    if (action === 'check_in') {
+      examLogisticsRealtimeService.broadcastInvigilatorCheckIn(eventData);
+    } else {
+      examLogisticsRealtimeService.broadcastInvigilatorCheckOut(eventData);
+    }
 
     return {
       success: true,
@@ -284,6 +327,19 @@ export const examLogisticsService = {
           examEntryId: data.examEntryId,
         },
       },
+      include: {
+        examEntry: {
+          include: {
+            course: true,
+            venue: true,
+            timetable: {
+              select: {
+                institutionId: true
+              }
+            }
+          }
+        }
+      }
     });
 
     if (!registration) {
@@ -304,6 +360,11 @@ export const examLogisticsService = {
       throw new Error("Student is already checked in for this exam");
     }
 
+    // Check if student is late
+    const now = new Date();
+    const startTime = new Date(registration.examEntry.startTime);
+    const isLate = now > startTime;
+
     // Create or update verification
     const verificationData: {
       examEntryId: number;
@@ -313,6 +374,7 @@ export const examLogisticsService = {
       method: VerificationMethod;
       seatNumber?: string;
       qrCode?: string;
+      notes?: string;
     } = {
       examEntryId: data.examEntryId,
       studentId: data.studentId,
@@ -321,6 +383,7 @@ export const examLogisticsService = {
       method: data.verificationMethod,
       seatNumber: data.seatNumber,
       qrCode: data.qrCode,
+      notes: isLate ? 'Late arrival' : undefined
     };
 
     const verification = await prisma.studentVerification.upsert({
@@ -367,6 +430,12 @@ export const examLogisticsService = {
       },
     });
 
+    // Update ExamLogistics counters
+    await incrementStudentPresence(data.examEntryId, isLate);
+
+    // Get updated logistics for real-time broadcast
+    const logistics = await getExamLogistics(data.examEntryId);
+
     // Log the check-in
     await this.logSessionAction({
       examEntryId: data.examEntryId,
@@ -379,9 +448,23 @@ export const examLogisticsService = {
         metadata: {
           method: data.verificationMethod,
           seatNumber: data.seatNumber,
+          isLate
         },
       },
-      notes: `Student ${verification.student.firstName} ${verification.student.lastName} checked in via ${data.verificationMethod}`,
+      notes: `Student ${verification.student.firstName} ${verification.student.lastName} checked in via ${data.verificationMethod}${isLate ? ' (late)' : ''}`,
+    });
+
+    // Broadcast real-time event
+    examLogisticsRealtimeService.broadcastStudentCheckIn({
+      examEntryId: data.examEntryId,
+      institutionId: registration.examEntry.timetable.institutionId,
+      venueId: registration.examEntry.venueId,
+      studentId: data.studentId,
+      studentName: `${verification.student.firstName} ${verification.student.lastName}`,
+      seatNumber: data.seatNumber,
+      verificationMethod: data.verificationMethod,
+      totalPresent: logistics?.totalPresent || 0,
+      totalExpected: logistics?.totalExpected || 0
     });
 
     return {
@@ -469,34 +552,78 @@ export const examLogisticsService = {
    * Report an exam incident
    */
   async reportExamIncident(data: ReportExamIncidentData) {
-    const incident = await prisma.examIncident.create({
-      data: {
-        examEntryId: data.examEntryId,
-        type: data.type,
-        severity: data.severity,
-        title: data.title,
-        description: data.description,
-        location: data.location,
-        affectedStudents: data.affectedStudents ? JSON.stringify(data.affectedStudents) : null,
-        reportedBy: data.reportedBy,
-        attachments: data.attachments ? JSON.stringify(data.attachments) : null,
-        witnesses: data.witnesses ? JSON.stringify(data.witnesses) : null,
-      },
-      include: {
-        examEntry: {
-          include: {
-            course: true,
-            venue: true,
+    // Create incident
+    const incident = await prisma.$transaction(async (tx) => {
+      const newIncident = await tx.examIncident.create({
+        data: {
+          examEntryId: data.examEntryId,
+          type: data.type,
+          severity: data.severity,
+          title: data.title,
+          description: data.description,
+          location: data.location,
+          reportedBy: data.reportedBy,
+          attachments: data.attachments ? JSON.stringify(data.attachments) : null,
+        },
+        include: {
+          examEntry: {
+            include: {
+              course: true,
+              venue: true,
+              timetable: {
+                select: {
+                  institutionId: true
+                }
+              }
+            },
+          },
+          reporter: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+            },
           },
         },
-        reporter: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-          },
-        },
-      },
+      });
+
+      // Create junction table entries for affected students
+      if (data.affectedStudents && data.affectedStudents.length > 0) {
+        await tx.examIncidentStudent.createMany({
+          data: data.affectedStudents.map(studentId => ({
+            incidentId: newIncident.id,
+            studentId: parseInt(studentId.toString())
+          })),
+          skipDuplicates: true
+        });
+      }
+
+      // Create junction table entries for affected invigilators
+      if (data.affectedInvigilators && data.affectedInvigilators.length > 0) {
+        await tx.examIncidentInvigilator.createMany({
+          data: data.affectedInvigilators.map(invigilatorId => ({
+            incidentId: newIncident.id,
+            invigilatorId: parseInt(invigilatorId.toString())
+          })),
+          skipDuplicates: true
+        });
+      }
+
+      // Create junction table entries for witnesses
+      if (data.witnesses && data.witnesses.length > 0) {
+        await tx.examIncidentWitness.createMany({
+          data: data.witnesses.map(witnessId => ({
+            incidentId: newIncident.id,
+            witnessId: parseInt(witnessId.toString())
+          })),
+          skipDuplicates: true
+        });
+      }
+
+      // Update ExamLogistics incident flags
+      await updateIncidentFlags(data.examEntryId, true, tx);
+
+      return newIncident;
     });
 
     // Log the incident report
@@ -516,6 +643,18 @@ export const examLogisticsService = {
       notes: `Incident reported: ${data.title}`,
     });
 
+    // Broadcast real-time event
+    examLogisticsRealtimeService.broadcastIncidentReported({
+      examEntryId: data.examEntryId,
+      institutionId: incident.examEntry.timetable.institutionId,
+      venueId: incident.examEntry.venueId,
+      incidentId: incident.id,
+      type: data.type,
+      severity: data.severity,
+      title: data.title,
+      reporterName: `${incident.reporter.firstName} ${incident.reporter.lastName}`
+    });
+
     return {
       success: true,
       message: "Incident reported successfully",
@@ -529,6 +668,24 @@ export const examLogisticsService = {
   async resolveExamIncident(incidentId: number, resolution: string, resolvedBy: number) {
     const incident = await prisma.examIncident.findUnique({
       where: { id: incidentId },
+      include: {
+        examEntry: {
+          include: {
+            timetable: {
+              select: {
+                institutionId: true
+              }
+            },
+            venue: true
+          }
+        },
+        resolver: {
+          select: {
+            firstName: true,
+            lastName: true
+          }
+        }
+      }
     });
 
     if (!incident) {
@@ -545,6 +702,19 @@ export const examLogisticsService = {
       },
     });
 
+    // Check if there are still unresolved incidents
+    const unresolvedCount = await prisma.examIncident.count({
+      where: {
+        examEntryId: incident.examEntryId,
+        status: {
+          not: IncidentStatus.RESOLVED
+        }
+      }
+    });
+
+    // Update ExamLogistics incident flags
+    await updateIncidentFlags(incident.examEntryId, unresolvedCount > 0);
+
     // Log the resolution
     await this.logSessionAction({
       examEntryId: incident.examEntryId,
@@ -560,6 +730,18 @@ export const examLogisticsService = {
       },
       notes: `Incident resolved: ${resolution}`,
     });
+
+    // Broadcast real-time event
+    if (incident.resolver) {
+      examLogisticsRealtimeService.broadcastIncidentResolved({
+        examEntryId: incident.examEntryId,
+        institutionId: incident.examEntry.timetable.institutionId,
+        venueId: incident.examEntry.venueId,
+        incidentId,
+        resolverName: `${incident.resolver.firstName} ${incident.resolver.lastName}`,
+        resolution
+      });
+    }
 
     return {
       success: true,
@@ -616,7 +798,7 @@ export const examLogisticsService = {
   // ========================================
 
   /**
-   * Get institution logistics dashboard
+   * Get institution logistics dashboard (Optimized with ExamLogistics)
    */
   async getInstitutionLogisticsDashboard(institutionId: number, date: Date) {
     const startOfDay = new Date(date);
@@ -632,7 +814,7 @@ export const examLogisticsService = {
       },
     });
 
-    // Get exam entries for the date
+    // Get exam entries with their logistics (OPTIMIZED: single query with pre-calculated metrics)
     const examEntries = await prisma.examTimetableEntry.findMany({
       where: {
         examDate: {
@@ -647,73 +829,81 @@ export const examLogisticsService = {
       include: {
         venue: true,
         course: true,
-        studentVerifications: true,
-        invigilatorAssignments: true,
+        examLogistics: true, // Pre-calculated metrics
         rooms: { include: { room: true } },
-        examIncidents: {
-          where: {
-            status: {
-              not: IncidentStatus.RESOLVED,
-            },
-          },
-        },
       },
     });
 
-    // Calculate statistics
+    // Calculate institution-wide statistics from logistics aggregates
     const totalVenues = venues.length;
     const activeVenues = new Set(examEntries.map(e => e.venueId)).size;
 
-    const totalExpectedStudents = examEntries.reduce((sum, entry) => sum + (entry.studentCount || 0), 0);
-    const totalVerifiedStudents = examEntries.reduce((sum, entry) => sum + entry.studentVerifications.length, 0);
+    const totalExpectedStudents = examEntries.reduce((sum, entry) =>
+      sum + (entry.examLogistics?.totalExpected || 0), 0);
+    const totalPresentStudents = examEntries.reduce((sum, entry) =>
+      sum + (entry.examLogistics?.totalPresent || 0), 0);
+    const totalScriptsSubmitted = examEntries.reduce((sum, entry) =>
+      sum + (entry.examLogistics?.scriptsSubmitted || 0), 0);
 
-    const allAssignments = examEntries.flatMap(e => e.invigilatorAssignments);
-    const totalAssignedInvigilators = allAssignments.length;
-    const totalInvigilatorsPresent = allAssignments.filter(a => a.status === AssignmentStatus.CHECKED_IN || a.status === AssignmentStatus.ACTIVE).length;
+    const totalAssignedInvigilators = examEntries.reduce((sum, entry) =>
+      sum + (entry.examLogistics?.invigilatorsAssigned || 0), 0);
+    const totalInvigilatorsPresent = examEntries.reduce((sum, entry) =>
+      sum + (entry.examLogistics?.invigilatorsPresent || 0), 0);
 
-    const allIncidents = examEntries.flatMap(e => e.examIncidents);
-    const unresolvedIncidents = allIncidents.filter(i => i.status !== IncidentStatus.RESOLVED);
+    const totalIncidents = examEntries.filter(e =>
+      e.examLogistics?.hasIncidents).length;
+    const unresolvedIncidents = examEntries.filter(e =>
+      e.examLogistics?.hasUnresolvedIncidents).length;
 
-    // Build venue overviews
+    // Build venue overviews using logistics data
     const venueOverviews = venues.map(venue => {
       const venueEntries = examEntries.filter(e => e.venueId === venue.id);
-      const venueAssignments = allAssignments.filter(a => a.venueId === venue.id);
-      const venueIncidents = unresolvedIncidents.filter(i => venueEntries.some(e => e.id === i.examEntryId));
 
       return {
         venueId: venue.id,
         venueName: venue.name,
         date,
-        activeSessions: venueEntries.map(entry => ({
-          examEntryId: entry.id,
-          courseCode: entry.course.code,
-          courseName: entry.course.name,
-          startTime: entry.startTime,
-          endTime: entry.endTime,
-          status: this.getExamSessionStatus(entry),
-          expectedStudents: entry.studentCount || 0,
-          verifiedStudents: entry.studentVerifications.length,
-          assignedInvigilators: venueAssignments.filter(a => a.examEntryId === entry.id).length,
-          incidentCount: venueIncidents.filter(i => i.examEntryId === entry.id).length,
-        })),
-        totalStudentsExpected: venueEntries.reduce((sum, e) => sum + (e.studentCount || 0), 0),
-        totalStudentsVerified: venueEntries.reduce((sum, e) => sum + e.studentVerifications.length, 0),
-        totalInvigilatorsAssigned: venueAssignments.length,
-        totalInvigilatorsPresent: venueAssignments.filter(a => a.status === AssignmentStatus.CHECKED_IN || a.status === AssignmentStatus.ACTIVE).length,
-        pendingIncidents: venueIncidents.filter(i => i.status === IncidentStatus.REPORTED).length,
-        unresolvedIssues: venueIncidents.length,
+        activeSessions: venueEntries.map(entry => {
+          const logistics = entry.examLogistics;
+          return {
+            examEntryId: entry.id,
+            courseCode: entry.course.code,
+            courseName: entry.course.name,
+            startTime: entry.startTime,
+            endTime: entry.endTime,
+            status: logistics?.sessionStatus || 'NOT_STARTED',
+            expectedStudents: logistics?.totalExpected || 0,
+            verifiedStudents: logistics?.totalPresent || 0,
+            scriptsSubmitted: logistics?.scriptsSubmitted || 0,
+            assignedInvigilators: logistics?.invigilatorsAssigned || 0,
+            presentInvigilators: logistics?.invigilatorsPresent || 0,
+            hasIncidents: logistics?.hasUnresolvedIncidents || false,
+          };
+        }),
+        totalStudentsExpected: venueEntries.reduce((sum, e) =>
+          sum + (e.examLogistics?.totalExpected || 0), 0),
+        totalStudentsVerified: venueEntries.reduce((sum, e) =>
+          sum + (e.examLogistics?.totalPresent || 0), 0),
+        totalScriptsSubmitted: venueEntries.reduce((sum, e) =>
+          sum + (e.examLogistics?.scriptsSubmitted || 0), 0),
+        totalInvigilatorsAssigned: venueEntries.reduce((sum, e) =>
+          sum + (e.examLogistics?.invigilatorsAssigned || 0), 0),
+        totalInvigilatorsPresent: venueEntries.reduce((sum, e) =>
+          sum + (e.examLogistics?.invigilatorsPresent || 0), 0),
+        unresolvedIssues: venueEntries.filter(e =>
+          e.examLogistics?.hasUnresolvedIncidents).length,
         rooms: venue.rooms.map(room => {
-          // Find entry that uses this room via junction table
           const entryForRoom = venueEntries.find(e =>
             e.rooms?.some((r: any) => r.roomId === room.id)
           );
+          const logistics = entryForRoom?.examLogistics;
           return {
             roomId: room.id,
             roomName: room.name,
             capacity: room.capacity,
             examEntryId: entryForRoom?.id,
             courseCode: entryForRoom?.course.code,
-            verifiedStudents: entryForRoom?.studentVerifications?.length || 0,
+            verifiedStudents: logistics?.totalPresent || 0,
           };
         }),
       };
@@ -725,16 +915,18 @@ export const examLogisticsService = {
       totalVenues,
       activeVenues,
       totalExamSessions: examEntries.length,
-      activeExamSessions: examEntries.filter(e => this.isExamActive(e)).length,
+      activeExamSessions: examEntries.filter(e =>
+        e.examLogistics?.sessionStatus === 'IN_PROGRESS').length,
       totalExpectedStudents,
-      totalVerifiedStudents,
-      attendanceRate: totalExpectedStudents > 0 ? (totalVerifiedStudents / totalExpectedStudents) * 100 : 0,
+      totalPresentStudents,
+      totalScriptsSubmitted,
+      attendanceRate: totalExpectedStudents > 0 ? (totalPresentStudents / totalExpectedStudents) * 100 : 0,
+      submissionRate: totalPresentStudents > 0 ? (totalScriptsSubmitted / totalPresentStudents) * 100 : 0,
       totalAssignedInvigilators,
       totalInvigilatorsPresent,
       invigilatorAttendanceRate: totalAssignedInvigilators > 0 ? (totalInvigilatorsPresent / totalAssignedInvigilators) * 100 : 0,
-      totalIncidents: allIncidents.length,
-      unresolvedIncidents: unresolvedIncidents.length,
-      criticalIncidents: unresolvedIncidents.filter(i => i.severity === IncidentSeverity.CRITICAL).length,
+      totalIncidents,
+      unresolvedIncidents,
       venues: venueOverviews,
     };
   },
@@ -832,7 +1024,7 @@ export const examLogisticsService = {
       venueOverviews: dashboard.venues,
       todaysSessions,
       pendingIncidents,
-      unverifiedStudents: dashboard.totalExpectedStudents - dashboard.totalVerifiedStudents,
+      unverifiedStudents: dashboard.totalExpectedStudents - dashboard.totalPresentStudents,
       absentInvigilators: dashboard.totalAssignedInvigilators - dashboard.totalInvigilatorsPresent,
       recentLogs,
     };

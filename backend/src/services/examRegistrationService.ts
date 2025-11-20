@@ -7,6 +7,7 @@ import {
   StudentAttendanceData,
   RegistrationStatistics
 } from '../types/examRegistration';
+import { initializeExamLogistics, incrementStudentPresence } from '../utils/examLogisticsHelpers';
 
 const prisma = new PrismaClient();
 
@@ -177,6 +178,9 @@ export class ExamRegistrationService {
         data: { batchQRCode: updatedBatchQRCode }
       });
 
+      // Initialize ExamLogistics for this exam entry
+      await initializeExamLogistics(examEntry.id, registrations.length);
+
       return {
         registrationsCreated: registrations.length,
         batchScriptsCreated: 1
@@ -263,6 +267,25 @@ export class ExamRegistrationService {
    */
   static async markAttendance(data: StudentAttendanceData): Promise<ExamRegistration> {
     try {
+      // Get current registration to check if already marked
+      const currentReg = await prisma.examRegistration.findUnique({
+        where: {
+          studentId_examEntryId: {
+            studentId: data.studentId,
+            examEntryId: data.examEntryId
+          }
+        },
+        include: {
+          examEntry: true
+        }
+      });
+
+      const wasAlreadyPresent = currentReg?.isPresent || false;
+
+      // Detect late arrival
+      const examStartTime = currentReg?.examEntry.startTime;
+      const isLate = examStartTime && new Date() > new Date(examStartTime);
+
       const registration = await prisma.examRegistration.update({
         where: {
           studentId_examEntryId: {
@@ -290,6 +313,11 @@ export class ExamRegistrationService {
           }
         }
       });
+
+      // Update ExamLogistics counters if marking as present and wasn't already present
+      if (data.isPresent && !wasAlreadyPresent) {
+        await incrementStudentPresence(data.examEntryId, isLate || false);
+      }
 
       return registration as any;
     } catch (error) {

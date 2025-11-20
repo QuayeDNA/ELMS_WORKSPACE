@@ -7,6 +7,8 @@ import {
   ScriptSubmissionResult,
   ScanStudentResult
 } from '../types/scriptSubmission';
+import { incrementScriptSubmission, getExamLogistics } from '../utils/examLogisticsHelpers';
+import { examLogisticsRealtimeService } from './examLogisticsRealtimeService';
 
 const prisma = new PrismaClient();
 
@@ -93,7 +95,15 @@ export class ScriptSubmissionService {
       // Get exam entry for additional data
       const examEntry = await prisma.examTimetableEntry.findUnique({
         where: { id: registration.examEntryId },
-        include: { course: true, venue: true }
+        include: {
+          course: true,
+          venue: true,
+          timetable: {
+            select: {
+              institutionId: true
+            }
+          }
+        }
       });
 
       if (!examEntry) {
@@ -145,10 +155,31 @@ export class ScriptSubmissionService {
       // Update batch script counts
       await BatchScriptService.updateSubmissionCount(batchScript.id);
 
+      // Update ExamLogistics counters
+      await incrementScriptSubmission(registration.examEntryId);
+
       // Get updated batch stats
       const updatedBatch = await prisma.batchScript.findUnique({
         where: { id: batchScript.id }
       });
+
+      // Get updated logistics for real-time event
+      const updatedLogistics = await getExamLogistics(registration.examEntryId);
+
+      // Broadcast script submission event
+      if (updatedLogistics) {
+        examLogisticsRealtimeService.broadcastScriptSubmission({
+          examEntryId: registration.examEntryId,
+          institutionId: examEntry.timetable.institutionId,
+          venueId: examEntry.venueId,
+          studentId,
+          studentName: `${registration.student!.firstName} ${registration.student!.lastName}`,
+          courseCode: registration.examEntry!.course!.code,
+          batchId: batchScript.id,
+          scriptsSubmitted: updatedLogistics.scriptsSubmitted,
+          scriptsRemaining: updatedLogistics.scriptsPending
+        });
+      }
 
       return {
         success: true,
