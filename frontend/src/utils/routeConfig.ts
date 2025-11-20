@@ -2,20 +2,19 @@ import { UserRole } from '@/types/auth';
 
 /**
  * Simple role-based redirect for existing users
+ * Maps each user role to their appropriate dashboard
  */
 export function getRedirectPath(role: UserRole): string {
   switch (role) {
     case UserRole.SUPER_ADMIN:
-      return '/dashboard'; // Super admin manages institutions
+      return '/dashboard'; // Super admin dashboard
 
     case UserRole.ADMIN:
-      return '/admin'; // Institution admin dashboard
+    case UserRole.FACULTY_ADMIN: // Faculty admins use the same admin interface
+      return '/admin'; // Institution/Faculty admin dashboard
 
     case UserRole.STUDENT:
       return '/student'; // Student dashboard
-
-    case UserRole.FACULTY_ADMIN:
-      return '/faculty-admin'; // Faculty admin dashboard
 
     case UserRole.DEAN:
       return '/dean'; // Dean dashboard
@@ -30,13 +29,14 @@ export function getRedirectPath(role: UserRole): string {
       return '/lecturer'; // Lecturer dashboard
 
     case UserRole.INVIGILATOR:
-      return '/invigilator'; // Invigilator dashboard
+      return '/admin/logistics'; // Invigilators use logistics dashboard
 
     case UserRole.SCRIPT_HANDLER:
-      return '/script-handler'; // Script handler dashboard
+      return '/admin/scripts'; // Script handlers use scripts dashboard
 
     default:
-      return '/dashboard'; // Fallback to dashboard
+      console.warn(`[RouteConfig] Unknown role: ${role}, redirecting to login`);
+      return '/login'; // Fallback to login for unknown roles
   }
 }
 

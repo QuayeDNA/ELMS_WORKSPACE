@@ -28,8 +28,6 @@ import {
   Institution,
   InstitutionFilters as IFilters,
   DEFAULT_INSTITUTION_FILTERS,
-  InstitutionFormData,
-  AdminFormData,
   InstitutionStatus,
   InstitutionType,
   INSTITUTION_TYPE_OPTIONS,
@@ -238,51 +236,6 @@ export function InstitutionsPage() {
       editingInstitution: null,
       loading: false,
     });
-  };
-
-  const handleFormSubmit = async (
-    institutionData: InstitutionFormData,
-    adminData?: AdminFormData
-  ) => {
-    try {
-      setFormState((prev) => ({ ...prev, loading: true }));
-
-      if (formState.mode === "create-with-admin" && adminData) {
-        // Create institution with admin
-        const requestData = institutionService.transformFormToWithAdminRequest(
-          institutionData,
-          adminData
-        );
-        await institutionService.createInstitutionWithAdmin(requestData);
-      } else if (formState.mode === "edit" && formState.editingInstitution) {
-        // Update existing institution
-        const requestData =
-          institutionService.transformFormToRequest(institutionData);
-        await institutionService.updateInstitution(
-          formState.editingInstitution.id,
-          requestData
-        );
-      } else {
-        // Create institution without admin
-        const requestData =
-          institutionService.transformFormToRequest(institutionData);
-        await institutionService.createInstitution(requestData);
-      }
-
-      // Close form and refresh data
-      setFormState({
-        isOpen: false,
-        mode: "create",
-        editingInstitution: null,
-        loading: false,
-      });
-      fetchInstitutions();
-      fetchAnalytics();
-    } catch (error) {
-      console.error("Failed to save institution:", error);
-      setFormState((prev) => ({ ...prev, loading: false }));
-      alert("Failed to save institution. Please try again.");
-    }
   };
 
   const handleFormCancel = () => {
@@ -836,21 +789,28 @@ export function InstitutionsPage() {
                 </div>
               </DialogTitle>
             </DialogHeader>
-            <div className="p-6">
-              <InstitutionForm
-                mode={formState.mode}
-                initialData={
-                  formState.editingInstitution
-                    ? institutionService.institutionToFormData(
-                        formState.editingInstitution
-                      )
-                    : undefined
-                }
-                onSubmit={handleFormSubmit}
-                onCancel={handleFormCancel}
-                loading={formState.loading}
-              />
-            </div>
+            <InstitutionForm
+              mode={formState.mode}
+              initialData={
+                formState.editingInstitution
+                  ? institutionService.institutionToFormData(
+                      formState.editingInstitution
+                    )
+                  : undefined
+              }
+              institutionId={formState.editingInstitution?.id}
+              onSuccess={() => {
+                setFormState({
+                  isOpen: false,
+                  mode: "create",
+                  editingInstitution: null,
+                  loading: false,
+                });
+                fetchInstitutions();
+                fetchAnalytics();
+              }}
+              onCancel={handleFormCancel}
+            />
           </ScrollArea>
         </DialogContent>
       </Dialog>

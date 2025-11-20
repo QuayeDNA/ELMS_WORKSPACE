@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Save, Building2, User, Phone, MapPin, FileText, Mail, Globe, Calendar, Hash } from 'lucide-react';
+import { Save, Building2, User, Phone, MapPin, FileText, Mail, Globe, Calendar, Hash, Loader2, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,12 +8,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   InstitutionFormData,
   AdminFormData,
   INSTITUTION_TYPE_OPTIONS,
+  CreateInstitutionRequest,
+  CreateInstitutionWithAdminRequest,
+  UpdateInstitutionRequest,
 } from '@/types/institution';
 import { institutionService } from '@/services/institution.service';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 // ========================================
 // INTERFACE DEFINITIONS
@@ -22,9 +28,9 @@ import { institutionService } from '@/services/institution.service';
 interface InstitutionFormProps {
   mode: 'create' | 'edit' | 'create-with-admin';
   initialData?: Partial<InstitutionFormData>;
-  onSubmit: (data: InstitutionFormData, adminData?: AdminFormData) => void;
+  institutionId?: number;
+  onSuccess?: () => void;
   onCancel: () => void;
-  loading?: boolean;
 }
 
 // ========================================
@@ -34,10 +40,12 @@ interface InstitutionFormProps {
 export const InstitutionForm = ({
   mode,
   initialData,
-  onSubmit,
+  institutionId,
+  onSuccess,
   onCancel,
-  loading = false,
 }: InstitutionFormProps) => {
+  const queryClient = useQueryClient();
+
   // Form state
   const [institutionData, setInstitutionData] = useState<InstitutionFormData>({
     ...institutionService.getEmptyInstitutionForm(),
@@ -50,6 +58,58 @@ export const InstitutionForm = ({
 
   const [errors, setErrors] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState('institution');
+
+  // ========================================
+  // MUTATIONS
+  // ========================================
+
+  // Create institution mutation
+  const createMutation = useMutation({
+    mutationFn: (data: CreateInstitutionRequest) =>
+      institutionService.createInstitution(data),
+    onSuccess: (response) => {
+      queryClient.invalidateQueries({ queryKey: ['institutions'] });
+      queryClient.invalidateQueries({ queryKey: ['institutionStats'] });
+      toast.success(`Institution "${response.data?.name}" created successfully`);
+      onSuccess?.();
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to create institution');
+    },
+  });
+
+  // Create institution with admin mutation
+  const createWithAdminMutation = useMutation({
+    mutationFn: (data: CreateInstitutionWithAdminRequest) =>
+      institutionService.createInstitutionWithAdmin(data),
+    onSuccess: (response) => {
+      queryClient.invalidateQueries({ queryKey: ['institutions'] });
+      queryClient.invalidateQueries({ queryKey: ['institutionStats'] });
+      toast.success(`Institution "${response.data?.institution.name}" and admin created successfully`);
+      onSuccess?.();
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to create institution with admin');
+    },
+  });
+
+  // Update institution mutation
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: UpdateInstitutionRequest }) =>
+      institutionService.updateInstitution(id, data),
+    onSuccess: (response) => {
+      queryClient.invalidateQueries({ queryKey: ['institutions'] });
+      queryClient.invalidateQueries({ queryKey: ['institutionStats'] });
+      queryClient.invalidateQueries({ queryKey: ['institution', institutionId] });
+      toast.success(`Institution "${response.data?.name}" updated successfully`);
+      onSuccess?.();
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to update institution');
+    },
+  });
+
+  const isLoading = createMutation.isPending || createWithAdminMutation.isPending || updateMutation.isPending;
 
   // ========================================
   // FORM HANDLERS
@@ -92,14 +152,24 @@ export const InstitutionForm = ({
 
     if (allErrors.length > 0) {
       setErrors(allErrors);
+      // Scroll to top to show errors
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
-    // Submit form
+    // Submit based on mode
     if (mode === 'create-with-admin') {
-      onSubmit(institutionData, adminData);
+      const requestData = institutionService.transformFormToWithAdminRequest(
+        institutionData,
+        adminData
+      );
+      createWithAdminMutation.mutate(requestData);
+    } else if (mode === 'edit' && institutionId) {
+      const requestData = institutionService.transformFormToRequest(institutionData);
+      updateMutation.mutate({ id: institutionId, data: requestData });
     } else {
-      onSubmit(institutionData);
+      const requestData = institutionService.transformFormToRequest(institutionData);
+      createMutation.mutate(requestData);
     }
   };
 
@@ -129,7 +199,7 @@ export const InstitutionForm = ({
               value={institutionData.name}
               onChange={(e) => handleInstitutionChange('name', e.target.value)}
               placeholder="e.g., University of Ghana"
-              disabled={loading}
+              disabled={isLoading}
               className="h-10"
             />
           </div>
@@ -145,7 +215,7 @@ export const InstitutionForm = ({
                 value={institutionData.code}
                 onChange={(e) => handleInstitutionChange('code', e.target.value.toUpperCase())}
                 placeholder="e.g., UG, KNUST"
-                disabled={loading}
+                disabled={isLoading}
                 className="pl-9 h-10"
               />
             </div>
@@ -160,7 +230,7 @@ export const InstitutionForm = ({
             <Select
               value={institutionData.type}
               onValueChange={(value) => handleInstitutionChange('type', value)}
-              disabled={loading}
+              disabled={isLoading}
             >
               <SelectTrigger id="institution-type" className="h-10">
                 <SelectValue placeholder="Select institution type" />
@@ -187,7 +257,7 @@ export const InstitutionForm = ({
                 placeholder="e.g., 1948"
                 min="1800"
                 max={new Date().getFullYear()}
-                disabled={loading}
+                disabled={isLoading}
                 className="pl-9 h-10"
               />
             </div>
@@ -216,7 +286,7 @@ export const InstitutionForm = ({
                 value={institutionData.contactEmail}
                 onChange={(e) => handleInstitutionChange('contactEmail', e.target.value)}
                 placeholder="contact@institution.edu"
-                disabled={loading}
+                disabled={isLoading}
                 className="pl-9 h-10"
               />
             </div>
@@ -231,7 +301,7 @@ export const InstitutionForm = ({
                 value={institutionData.contactPhone}
                 onChange={(e) => handleInstitutionChange('contactPhone', e.target.value)}
                 placeholder="+233 XX XXX XXXX"
-                disabled={loading}
+                disabled={isLoading}
                 className="pl-9 h-10"
               />
             </div>
@@ -248,7 +318,7 @@ export const InstitutionForm = ({
               value={institutionData.website}
               onChange={(e) => handleInstitutionChange('website', e.target.value)}
               placeholder="https://www.institution.edu"
-              disabled={loading}
+              disabled={isLoading}
               className="pl-9 h-10"
             />
           </div>
@@ -273,7 +343,7 @@ export const InstitutionForm = ({
             onChange={(e) => handleInstitutionChange('address', e.target.value)}
             placeholder="Enter full address"
             rows={3}
-            disabled={loading}
+            disabled={isLoading}
             className="resize-none"
           />
         </div>
@@ -286,7 +356,7 @@ export const InstitutionForm = ({
               value={institutionData.city}
               onChange={(e) => handleInstitutionChange('city', e.target.value)}
               placeholder="e.g., Accra"
-              disabled={loading}
+              disabled={isLoading}
               className="h-10"
             />
           </div>
@@ -298,7 +368,7 @@ export const InstitutionForm = ({
               value={institutionData.state}
               onChange={(e) => handleInstitutionChange('state', e.target.value)}
               placeholder="e.g., Greater Accra"
-              disabled={loading}
+              disabled={isLoading}
               className="h-10"
             />
           </div>
@@ -310,7 +380,7 @@ export const InstitutionForm = ({
               value={institutionData.country}
               onChange={(e) => handleInstitutionChange('country', e.target.value)}
               placeholder="e.g., Ghana"
-              disabled={loading}
+              disabled={isLoading}
               className="h-10"
             />
           </div>
@@ -335,7 +405,7 @@ export const InstitutionForm = ({
             onChange={(e) => handleInstitutionChange('description', e.target.value)}
             placeholder="Brief description of the institution, its mission, and programs..."
             rows={4}
-            disabled={loading}
+            disabled={isLoading}
             className="resize-none"
           />
         </div>
@@ -365,7 +435,7 @@ export const InstitutionForm = ({
               value={adminData.firstName}
               onChange={(e) => handleAdminChange('firstName', e.target.value)}
               placeholder="Enter first name"
-              disabled={loading}
+              disabled={isLoading}
               className="h-10"
             />
           </div>
@@ -379,7 +449,7 @@ export const InstitutionForm = ({
               value={adminData.lastName}
               onChange={(e) => handleAdminChange('lastName', e.target.value)}
               placeholder="Enter last name"
-              disabled={loading}
+              disabled={isLoading}
               className="h-10"
             />
           </div>
@@ -398,7 +468,7 @@ export const InstitutionForm = ({
                 value={adminData.email}
                 onChange={(e) => handleAdminChange('email', e.target.value)}
                 placeholder="admin@institution.edu"
-                disabled={loading}
+                disabled={isLoading}
                 className="pl-9 h-10"
               />
             </div>
@@ -413,7 +483,7 @@ export const InstitutionForm = ({
                 value={adminData.phone}
                 onChange={(e) => handleAdminChange('phone', e.target.value)}
                 placeholder="+233 XX XXX XXXX"
-                disabled={loading}
+                disabled={isLoading}
                 className="pl-9 h-10"
               />
             </div>
@@ -431,7 +501,7 @@ export const InstitutionForm = ({
               value={adminData.password}
               onChange={(e) => handleAdminChange('password', e.target.value)}
               placeholder="Enter secure password"
-              disabled={loading}
+              disabled={isLoading}
               className="h-10"
             />
             <p className="text-xs text-muted-foreground">
@@ -449,7 +519,7 @@ export const InstitutionForm = ({
               value={adminData.confirmPassword}
               onChange={(e) => handleAdminChange('confirmPassword', e.target.value)}
               placeholder="Confirm password"
-              disabled={loading}
+              disabled={isLoading}
               className="h-10"
             />
           </div>
@@ -466,23 +536,19 @@ export const InstitutionForm = ({
     <div className="space-y-6">
       {/* Error Display */}
       {errors.length > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <div className="flex items-start gap-3">
-            <div className="shrink-0">
-              <AlertCircle className="h-5 w-5 text-red-600" />
-            </div>
-            <div className="flex-1">
-              <h4 className="text-sm font-semibold text-red-800 mb-2">
-                Please fix the following errors:
-              </h4>
-              <ul className="list-disc list-inside space-y-1 text-sm text-red-700">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            <div className="space-y-1">
+              <p className="font-semibold">Please fix the following errors:</p>
+              <ul className="list-disc list-inside space-y-1 text-sm">
                 {errors.map((error, index) => (
                   <li key={index}>{error}</li>
                 ))}
               </ul>
             </div>
-          </div>
-        </div>
+          </AlertDescription>
+        </Alert>
       )}
 
       {/* Form Content */}
@@ -512,29 +578,38 @@ export const InstitutionForm = ({
 
         {/* Form Actions */}
         <div className="flex items-center justify-end gap-3 pt-4 border-t">
-          <Button
+            <Button
             type="button"
             variant="outline"
             onClick={onCancel}
-            disabled={loading}
+            disabled={isLoading}
             className="min-w-[100px]"
           >
             Cancel
           </Button>
           <Button
             type="submit"
-            disabled={loading}
+            disabled={isLoading}
             className="min-w-[140px] gap-2 bg-blue-600 hover:bg-blue-700"
           >
-            {loading ? (
+            {isLoading ? (
               <>
-                <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Saving...
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {mode === 'edit' ? 'Updating...' : 'Creating...'}
               </>
             ) : (
               <>
-                <Save className="h-4 w-4" />
-                {mode === 'edit' ? 'Update Institution' : 'Create Institution'}
+                {mode === 'edit' ? (
+                  <>
+                    <CheckCircle2 className="h-4 w-4" />
+                    Update Institution
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4" />
+                    Create Institution
+                  </>
+                )}
               </>
             )}
           </Button>

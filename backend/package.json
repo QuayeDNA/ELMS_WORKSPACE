@@ -12,6 +12,7 @@
     "db:studio": "node -e \"console.log('🎨 Opening Prisma Studio...')\" && prisma studio",
     "db:reset": "node -e \"console.log('⚠️ Resetting database...')\" && prisma migrate reset",
     "db:seed": "node -e \"console.log('🌱 Seeding database...')\" && ts-node scripts/seedDatabase.ts",
+    "db:seed:comprehensive": "node -e \"console.log('🌱 Comprehensive Database Seeding...')\" && ts-node scripts/comprehensive-seed.ts",
     "db:seed:admin": "node -e \"console.log('👑 Seeding Super Admin...')\" && ts-node scripts/seedSuperAdmin.ts",
     "db:seed:institution": "node -e \"console.log('🌱 Seeding institution data...')\" && ts-node scripts/seedInstitutionData.ts",
     "docker:logs": "node -e \"console.log('📋 Showing Docker logs...')\" && docker-compose logs -f postgres-dev",

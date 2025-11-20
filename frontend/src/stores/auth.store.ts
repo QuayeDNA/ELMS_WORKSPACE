@@ -49,13 +49,14 @@ export const useAuthStore = create<AuthStore>()(
 
           try {
             const authResponse = await authService.login(credentials);
+            const rememberMe = credentials.rememberMe || false;
 
-            // Save to both Zustand store and storage service
-            storageService.setToken(authResponse.token);
-            storageService.setRefreshToken(authResponse.refreshToken);
-            storageService.setUser(authResponse.user);
+            // Save to both Zustand store and storage service (cookies)
+            storageService.setToken(authResponse.token, rememberMe);
+            storageService.setRefreshToken(authResponse.refreshToken, rememberMe);
+            storageService.setUser(authResponse.user, rememberMe);
 
-            if (credentials.rememberMe) {
+            if (rememberMe) {
               storageService.setRememberMe(true);
             }
 
@@ -88,11 +89,12 @@ export const useAuthStore = create<AuthStore>()(
 
           try {
             const authResponse = await authService.register(userData);
+            const rememberMe = false; // Default to session for new registrations
 
-            // Save to storage
-            storageService.setToken(authResponse.token);
-            storageService.setRefreshToken(authResponse.refreshToken);
-            storageService.setUser(authResponse.user);
+            // Save to storage (cookies)
+            storageService.setToken(authResponse.token, rememberMe);
+            storageService.setRefreshToken(authResponse.refreshToken, rememberMe);
+            storageService.setUser(authResponse.user, rememberMe);
 
             set({
               user: authResponse.user,
@@ -179,8 +181,9 @@ export const useAuthStore = create<AuthStore>()(
             const newToken = await authService.refreshToken(refreshToken);
 
             if (newToken) {
+              const rememberMe = storageService.getRememberMe();
               // Update token in storage and store
-              storageService.setToken(newToken);
+              storageService.setToken(newToken, rememberMe);
               set({ token: newToken });
               return true;
             } else {
@@ -304,7 +307,8 @@ export const useAuthStore = create<AuthStore>()(
 
         updateUser: (user) => {
           if (user) {
-            storageService.setUser(user);
+            const rememberMe = storageService.getRememberMe();
+            storageService.setUser(user, rememberMe);
             set({ user });
           }
         },

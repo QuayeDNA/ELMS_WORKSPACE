@@ -52,16 +52,28 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       const roleArray = Array.isArray(roles) ? roles : [roles];
 
-      // Check primary role for backward compatibility
-      if (roleArray.includes(user.role)) return true;
-
-      // Check roleProfiles if available
-      if (user.roleProfiles && user.roleProfiles.length > 0) {
-        return user.roleProfiles.some(rp =>
-          rp.isActive && roleArray.includes(rp.role)
-        );
+      // Check primary role first
+      if (roleArray.includes(user.role)) {
+        console.log('[AuthContext] User has primary role:', user.role);
+        return true;
       }
 
+      // Check roleProfiles for additional roles
+      if (user.roleProfiles && user.roleProfiles.length > 0) {
+        const hasRoleInProfiles = user.roleProfiles.some(rp => {
+          const matches = rp.isActive && roleArray.includes(rp.role);
+          if (matches) {
+            console.log('[AuthContext] User has role in profile:', rp.role);
+          }
+          return matches;
+        });
+
+        if (hasRoleInProfiles) return true;
+      }
+
+      console.log('[AuthContext] User does not have any of roles:', roleArray);
+      console.log('[AuthContext] User primary role:', user.role);
+      console.log('[AuthContext] User role profiles:', user.roleProfiles);
       return false;
     },
     [user]
