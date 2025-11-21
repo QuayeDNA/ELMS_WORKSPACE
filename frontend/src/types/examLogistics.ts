@@ -219,11 +219,12 @@ export interface VenueSessionOverview {
   // Statistics
   totalStudentsExpected: number;
   totalStudentsVerified: number;
+  totalScriptsSubmitted?: number; // Added for script tracking
   totalInvigilatorsAssigned: number;
   totalInvigilatorsPresent: number;
 
   // Issues
-  pendingIncidents: number;
+  pendingIncidents?: number; // Made optional
   unresolvedIssues: number;
 
   // Capacity utilization
@@ -480,18 +481,19 @@ export interface InstitutionLogisticsDashboard {
 
   // Attendance summary
   totalExpectedStudents: number;
-  totalVerifiedStudents: number;
+  totalPresentStudents: number; // Changed from totalVerifiedStudents
+  totalScriptsSubmitted?: number; // Added for script submission tracking
   attendanceRate: number;
+  submissionRate?: number; // Added for script submission rate
 
   // Invigilator summary
   totalAssignedInvigilators: number;
-  totalPresentInvigilators: number;
+  totalInvigilatorsPresent: number; // Changed from totalPresentInvigilators
   invigilatorAttendanceRate: number;
 
   // Issues summary
   totalIncidents: number;
   unresolvedIncidents: number;
-  criticalIncidents: number;
 
   // Venue breakdown
   venues: VenueSessionOverview[];

@@ -104,16 +104,32 @@ export class ExamLogisticsService extends BaseService {
   /**
    * Get institution logistics dashboard
    */
-  async getInstitutionDashboard(date?: Date): Promise<ApiResponse<InstitutionLogisticsDashboard>> {
-    const params = date ? { date: date.toISOString() } : {};
+  async getInstitutionDashboard(
+    options?: { date?: Date; timetableId?: number }
+  ): Promise<ApiResponse<InstitutionLogisticsDashboard>> {
+    const params: any = {};
+    if (options?.date) {
+      params.date = options.date.toISOString();
+    }
+    if (options?.timetableId) {
+      params.timetableId = options.timetableId;
+    }
     return this.getStats<InstitutionLogisticsDashboard>('/institution-dashboard', params);
   }
 
   /**
    * Get exams officer dashboard
    */
-  async getExamsOfficerDashboard(date?: Date): Promise<ApiResponse<ExamsOfficerDashboard>> {
-    const params = date ? { date: date.toISOString() } : {};
+  async getExamsOfficerDashboard(
+    options?: { date?: Date; timetableId?: number }
+  ): Promise<ApiResponse<ExamsOfficerDashboard>> {
+    const params: any = {};
+    if (options?.date) {
+      params.date = options.date.toISOString();
+    }
+    if (options?.timetableId) {
+      params.timetableId = options.timetableId;
+    }
     return this.getStats<ExamsOfficerDashboard>('/exams-officer-dashboard', params);
   }
 

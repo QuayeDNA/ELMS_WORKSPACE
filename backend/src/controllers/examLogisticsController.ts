@@ -227,16 +227,25 @@ export const examLogisticsController = {
   async getInstitutionDashboard(req: Request, res: Response) {
     try {
       const institutionId = req.user?.institutionId;
-      const { date } = req.query;
+      const { date, timetableId } = req.query;
 
       if (!institutionId) {
         return res.status(400).json({ error: "Institution not found" });
       }
 
-      const dashboardDate = date ? new Date(date as string) : new Date();
+      const options: { date?: Date; timetableId?: number } = {};
+
+      if (date) {
+        options.date = new Date(date as string);
+      }
+
+      if (timetableId) {
+        options.timetableId = parseInt(timetableId as string, 10);
+      }
+
       const result = await examLogisticsService.getInstitutionLogisticsDashboard(
         institutionId,
-        dashboardDate
+        options
       );
 
       res.json(result);
@@ -251,16 +260,25 @@ export const examLogisticsController = {
   async getExamsOfficerDashboard(req: Request, res: Response) {
     try {
       const officerId = req.user?.userId;
-      const { date } = req.query;
+      const { date, timetableId } = req.query;
 
       if (!officerId) {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      const dashboardDate = date ? new Date(date as string) : new Date();
+      const options: { date?: Date; timetableId?: number } = {};
+
+      if (date) {
+        options.date = new Date(date as string);
+      }
+
+      if (timetableId) {
+        options.timetableId = parseInt(timetableId as string, 10);
+      }
+
       const result = await examLogisticsService.getExamsOfficerDashboard(
         officerId,
-        dashboardDate
+        options
       );
 
       res.json(result);

@@ -16,11 +16,21 @@ import {
   QrCode,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  Calendar
 } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { examLogisticsService } from '@/services/examLogistics.service';
+import { examTimetableService } from '@/services/examTimetable.service';
 import { qrCodeService } from '@/services/qrCode.service';
 import type { ExamsOfficerDashboard, VenueSessionOverview, ExamSessionStatus, ExamIncident, QRCodeData } from '@/types/examLogistics';
+import { ExamTimetable } from '@/types/examTimetable';
 import { VerificationMethod } from '@/types/examLogistics';
 import { useAuth } from '@/hooks/useAuth';
 import { useRealtimeContext } from '@/contexts/RealtimeContext';
@@ -29,17 +39,48 @@ import { toast } from 'sonner';
 
 export function ExamsOfficerDashboard() {
   const [dashboard, setDashboard] = useState<ExamsOfficerDashboard | null>(null);
+  const [timetables, setTimetables] = useState<ExamTimetable[]>([]);
+  const [selectedTimetableId, setSelectedTimetableId] = useState<number | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [selectedVenue, setSelectedVenue] = useState<number | null>(null);
   const [showQRScanner, setShowQRScanner] = useState(false);
   const { isConnected } = useRealtimeContext();
   const { user } = useAuth();
 
+  // Load available timetables
+  const loadTimetables = useCallback(async () => {
+    try {
+      const response = await examTimetableService.getTimetables({
+        isPublished: true,
+        limit: 100
+      });
+      if (response.success && response.data) {
+        setTimetables(response.data);
+        // Auto-select most recent timetable if none selected
+        if (!selectedTimetableId && response.data.length > 0) {
+          const mostRecent = response.data.sort((a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          )[0];
+          setSelectedTimetableId(mostRecent.id);
+        } else if (response.data.length === 0) {
+          // No published timetables found - stop loading
+          setLoading(false);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading timetables:', error);
+      toast.error('Failed to load timetables');
+      setLoading(false);
+    }
+  }, []); // Remove selectedTimetableId dependency to avoid infinite loop
+
   // Load dashboard data
   const loadDashboard = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await examLogisticsService.getExamsOfficerDashboard();
+      const response = await examLogisticsService.getExamsOfficerDashboard(
+        selectedTimetableId ? { timetableId: selectedTimetableId } : undefined
+      );
       if (response.success && response.data) {
         setDashboard(response.data);
       } else {
@@ -51,15 +92,22 @@ export function ExamsOfficerDashboard() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedTimetableId]);
 
   // Use real-time dashboard updates
   useLogisticsDashboardRealtime(loadDashboard);
 
-  // Load dashboard on mount
+  // Load timetables on mount
   useEffect(() => {
-    loadDashboard();
-  }, [loadDashboard]);
+    loadTimetables();
+  }, [loadTimetables]);
+
+  // Load dashboard when timetable selection changes
+  useEffect(() => {
+    if (selectedTimetableId !== undefined) {
+      loadDashboard();
+    }
+  }, [selectedTimetableId, loadDashboard]);
 
   // Handle QR code scan
   const handleQRScan = async (qrData: string) => {
@@ -120,6 +168,27 @@ export function ExamsOfficerDashboard() {
             <h1 className="text-3xl font-bold">Exams Officer Dashboard</h1>
             <p className="text-muted-foreground">Manage exam sessions and logistics</p>
           </div>
+          <div className="flex items-center gap-3">
+            {timetables.length > 0 && (
+              <Select
+                value={selectedTimetableId?.toString()}
+                onValueChange={(value) => setSelectedTimetableId(parseInt(value, 10))}
+              >
+                <SelectTrigger className="w-[280px]">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Select timetable" />
+                </SelectTrigger>
+                <SelectContent>
+                  {timetables.map((timetable) => (
+                    <SelectItem key={timetable.id} value={timetable.id.toString()}>
+                      {timetable.title}
+                      {timetable.status === 'ARCHIVED' && ' (Archived)'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
         </div>
         <LoadingSpinner />
       </div>
@@ -134,6 +203,27 @@ export function ExamsOfficerDashboard() {
             <h1 className="text-3xl font-bold">Exams Officer Dashboard</h1>
             <p className="text-muted-foreground">Manage exam sessions and logistics</p>
           </div>
+          <div className="flex items-center gap-3">
+            {timetables.length > 0 && (
+              <Select
+                value={selectedTimetableId?.toString()}
+                onValueChange={(value) => setSelectedTimetableId(parseInt(value, 10))}
+              >
+                <SelectTrigger className="w-[280px]">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Select timetable" />
+                </SelectTrigger>
+                <SelectContent>
+                  {timetables.map((timetable) => (
+                    <SelectItem key={timetable.id} value={timetable.id.toString()}>
+                      {timetable.title}
+                      {timetable.status === 'ARCHIVED' && ' (Archived)'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
         </div>
         <Card>
           <CardContent className="flex items-center justify-center py-12">
@@ -141,7 +231,7 @@ export function ExamsOfficerDashboard() {
               <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">No Data Available</h3>
               <p className="text-muted-foreground">
-                No exam sessions assigned to you today.
+                No exam sessions found for the selected timetable.
               </p>
             </div>
           </CardContent>
@@ -157,10 +247,34 @@ export function ExamsOfficerDashboard() {
         <div>
           <h1 className="text-3xl font-bold">Exams Officer Dashboard</h1>
           <p className="text-muted-foreground">
-            Manage exam sessions and logistics • {new Date().toLocaleDateString()}
+            Manage exam sessions and logistics
+            {selectedTimetableId && timetables.length > 0 && (
+              <span className="ml-2">
+                - {timetables.find(t => t.id === selectedTimetableId)?.title}
+              </span>
+            )}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          {timetables.length > 0 && (
+            <Select
+              value={selectedTimetableId?.toString()}
+              onValueChange={(value) => setSelectedTimetableId(parseInt(value, 10))}
+            >
+              <SelectTrigger className="w-[280px]">
+                <Calendar className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Select timetable" />
+              </SelectTrigger>
+              <SelectContent>
+                {timetables.map((timetable) => (
+                  <SelectItem key={timetable.id} value={timetable.id.toString()}>
+                    {timetable.title}
+                    {timetable.status === 'ARCHIVED' && ' (Archived)'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <Button
             variant="outline"
             size="sm"

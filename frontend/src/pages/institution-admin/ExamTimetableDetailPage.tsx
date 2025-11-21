@@ -97,6 +97,8 @@ export default function ExamTimetableDetailPage() {
 
       interface EntryWithRooms {
         rooms?: Array<{ id: number; name: string; capacity: number }>;
+        programs?: Array<{ id: number; name: string; code: string; departmentId: number }>;
+        invigilators?: Array<{ id: number; firstName: string; lastName: string; email: string }>;
       }
       const rooms = (entry as EntryWithRooms).rooms || [];
       const roomNames = rooms.length > 0
@@ -105,6 +107,15 @@ export default function ExamTimetableDetailPage() {
       const roomCapacity = rooms.length > 0
         ? rooms.reduce((sum, r) => sum + r.capacity, 0)
         : entry.seatingCapacity || 0;
+
+      // Extract programs from API response
+      const programs = (entry as EntryWithRooms).programs || [];
+      const programIds = programs.length > 0
+        ? programs.map(p => p.id).join(',')
+        : undefined;
+      const programNames = programs.length > 0
+        ? programs.map(p => `${p.name} (${p.code})`).join(', ')
+        : undefined;
 
       return {
         id: entry.id.toString(),
@@ -121,6 +132,8 @@ export default function ExamTimetableDetailPage() {
         roomIds: roomIds.length > 0 ? roomIds.join(',') : undefined,
         roomNames: roomNames || undefined,
         roomCapacity: roomCapacity || undefined,
+        programIds: programIds,
+        programNames: programNames,
         level: entry.level?.toString() || '',
         notes: entry.notes || '',
         specialRequirements: entry.specialRequirements || '',
@@ -230,7 +243,7 @@ export default function ExamTimetableDetailPage() {
 
           const entryData = {
             courseId: row.courseId,
-            programIds: [], // Default, can be enhanced later
+            programIds: row.programIds ? row.programIds.split(',').map(id => parseInt(id.trim())) : [], // Parse program IDs
             level: row.level ? parseInt(row.level) : undefined,
             examDate: row.examDate,
             startTime: startTimeISO,

@@ -800,11 +800,12 @@ export const examLogisticsService = {
   /**
    * Get institution logistics dashboard (Optimized with ExamLogistics)
    */
-  async getInstitutionLogisticsDashboard(institutionId: number, date: Date) {
-    const startOfDay = new Date(date);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(date);
-    endOfDay.setHours(23, 59, 59, 999);
+  async getInstitutionLogisticsDashboard(
+    institutionId: number,
+    options: { date?: Date; timetableId?: number } = {}
+  ) {
+    const { date, timetableId } = options;
+    const devMode = process.env.DEV_IGNORE_EXAM_DATES === 'true';
 
     // Get all venues for the institution
     const venues = await prisma.venue.findMany({
@@ -814,18 +815,35 @@ export const examLogisticsService = {
       },
     });
 
+    // Build query filters based on mode
+    const examEntryFilters: any = {
+      timetable: {
+        institutionId,
+        isPublished: true,
+      },
+    };
+
+    // If timetableId is provided, filter by timetable instead of date
+    if (timetableId) {
+      examEntryFilters.timetableId = timetableId;
+    }
+    // If not in dev mode and no timetableId, use date filtering
+    else if (!devMode && date) {
+      const startOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      examEntryFilters.examDate = {
+        gte: startOfDay,
+        lte: endOfDay,
+      };
+    }
+    // In dev mode with no timetableId, get all published entries (ignore dates)
+
     // Get exam entries with their logistics (OPTIMIZED: single query with pre-calculated metrics)
     const examEntries = await prisma.examTimetableEntry.findMany({
-      where: {
-        examDate: {
-          gte: startOfDay,
-          lte: endOfDay,
-        },
-        timetable: {
-          institutionId,
-          isPublished: true,
-        },
-      },
+      where: examEntryFilters,
       include: {
         venue: true,
         course: true,
@@ -862,7 +880,7 @@ export const examLogisticsService = {
       return {
         venueId: venue.id,
         venueName: venue.name,
-        date,
+        date: date || new Date(), // Use provided date or current date
         activeSessions: venueEntries.map(entry => {
           const logistics = entry.examLogistics;
           return {
@@ -934,7 +952,7 @@ export const examLogisticsService = {
   /**
    * Get exams officer dashboard
    */
-  async getExamsOfficerDashboard(officerId: number, date: Date) {
+  async getExamsOfficerDashboard(officerId: number, options: { date?: Date; timetableId?: number } = {}) {
     // Get officer's assigned venues (this would need to be implemented based on your venue assignment logic)
     // For now, we'll assume officers can see all venues in their institution
     const officer = await prisma.user.findUnique({
@@ -946,22 +964,32 @@ export const examLogisticsService = {
       throw new Error("Officer institution not found");
     }
 
-    const dashboard = await this.getInstitutionLogisticsDashboard(officer.institutionId, date);
+    const dashboard = await this.getInstitutionLogisticsDashboard(officer.institutionId, options);
 
     // Get officer's specific data
-    const startOfDay = new Date(date);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(date);
-    endOfDay.setHours(23, 59, 59, 999);
+    const { date } = options;
+    const devMode = process.env.DEV_IGNORE_EXAM_DATES === 'true';
+
+    // Build date filter if applicable
+    let dateFilter = {};
+    if (!devMode && date) {
+      const startOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
+      dateFilter = {
+        performedAt: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      };
+    }
 
     const todaysSessions = dashboard.venues.flatMap(v => v.activeSessions);
 
     const recentLogs = await prisma.examSessionLog.findMany({
       where: {
-        performedAt: {
-          gte: startOfDay,
-          lte: endOfDay,
-        },
+        ...dateFilter,
         examEntry: {
           timetable: {
             institutionId: officer.institutionId,

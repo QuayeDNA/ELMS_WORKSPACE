@@ -1025,6 +1025,44 @@ export const examTimetableService = {
             status: true,
           },
         },
+        // Include programs via junction table
+        programs: {
+          include: {
+            program: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+                departmentId: true,
+              },
+            },
+          },
+        },
+        // Include rooms via junction table
+        rooms: {
+          include: {
+            room: {
+              select: {
+                id: true,
+                name: true,
+                capacity: true,
+              },
+            },
+          },
+        },
+        // Include invigilators via junction table
+        invigilators: {
+          include: {
+            invigilator: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+          },
+        },
       },
       skip,
       take: limit,
@@ -1035,9 +1073,23 @@ export const examTimetableService = {
         : { [sortBy]: sortOrder },
     });
 
+    // Transform entries to flatten junction table data
+    const transformedEntries = entries.map((entry: any) => ({
+      ...entry,
+      // Flatten programs from junction table
+      programs: entry.programs.map((p: any) => p.program),
+      // Flatten rooms from junction table
+      rooms: entry.rooms.map((r: any) => ({
+        ...r.room,
+        capacity: r.capacity, // Include allocated capacity from junction table
+      })),
+      // Flatten invigilators from junction table
+      invigilators: entry.invigilators.map((i: any) => i.invigilator),
+    }));
+
     return {
       success: true,
-      data: entries,
+      data: transformedEntries,
       pagination: {
         page,
         limit,

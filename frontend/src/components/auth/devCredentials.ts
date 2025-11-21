@@ -4,6 +4,10 @@ export interface DevCredential {
   email: string;
   password: string;
   role: string;
+  staffId?: string;
+  department?: string;
+  program?: string;
+  level?: number;
 }
 
 export const DEV_CREDENTIALS: { role: string; users: DevCredential[] }[] = [
@@ -12,67 +16,11 @@ export const DEV_CREDENTIALS: { role: string; users: DevCredential[] }[] = [
     users: [
       {
         id: 'admin',
-        name: 'John Administrator',
-        email: 'admin@git.edu.gh',
+        name: 'David Mensah',
+        email: 'admin@tughana.edu.gh',
         password: 'Password123!',
-        role: 'Administrator'
-      }
-    ]
-  },
-  {
-    role: 'Faculty Admins (Deans)',
-    users: [
-      {
-        id: 'dean-engineering',
-        name: 'Prof Mary Engineering-Dean',
-        email: 'dean.engineering@git.edu.gh',
-        password: 'Password123!',
-        role: 'Faculty Admin'
-      },
-      {
-        id: 'dean-science',
-        name: 'Prof Robert Science-Dean',
-        email: 'dean.science@git.edu.gh',
-        password: 'Password123!',
-        role: 'Faculty Admin'
-      }
-    ]
-  },
-  {
-    role: 'Heads of Department',
-    users: [
-      {
-        id: 'hod-cse',
-        name: 'Dr Sarah CS-Head',
-        email: 'hod.cse@git.edu.gh',
-        password: 'Password123!',
-        role: 'HOD'
-      },
-      {
-        id: 'hod-math',
-        name: 'Dr David Math-Head',
-        email: 'hod.math@git.edu.gh',
-        password: 'Password123!',
-        role: 'HOD'
-      }
-    ]
-  },
-  {
-    role: 'Exams Officers',
-    users: [
-      {
-        id: 'exams-engineering',
-        name: 'Mrs Grace Exams-Officer',
-        email: 'exams.engineering@git.edu.gh',
-        password: 'Password123!',
-        role: 'Exams Officer'
-      },
-      {
-        id: 'exams-science',
-        name: 'Mr Michael Exams-Officer',
-        email: 'exams.science@git.edu.gh',
-        password: 'Password123!',
-        role: 'Exams Officer'
+        role: 'Admin',
+        staffId: 'TU-ADM-001'
       }
     ]
   },
@@ -80,53 +28,76 @@ export const DEV_CREDENTIALS: { role: string; users: DevCredential[] }[] = [
     role: 'Lecturers',
     users: [
       {
-        id: 'james-lecturer',
-        name: 'Dr James Mensah (CSE)',
-        email: 'james.lecturer@git.edu.gh',
+        id: 'lec-001',
+        name: 'Dr Kwame Asante',
+        email: 'k.asante@tughana.edu.gh',
         password: 'Password123!',
-        role: 'Lecturer'
+        role: 'Lecturer',
+        staffId: 'TU-LEC-001',
+        department: 'Computer Engineering'
       },
       {
-        id: 'jennifer-lecturer',
-        name: 'Dr Jennifer Asante (CSE)',
-        email: 'jennifer.lecturer@git.edu.gh',
+        id: 'lec-002',
+        name: 'Dr Akua Owusu',
+        email: 'a.owusu@tughana.edu.gh',
         password: 'Password123!',
-        role: 'Lecturer'
+        role: 'Lecturer',
+        staffId: 'TU-LEC-002',
+        department: 'Electrical Engineering'
       },
       {
-        id: 'peter-lecturer',
-        name: 'Dr Peter Osei (CSE)',
-        email: 'peter.lecturer@git.edu.gh',
+        id: 'lec-003',
+        name: 'Dr Kofi Mensah',
+        email: 'k.mensah@tughana.edu.gh',
         password: 'Password123!',
-        role: 'Lecturer'
+        role: 'Lecturer',
+        staffId: 'TU-LEC-003',
+        department: 'Mechanical Engineering'
       },
       {
-        id: 'elizabeth-lecturer',
-        name: 'Dr Elizabeth Opoku (Math)',
-        email: 'elizabeth.lecturer@git.edu.gh',
+        id: 'lec-004',
+        name: 'Dr Ama Boateng',
+        email: 'a.boateng@tughana.edu.gh',
         password: 'Password123!',
-        role: 'Lecturer'
+        role: 'Lecturer',
+        staffId: 'TU-LEC-004',
+        department: 'Computer Science'
       },
       {
-        id: 'samuel-lecturer',
-        name: 'Dr Samuel Adjei (Math)',
-        email: 'samuel.lecturer@git.edu.gh',
+        id: 'lec-005',
+        name: 'Dr Yaw Agyeman',
+        email: 'y.agyeman@tughana.edu.gh',
         password: 'Password123!',
-        role: 'Lecturer'
+        role: 'Lecturer',
+        staffId: 'TU-LEC-005',
+        department: 'Information Technology'
       },
       {
-        id: 'rachel-lecturer',
-        name: 'Dr Rachel Boateng (Physics)',
-        email: 'rachel.lecturer@git.edu.gh',
+        id: 'lec-006',
+        name: 'Dr Efua Anane',
+        email: 'e.anane@tughana.edu.gh',
         password: 'Password123!',
-        role: 'Lecturer'
+        role: 'Lecturer',
+        staffId: 'TU-LEC-006',
+        department: 'Mathematics'
       },
       {
-        id: 'frank-lecturer',
-        name: 'Dr Frank Amponsah (EEE)',
-        email: 'frank.lecturer@git.edu.gh',
+        id: 'lec-007',
+        name: 'Dr Kwesi Darko',
+        email: 'k.darko@tughana.edu.gh',
         password: 'Password123!',
-        role: 'Lecturer'
+        role: 'Lecturer',
+        staffId: 'TU-LEC-007',
+        department: 'Business Administration'
+      },
+      {
+        id: 'lec-008',
+        name: 'Dr Abena Frimpong',
+        email: 'a.frimpong@tughana.edu.gh',
+        password: 'Password123!',
+        role: 'Lecturer',
+        staffId: 'TU-LEC-008',
+        department: 'Accounting'
       }
     ]
   },
@@ -134,74 +105,103 @@ export const DEV_CREDENTIALS: { role: string; users: DevCredential[] }[] = [
     role: 'Students',
     users: [
       {
-        id: 'alice-student',
-        name: 'Alice Owusu (CS - Level 200)',
-        email: 'alice.student@st.git.edu.gh',
+        id: 'stu-001',
+        name: 'Kwabena Osei',
+        email: 'kwabena.osei@student.tughana.edu.gh',
         password: 'Password123!',
-        role: 'Student'
+        role: 'Student',
+        program: 'Computer Engineering',
+        level: 100
       },
       {
-        id: 'bob-student',
-        name: 'Bob Agyeman (CS - Level 200)',
-        email: 'bob.student@st.git.edu.gh',
+        id: 'stu-002',
+        name: 'Akosua Adjei',
+        email: 'akosua.adjei@student.tughana.edu.gh',
         password: 'Password123!',
-        role: 'Student'
+        role: 'Student',
+        program: 'Computer Engineering',
+        level: 100
       },
       {
-        id: 'clara-student',
-        name: 'Clara Asiedu (SE - Level 100)',
-        email: 'clara.student@st.git.edu.gh',
+        id: 'stu-003',
+        name: 'Yaw Mensah',
+        email: 'yaw.mensah@student.tughana.edu.gh',
         password: 'Password123!',
-        role: 'Student'
+        role: 'Student',
+        program: 'Computer Engineering',
+        level: 200
       },
       {
-        id: 'daniel-student',
-        name: 'Daniel Nkrumah (CS - Level 200)',
-        email: 'daniel.student@st.git.edu.gh',
+        id: 'stu-004',
+        name: 'Esi Agyemang',
+        email: 'esi.agyemang@student.tughana.edu.gh',
         password: 'Password123!',
-        role: 'Student'
+        role: 'Student',
+        program: 'Computer Science',
+        level: 100
       },
       {
-        id: 'emma-student',
-        name: 'Emma Ofosu (SE - Level 100)',
-        email: 'emma.student@st.git.edu.gh',
+        id: 'stu-005',
+        name: 'Kojo Boakye',
+        email: 'kojo.boakye@student.tughana.edu.gh',
         password: 'Password123!',
-        role: 'Student'
+        role: 'Student',
+        program: 'Computer Science',
+        level: 100
       },
       {
-        id: 'frank-student',
-        name: 'Frank Boakye (Math - Level 200)',
-        email: 'frank.student@st.git.edu.gh',
+        id: 'stu-006',
+        name: 'Afia Appiah',
+        email: 'afia.appiah@student.tughana.edu.gh',
         password: 'Password123!',
-        role: 'Student'
+        role: 'Student',
+        program: 'Computer Science',
+        level: 200
       },
       {
-        id: 'grace-student',
-        name: 'Grace Appiah (Math - Level 200)',
-        email: 'grace.student@st.git.edu.gh',
+        id: 'stu-007',
+        name: 'Kofi Antwi',
+        email: 'kofi.antwi@student.tughana.edu.gh',
         password: 'Password123!',
-        role: 'Student'
+        role: 'Student',
+        program: 'Information Technology',
+        level: 100
       },
       {
-        id: 'henry-student',
-        name: 'Henry Mensah (Math - Level 100)',
-        email: 'henry.student@st.git.edu.gh',
+        id: 'stu-008',
+        name: 'Adwoa Nyarko',
+        email: 'adwoa.nyarko@student.tughana.edu.gh',
         password: 'Password123!',
-        role: 'Student'
+        role: 'Student',
+        program: 'Information Technology',
+        level: 100
       },
       {
-        id: 'irene-student',
-        name: 'Irene Agyei (Physics - Level 200)',
-        email: 'irene.student@st.git.edu.gh',
+        id: 'stu-009',
+        name: 'Kwame Owusu',
+        email: 'kwame.owusu@student.tughana.edu.gh',
         password: 'Password123!',
-        role: 'Student'
+        role: 'Student',
+        program: 'Information Technology',
+        level: 200
       },
       {
-        id: 'john-student',
-        name: 'John Opoku (Physics - Level 100)',
-        email: 'john.student@st.git.edu.gh',
+        id: 'stu-010',
+        name: 'Ama Serwaa',
+        email: 'ama.serwaa@student.tughana.edu.gh',
         password: 'Password123!',
-        role: 'Student'
+        role: 'Student',
+        program: 'Business Administration',
+        level: 100
+      },
+      {
+        id: 'stu-011',
+        name: 'Kwesi Tawiah',
+        email: 'kwesi.tawiah@student.tughana.edu.gh',
+        password: 'Password123!',
+        role: 'Student',
+        program: 'Business Administration',
+        level: 100
       }
     ]
   }
