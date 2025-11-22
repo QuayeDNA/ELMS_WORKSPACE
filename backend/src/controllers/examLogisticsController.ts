@@ -218,6 +218,111 @@ export const examLogisticsController = {
   },
 
   // ========================================
+  // VENUE OFFICER ASSIGNMENT ENDPOINTS
+  // ========================================
+
+  /**
+   * Assign an officer to a venue within a timetable
+   */
+  async assignOfficerToVenue(req: Request, res: Response) {
+    try {
+      const { timetableId, venueId, officerId } = req.body;
+      const assignedBy = req.user?.userId;
+
+      if (!assignedBy) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const result = await examLogisticsService.assignOfficerToVenue(
+        parseInt(timetableId),
+        parseInt(venueId),
+        parseInt(officerId),
+        assignedBy
+      );
+
+      res.json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Remove an officer assignment
+   */
+  async removeOfficerAssignment(req: Request, res: Response) {
+    try {
+      const { assignmentId } = req.params;
+      const removedBy = req.user?.userId;
+
+      if (!removedBy) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const result = await examLogisticsService.removeOfficerAssignment(
+        parseInt(assignmentId),
+        removedBy
+      );
+
+      res.json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Get all officers assigned to a venue (within a timetable)
+   */
+  async getVenueOfficers(req: Request, res: Response) {
+    try {
+      const { timetableId, venueId } = req.params;
+
+      const result = await examLogisticsService.getVenueOfficers(
+        parseInt(timetableId),
+        parseInt(venueId)
+      );
+
+      res.json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Get all venues assigned to an officer (within a timetable)
+   */
+  async getOfficerVenues(req: Request, res: Response) {
+    try {
+      const { timetableId, officerId } = req.params;
+
+      const result = await examLogisticsService.getOfficerVenues(
+        parseInt(timetableId),
+        parseInt(officerId)
+      );
+
+      res.json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Get all venue officer assignments for a timetable
+   */
+  async getTimetableVenueAssignments(req: Request, res: Response) {
+    try {
+      const { timetableId } = req.params;
+
+      const result = await examLogisticsService.getTimetableVenueAssignments(
+        parseInt(timetableId)
+      );
+
+      res.json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  },
+
+  // ========================================
   // DASHBOARD ENDPOINTS
   // ========================================
 

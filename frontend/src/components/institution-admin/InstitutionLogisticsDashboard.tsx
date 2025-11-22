@@ -12,7 +12,8 @@ import {
   Clock,
   RefreshCw,
   Building2,
-  Calendar
+  Calendar,
+  UserCog
 } from 'lucide-react';
 import {
   Select,
@@ -27,6 +28,7 @@ import { InstitutionLogisticsDashboard, VenueSessionOverview } from '@/types/exa
 import { ExamTimetable } from '@/types/examTimetable';
 import { useLogisticsDashboardRealtime } from '@/hooks/useExamLogisticsRealtime';
 import { useRealtimeContext } from '@/contexts/RealtimeContext';
+import { AssignVenueOfficersDialog } from './AssignVenueOfficersDialog';
 import { toast } from 'sonner';
 
 export function InstitutionLogisticsDashboardView() {
@@ -363,7 +365,11 @@ export function InstitutionLogisticsDashboardView() {
         <CardContent>
           <div className="space-y-4">
             {dashboard.venues.map((venue) => (
-              <VenueCard key={venue.venueId} venue={venue} />
+              <VenueCard
+                key={venue.venueId}
+                venue={venue}
+                timetableId={selectedTimetableId}
+              />
             ))}
 
             {dashboard.venues.length === 0 && (
@@ -380,7 +386,52 @@ export function InstitutionLogisticsDashboardView() {
 }
 
 // Venue Card Component
-function VenueCard({ venue }: { venue: VenueSessionOverview }) {
+function VenueCard({
+  venue,
+  timetableId,
+}: {
+  venue: VenueSessionOverview;
+  timetableId: number | undefined;
+}) {
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [officerCount, setOfficerCount] = useState<number>(0);
+  const [loadingOfficers, setLoadingOfficers] = useState(false);
+
+  // Load officer count for this venue
+  useEffect(() => {
+    const loadOfficerCount = async () => {
+      if (!timetableId) return;
+
+      try {
+        setLoadingOfficers(true);
+        const response = await examLogisticsService.getVenueOfficers(timetableId, venue.venueId);
+        if (response.success && response.data) {
+          setOfficerCount(response.data.length);
+        }
+      } catch (error) {
+        console.error('Error loading officer count:', error);
+      } finally {
+        setLoadingOfficers(false);
+      }
+    };
+
+    loadOfficerCount();
+  }, [timetableId, venue.venueId]);
+
+  const handleAssignmentChanged = async () => {
+    // Reload officer count
+    if (!timetableId) return;
+
+    try {
+      const response = await examLogisticsService.getVenueOfficers(timetableId, venue.venueId);
+      if (response.success && response.data) {
+        setOfficerCount(response.data.length);
+      }
+    } catch (error) {
+      console.error('Error reloading officer count:', error);
+    }
+  };
+
   const attendanceRate = (venue.totalStudentsExpected || 0) > 0
     ? ((venue.totalStudentsVerified || 0) / (venue.totalStudentsExpected || 0)) * 100
     : 0;
@@ -396,9 +447,22 @@ function VenueCard({ venue }: { venue: VenueSessionOverview }) {
           <MapPin className="h-4 w-4 text-primary" />
           <h3 className="font-semibold">{venue.venueName}</h3>
         </div>
-        <Badge variant={(venue.activeSessions?.length || 0) > 0 ? "default" : "secondary"}>
-          {venue.activeSessions?.length || 0} active
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant={(venue.activeSessions?.length || 0) > 0 ? "default" : "secondary"}>
+            {venue.activeSessions?.length || 0} active
+          </Badge>
+          {timetableId && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setAssignDialogOpen(true)}
+              disabled={loadingOfficers}
+            >
+              <UserCog className="h-4 w-4 mr-2" />
+              Officers ({officerCount})
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
@@ -449,6 +513,18 @@ function VenueCard({ venue }: { venue: VenueSessionOverview }) {
             )}
           </div>
         </div>
+      )}
+
+      {/* Officer Assignment Dialog */}
+      {timetableId && (
+        <AssignVenueOfficersDialog
+          open={assignDialogOpen}
+          onOpenChange={setAssignDialogOpen}
+          timetableId={timetableId}
+          venueId={venue.venueId}
+          venueName={venue.venueName}
+          onAssignmentChanged={handleAssignmentChanged}
+        />
       )}
     </div>
   );

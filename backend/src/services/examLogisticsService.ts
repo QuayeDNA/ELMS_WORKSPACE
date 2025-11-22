@@ -950,11 +950,9 @@ export const examLogisticsService = {
   },
 
   /**
-   * Get exams officer dashboard
+   * Get exams officer dashboard (filtered by assigned venues)
    */
   async getExamsOfficerDashboard(officerId: number, options: { date?: Date; timetableId?: number } = {}) {
-    // Get officer's assigned venues (this would need to be implemented based on your venue assignment logic)
-    // For now, we'll assume officers can see all venues in their institution
     const officer = await prisma.user.findUnique({
       where: { id: officerId },
       select: { institutionId: true },
@@ -964,7 +962,45 @@ export const examLogisticsService = {
       throw new Error("Officer institution not found");
     }
 
+    // Get the full institution dashboard first
     const dashboard = await this.getInstitutionLogisticsDashboard(officer.institutionId, options);
+
+    // If a timetableId is provided, filter dashboard to only show assigned venues
+    if (options.timetableId) {
+      // Get officer's assigned venues for this timetable
+      const assignments = await prisma.venueOfficerAssignment.findMany({
+        where: {
+          timetableId: options.timetableId,
+          officerId,
+        },
+        select: {
+          venueId: true,
+        },
+      });
+
+      const assignedVenueIds = assignments.map(a => a.venueId);
+
+      // Filter venues to only show assigned ones
+      dashboard.venues = dashboard.venues.filter(v => assignedVenueIds.includes(v.venueId));
+
+      // Recalculate statistics based on filtered venues
+      dashboard.activeVenues = dashboard.venues.length;
+      dashboard.totalExamSessions = dashboard.venues.reduce((sum, v) => sum + v.activeSessions.length, 0);
+      dashboard.activeExamSessions = dashboard.venues.reduce((sum, v) =>
+        sum + v.activeSessions.filter(s => s.status === 'IN_PROGRESS').length, 0);
+      dashboard.totalExpectedStudents = dashboard.venues.reduce((sum, v) => sum + v.totalStudentsExpected, 0);
+      dashboard.totalPresentStudents = dashboard.venues.reduce((sum, v) => sum + v.totalStudentsVerified, 0);
+      dashboard.totalScriptsSubmitted = dashboard.venues.reduce((sum, v) => sum + v.totalScriptsSubmitted, 0);
+      dashboard.attendanceRate = dashboard.totalExpectedStudents > 0
+        ? (dashboard.totalPresentStudents / dashboard.totalExpectedStudents) * 100 : 0;
+      dashboard.submissionRate = dashboard.totalPresentStudents > 0
+        ? (dashboard.totalScriptsSubmitted / dashboard.totalPresentStudents) * 100 : 0;
+      dashboard.totalAssignedInvigilators = dashboard.venues.reduce((sum, v) => sum + v.totalInvigilatorsAssigned, 0);
+      dashboard.totalInvigilatorsPresent = dashboard.venues.reduce((sum, v) => sum + v.totalInvigilatorsPresent, 0);
+      dashboard.invigilatorAttendanceRate = dashboard.totalAssignedInvigilators > 0
+        ? (dashboard.totalInvigilatorsPresent / dashboard.totalAssignedInvigilators) * 100 : 0;
+      dashboard.unresolvedIncidents = dashboard.venues.reduce((sum, v) => sum + v.unresolvedIssues, 0);
+    }
 
     // Get officer's specific data
     const { date } = options;
@@ -1055,6 +1091,293 @@ export const examLogisticsService = {
       unverifiedStudents: dashboard.totalExpectedStudents - dashboard.totalPresentStudents,
       absentInvigilators: dashboard.totalAssignedInvigilators - dashboard.totalInvigilatorsPresent,
       recentLogs,
+    };
+  },
+
+  // ========================================
+  // UTILITY FUNCTIONS
+  // ========================================
+
+  // ========================================
+  // VENUE OFFICER ASSIGNMENT MANAGEMENT
+  // ========================================
+
+  /**
+   * Assign an officer to a venue within a specific timetable
+   */
+  async assignOfficerToVenue(
+    timetableId: number,
+    venueId: number,
+    officerId: number,
+    assignedBy: number
+  ) {
+    // Validate timetable exists and is published
+    const timetable = await prisma.examTimetable.findUnique({
+      where: { id: timetableId },
+      include: { institution: true },
+    });
+
+    if (!timetable) {
+      throw new Error("Timetable not found");
+    }
+
+    if (!timetable.isPublished) {
+      throw new Error("Cannot assign officers to unpublished timetables");
+    }
+
+    // Validate venue exists and belongs to the same institution
+    const venue = await prisma.venue.findUnique({
+      where: { id: venueId },
+    });
+
+    if (!venue) {
+      throw new Error("Venue not found");
+    }
+
+    if (venue.institutionId !== timetable.institutionId) {
+      throw new Error("Venue does not belong to the timetable's institution");
+    }
+
+    // Validate officer exists and belongs to the same institution
+    const officer = await prisma.user.findUnique({
+      where: { id: officerId },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        institutionId: true,
+        role: true,
+      },
+    });
+
+    if (!officer) {
+      throw new Error("Officer not found");
+    }
+
+    if (officer.institutionId !== timetable.institutionId) {
+      throw new Error("Officer does not belong to the timetable's institution");
+    }
+
+    if (officer.role !== "EXAMS_OFFICER" && officer.role !== "ADMIN") {
+      throw new Error("User must be an exams officer or institution admin");
+    }
+
+    // Check if assignment already exists
+    const existingAssignment = await prisma.venueOfficerAssignment.findUnique({
+      where: {
+        timetableId_venueId_officerId: {
+          timetableId,
+          venueId,
+          officerId,
+        },
+      },
+    });
+
+    if (existingAssignment) {
+      throw new Error("Officer is already assigned to this venue for this timetable");
+    }
+
+    // Create assignment
+    const assignment = await prisma.venueOfficerAssignment.create({
+      data: {
+        timetableId,
+        venueId,
+        officerId,
+        assignedBy,
+      },
+      include: {
+        officer: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        venue: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        timetable: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+        assigner: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    });
+
+    return {
+      success: true,
+      message: "Officer assigned to venue successfully",
+      data: assignment,
+    };
+  },
+
+  /**
+   * Remove an officer assignment from a venue
+   */
+  async removeOfficerAssignment(assignmentId: number, removedBy: number) {
+    const assignment = await prisma.venueOfficerAssignment.findUnique({
+      where: { id: assignmentId },
+      include: {
+        officer: {
+          select: {
+            firstName: true,
+            lastName: true,
+          },
+        },
+        venue: {
+          select: {
+            name: true,
+          },
+        },
+        timetable: {
+          select: {
+            title: true,
+          },
+        },
+      },
+    });
+
+    if (!assignment) {
+      throw new Error("Assignment not found");
+    }
+
+    await prisma.venueOfficerAssignment.delete({
+      where: { id: assignmentId },
+    });
+
+    return {
+      success: true,
+      message: `Officer ${assignment.officer.firstName} ${assignment.officer.lastName} removed from ${assignment.venue.name}`,
+      data: assignment,
+    };
+  },
+
+  /**
+   * Get all officers assigned to a venue within a timetable
+   */
+  async getVenueOfficers(timetableId: number, venueId: number) {
+    const assignments = await prisma.venueOfficerAssignment.findMany({
+      where: {
+        timetableId,
+        venueId,
+      },
+      include: {
+        officer: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        assigner: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+      orderBy: {
+        assignedAt: 'desc',
+      },
+    });
+
+    return {
+      success: true,
+      data: assignments,
+    };
+  },
+
+  /**
+   * Get all venues assigned to an officer within a timetable
+   */
+  async getOfficerVenues(timetableId: number, officerId: number) {
+    const assignments = await prisma.venueOfficerAssignment.findMany({
+      where: {
+        timetableId,
+        officerId,
+      },
+      include: {
+        venue: {
+          select: {
+            id: true,
+            name: true,
+            capacity: true,
+          },
+        },
+        assigner: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+      orderBy: {
+        assignedAt: 'desc',
+      },
+    });
+
+    return {
+      success: true,
+      data: assignments,
+    };
+  },
+
+  /**
+   * Get all venue officer assignments for a timetable
+   */
+  async getTimetableVenueAssignments(timetableId: number) {
+    const assignments = await prisma.venueOfficerAssignment.findMany({
+      where: {
+        timetableId,
+      },
+      include: {
+        officer: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        venue: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        assigner: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+      orderBy: [
+        { venueId: 'asc' },
+        { assignedAt: 'desc' },
+      ],
+    });
+
+    return {
+      success: true,
+      data: assignments,
     };
   },
 

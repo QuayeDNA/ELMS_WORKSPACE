@@ -1,5 +1,6 @@
 import { BaseService } from './base.service';
 import { ApiResponse } from '@/types/shared/api';
+import { apiService } from './api';
 import {
   InstitutionLogisticsDashboard,
   ExamsOfficerDashboard,
@@ -12,6 +13,8 @@ import {
   StudentVerification,
   ExamIncident,
   ExamSessionLog,
+  VenueOfficerAssignment,
+  AssignOfficerToVenueData,
 } from '@/types/examLogistics';
 
 interface PaginationMeta {
@@ -95,6 +98,45 @@ export class ExamLogisticsService extends BaseService {
     resolution: string
   ): Promise<ApiResponse<ExamIncident>> {
     return this.update<ExamIncident>(incidentId, { resolution }, '/resolve-incident');
+  }
+
+  // ========================================
+  // VENUE OFFICER ASSIGNMENT ENDPOINTS
+  // ========================================
+
+  /**
+   * Assign an officer to a venue within a timetable
+   */
+  async assignOfficerToVenue(data: AssignOfficerToVenueData): Promise<ApiResponse<VenueOfficerAssignment>> {
+    return apiService.post<VenueOfficerAssignment>(`${this.endpoint}/assign-officer-to-venue`, data);
+  }
+
+  /**
+   * Remove an officer assignment
+   */
+  async removeOfficerAssignment(assignmentId: number): Promise<ApiResponse<VenueOfficerAssignment>> {
+    return this.delete<VenueOfficerAssignment>(assignmentId, '/officer-assignment');
+  }
+
+  /**
+   * Get all officers assigned to a venue (within a timetable)
+   */
+  async getVenueOfficers(timetableId: number, venueId: number): Promise<ApiResponse<VenueOfficerAssignment[]>> {
+    return this.getStats<VenueOfficerAssignment[]>(`/venue-officers/${timetableId}/${venueId}`);
+  }
+
+  /**
+   * Get all venues assigned to an officer (within a timetable)
+   */
+  async getOfficerVenues(timetableId: number, officerId: number): Promise<ApiResponse<VenueOfficerAssignment[]>> {
+    return this.getStats<VenueOfficerAssignment[]>(`/officer-venues/${timetableId}/${officerId}`);
+  }
+
+  /**
+   * Get all venue officer assignments for a timetable
+   */
+  async getTimetableVenueAssignments(timetableId: number): Promise<ApiResponse<VenueOfficerAssignment[]>> {
+    return this.getStats<VenueOfficerAssignment[]>(`/timetable-venue-assignments/${timetableId}`);
   }
 
   // ========================================

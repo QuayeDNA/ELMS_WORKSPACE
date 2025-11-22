@@ -25,6 +25,19 @@ export const DEV_CREDENTIALS: { role: string; users: DevCredential[] }[] = [
     ]
   },
   {
+    role: 'Exams Officers',
+    users: [
+      {
+        id: 'exam-001',
+        name: 'Exams Officer',
+        email: 'exams.officer@tughana.edu.gh',
+        password: 'password123',
+        role: 'Exams Officer',
+        staffId: 'TU-EXAM-001'
+      }
+    ]
+  },
+  {
     role: 'Lecturers',
     users: [
       {

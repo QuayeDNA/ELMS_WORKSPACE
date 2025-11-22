@@ -98,6 +98,65 @@ router.put(
 );
 
 // ========================================
+// VENUE OFFICER ASSIGNMENT ROUTES
+// ========================================
+
+/**
+ * POST /api/exam-logistics/assign-officer-to-venue
+ * Assign an officer to a venue within a timetable
+ * Requires: ADMIN, SUPER_ADMIN
+ */
+router.post(
+  "/assign-officer-to-venue",
+  requireRole(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  examLogisticsController.assignOfficerToVenue
+);
+
+/**
+ * DELETE /api/exam-logistics/officer-assignment/:assignmentId
+ * Remove an officer assignment
+ * Requires: ADMIN, SUPER_ADMIN
+ */
+router.delete(
+  "/officer-assignment/:assignmentId",
+  requireRole(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  examLogisticsController.removeOfficerAssignment
+);
+
+/**
+ * GET /api/exam-logistics/venue-officers/:timetableId/:venueId
+ * Get all officers assigned to a venue (within a timetable)
+ * Requires: ADMIN, EXAMS_OFFICER, SUPER_ADMIN
+ */
+router.get(
+  "/venue-officers/:timetableId/:venueId",
+  requireRole(UserRole.ADMIN, UserRole.EXAMS_OFFICER, UserRole.SUPER_ADMIN),
+  examLogisticsController.getVenueOfficers
+);
+
+/**
+ * GET /api/exam-logistics/officer-venues/:timetableId/:officerId
+ * Get all venues assigned to an officer (within a timetable)
+ * Requires: ADMIN, EXAMS_OFFICER, SUPER_ADMIN
+ */
+router.get(
+  "/officer-venues/:timetableId/:officerId",
+  requireRole(UserRole.ADMIN, UserRole.EXAMS_OFFICER, UserRole.SUPER_ADMIN),
+  examLogisticsController.getOfficerVenues
+);
+
+/**
+ * GET /api/exam-logistics/timetable-venue-assignments/:timetableId
+ * Get all venue officer assignments for a timetable
+ * Requires: ADMIN, SUPER_ADMIN
+ */
+router.get(
+  "/timetable-venue-assignments/:timetableId",
+  requireRole(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  examLogisticsController.getTimetableVenueAssignments
+);
+
+// ========================================
 // DASHBOARD ROUTES
 // ========================================
 

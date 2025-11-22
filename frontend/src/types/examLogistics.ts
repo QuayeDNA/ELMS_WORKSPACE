@@ -70,6 +70,40 @@ export interface StudentReference {
 }
 
 /**
+ * Venue Officer Assignment - tracks officer assignments to venues within timetables
+ */
+export interface VenueOfficerAssignment {
+  id: number;
+  timetableId: number;
+  venueId: number;
+  officerId: number;
+  assignedBy: number;
+  assignedAt: Date;
+
+  // Relations
+  timetable?: {
+    id: number;
+    title: string;
+  };
+  venue?: {
+    id: number;
+    name: string;
+    capacity?: number;
+  };
+  officer?: {
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  assigner?: {
+    id: number;
+    firstName: string;
+    lastName: string;
+  };
+}
+
+/**
  * Exam Session Log - tracks all actions during exam sessions
  */
 export interface ExamSessionLog {
@@ -451,6 +485,12 @@ export interface ReportExamIncidentData {
   attachments?: string[];
   witnesses?: number[];
   reportedBy: number;
+}
+
+export interface AssignOfficerToVenueData {
+  timetableId: number;
+  venueId: number;
+  officerId: number;
 }
 
 export interface LogisticsQuery {

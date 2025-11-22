@@ -81,6 +81,8 @@ model User {
   incidentAffectedAsStudent   ExamIncidentStudent[]      @relation("IncidentAffectedStudents")
   incidentAffectedAsInvigilator ExamIncidentInvigilator[] @relation("IncidentAffectedInvigilators")
   incidentWitness             ExamIncidentWitness[]      @relation("IncidentWitnesses")
+  venueOfficerAssignments     VenueOfficerAssignment[]   @relation("OfficerVenueAssignments")
+  venueAssignmentsAssigned    VenueOfficerAssignment[]   @relation("VenueOfficerAssigner")
 
   @@index([institutionId, role])
   @@index([facultyId, role])
@@ -717,10 +719,34 @@ model ExamTimetable {
   semester             Semester                @relation(fields: [semesterId], references: [id], onDelete: Cascade)
   conflicts            TimetableConflict[]
   imports              TimetableImport[]
+  venueOfficerAssignments VenueOfficerAssignment[]
 
   @@index([institutionId, academicYearId, semesterId])
   @@index([status, isPublished])
   @@map("exam_timetables")
+}
+
+// Venue Officer Assignment - scoped to timetable
+model VenueOfficerAssignment {
+  id          Int           @id @default(autoincrement())
+  timetableId Int
+  venueId     Int
+  officerId   Int
+  assignedAt  DateTime      @default(now())
+  assignedBy  Int
+  notes       String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  timetable   ExamTimetable @relation(fields: [timetableId], references: [id], onDelete: Cascade)
+  venue       Venue         @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  officer     User          @relation("OfficerVenueAssignments", fields: [officerId], references: [id], onDelete: Cascade)
+  assigner    User          @relation("VenueOfficerAssigner", fields: [assignedBy], references: [id])
+
+  @@unique([timetableId, venueId, officerId])
+  @@index([timetableId, officerId])
+  @@index([venueId, timetableId])
+  @@map("venue_officer_assignments")
 }
 
 model ExamTimetableEntry {
@@ -882,20 +908,21 @@ model TimetableImport {
 }
 
 model Venue {
-  id                     Int                     @id @default(autoincrement())
+  id                     Int                        @id @default(autoincrement())
   name                   String
   location               String
   capacity               Int
   institutionId          Int
-  createdAt              DateTime                @default(now())
-  updatedAt              DateTime                @updatedAt
+  createdAt              DateTime                   @default(now())
+  updatedAt              DateTime                   @updatedAt
   timetableEntries       ExamTimetableEntry[]
   exams                  Exam[]
   rooms                  Room[]
-  institution            Institution             @relation(fields: [institutionId], references: [id])
+  institution            Institution                @relation(fields: [institutionId], references: [id])
   // Logistics relations
   sessionLogs            ExamSessionLog[]
   invigilatorAssignments InvigilatorAssignment[]
+  officerAssignments     VenueOfficerAssignment[]
 
   @@map("venues")
 }
