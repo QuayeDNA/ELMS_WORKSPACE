@@ -18,6 +18,7 @@ export function PublicExamCheckIn() {
   const [checkInResult, setCheckInResult] = useState<CheckInResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [scannedIndexNumber, setScannedIndexNumber] = useState<string | null>(null);
 
   // Initialize scanner on mount
   useEffect(() => {
@@ -77,6 +78,9 @@ export function PublicExamCheckIn() {
 
     setIsProcessing(true);
     try {
+      // Store the scanned index number for later use
+      setScannedIndexNumber(decodedText);
+
       // Validate index number (QR code contains student's index number)
       const response = await publicExamService.validateIndexNumber(decodedText);
 
@@ -128,24 +132,40 @@ export function PublicExamCheckIn() {
     setIsProcessing(true);
     try {
       const checkIn = await publicExamService.checkInStudent(indexNumber, examEntryId);
-      setCheckInResult(checkIn);
 
-      if (checkIn.success) {
+      // Handle response properly - check for success field
+      if (checkIn && checkIn.success) {
+        setCheckInResult(checkIn);
         toast.success('Check-In Successful!', {
-          description: `Welcome ${checkIn.student?.name || ''}`
+          description: `Welcome ${checkIn.student?.name || ''}`,
+          duration: 5000
         });
         setSelectedExamId(examEntryId);
       } else {
+        // Handle error response with message
         toast.error('Check-In Failed', {
-          description: checkIn.message || 'Unable to complete check-in'
+          description: checkIn?.message || 'Unable to complete check-in',
+          duration: 6000
         });
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Check-in failed';
-      toast.error('Error', { description: errorMessage });
+    } catch (err: any) {
+      // Handle network/API errors
+      const errorMessage = err?.response?.data?.message || err?.message || 'Check-in failed';
+      toast.error('Check-In Error', {
+        description: errorMessage,
+        duration: 6000
+      });
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handleExamSelection = async (examEntryId: number) => {
+    if (!scannedIndexNumber) {
+      toast.error('Error', { description: 'No index number found. Please scan again.' });
+      return;
+    }
+    await handleCheckIn(scannedIndexNumber, examEntryId);
   };
 
   const onScanError = (error: string) => {
@@ -161,6 +181,7 @@ export function PublicExamCheckIn() {
     setSelectedExamId(null);
     setCheckInResult(null);
     setError(null);
+    setScannedIndexNumber(null);
   };
 
   return (

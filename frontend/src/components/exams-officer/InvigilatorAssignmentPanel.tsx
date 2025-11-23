@@ -401,7 +401,7 @@ export default function InvigilatorAssignmentPanel({ timetableId, onAssignmentCh
             </div>
 
             {/* Invigilator List */}
-            <div className="flex-1 overflow-hidden flex flex-col">
+            <div className="flex-1 overflow-hidden flex flex-col min-h-0">
               <Label className="mb-2">
                 Available Invigilators ({filteredInvigilators.length})
               </Label>
@@ -410,7 +410,7 @@ export default function InvigilatorAssignmentPanel({ timetableId, onAssignmentCh
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 </div>
               ) : (
-                <ScrollArea className="flex-1 border rounded-md">
+                <ScrollArea className="flex-1 border rounded-md h-[400px]">
                   <div className="p-2 space-y-2">
                     {filteredInvigilators.map((invigilator) => (
                       <div

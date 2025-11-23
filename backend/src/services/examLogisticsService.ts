@@ -399,13 +399,19 @@ export const examLogisticsService = {
    * Get available invigilators for a specific date/time
    */
   async getAvailableInvigilators(examDate: Date, startTime: Date, endTime: Date) {
-    // Get all users who can be invigilators (LECTURER, INVIGILATOR roles)
+    // Get all users who can be invigilators (only LECTURER and INVIGILATOR roles)
+    // NOT admins or exams officers - they manage exams, not invigilate them
     const potentialInvigilators = await prisma.user.findMany({
       where: {
-        role: {
-          in: ['LECTURER', 'INVIGILATOR', 'ADMIN', 'EXAMS_OFFICER']
-        },
-        status: 'ACTIVE'
+        status: 'ACTIVE',
+        roleProfiles: {
+          some: {
+            role: {
+              in: ['LECTURER', 'INVIGILATOR']
+            },
+            isActive: true
+          }
+        }
       },
       select: {
         id: true,
@@ -417,6 +423,18 @@ export const examLogisticsService = {
           select: {
             name: true,
             code: true
+          }
+        },
+        roleProfiles: {
+          where: {
+            role: {
+              in: ['LECTURER', 'INVIGILATOR']
+            },
+            isActive: true
+          },
+          select: {
+            role: true,
+            metadata: true
           }
         }
       }

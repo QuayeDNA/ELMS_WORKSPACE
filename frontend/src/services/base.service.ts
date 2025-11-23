@@ -180,11 +180,12 @@ export abstract class BaseService {
   /**
    * Handle resource creation
    */
-  protected async create<T, D = unknown>(data: D): Promise<ApiResponse<T>> {
+  protected async create<T, D = unknown>(data: D, path?: string): Promise<ApiResponse<T>> {
     try {
-      return await apiService.post<T>(this.endpoint, data);
+      const url = path ? `${this.endpoint}${path}` : this.endpoint;
+      return await apiService.post<T>(url, data);
     } catch (error) {
-      console.error(`Error creating resource at ${this.endpoint}:`, error);
+      console.error(`Error creating resource at ${path ? this.endpoint + path : this.endpoint}:`, error);
       throw error;
     }
   }
@@ -194,12 +195,14 @@ export abstract class BaseService {
    */
   protected async update<T, D = unknown>(
     id: number | string,
-    data: D
+    data: D,
+    path?: string
   ): Promise<ApiResponse<T>> {
     try {
-      return await apiService.put<T>(this.getByIdUrl(id), data);
+      const url = path ? `${this.endpoint}${path}` : this.getByIdUrl(id);
+      return await apiService.put<T>(url, data);
     } catch (error) {
-      console.error(`Error updating resource ${id} at ${this.endpoint}:`, error);
+      console.error(`Error updating resource ${id} at ${path ? this.endpoint + path : this.endpoint}:`, error);
       throw error;
     }
   }
@@ -207,11 +210,12 @@ export abstract class BaseService {
   /**
    * Handle resource deletion
    */
-  protected async delete(id: number | string): Promise<ApiResponse<void>> {
+  protected async delete<T = void>(id: number | string, path?: string): Promise<ApiResponse<T>> {
     try {
-      return await apiService.delete<void>(this.getByIdUrl(id));
+      const url = path ? `${this.endpoint}${path}/${id}` : this.getByIdUrl(id);
+      return await apiService.delete<T>(url);
     } catch (error) {
-      console.error(`Error deleting resource ${id} from ${this.endpoint}:`, error);
+      console.error(`Error deleting resource ${id} from ${path ? this.endpoint + path : this.endpoint}:`, error);
       throw error;
     }
   }

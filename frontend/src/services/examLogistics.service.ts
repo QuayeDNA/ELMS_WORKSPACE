@@ -17,6 +17,59 @@ import {
   AssignOfficerToVenueData,
 } from '@/types/examLogistics';
 
+export interface ExamSessionForAssignment {
+  id: number;
+  courseCode: string;
+  courseName: string;
+  level: number;
+  examDate: string;
+  startTime: string;
+  endTime: string;
+  duration: number;
+  venue: {
+    id: number;
+    name: string;
+    location: string;
+    capacity: number;
+  };
+  studentCount: number;
+  registeredCount: number;
+  verifiedCount: number;
+  status: string;
+  assignments: Array<{
+    id: number;
+    invigilator: {
+      id: number;
+      firstName: string;
+      lastName: string;
+      email: string;
+      fullName: string;
+    };
+    role: string;
+    status: string;
+    checkedInAt: string | null;
+    assignedAt: string;
+  }>;
+}
+
+export interface AvailableInvigilator {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  fullName: string;
+  role: string;
+  department: string;
+  departmentCode: string;
+  isAvailable: boolean;
+  conflict: {
+    courseCode: string;
+    courseName: string;
+    startTime: string;
+    endTime: string;
+  } | null;
+}
+
 interface PaginationMeta {
   page: number;
   limit: number;
@@ -64,8 +117,8 @@ export class ExamLogisticsService extends BaseService {
   /**
    * Get all exam sessions in a timetable for assignment UI
    */
-  async getSessionsForAssignment(timetableId: number): Promise<ApiResponse<any[]>> {
-    return this.getStats<any[]>(`/timetable/${timetableId}/sessions`);
+  async getSessionsForAssignment(timetableId: number): Promise<ApiResponse<ExamSessionForAssignment[]>> {
+    return this.getStats<ExamSessionForAssignment[]>(`/timetable/${timetableId}/sessions`);
   }
 
   /**
@@ -75,8 +128,8 @@ export class ExamLogisticsService extends BaseService {
     examDate: string;
     startTime: string;
     endTime: string;
-  }): Promise<ApiResponse<any[]>> {
-    return this.getStats<any[]>('/available-invigilators', params);
+  }): Promise<ApiResponse<AvailableInvigilator[]>> {
+    return this.getStats<AvailableInvigilator[]>('/available-invigilators', params);
   }
 
   /**
@@ -181,7 +234,7 @@ export class ExamLogisticsService extends BaseService {
   async getInstitutionDashboard(
     options?: { date?: Date; timetableId?: number }
   ): Promise<ApiResponse<InstitutionLogisticsDashboard>> {
-    const params: any = {};
+    const params: Record<string, string | number> = {};
     if (options?.date) {
       params.date = options.date.toISOString();
     }
@@ -197,7 +250,7 @@ export class ExamLogisticsService extends BaseService {
   async getExamsOfficerDashboard(
     options?: { date?: Date; timetableId?: number; venueId?: number }
   ): Promise<ApiResponse<ExamsOfficerDashboard>> {
-    const params: any = {};
+    const params: Record<string, string | number> = {};
     if (options?.date) {
       params.date = options.date.toISOString();
     }
@@ -221,18 +274,15 @@ export class ExamLogisticsService extends BaseService {
     examEntryId: number,
     query?: { page?: number; limit?: number }
   ): Promise<ApiResponse<{ data: ExamSessionLog[]; pagination: PaginationMeta }>> {
-    const params = { ...query };
-    return this.getById<{ data: ExamSessionLog[]; pagination: PaginationMeta }>(
-      `/session-logs/${examEntryId}`,
-      params
-    );
+    const url = this.buildUrl(`${this.endpoint}/session-logs/${examEntryId}`, query || {});
+    return apiService.get<{ data: ExamSessionLog[]; pagination: PaginationMeta }>(url);
   }
 
   /**
    * Get invigilator assignments for an exam entry
    */
   async getInvigilatorAssignments(examEntryId: number): Promise<ApiResponse<InvigilatorAssignment[]>> {
-    return this.getById<InvigilatorAssignment[]>(`/invigilator-assignments/${examEntryId}`);
+    return apiService.get<InvigilatorAssignment[]>(`${this.endpoint}/invigilator-assignments/${examEntryId}`);
   }
 
   /**
@@ -242,11 +292,8 @@ export class ExamLogisticsService extends BaseService {
     examEntryId: number,
     query?: { page?: number; limit?: number }
   ): Promise<ApiResponse<{ data: StudentVerification[]; pagination: PaginationMeta }>> {
-    const params = { ...query };
-    return this.getById<{ data: StudentVerification[]; pagination: PaginationMeta }>(
-      `/student-verifications/${examEntryId}`,
-      params
-    );
+    const url = this.buildUrl(`${this.endpoint}/student-verifications/${examEntryId}`, query || {});
+    return apiService.get<{ data: StudentVerification[]; pagination: PaginationMeta }>(url);
   }
 
   /**

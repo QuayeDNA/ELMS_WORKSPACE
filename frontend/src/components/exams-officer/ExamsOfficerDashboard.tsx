@@ -29,10 +29,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { examLogisticsService } from '@/services/examLogistics.service';
-import { examTimetableService } from '@/services/examTimetable.service';
+import { examTimetableService, type ExamTimetable } from '@/services/examTimetable.service';
 import { qrCodeService } from '@/services/qrCode.service';
 import type { ExamsOfficerDashboard, VenueSessionOverview, ExamSessionStatus, ExamIncident, QRCodeData, VenueOfficerAssignment } from '@/types/examLogistics';
-import { ExamTimetable } from '@/types/examTimetable';
 import { VerificationMethod } from '@/types/examLogistics';
 import { useAuth } from '@/hooks/useAuth';
 import { useRealtimeContext } from '@/contexts/RealtimeContext';
@@ -55,7 +54,6 @@ export function ExamsOfficerDashboard() {
   // Venue assignment states
   const [myVenueAssignments, setMyVenueAssignments] = useState<VenueOfficerAssignment[]>([]);
   const [selectedVenueFilter, setSelectedVenueFilter] = useState<number | null>(null);
-  const [loadingVenues, setLoadingVenues] = useState(true);
 
   // Load available timetables
   const loadTimetables = useCallback(async () => {
@@ -82,12 +80,11 @@ export function ExamsOfficerDashboard() {
       toast.error('Failed to load timetables');
       setLoading(false);
     }
-  }, []); // Remove selectedTimetableId dependency to avoid infinite loop
+  }, [selectedTimetableId]);
 
   // Load my venue assignments
   const loadMyVenueAssignments = useCallback(async () => {
     try {
-      setLoadingVenues(true);
       const response = await examLogisticsService.getMyAssignedVenues();
       if (response.success && response.data) {
         setMyVenueAssignments(response.data);
@@ -100,8 +97,6 @@ export function ExamsOfficerDashboard() {
     } catch (error) {
       console.error('Error loading venue assignments:', error);
       toast.error('Failed to load venue assignments');
-    } finally {
-      setLoadingVenues(false);
     }
   }, [selectedVenueFilter]);
 
@@ -206,50 +201,56 @@ export function ExamsOfficerDashboard() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        {/* Header */}
+        <div className="space-y-4">
+          {/* Title Section */}
           <div>
-            <h1 className="text-3xl font-bold">Exams Officer Dashboard</h1>
-            <p className="text-muted-foreground">Manage exam sessions and logistics</p>
+            <h1 className="text-3xl font-bold tracking-tight">Exams Officer Dashboard</h1>
+            <p className="text-muted-foreground mt-1">Manage exam sessions and logistics</p>
           </div>
-          <div className="flex items-center gap-3">
-            {timetables.length > 0 && (
-              <Select
-                value={selectedTimetableId?.toString()}
-                onValueChange={(value) => setSelectedTimetableId(parseInt(value, 10))}
-              >
-                <SelectTrigger className="w-[280px]">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Select timetable" />
-                </SelectTrigger>
-                <SelectContent>
-                  {timetables.map((timetable) => (
-                    <SelectItem key={timetable.id} value={timetable.id.toString()}>
-                      {timetable.title}
-                      {timetable.status === 'ARCHIVED' && ' (Archived)'}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-            {myVenueAssignments.length > 0 && (
-              <Select
-                value={selectedVenueFilter?.toString() || 'all'}
-                onValueChange={(value) => setSelectedVenueFilter(value === 'all' ? null : parseInt(value, 10))}
-              >
-                <SelectTrigger className="w-60">
-                  <MapPin className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Select venue" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All My Venues</SelectItem>
-                  {myVenueAssignments.map((assignment) => (
-                    <SelectItem key={assignment.id} value={assignment.venueId.toString()}>
-                      {assignment.venue?.name || `Venue ${assignment.venueId}`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
+
+          {/* Filters and Actions */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 flex-1">
+              {timetables.length > 0 && (
+                <Select
+                  value={selectedTimetableId?.toString()}
+                  onValueChange={(value) => setSelectedTimetableId(parseInt(value, 10))}
+                >
+                  <SelectTrigger className="w-full sm:w-[280px]">
+                    <Calendar className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Select timetable" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {timetables.map((timetable) => (
+                      <SelectItem key={timetable.id} value={timetable.id.toString()}>
+                        {timetable.title}
+                        {timetable.status === 'ARCHIVED' && ' (Archived)'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {myVenueAssignments.length > 0 && (
+                <Select
+                  value={selectedVenueFilter?.toString() || 'all'}
+                  onValueChange={(value) => setSelectedVenueFilter(value === 'all' ? null : parseInt(value, 10))}
+                >
+                  <SelectTrigger className="w-full sm:w-60">
+                    <MapPin className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Select venue" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All My Venues</SelectItem>
+                    {myVenueAssignments.map((assignment) => (
+                      <SelectItem key={assignment.id} value={assignment.venueId.toString()}>
+                        {assignment.venue?.name || `Venue ${assignment.venueId}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
           </div>
         </div>
         <LoadingSpinner />
@@ -260,50 +261,56 @@ export function ExamsOfficerDashboard() {
   if (!dashboard) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        {/* Header */}
+        <div className="space-y-4">
+          {/* Title Section */}
           <div>
-            <h1 className="text-3xl font-bold">Exams Officer Dashboard</h1>
-            <p className="text-muted-foreground">Manage exam sessions and logistics</p>
+            <h1 className="text-3xl font-bold tracking-tight">Exams Officer Dashboard</h1>
+            <p className="text-muted-foreground mt-1">Manage exam sessions and logistics</p>
           </div>
-          <div className="flex items-center gap-3">
-            {timetables.length > 0 && (
-              <Select
-                value={selectedTimetableId?.toString()}
-                onValueChange={(value) => setSelectedTimetableId(parseInt(value, 10))}
-              >
-                <SelectTrigger className="w-[280px]">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Select timetable" />
-                </SelectTrigger>
-                <SelectContent>
-                  {timetables.map((timetable) => (
-                    <SelectItem key={timetable.id} value={timetable.id.toString()}>
-                      {timetable.title}
-                      {timetable.status === 'ARCHIVED' && ' (Archived)'}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-            {myVenueAssignments.length > 0 && (
-              <Select
-                value={selectedVenueFilter?.toString() || 'all'}
-                onValueChange={(value) => setSelectedVenueFilter(value === 'all' ? null : parseInt(value, 10))}
-              >
-                <SelectTrigger className="w-60">
-                  <MapPin className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Select venue" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All My Venues</SelectItem>
-                  {myVenueAssignments.map((assignment) => (
-                    <SelectItem key={assignment.id} value={assignment.venueId.toString()}>
-                      {assignment.venue?.name || `Venue ${assignment.venueId}`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
+
+          {/* Filters and Actions */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 flex-1">
+              {timetables.length > 0 && (
+                <Select
+                  value={selectedTimetableId?.toString()}
+                  onValueChange={(value) => setSelectedTimetableId(parseInt(value, 10))}
+                >
+                  <SelectTrigger className="w-full sm:w-[280px]">
+                    <Calendar className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Select timetable" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {timetables.map((timetable) => (
+                      <SelectItem key={timetable.id} value={timetable.id.toString()}>
+                        {timetable.title}
+                        {timetable.status === 'ARCHIVED' && ' (Archived)'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {myVenueAssignments.length > 0 && (
+                <Select
+                  value={selectedVenueFilter?.toString() || 'all'}
+                  onValueChange={(value) => setSelectedVenueFilter(value === 'all' ? null : parseInt(value, 10))}
+                >
+                  <SelectTrigger className="w-full sm:w-60">
+                    <MapPin className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Select venue" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All My Venues</SelectItem>
+                    {myVenueAssignments.map((assignment) => (
+                      <SelectItem key={assignment.id} value={assignment.venueId.toString()}>
+                        {assignment.venue?.name || `Venue ${assignment.venueId}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
           </div>
         </div>
         <Card>
@@ -312,7 +319,7 @@ export function ExamsOfficerDashboard() {
               <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">No Data Available</h3>
               <p className="text-muted-foreground">
-                No exam sessions found for the selected timetable{selectedVenueFilter ? ' and venue' : ''}.
+                No exam sessions found for the selected timetable.
               </p>
             </div>
           </CardContent>
@@ -324,84 +331,113 @@ export function ExamsOfficerDashboard() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Exams Officer Dashboard</h1>
-          <p className="text-muted-foreground">
-            Manage exam sessions and logistics
+      <div className="space-y-4">
+        {/* Title and Context */}
+        <div className="flex flex-col gap-2">
+          <h1 className="text-3xl font-bold tracking-tight">Exams Officer Dashboard</h1>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-muted-foreground">
+            <span>Manage exam sessions and logistics</span>
             {selectedTimetableId && timetables.length > 0 && (
-              <span className="ml-2">
-                - {timetables.find(t => t.id === selectedTimetableId)?.title}
-              </span>
+              <>
+                <span className="hidden sm:inline">•</span>
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5" />
+                  <span className="font-medium text-foreground">
+                    {timetables.find(t => t.id === selectedTimetableId)?.title}
+                  </span>
+                </div>
+              </>
             )}
             {selectedVenueFilter && myVenueAssignments.length > 0 && (
-              <span className="ml-2 text-primary">
-                • {myVenueAssignments.find(v => v.venueId === selectedVenueFilter)?.venue?.name}
-              </span>
+              <>
+                <span className="hidden sm:inline">•</span>
+                <div className="flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5 text-primary" />
+                  <span className="font-medium text-primary">
+                    {myVenueAssignments.find(v => v.venueId === selectedVenueFilter)?.venue?.name}
+                  </span>
+                </div>
+              </>
             )}
-          </p>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          {timetables.length > 0 && (
-            <Select
-              value={selectedTimetableId?.toString()}
-              onValueChange={(value) => setSelectedTimetableId(parseInt(value, 10))}
-            >
-              <SelectTrigger className="w-[280px]">
-                <Calendar className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Select timetable" />
-              </SelectTrigger>
-              <SelectContent>
-                {timetables.map((timetable) => (
-                  <SelectItem key={timetable.id} value={timetable.id.toString()}>
-                    {timetable.title}
-                    {timetable.status === 'ARCHIVED' && ' (Archived)'}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-          {activeTab === 'overview' && myVenueAssignments.length > 0 && (
-            <Select
-              value={selectedVenueFilter?.toString() || 'all'}
-              onValueChange={(value) => setSelectedVenueFilter(value === 'all' ? null : parseInt(value, 10))}
-            >
-              <SelectTrigger className="w-60">
-                <MapPin className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Select venue" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All My Venues</SelectItem>
-                {myVenueAssignments.map((assignment) => (
-                  <SelectItem key={assignment.id} value={assignment.venueId.toString()}>
-                    {assignment.venue?.name || `Venue ${assignment.venueId}`}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-          {activeTab === 'overview' && (
+
+        {/* Filters and Actions */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          {/* Filter Controls */}
+          <div className="flex flex-col sm:flex-row gap-3 flex-1 max-w-3xl">
+            {timetables.length > 0 && (
+              <Select
+                value={selectedTimetableId?.toString()}
+                onValueChange={(value) => setSelectedTimetableId(parseInt(value, 10))}
+              >
+                <SelectTrigger className="w-full sm:w-[280px]">
+                  <Calendar className="h-4 w-4 mr-2 shrink-0" />
+                  <SelectValue placeholder="Select timetable" />
+                </SelectTrigger>
+                <SelectContent>
+                  {timetables.map((timetable) => (
+                    <SelectItem key={timetable.id} value={timetable.id.toString()}>
+                      {timetable.title}
+                      {timetable.status === 'ARCHIVED' && ' (Archived)'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {activeTab === 'overview' && myVenueAssignments.length > 0 && (
+              <Select
+                value={selectedVenueFilter?.toString() || 'all'}
+                onValueChange={(value) => setSelectedVenueFilter(value === 'all' ? null : parseInt(value, 10))}
+              >
+                <SelectTrigger className="w-full sm:w-64">
+                  <MapPin className="h-4 w-4 mr-2 shrink-0" />
+                  <SelectValue placeholder="Select venue" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All My Venues</SelectItem>
+                  {myVenueAssignments.map((assignment) => (
+                    <SelectItem key={assignment.id} value={assignment.venueId.toString()}>
+                      {assignment.venue?.name || `Venue ${assignment.venueId}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-wrap items-center gap-2">
+            {activeTab === 'overview' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowQRScanner(!showQRScanner)}
+                className="shrink-0"
+              >
+                <QrCode className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">{showQRScanner ? 'Hide' : 'Scan'} QR</span>
+                <span className="sm:hidden">QR</span>
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setShowQRScanner(!showQRScanner)}
+              onClick={() => loadDashboard()}
+              disabled={loading}
+              className="shrink-0"
             >
-              <QrCode className="h-4 w-4 mr-2" />
-              {showQRScanner ? 'Hide Scanner' : 'Scan QR'}
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''} sm:mr-2`} />
+              <span className="hidden sm:inline">Refresh</span>
             </Button>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => loadDashboard()}
-            disabled={loading}
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          <Badge variant={isConnected ? "default" : "destructive"}>
-            {isConnected ? 'Live' : 'Offline'}
-          </Badge>
+            <Badge
+              variant={isConnected ? "default" : "destructive"}
+              className="shrink-0 h-8 px-3"
+            >
+              <div className={`h-2 w-2 rounded-full mr-2 ${isConnected ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`} />
+              {isConnected ? 'Live' : 'Offline'}
+            </Badge>
+          </div>
         </div>
       </div>
 

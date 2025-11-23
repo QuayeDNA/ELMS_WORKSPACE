@@ -10,6 +10,9 @@ import {
 
 const prisma = new PrismaClient();
 
+// Development flag to bypass time/date checks for testing
+const DEV_MODE = process.env.NODE_ENV === 'development' || process.env.BYPASS_TIME_CHECKS === 'true';
+
 interface ValidateIndexNumberResult {
   student: {
     id: number;
@@ -95,6 +98,7 @@ export const publicExamService = {
 
     // Find all exam registrations for this student with upcoming or ongoing exams
     // Check-in window: 30 minutes before exam start to exam end time
+    // DEV_MODE: Bypass date restrictions for testing
     const registrations = await prisma.examRegistration.findMany({
       where: {
         studentId: student.id,
@@ -103,10 +107,13 @@ export const publicExamService = {
             isPublished: true
           },
           // Get exams happening today or within check-in window
-          examDate: {
-            gte: new Date(now.getFullYear(), now.getMonth(), now.getDate()),
-            lte: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
-          }
+          // In DEV_MODE, get all exams regardless of date
+          ...(DEV_MODE ? {} : {
+            examDate: {
+              gte: new Date(now.getFullYear(), now.getMonth(), now.getDate()),
+              lte: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
+            }
+          })
         }
       },
       include: {
@@ -144,14 +151,15 @@ export const publicExamService = {
           }
         });
 
-        const isCheckInOpen = now >= checkInOpenTime && now <= endTime;
+        // DEV_MODE: Bypass time window checks for testing
+        const isCheckInOpen = DEV_MODE ? true : (now >= checkInOpenTime && now <= endTime);
         const canCheckIn = isCheckInOpen && !existingVerification;
 
         let message = '';
         if (existingVerification) {
           message = 'Already checked in';
         } else if (isCheckInOpen) {
-          message = 'Check-in is open';
+          message = DEV_MODE ? 'Check-in available (DEV MODE)' : 'Check-in is open';
         } else if (now < checkInOpenTime) {
           message = 'Check-in opens 30 minutes before exam';
         } else {
@@ -257,18 +265,20 @@ export const publicExamService = {
       throw new Error('Student has already checked in for this exam');
     }
 
-    // Verify check-in window
+    // Verify check-in window (bypass in DEV_MODE)
     const startTime = new Date(registration.examEntry.startTime);
     const endTime = new Date(registration.examEntry.endTime);
     const now = new Date();
     const checkInOpenTime = new Date(startTime.getTime() - 30 * 60 * 1000);
 
-    if (now < checkInOpenTime) {
-      throw new Error('Check-in is not yet open. Opens 30 minutes before exam.');
-    }
+    if (!DEV_MODE) {
+      if (now < checkInOpenTime) {
+        throw new Error('Check-in is not yet open. Opens 30 minutes before exam.');
+      }
 
-    if (now > endTime) {
-      throw new Error('Check-in is closed. Exam has ended.');
+      if (now > endTime) {
+        throw new Error('Check-in is closed. Exam has ended.');
+      }
     }
 
     // Create verification record (using transaction)

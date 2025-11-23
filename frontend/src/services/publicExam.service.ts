@@ -107,11 +107,19 @@ class PublicExamService {
    * UPDATED: Now uses index number instead of QR token
    */
   async checkInStudent(indexNumber: string, examEntryId: number): Promise<CheckInResult> {
-    const response = await apiService.post<CheckInResult>(
-      `${this.baseUrl}/check-in`,
-      { indexNumber, examEntryId }
-    );
-    return response.data!;
+    try {
+      const response = await apiService.post<CheckInResult>(
+        `${this.baseUrl}/check-in`,
+        { indexNumber, examEntryId }
+      );
+      return response.data || response;
+    } catch (error: any) {
+      // Return error response structure
+      if (error.response?.data) {
+        return error.response.data;
+      }
+      throw error;
+    }
   }
 
   /**
