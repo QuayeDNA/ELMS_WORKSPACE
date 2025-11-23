@@ -21,9 +21,9 @@ import { z } from "zod";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 
-import { loginUser } from "../../src/store/slices/authSlice";
-import { RootState, AppDispatch } from "../../src/store";
-import { spacing } from "../../src/theme";
+import { loginUser } from "@/store/slices/authSlice";
+import { RootState, AppDispatch } from "@/store";
+import { spacing } from "@/theme";
 
 // Validation schema
 const loginSchema = z.object({

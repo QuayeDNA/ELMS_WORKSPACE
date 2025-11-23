@@ -1,7 +1,7 @@
 import { useSelector } from 'react-redux';
 import { useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
-import { RootState } from '@/store';
+import { RootState } from '../store';
 
 export function useProtectedRoute() {
   const { isAuthenticated, isLoading } = useSelector((state: RootState) => state.auth);

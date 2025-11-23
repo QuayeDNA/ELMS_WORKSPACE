@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { useSelector } from 'react-redux';
-import { RootState } from '../src/store';
-import LoadingScreen from '../src/components/common/LoadingScreen';
+import { RootState } from '@/store';
+import LoadingScreen from '../components/common/LoadingScreen';
 
 export default function Index() {
   const router = useRouter();
