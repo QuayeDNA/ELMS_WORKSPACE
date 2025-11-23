@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { StatCard } from '@/components/ui/stat-card';
 import { LoadingSpinner } from '@/components/ui/Loading';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Users,
   UserCheck,
@@ -17,7 +18,8 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  Calendar
+  Calendar,
+  UserPlus
 } from 'lucide-react';
 import {
   Select,
@@ -36,6 +38,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRealtimeContext } from '@/contexts/RealtimeContext';
 import { useLogisticsDashboardRealtime } from '@/hooks/useExamLogisticsRealtime';
 import { toast } from 'sonner';
+import InvigilatorAssignmentPanel from './InvigilatorAssignmentPanel';
+import { CheckInActivityFeed } from './CheckInActivityFeed';
 
 export function ExamsOfficerDashboard() {
   const [dashboard, setDashboard] = useState<ExamsOfficerDashboard | null>(null);
@@ -44,6 +48,7 @@ export function ExamsOfficerDashboard() {
   const [loading, setLoading] = useState(true);
   const [selectedVenue, setSelectedVenue] = useState<number | null>(null);
   const [showQRScanner, setShowQRScanner] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
   const { isConnected } = useRealtimeContext();
   const { user } = useAuth();
 
@@ -356,7 +361,7 @@ export function ExamsOfficerDashboard() {
               </SelectContent>
             </Select>
           )}
-          {myVenueAssignments.length > 0 && (
+          {activeTab === 'overview' && myVenueAssignments.length > 0 && (
             <Select
               value={selectedVenueFilter?.toString() || 'all'}
               onValueChange={(value) => setSelectedVenueFilter(value === 'all' ? null : parseInt(value, 10))}
@@ -375,14 +380,16 @@ export function ExamsOfficerDashboard() {
               </SelectContent>
             </Select>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowQRScanner(!showQRScanner)}
-          >
-            <QrCode className="h-4 w-4 mr-2" />
-            {showQRScanner ? 'Hide Scanner' : 'Scan QR'}
-          </Button>
+          {activeTab === 'overview' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowQRScanner(!showQRScanner)}
+            >
+              <QrCode className="h-4 w-4 mr-2" />
+              {showQRScanner ? 'Hide Scanner' : 'Scan QR'}
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -398,63 +405,82 @@ export function ExamsOfficerDashboard() {
         </div>
       </div>
 
-      {/* QR Scanner */}
-      {showQRScanner && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <QrCode className="h-5 w-5 text-primary" />
-              QR Code Scanner
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <QRCodeScanner onScan={handleQRScan} />
-          </CardContent>
-        </Card>
-      )}
+      {/* Tabs Navigation */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="overview" className="flex items-center gap-2">
+            <Building2 className="h-4 w-4" />
+            Venue Overview
+          </TabsTrigger>
+          <TabsTrigger value="checkins" className="flex items-center gap-2">
+            <CheckCircle className="h-4 w-4" />
+            Live Check-Ins
+          </TabsTrigger>
+          <TabsTrigger value="assignments" className="flex items-center gap-2">
+            <UserPlus className="h-4 w-4" />
+            Invigilator Assignment
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Key Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {(() => {
-          const totalExpected = dashboard.todaysSessions.reduce((s, sess) => s + (sess.expectedStudents || 0), 0);
-          const totalVerified = dashboard.todaysSessions.reduce((s, sess) => s + (sess.verifiedStudents || 0), 0);
-          const attendancePercent = totalExpected > 0 ? Math.round((totalVerified / totalExpected) * 100) : 0;
+        {/* Overview Tab Content */}
+        <TabsContent value="overview" className="space-y-6">
+          {/* QR Scanner */}
+          {showQRScanner && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <QrCode className="h-5 w-5 text-primary" />
+                  QR Code Scanner
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <QRCodeScanner onScan={handleQRScan} />
+              </CardContent>
+            </Card>
+          )}
 
-          return (
-            <>
-              <StatCard
-                title="My Venues"
-                value={dashboard.venueOverviews.length}
-                icon={Building2}
-                description="Under supervision"
-              />
+          {/* Key Statistics */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {(() => {
+              const totalExpected = dashboard.todaysSessions.reduce((s, sess) => s + (sess.expectedStudents || 0), 0);
+              const totalVerified = dashboard.todaysSessions.reduce((s, sess) => s + (sess.verifiedStudents || 0), 0);
+              const attendancePercent = totalExpected > 0 ? Math.round((totalVerified / totalExpected) * 100) : 0;
 
-              <StatCard
-                title="Total Students"
-                value={totalExpected.toLocaleString()}
-                icon={Users}
-                description="Across all sessions"
-              />
+              return (
+                <>
+                  <StatCard
+                    title="My Venues"
+                    value={dashboard.venueOverviews.length}
+                    icon={Building2}
+                    description="Under supervision"
+                  />
 
-              <StatCard
-                title="Students Verified"
-                value={`${totalVerified.toLocaleString()} (${attendancePercent}%)`}
-                icon={UserCheck}
-                description="Check-in completed"
-                trend={{ value: attendancePercent, label: `${attendancePercent}%` }}
-              />
+                  <StatCard
+                    title="Total Students"
+                    value={totalExpected.toLocaleString()}
+                    icon={Users}
+                    description="Across all sessions"
+                  />
 
-              <StatCard
-                title="Active Issues"
-                value={dashboard.pendingIncidents.length}
-                icon={AlertTriangle}
-                description={`${dashboard.pendingIncidents.filter(i => i.severity === 'critical').length} critical`}
-                trend={{ value: -dashboard.pendingIncidents.length, label: 'Pending Issues' }}
-              />
-            </>
-          );
-        })()}
-      </div>
+                  <StatCard
+                    title="Students Verified"
+                    value={`${totalVerified.toLocaleString()} (${attendancePercent}%)`}
+                    icon={UserCheck}
+                    description="Check-in completed"
+                    trend={{ value: attendancePercent, label: `${attendancePercent}%` }}
+                  />
+
+                  <StatCard
+                    title="Active Issues"
+                    value={dashboard.pendingIncidents.length}
+                    icon={AlertTriangle}
+                    description={`${dashboard.pendingIncidents.filter(i => i.severity === 'critical').length} critical`}
+                    trend={{ value: -dashboard.pendingIncidents.length, label: 'Pending Issues' }}
+                  />
+                </>
+              );
+            })()}
+          </div>
 
       {/* Venue Management */}
       <div className="grid gap-6">
@@ -495,6 +521,35 @@ export function ExamsOfficerDashboard() {
           />
         )}
       </div>
+        </TabsContent>
+
+        {/* Live Check-Ins Tab Content */}
+        <TabsContent value="checkins" className="space-y-6">
+          <CheckInActivityFeed maxEvents={50} />
+        </TabsContent>
+
+        {/* Invigilator Assignment Tab Content */}
+        <TabsContent value="assignments">
+          {selectedTimetableId ? (
+            <InvigilatorAssignmentPanel
+              timetableId={selectedTimetableId}
+              onAssignmentChange={loadDashboard}
+            />
+          ) : (
+            <Card>
+              <CardContent className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Select a Timetable</h3>
+                  <p className="text-muted-foreground">
+                    Please select a timetable from the dropdown above to manage invigilator assignments.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

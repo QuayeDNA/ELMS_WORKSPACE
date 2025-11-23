@@ -111,10 +111,10 @@ export const examLogisticsService = {
     // Log the assignment
     await this.logSessionAction({
       examEntryId: data.examEntryId,
-      action: ExamSessionAction.INVIGILATOR_REASSIGNMENT,
+      action: ExamSessionAction.INVIGILATOR_ASSIGNED,
       performedBy: data.assignedBy,
       details: {
-        action: ExamSessionAction.INVIGILATOR_REASSIGNMENT,
+        action: ExamSessionAction.INVIGILATOR_ASSIGNED,
         description: "Invigilator assigned",
         metadata: {
           invigilatorId: data.invigilatorId,
@@ -308,6 +308,243 @@ export const examLogisticsService = {
       success: true,
       message: `Invigilator ${action === 'check_in' ? 'checked in' : 'checked out'} successfully`,
       data: updated,
+    };
+  },
+
+  /**
+   * Get exam sessions for invigilator assignment UI
+   */
+  async getSessionsForAssignment(timetableId: number) {
+    const sessions = await prisma.examTimetableEntry.findMany({
+      where: { timetableId },
+      include: {
+        course: {
+          select: {
+            id: true,
+            code: true,
+            name: true,
+            level: true
+          }
+        },
+        venue: {
+          select: {
+            id: true,
+            name: true,
+            location: true,
+            capacity: true
+          }
+        },
+        invigilatorAssignments: {
+          include: {
+            invigilator: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true
+              }
+            }
+          }
+        },
+        _count: {
+          select: {
+            studentVerifications: true,
+            examRegistrations: true
+          }
+        }
+      },
+      orderBy: [
+        { examDate: 'asc' },
+        { startTime: 'asc' }
+      ]
+    });
+
+    return sessions.map(session => ({
+      id: session.id,
+      courseCode: session.course.code,
+      courseName: session.course.name,
+      level: session.course.level,
+      examDate: session.examDate,
+      startTime: session.startTime,
+      endTime: session.endTime,
+      duration: session.duration,
+      venue: {
+        id: session.venue.id,
+        name: session.venue.name,
+        location: session.venue.location,
+        capacity: session.venue.capacity
+      },
+      studentCount: session.studentCount || 0,
+      registeredCount: session._count.examRegistrations,
+      verifiedCount: session._count.studentVerifications,
+      status: session.status,
+      assignments: session.invigilatorAssignments.map(a => ({
+        id: a.id,
+        invigilator: {
+          id: a.invigilator.id,
+          firstName: a.invigilator.firstName,
+          lastName: a.invigilator.lastName,
+          email: a.invigilator.email,
+          fullName: `${a.invigilator.firstName} ${a.invigilator.lastName}`
+        },
+        role: a.role,
+        status: a.status,
+        checkedInAt: a.checkedInAt,
+        assignedAt: a.assignedAt
+      }))
+    }));
+  },
+
+  /**
+   * Get available invigilators for a specific date/time
+   */
+  async getAvailableInvigilators(examDate: Date, startTime: Date, endTime: Date) {
+    // Get all users who can be invigilators (LECTURER, INVIGILATOR roles)
+    const potentialInvigilators = await prisma.user.findMany({
+      where: {
+        role: {
+          in: ['LECTURER', 'INVIGILATOR', 'ADMIN', 'EXAMS_OFFICER']
+        },
+        status: 'ACTIVE'
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        role: true,
+        department: {
+          select: {
+            name: true,
+            code: true
+          }
+        }
+      }
+    });
+
+    // Get conflicting assignments for this time period
+    const conflictingAssignments = await prisma.invigilatorAssignment.findMany({
+      where: {
+        examEntry: {
+          examDate: {
+            gte: new Date(examDate.setHours(0, 0, 0, 0)),
+            lt: new Date(examDate.setHours(23, 59, 59, 999))
+          },
+          OR: [
+            {
+              // Overlaps: new start is before existing end AND new end is after existing start
+              AND: [
+                { startTime: { lte: endTime } },
+                { endTime: { gte: startTime } }
+              ]
+            }
+          ]
+        }
+      },
+      select: {
+        invigilatorId: true,
+        examEntry: {
+          select: {
+            id: true,
+            startTime: true,
+            endTime: true,
+            course: {
+              select: {
+                code: true,
+                name: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // Create a map of busy invigilators with their conflict details
+    const busyInvigilators = new Map();
+    conflictingAssignments.forEach(assignment => {
+      busyInvigilators.set(assignment.invigilatorId, {
+        courseCode: assignment.examEntry.course.code,
+        courseName: assignment.examEntry.course.name,
+        startTime: assignment.examEntry.startTime,
+        endTime: assignment.examEntry.endTime
+      });
+    });
+
+    // Return all invigilators with availability status
+    return potentialInvigilators.map(invigilator => ({
+      id: invigilator.id,
+      firstName: invigilator.firstName,
+      lastName: invigilator.lastName,
+      email: invigilator.email,
+      fullName: `${invigilator.firstName} ${invigilator.lastName}`,
+      role: invigilator.role,
+      department: invigilator.department?.name || 'N/A',
+      departmentCode: invigilator.department?.code || 'N/A',
+      isAvailable: !busyInvigilators.has(invigilator.id),
+      conflict: busyInvigilators.get(invigilator.id) || null
+    }));
+  },
+
+  /**
+   * Remove an invigilator assignment
+   */
+  async removeInvigilatorAssignment(assignmentId: number, removedBy: number) {
+    const assignment = await prisma.invigilatorAssignment.findUnique({
+      where: { id: assignmentId },
+      include: {
+        invigilator: {
+          select: {
+            firstName: true,
+            lastName: true
+          }
+        },
+        examEntry: {
+          include: {
+            course: true
+          }
+        }
+      }
+    });
+
+    if (!assignment) {
+      throw new Error('Assignment not found');
+    }
+
+    // Delete the assignment
+    await prisma.invigilatorAssignment.delete({
+      where: { id: assignmentId }
+    });
+
+    // Update exam logistics count
+    await prisma.examLogistics.update({
+      where: { examEntryId: assignment.examEntryId },
+      data: {
+        invigilatorsAssigned: {
+          decrement: 1
+        }
+      }
+    });
+
+    // Log the removal
+    await this.logSessionAction({
+      examEntryId: assignment.examEntryId,
+      action: ExamSessionAction.INVIGILATOR_REMOVED,
+      performedBy: removedBy,
+      details: {
+        action: ExamSessionAction.INVIGILATOR_REMOVED,
+        description: 'Invigilator assignment removed',
+        metadata: {
+          assignmentId,
+          invigilatorId: assignment.invigilatorId,
+          role: assignment.role
+        }
+      },
+      notes: `Invigilator ${assignment.invigilator.firstName} ${assignment.invigilator.lastName} removed from ${assignment.examEntry.course.code}`
+    });
+
+    return {
+      success: true,
+      message: 'Assignment removed successfully'
     };
   },
 

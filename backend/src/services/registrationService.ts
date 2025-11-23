@@ -36,33 +36,32 @@ export class RegistrationService {
       throw new Error('Student institution not found');
     }
 
-    // Check if registration period is open
-    const academicPeriod = await prisma.academicPeriod.findFirst({
-      where: { semesterId },
+    // Verify semester exists and belongs to student's institution
+    const semester = await prisma.semester.findUnique({
+      where: { id: semesterId },
       include: {
-        semester: {
-          include: {
-            academicYear: true
-          }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
+        academicYear: true,
+        academicPeriod: true
+      }
     });
 
-    if (!academicPeriod) {
-      throw new Error('No academic period found for this semester');
+    if (!semester) {
+      throw new Error('Semester not found');
     }
 
-    // Ensure the academic period belongs to the student's institution
-    if (academicPeriod.semester.academicYear.institutionId !== institutionId) {
-      throw new Error('Academic period does not belong to student\'s institution');
+    // Ensure the semester belongs to the student's institution
+    if (semester.academicYear.institutionId !== institutionId) {
+      throw new Error('Semester does not belong to student\'s institution');
     }
 
-    // Registration is always open for flexibility
-    // const now = new Date();
-    // if (now < academicPeriod.registrationStartDate || now > academicPeriod.registrationEndDate) {
-    //   throw new Error('Registration period is not open');
-    // }
+    // Check academic period if it exists (optional check)
+    if (semester.academicPeriod) {
+      // Registration period checks can be added here if needed
+      // For now, we allow registration if academic period exists
+      console.log(`Academic period found for semester ${semesterId}`);
+    } else {
+      console.log(`No academic period configured for semester ${semesterId}, proceeding with registration`);
+    }
 
     // Check if student already has an active registration
     const existingRegistration = await prisma.courseRegistration.findFirst({

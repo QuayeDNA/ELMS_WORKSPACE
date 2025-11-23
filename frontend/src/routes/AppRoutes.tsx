@@ -99,6 +99,13 @@ const StudentRegistrationPage = lazy(() =>
   }))
 );
 
+// Public Exam Check-In Page
+const PublicExamCheckIn = lazy(() =>
+  import("@/pages/public/PublicExamCheckIn").then((module) => ({
+    default: module.PublicExamCheckIn,
+  }))
+);
+
 const StudentsPage = lazy(() =>
   import("@/pages/institution-admin/StudentsPage").then((module) => ({
     default: module.default,
@@ -304,6 +311,14 @@ export function AppRoutes() {
         element={
           <PublicLayout>
             <StudentRegistrationPage />
+          </PublicLayout>
+        }
+      />
+      <Route
+        path="/exam/check-in"
+        element={
+          <PublicLayout>
+            <PublicExamCheckIn />
           </PublicLayout>
         }
       />

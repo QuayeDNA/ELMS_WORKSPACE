@@ -11,6 +11,7 @@ export enum RealtimeChannel {
   BATCH_UPDATE = 'batch:update',
   EXAM_TIMETABLE = 'exam:timetable',
   EXAM_LOGISTICS = 'exam-logistics',
+  EXAM_CHECKIN = 'exam:checkin',
   INCIDENT = 'incident',
   NOTIFICATION = 'notification',
 }
@@ -175,6 +176,47 @@ export interface BatchesCreatedPayload {
     courseName: string;
   }>;
   totalCreated: number;
+}
+
+// ========================================
+// EXAM CHECK-IN EVENTS
+// ========================================
+
+export enum ExamCheckInEvent {
+  STUDENT_CHECKED_IN = 'student:checked-in',
+  CHECKIN_STATS_UPDATED = 'checkin:stats:updated',
+}
+
+export interface StudentCheckedInPayload {
+  verificationId: number;
+  examEntryId: number;
+  studentId: number;
+  student: {
+    studentNumber: string;
+    firstName: string;
+    lastName: string;
+  };
+  exam: {
+    courseCode: string;
+    courseName: string;
+    examDate: string;
+    startTime: string;
+    venue: string;
+  };
+  seatNumber: string | null;
+  checkedInAt: string;
+  method: string;
+}
+
+export interface CheckInStatsUpdatedPayload {
+  examEntryId: number;
+  courseCode: string;
+  stats: {
+    expected: number;
+    checkedIn: number;
+    pending: number;
+    attendanceRate: number;
+  };
 }
 
 // ========================================

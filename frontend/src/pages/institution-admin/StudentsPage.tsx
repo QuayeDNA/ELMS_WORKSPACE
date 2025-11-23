@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -229,6 +230,42 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
     fetchStudents();
   }, [fetchStudents]);
 
+  // Mutations
+  const updateMutation = useMutation({
+    mutationFn: async (data: { studentId: number; updateData: UpdateStudentRequest }) => {
+      return await studentService.updateStudent(data.studentId, data.updateData);
+    },
+    onSuccess: () => {
+      toast.success(SUCCESS_MESSAGES.STUDENT.UPDATED);
+      setIsEditDialogOpen(false);
+      fetchStudents();
+      if (mode === "view" && id) {
+        studentService.getStudentById(Number(id)).then(setStudent);
+      }
+    },
+    onError: (error: any) => {
+      toast.error(error.message || ERROR_MESSAGES.SERVER);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (studentId: number) => {
+      return await studentService.deleteStudent(studentId);
+    },
+    onSuccess: () => {
+      toast.success(SUCCESS_MESSAGES.STUDENT.DELETED);
+      setSelectedStudent(null);
+      if (mode === "view") {
+        navigate(ROUTES.STUDENTS.BASE);
+      } else {
+        fetchStudents();
+      }
+    },
+    onError: (error: any) => {
+      toast.error(error.message || ERROR_MESSAGES.SERVER);
+    },
+  });
+
   // Handlers
   const handleCreate = useCallback(
     async (
@@ -258,22 +295,14 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
     async (
       data: CreateStudentRequest | UpdateStudentRequest
     ): Promise<void> => {
-      try {
-        if (student) {
-          await studentService.updateStudent(student.id, data as UpdateStudentRequest);
-          setIsEditDialogOpen(false);
-          toast.success(SUCCESS_MESSAGES.STUDENT.UPDATED);
-          fetchStudents();
-          if (mode === "view" && id) {
-            const updatedStudent = await studentService.getStudentById(Number(id));
-            setStudent(updatedStudent);
-          }
-        }
-      } catch (error: any) {
-        toast.error(error.message || ERROR_MESSAGES.SERVER);
+      if (student) {
+        updateMutation.mutate({
+          studentId: student.id,
+          updateData: data as UpdateStudentRequest
+        });
       }
     },
-    [student, fetchStudents, mode, id]
+    [student, updateMutation]
   );
 
   const handleDelete = useCallback((studentToDelete: Student) => {
@@ -282,20 +311,9 @@ const StudentsPage: React.FC<StudentPageProps> = ({ mode }) => {
 
   const confirmDelete = useCallback(async () => {
     if (selectedStudent) {
-      try {
-        await studentService.deleteStudent(selectedStudent.id);
-        setSelectedStudent(null);
-        toast.success(SUCCESS_MESSAGES.STUDENT.DELETED);
-        if (mode === "view") {
-          navigate(ROUTES.STUDENTS.BASE);
-        } else {
-          fetchStudents();
-        }
-      } catch (error: any) {
-        toast.error(error.message || ERROR_MESSAGES.SERVER);
-      }
+      deleteMutation.mutate(selectedStudent.id);
     }
-  }, [selectedStudent, mode, navigate, fetchStudents]);
+  }, [selectedStudent, deleteMutation]);
 
   const handleEdit = useCallback((studentToEdit: Student) => {
     setSelectedStudent(studentToEdit);

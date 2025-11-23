@@ -3,6 +3,8 @@
  * Matches backend types for type-safe WebSocket communication
  */
 
+import { Socket } from 'socket.io-client';
+
 // Event Channels
 export enum RealtimeChannel {
   SCRIPT_SUBMISSION = 'script_submission',
@@ -11,6 +13,7 @@ export enum RealtimeChannel {
   INCIDENT = 'incident',
   NOTIFICATION = 'notification',
   EXAM_LOGISTICS = 'exam_logistics',
+  EXAM_CHECKIN = 'exam_checkin',
 }
 
 // Base Event Interface
@@ -347,6 +350,7 @@ export interface RealtimeSubscription {
 }
 
 export interface RealtimeContextValue {
+  socket: Socket | null;
   isConnected: boolean;
   subscribe: (subscription: RealtimeSubscription) => () => void;
   unsubscribe: (subscription: RealtimeSubscription) => void;

@@ -61,6 +61,31 @@ export class ExamLogisticsService extends BaseService {
     );
   }
 
+  /**
+   * Get all exam sessions in a timetable for assignment UI
+   */
+  async getSessionsForAssignment(timetableId: number): Promise<ApiResponse<any[]>> {
+    return this.getStats<any[]>(`/timetable/${timetableId}/sessions`);
+  }
+
+  /**
+   * Get available invigilators for a specific date/time
+   */
+  async getAvailableInvigilators(params: {
+    examDate: string;
+    startTime: string;
+    endTime: string;
+  }): Promise<ApiResponse<any[]>> {
+    return this.getStats<any[]>('/available-invigilators', params);
+  }
+
+  /**
+   * Remove an invigilator assignment
+   */
+  async removeInvigilatorAssignment(assignmentId: number): Promise<ApiResponse<void>> {
+    return this.delete<void>(assignmentId, '/invigilator-assignment');
+  }
+
   // ========================================
   // STUDENT VERIFICATION ENDPOINTS
   // ========================================

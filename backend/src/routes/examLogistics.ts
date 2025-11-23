@@ -45,6 +45,39 @@ router.put(
   examLogisticsController.updateInvigilatorPresence
 );
 
+/**
+ * GET /api/exam-logistics/timetable/:timetableId/sessions
+ * Get all exam sessions in a timetable for assignment
+ * Requires: ADMIN, EXAMS_OFFICER, SUPER_ADMIN
+ */
+router.get(
+  "/timetable/:timetableId/sessions",
+  requireRole(UserRole.ADMIN, UserRole.EXAMS_OFFICER, UserRole.SUPER_ADMIN),
+  examLogisticsController.getTimetableSessionsForAssignment
+);
+
+/**
+ * GET /api/exam-logistics/available-invigilators
+ * Get available invigilators for specific date/time
+ * Requires: ADMIN, EXAMS_OFFICER, SUPER_ADMIN
+ */
+router.get(
+  "/available-invigilators",
+  requireRole(UserRole.ADMIN, UserRole.EXAMS_OFFICER, UserRole.SUPER_ADMIN),
+  examLogisticsController.getAvailableInvigilators
+);
+
+/**
+ * DELETE /api/exam-logistics/invigilator-assignment/:id
+ * Remove an invigilator assignment
+ * Requires: ADMIN, EXAMS_OFFICER, SUPER_ADMIN
+ */
+router.delete(
+  "/invigilator-assignment/:id",
+  requireRole(UserRole.ADMIN, UserRole.EXAMS_OFFICER, UserRole.SUPER_ADMIN),
+  examLogisticsController.removeInvigilatorAssignment
+);
+
 // ========================================
 // STUDENT VERIFICATION ROUTES
 // ========================================

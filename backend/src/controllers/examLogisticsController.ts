@@ -90,6 +90,75 @@ export const examLogisticsController = {
     }
   },
 
+  /**
+   * Get all exam sessions in a timetable for invigilator assignment
+   */
+  async getTimetableSessionsForAssignment(req: Request, res: Response) {
+    try {
+      const { timetableId } = req.params;
+
+      const sessions = await examLogisticsService.getSessionsForAssignment(parseInt(timetableId));
+
+      res.json({
+        success: true,
+        data: sessions
+      });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Get available invigilators for a specific date/time
+   */
+  async getAvailableInvigilators(req: Request, res: Response) {
+    try {
+      const { examDate, startTime, endTime } = req.query;
+
+      if (!examDate || !startTime || !endTime) {
+        return res.status(400).json({
+          error: "examDate, startTime, and endTime are required"
+        });
+      }
+
+      const invigilators = await examLogisticsService.getAvailableInvigilators(
+        new Date(examDate as string),
+        new Date(startTime as string),
+        new Date(endTime as string)
+      );
+
+      res.json({
+        success: true,
+        data: invigilators
+      });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  },
+
+  /**
+   * Remove an invigilator assignment
+   */
+  async removeInvigilatorAssignment(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const removedBy = req.user?.userId;
+
+      if (!removedBy) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      await examLogisticsService.removeInvigilatorAssignment(parseInt(id), removedBy);
+
+      res.json({
+        success: true,
+        message: "Invigilator assignment removed successfully"
+      });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  },
+
   // ========================================
   // STUDENT VERIFICATION ENDPOINTS
   // ========================================

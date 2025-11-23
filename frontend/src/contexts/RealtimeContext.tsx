@@ -1,4 +1,4 @@
-import React, { createContext, useEffect, useState, useCallback, useRef } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { RealtimeChannel, RealtimeEvent, RealtimeContextValue, RealtimeSubscription } from '../types/realtime';
 import { ExamLogisticsEvent } from '../types/examLogistics';
@@ -217,6 +217,7 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
   );
 
   const value: RealtimeContextValue = {
+    socket,
     isConnected,
     subscribe,
     unsubscribe,
@@ -229,7 +230,7 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
 
 // Custom hook to use the RealtimeContext
 export const useRealtimeContext = (): RealtimeContextValue => {
-  const context = React.useContext(RealtimeContext);
+  const context = useContext(RealtimeContext);
   if (context === undefined) {
     throw new Error('useRealtimeContext must be used within a RealtimeProvider');
   }

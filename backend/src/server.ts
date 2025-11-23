@@ -37,6 +37,7 @@ import batchScriptRoutes from "./routes/batchScriptRoutes";
 import scriptSubmissionRoutes from "./routes/scriptSubmissionRoutes";
 import qrCodeRoutes from "./routes/qrCodeRoutes";
 import examLogisticsRoutes from "./routes/examLogistics";
+import publicExamRoutes from "./routes/publicExam";
 
 // Load environment variables
 dotenv.config();
@@ -219,6 +220,9 @@ app.get("/api/database/status", async (req, res) => {
 
 // Public routes (NO AUTH REQUIRED)
 app.use("/api/public", publicRoutes);
+
+// Public exam check-in routes (NO AUTH REQUIRED)
+app.use("/api/public/exam", publicExamRoutes);
 
 // Student ID Configuration routes
 app.use("/api/student-id-config", studentIdConfigRoutes);
@@ -415,9 +419,10 @@ async function startServer() {
   });
 
   // Initialize timetable status scheduler
-  import('./services/timetableStatusScheduler').then(({ timetableStatusScheduler }) => {
-    timetableStatusScheduler.start();
-  });
+  // TODO: Uncomment when needed
+  // import('./services/timetableStatusScheduler').then(({ timetableStatusScheduler }) => {
+  //   timetableStatusScheduler.start();
+  // });
 
   return server;
 }
@@ -427,9 +432,10 @@ async function gracefulShutdown(signal: string) {
   console.log(`\n${signal} received, shutting down gracefully...`);
 
   try {
-    console.log('🔌 Stopping timetable status scheduler...');
-    const { timetableStatusScheduler } = await import('./services/timetableStatusScheduler');
-    timetableStatusScheduler.stop();
+    // TODO: Uncomment when scheduler is active
+    // console.log('🔌 Stopping timetable status scheduler...');
+    // const { timetableStatusScheduler } = await import('./services/timetableStatusScheduler');
+    // timetableStatusScheduler.stop();
 
     console.log('🔌 Disconnecting from database...');
     await prisma.$disconnect();

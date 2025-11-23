@@ -283,6 +283,61 @@ async function main() {
     console.log(`✅ Academic Year: ${academicYear.yearCode}, Semester: ${semester1.name}\n`);
 
     // ========================================
+    // 7B. CREATE ACADEMIC PERIODS
+    // ========================================
+    console.log('📍 Step 7B: Creating Academic Periods...');
+
+    // Create academic period for Semester 1
+    const academicPeriod1 = await prisma.academicPeriod.upsert({
+      where: { semesterId: semester1.id },
+      update: {},
+      create: {
+        semesterId: semester1.id,
+        registrationStartDate: new Date('2024-08-01'), // 1 month before semester
+        registrationEndDate: new Date('2024-09-15'), // 2 weeks into semester
+        addDropStartDate: new Date('2024-09-01'),
+        addDropEndDate: new Date('2024-09-21'), // 3 weeks into semester
+        lectureStartDate: semester1.startDate,
+        lectureEndDate: semester1.endDate,
+        examStartDate: new Date('2024-12-21'), // 1 day after lectures end
+        examEndDate: new Date('2025-01-05'), // 2 weeks for exams
+        resultsReleaseDate: new Date('2025-01-15'), // 2 weeks after exams end
+        maxCreditsPerStudent: 24,
+        minCreditsPerStudent: 12,
+        isActive: true,
+        isRegistrationOpen: true, // Open for registration
+        isAddDropOpen: true,
+        createdBy: superAdmin.id
+      }
+    });
+
+    // Create academic period for Semester 2
+    const academicPeriod2 = await prisma.academicPeriod.upsert({
+      where: { semesterId: semester2.id },
+      update: {},
+      create: {
+        semesterId: semester2.id,
+        registrationStartDate: new Date('2024-12-01'),
+        registrationEndDate: new Date('2025-01-20'),
+        addDropStartDate: new Date('2025-01-06'),
+        addDropEndDate: new Date('2025-01-27'),
+        lectureStartDate: semester2.startDate,
+        lectureEndDate: semester2.endDate,
+        examStartDate: new Date('2025-05-31'),
+        examEndDate: new Date('2025-06-14'),
+        resultsReleaseDate: new Date('2025-06-25'),
+        maxCreditsPerStudent: 24,
+        minCreditsPerStudent: 12,
+        isActive: false,
+        isRegistrationOpen: false,
+        isAddDropOpen: false,
+        createdBy: superAdmin.id
+      }
+    });
+
+    console.log(`✅ Created Academic Periods for both semesters\n`);
+
+    // ========================================
     // 8. CREATE LECTURERS
     // ========================================
     console.log('📍 Step 8: Creating Lecturers...');
