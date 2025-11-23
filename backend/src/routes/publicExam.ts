@@ -22,16 +22,18 @@ const validateLimiter = rateLimit({
 });
 
 /**
- * @route   POST /api/public/exam/validate-qr
- * @desc    Validate a QR code and get exam details
+ * @route   POST /api/public/exam/validate-index
+ * @desc    Validate a student index number and get active exams
  * @access  Public (no auth required)
+ * NEW: Replaces /validate-qr endpoint
  */
-router.post('/validate-qr', validateLimiter, publicExamController.validateQRCode);
+router.post('/validate-index', validateLimiter, publicExamController.validateIndexNumber);
 
 /**
  * @route   POST /api/public/exam/check-in
- * @desc    Check in a student for an exam
+ * @desc    Check in a student for an exam using their index number
  * @access  Public (no auth required)
+ * UPDATED: Now uses index number instead of QR token
  */
 router.post('/check-in', checkInLimiter, publicExamController.checkInStudent);
 

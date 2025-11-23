@@ -33,14 +33,12 @@ export function StudentIdCard({ student, className = '' }: StudentIdCardProps) {
     return format(new Date(student.admissionDate), 'MMM dd, yyyy');
   };
 
-  // Generate QR code data (efficient: only 3 IDs for backend queries)
+  // Generate QR code data for check-in system
+  // QR code contains student's index number for the new index-based check-in flow
   const generateQRData = (): string => {
-    const qrData = {
-      sid: student.studentId, // Student ID
-      uid: student.id, // User ID
-      pid: student.programId, // Program ID
-    };
-    return JSON.stringify(qrData);
+    // Use index number for new check-in system
+    // This matches the INDEX_NUMBER_CHECKIN_COMPLETE.md implementation
+    return student.indexNumber || student.studentId;
   };
 
   // Get institution name

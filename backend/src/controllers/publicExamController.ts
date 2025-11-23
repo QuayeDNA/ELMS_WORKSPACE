@@ -1,76 +1,65 @@
 import { Request, Response } from 'express';
 import { publicExamService } from '../services/publicExamService';
-import { validateQRToken } from '../utils/examTokens';
 
 export const publicExamController = {
   /**
-   * Validate a QR code token and return exam details
+   * Validate a student index number QR code and return active exams
+   * NEW: Replaces old QR token validation
    */
-  async validateQRCode(req: Request, res: Response) {
+  async validateIndexNumber(req: Request, res: Response) {
     try {
-      const { qrCode } = req.body;
+      const { indexNumber } = req.body;
 
-      if (!qrCode) {
+      if (!indexNumber) {
         return res.status(400).json({
           success: false,
-          message: 'QR code is required'
+          message: 'Student index number is required'
         });
       }
 
-      // Validate token format and decode
-      const tokenData = validateQRToken(qrCode);
-      if (!tokenData) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid QR code format'
-        });
-      }
-
-      // Get exam registration details
-      const result = await publicExamService.validateExamRegistration(tokenData);
+      // Validate index number and get active exams
+      const result = await publicExamService.validateIndexNumber(indexNumber);
 
       return res.json({
         success: true,
         data: result
       });
     } catch (error) {
-      console.error('Error validating QR code:', error);
+      console.error('Error validating index number:', error);
       return res.status(400).json({
         success: false,
-        message: error instanceof Error ? error.message : 'Failed to validate QR code'
+        message: error instanceof Error ? error.message : 'Failed to validate index number'
       });
     }
   },
 
   /**
-   * Check in a student for an exam
+   * Check in a student for an exam using their index number
+   * NEW: Replaces old token-based check-in
    */
   async checkInStudent(req: Request, res: Response) {
     try {
-      const { qrCode, verificationMethod = 'QR_CODE' } = req.body;
+      const { indexNumber, examEntryId, verificationMethod = 'QR_CODE' } = req.body;
 
-      if (!qrCode) {
+      if (!indexNumber) {
         return res.status(400).json({
           success: false,
-          message: 'QR code is required'
+          message: 'Student index number is required'
         });
       }
 
-      // Validate token
-      const tokenData = validateQRToken(qrCode);
-      if (!tokenData) {
+      if (!examEntryId) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid QR code'
+          message: 'Exam entry ID is required'
         });
       }
 
       // Process check-in
       const result = await publicExamService.checkInStudent({
-        examRegistrationId: tokenData.examRegistrationId,
-        studentId: tokenData.studentId,
-        verificationMethod,
-        qrCode
+        indexNumber,
+        examEntryId: Number(examEntryId),
+        verificationMethod
       });
 
       return res.json({

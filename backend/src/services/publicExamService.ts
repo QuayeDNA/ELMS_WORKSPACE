@@ -23,10 +23,11 @@ interface ValidateIndexNumberResult {
       id: number;
       courseCode: string;
       courseName: string;
-      startTime: Date;
-      endTime: Date;
+      startTime: string;
+      endTime: string;
       duration: number;
       venue: string;
+      venueLocation: string;
     };
     registration: {
       id: number;
@@ -34,6 +35,11 @@ interface ValidateIndexNumberResult {
       seatNumber: string | null;
       isPresent: boolean;
       isVerified: boolean;
+    };
+    checkIn: {
+      isOpen: boolean;
+      canCheckIn: boolean;
+      message: string;
     };
   }>;
 }
@@ -50,12 +56,57 @@ export const publicExamService = {
    * This replaces the old QR token validation
    */
   async validateIndexNumber(indexNumber: string): Promise<ValidateIndexNumberResult> {
-    const registration = await prisma.examRegistration.findFirst({
+    // Find student by index number in RoleProfile metadata
+    const student = await prisma.user.findFirst({
       where: {
-        id: tokenData.examRegistrationId,
-        studentId: tokenData.studentId,
+        roleProfiles: {
+          some: {
+            role: 'STUDENT',
+            metadata: {
+              path: ['indexNumber'],
+              equals: indexNumber
+            }
+          }
+        }
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        roleProfiles: {
+          where: { role: 'STUDENT' },
+          select: {
+            metadata: true
+          }
+        }
+      }
+    });
+
+    if (!student) {
+      throw new Error('Student not found with the provided index number');
+    }
+
+    const studentMetadata = student.roleProfiles[0]?.metadata as any;
+    const studentIndexNumber = studentMetadata?.indexNumber || studentMetadata?.studentId || indexNumber;
+
+    // Get current time
+    const now = new Date();
+
+    // Find all exam registrations for this student with upcoming or ongoing exams
+    // Check-in window: 30 minutes before exam start to exam end time
+    const registrations = await prisma.examRegistration.findMany({
+      where: {
+        studentId: student.id,
         examEntry: {
-          id: tokenData.examEntryId
+          timetable: {
+            isPublished: true
+          },
+          // Get exams happening today or within check-in window
+          examDate: {
+            gte: new Date(now.getFullYear(), now.getMonth(), now.getDate()),
+            lte: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
+          }
         }
       },
       include: {
@@ -64,141 +115,146 @@ export const publicExamService = {
             course: {
               select: {
                 code: true,
-                name: true,
-                creditHours: true
+                name: true
               }
             },
             venue: {
               select: {
                 name: true,
-                location: true,
-                capacity: true
-              }
-            },
-            timetable: {
-              select: {
-                title: true,
-                academicYear: true,
-                semester: true,
-                isPublished: true
+                location: true
               }
             }
-          }
-        },
-        student: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true
           }
         }
       }
     });
 
-    if (!registration) {
-      throw new Error('Invalid exam registration');
-    }
+    // Map registrations to active exams with check-in status
+    const activeExams = await Promise.all(
+      registrations.map(async (registration) => {
+        const startTime = new Date(registration.examEntry.startTime);
+        const endTime = new Date(registration.examEntry.endTime);
+        const checkInOpenTime = new Date(startTime.getTime() - 30 * 60 * 1000);
 
-    if (!registration.examEntry.timetable.isPublished) {
-      throw new Error('Exam timetable is not published');
-    }
+        // Check if already verified
+        const existingVerification = await prisma.studentVerification.findFirst({
+          where: {
+            examEntryId: registration.examEntryId,
+            studentId: student.id
+          }
+        });
 
-    // Check if already verified
-    const existingVerification = await prisma.studentVerification.findFirst({
-      where: {
-        examEntryId: registration.examEntryId,
-        studentId: tokenData.studentId
-      }
-    });
+        const isCheckInOpen = now >= checkInOpenTime && now <= endTime;
+        const canCheckIn = isCheckInOpen && !existingVerification;
 
-    // Check if exam is in progress or upcoming
-    const examDate = new Date(registration.examEntry.examDate);
-    const startTime = new Date(registration.examEntry.startTime);
-    const endTime = new Date(registration.examEntry.endTime);
-    const now = new Date();
+        let message = '';
+        if (existingVerification) {
+          message = 'Already checked in';
+        } else if (isCheckInOpen) {
+          message = 'Check-in is open';
+        } else if (now < checkInOpenTime) {
+          message = 'Check-in opens 30 minutes before exam';
+        } else {
+          message = 'Check-in is closed';
+        }
 
-    // Allow check-in 30 minutes before exam starts
-    const checkInOpenTime = new Date(startTime.getTime() - 30 * 60 * 1000);
-    const isCheckInOpen = now >= checkInOpenTime && now <= endTime;
+        return {
+          examEntry: {
+            id: registration.examEntry.id,
+            courseCode: registration.examEntry.course.code,
+            courseName: registration.examEntry.course.name,
+            startTime: registration.examEntry.startTime.toISOString(),
+            endTime: registration.examEntry.endTime.toISOString(),
+            duration: registration.examEntry.duration,
+            venue: registration.examEntry.venue.name,
+            venueLocation: registration.examEntry.venue.location || ''
+          },
+          registration: {
+            id: registration.id,
+            examRegistrationId: registration.id,
+            seatNumber: registration.seatNumber,
+            isPresent: registration.isPresent,
+            isVerified: !!existingVerification
+          },
+          checkIn: {
+            isOpen: isCheckInOpen,
+            canCheckIn,
+            message
+          }
+        };
+      })
+    );
 
     return {
-      registration: {
-        id: registration.id,
-        seatNumber: registration.seatNumber,
-        isPresent: registration.isPresent,
-        isVerified: !!existingVerification,
-        verifiedAt: existingVerification?.verifiedAt || null
+      student: {
+        id: student.id,
+        indexNumber: studentIndexNumber,
+        firstName: student.firstName,
+        lastName: student.lastName,
+        email: student.email
       },
-      exam: {
-        id: registration.examEntry.id,
-        courseCode: registration.examEntry.course.code,
-        courseTitle: registration.examEntry.course.name,
-        credits: registration.examEntry.course.creditHours,
-        examDate: examDate.toISOString(),
-        startTime: startTime.toISOString(),
-        endTime: endTime.toISOString(),
-        duration: registration.examEntry.duration,
-        venue: registration.examEntry.venue,
-        timetable: registration.examEntry.timetable
-      },
-      student: registration.student,
-      checkIn: {
-        isOpen: isCheckInOpen,
-        canCheckIn: isCheckInOpen && !existingVerification,
-        message: existingVerification
-          ? 'Already checked in'
-          : isCheckInOpen
-          ? 'Check-in is open'
-          : now < checkInOpenTime
-          ? 'Check-in opens 30 minutes before exam'
-          : 'Check-in is closed'
-      }
+      activeExams: activeExams.filter(exam => exam.checkIn.isOpen || exam.registration.isVerified)
     };
   },
 
   /**
-   * Check in a student for an exam
+   * Check in a student for an exam using their index number
    */
   async checkInStudent(data: CheckInData) {
+    // Find student by index number
+    const student = await prisma.user.findFirst({
+      where: {
+        roleProfiles: {
+          some: {
+            role: 'STUDENT',
+            metadata: {
+              path: ['indexNumber'],
+              equals: data.indexNumber
+            }
+          }
+        }
+      },
+      include: {
+        roleProfiles: {
+          where: { role: 'STUDENT' }
+        }
+      }
+    });
+
+    if (!student) {
+      throw new Error('Student not found');
+    }
+
     // Get registration details
-    const registration = await prisma.examRegistration.findUnique({
-      where: { id: data.examRegistrationId },
+    const registration = await prisma.examRegistration.findFirst({
+      where: {
+        studentId: student.id,
+        examEntryId: data.examEntryId
+      },
       include: {
         examEntry: {
           include: {
             course: true,
             venue: true
           }
-        },
-        student: {
-          include: {
-            roleProfiles: {
-              where: { role: 'STUDENT' }
-            }
-          }
         }
       }
     });
 
     if (!registration) {
-      throw new Error('Exam registration not found');
-    }
-
-    if (registration.studentId !== data.studentId) {
-      throw new Error('Student ID mismatch');
+      throw new Error('No exam registration found for this student and exam');
     }
 
     // Check if already verified
     const existingVerification = await prisma.studentVerification.findFirst({
       where: {
-        examEntryId: registration.examEntryId,
-        studentId: data.studentId
+        examEntryId: data.examEntryId,
+        studentId: student.id
       }
     });
 
     if (existingVerification) {
-      throw new Error('Student has already checked in');
+      throw new Error('Student has already checked in for this exam');
     }
 
     // Verify check-in window
@@ -220,12 +276,12 @@ export const publicExamService = {
       // Create student verification
       const verification = await tx.studentVerification.create({
         data: {
-          examEntryId: registration.examEntryId,
-          studentId: data.studentId,
+          examEntryId: data.examEntryId,
+          studentId: student.id,
           method: data.verificationMethod as VerificationMethod,
           seatNumber: registration.seatNumber,
-          verifiedBy: data.studentId, // Self check-in
-          qrCode: data.qrCode,
+          verifiedBy: student.id, // Self check-in
+          qrCode: data.indexNumber, // Store index number as QR code
           verifiedAt: now
         },
         include: {
@@ -245,13 +301,13 @@ export const publicExamService = {
         data: {
           isPresent: true,
           attendanceMarkedAt: now,
-          attendanceMarkedBy: data.studentId
+          attendanceMarkedBy: student.id
         }
       });
 
       // Update exam logistics
       await tx.examLogistics.updateMany({
-        where: { examEntryId: registration.examEntryId },
+        where: { examEntryId: data.examEntryId },
         data: {
           totalPresent: {
             increment: 1
@@ -262,20 +318,20 @@ export const publicExamService = {
       // Log the check-in action
       await tx.examSessionLog.create({
         data: {
-          examEntryId: registration.examEntryId,
+          examEntryId: data.examEntryId,
           action: ExamSessionAction.STUDENT_CHECK_IN,
-          performedBy: data.studentId,
+          performedBy: student.id,
           details: {
             action: ExamSessionAction.STUDENT_CHECK_IN,
-            description: 'Student checked in via QR code',
+            description: 'Student checked in via index number QR code',
             metadata: {
-              studentId: data.studentId,
+              studentId: student.id,
+              indexNumber: data.indexNumber,
               seatNumber: registration.seatNumber,
-              verificationMethod: data.verificationMethod,
-              qrCode: data.qrCode
+              verificationMethod: data.verificationMethod
             }
           },
-          notes: `${registration.student.firstName} ${registration.student.lastName} checked in for ${registration.examEntry.course.code}`
+          notes: `${student.firstName} ${student.lastName} checked in for ${registration.examEntry.course.code}`
         }
       });
 
@@ -286,7 +342,7 @@ export const publicExamService = {
     try {
       // Get institution ID from exam entry
       const examEntry = await prisma.examTimetableEntry.findUnique({
-        where: { id: registration.examEntryId },
+        where: { id: data.examEntryId },
         include: {
           timetable: {
             select: { institutionId: true }
@@ -296,19 +352,19 @@ export const publicExamService = {
 
       if (examEntry?.timetable.institutionId) {
         // Extract student number from role profile metadata
-        const studentProfile = registration.student.roleProfiles.find(p => p.role === 'STUDENT');
+        const studentProfile = student.roleProfiles.find(p => p.role === 'STUDENT');
         const studentMetadata = studentProfile?.metadata as any;
-        const studentNumber = studentMetadata?.studentNumber || studentMetadata?.indexNumber || registration.student.email.split('@')[0];
+        const studentNumber = studentMetadata?.indexNumber || studentMetadata?.studentId || data.indexNumber;
 
         // Emit student check-in event
         const checkInPayload: StudentCheckedInPayload = {
           verificationId: result.id,
-          examEntryId: registration.examEntryId,
-          studentId: data.studentId,
+          examEntryId: data.examEntryId,
+          studentId: student.id,
           student: {
             studentNumber: studentNumber,
-            firstName: registration.student.firstName,
-            lastName: registration.student.lastName,
+            firstName: student.firstName,
+            lastName: student.lastName,
           },
           exam: {
             courseCode: registration.examEntry.course.code,
@@ -331,9 +387,9 @@ export const publicExamService = {
         });
 
         // Emit updated statistics
-        const stats = await this.getSessionCheckInStats(registration.examEntryId);
+        const stats = await this.getSessionCheckInStats(data.examEntryId);
         const statsPayload: CheckInStatsUpdatedPayload = {
-          examEntryId: registration.examEntryId,
+          examEntryId: data.examEntryId,
           courseCode: registration.examEntry.course.code,
           stats: {
             expected: stats.expected,
@@ -357,13 +413,20 @@ export const publicExamService = {
     }
 
     return {
-      verification: result,
+      success: true,
+      verification: {
+        id: result.id,
+        timestamp: result.verifiedAt.toISOString()
+      },
+      student: {
+        indexNumber: data.indexNumber,
+        name: `${student.firstName} ${student.lastName}`
+      },
       exam: {
         courseCode: registration.examEntry.course.code,
-        courseTitle: registration.examEntry.course.name,
+        courseName: registration.examEntry.course.name,
         venue: registration.examEntry.venue.name,
-        seatNumber: registration.seatNumber,
-        startTime: registration.examEntry.startTime
+        seatNumber: registration.seatNumber
       }
     };
   },

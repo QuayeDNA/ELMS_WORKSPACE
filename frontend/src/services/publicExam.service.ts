@@ -1,52 +1,64 @@
 import { apiService } from './api';
 
-export interface QRValidationResult {
-  valid: boolean;
-  data?: {
-    examRegistrationId: number;
-    studentId: number;
-    examEntryId: number;
-    student: {
-      id: number;
-      studentNumber: string;
-      firstName: string;
-      lastName: string;
-    };
-    exam: {
+// NEW: Updated interfaces for index number-based check-in
+export interface IndexNumberValidationResult {
+  success: boolean;
+  valid?: boolean; // Backend returns 'valid' field
+  student?: {
+    id: number;
+    indexNumber: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  activeExams?: Array<{
+    examEntry: {
       id: number;
       courseCode: string;
       courseName: string;
-      examDate: Date;
       startTime: string;
       endTime: string;
+      duration: number;
       venue: string;
+      venueLocation: string;
     };
-    canCheckIn: boolean;
-    alreadyCheckedIn: boolean;
-    checkInWindow: {
-      opens: Date;
-      closes: Date;
+    registration: {
+      id: number;
+      examRegistrationId: number;
+      seatNumber: string | null;
+      isPresent: boolean;
+      isVerified: boolean;
+    };
+    checkInWindow?: {  // Backend might return 'checkInWindow' or 'checkIn'
       isOpen: boolean;
+      opens: string;
+      closes: string;
     };
-  };
+    checkIn?: {
+      isOpen: boolean;
+      canCheckIn: boolean;
+      message: string;
+    };
+  }>;
   error?: string;
   message?: string;
 }
 
 export interface CheckInResult {
   success: boolean;
-  data?: {
-    verificationId: number;
-    timestamp: Date;
-    student: {
-      studentNumber: string;
-      name: string;
-    };
-    exam: {
-      courseCode: string;
-      courseName: string;
-      venue: string;
-    };
+  verification?: {
+    id: number;
+  };
+  timestamp?: string;
+  student?: {
+    indexNumber: string;
+    name: string;
+  };
+  exam?: {
+    courseCode: string;
+    courseName: string;
+    venue: string;
+    seatNumber: string | null;
   };
   error?: string;
   message?: string;
@@ -79,23 +91,25 @@ class PublicExamService {
   private baseUrl = '/api/public/exam';
 
   /**
-   * Validate QR code token
+   * Validate student index number and get active exams
+   * NEW: Replaces validateQRCode
    */
-  async validateQRCode(qrCode: string): Promise<QRValidationResult> {
-    const response = await apiService.post<QRValidationResult>(
-      `${this.baseUrl}/validate-qr`,
-      { qrCode }
+  async validateIndexNumber(indexNumber: string): Promise<IndexNumberValidationResult> {
+    const response = await apiService.post<IndexNumberValidationResult>(
+      `${this.baseUrl}/validate-index`,
+      { indexNumber }
     );
     return response.data!;
   }
 
   /**
-   * Check in student with QR code
+   * Check in student with index number
+   * UPDATED: Now uses index number instead of QR token
    */
-  async checkInStudent(qrCode: string): Promise<CheckInResult> {
+  async checkInStudent(indexNumber: string, examEntryId: number): Promise<CheckInResult> {
     const response = await apiService.post<CheckInResult>(
       `${this.baseUrl}/check-in`,
-      { qrCode }
+      { indexNumber, examEntryId }
     );
     return response.data!;
   }

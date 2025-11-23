@@ -149,6 +149,55 @@ export function transformBackendStudent(data: unknown): Student | null {
 
   const record = data as any;
 
+  // Handle new RoleProfile structure: { userId, role, metadata: {...}, user: {...} }
+  if (record.userId && record.role === 'STUDENT' && record.metadata && record.user) {
+    const metadata = record.metadata;
+    const user = record.user;
+
+    return {
+      id: user.id,
+      email: user.email || '',
+      firstName: user.firstName || '',
+      lastName: user.lastName || '',
+      middleName: user.middleName,
+      phone: user.phone,
+      dateOfBirth: user.dateOfBirth,
+      gender: user.gender,
+      nationality: user.nationality,
+      address: user.address,
+      status: user.status || 'ACTIVE',
+
+      // Student-specific data from metadata
+      studentId: metadata.studentId || '',
+      indexNumber: metadata.indexNumber || metadata.studentId || '',
+      level: metadata.level || 1,
+      semester: metadata.semester || 1,
+      academicYear: metadata.academicYear,
+      programId: metadata.programId,
+      admissionDate: metadata.admissionDate,
+      expectedGraduation: metadata.expectedGraduation,
+      enrollmentStatus: metadata.enrollmentStatus || EnrollmentStatus.ENROLLED,
+      academicStatus: metadata.academicStatus || AcademicStatus.GOOD_STANDING,
+
+      // Guardian/Emergency info from metadata
+      guardianName: metadata.guardianName,
+      guardianPhone: metadata.guardianPhone,
+      guardianEmail: metadata.guardianEmail,
+      emergencyContact: metadata.emergencyContact,
+
+      // Computed properties
+      section: metadata.section,
+      credits: metadata.credits,
+      cgpa: metadata.cgpa,
+
+      createdAt: user.createdAt || new Date().toISOString(),
+      updatedAt: user.updatedAt || new Date().toISOString(),
+
+      // Relations
+      program: record.program || metadata.program
+    };
+  }
+
   // Check if this is a flattened student response from the API (has userId and studentId)
   if (record.userId && record.studentId) {
     // Construct program object from programName and programCode if available
