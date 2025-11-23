@@ -103,11 +103,19 @@ export interface AuthResponse {
     lastName: string;
     middleName?: string;
     title?: string;
+    role: UserRole; // Primary role for backward compatibility
     status: UserStatus;
     institutionId?: number;
     facultyId?: number;
     departmentId?: number;
     emailVerified: boolean;
+    roleProfiles?: Array<{
+      role: UserRole;
+      isActive: boolean;
+      isPrimary: boolean;
+      permissions: RolePermissions;
+      metadata: RoleMetadata;
+    }>;
   };
   primaryRole: UserRole;
   roles: Array<{

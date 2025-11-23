@@ -1,11 +1,10 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { LoginForm } from '@/components/auth/LoginForm';
 import DevCredentialsFab from '@/components/auth/DevCredentialsFab';
 import type { LoginFormRef } from '@/components/auth/LoginForm';
 import { useRef, useEffect, useState } from 'react';
 import type { DevCredential } from '@/components/auth/devCredentials';
 import { useAuthStore } from '@/stores/auth.store';
-import { useLoginRedirect } from '@/hooks/useLoginRedirect';
 import { getRedirectPath } from '@/utils/routeConfig';
 import {
   Shield,
@@ -17,7 +16,7 @@ import {
 
 export function LoginPage() {
   const { isAuthenticated, user } = useAuthStore();
-  const { redirectAfterLogin } = useLoginRedirect();
+  const navigate = useNavigate();
   const loginFormRef = useRef<LoginFormRef | null>(null);
 
   // Dynamic greetings that vary by visit count for a friendlier UX
@@ -54,16 +53,18 @@ export function LoginPage() {
     }
   }, []);
 
-  // Redirect to appropriate dashboard if already authenticated
-  if (isAuthenticated && user) {
-    const redirectPath = getRedirectPath(user.role);
-    return <Navigate to={redirectPath} replace />;
-  }
+  // Handle navigation when user becomes authenticated
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const redirectPath = getRedirectPath(user.role);
+      navigate(redirectPath, { replace: true });
+    }
+  }, [isAuthenticated, user, navigate]);
 
-  const handleLoginSuccess = () => {
-    // Use role-based redirect (delay is handled in the hook)
-    redirectAfterLogin();
-  };
+  // Don't render anything while authenticated (navigation in progress)
+  if (isAuthenticated && user) {
+    return null;
+  }
 
   const handleDevCredentialSelect = (credential: DevCredential) => {
     // Fill credentials via ref exposed by LoginForm
@@ -177,7 +178,7 @@ export function LoginPage() {
 
           {/* Login Form */}
           <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
-            <LoginForm ref={loginFormRef} onSuccess={handleLoginSuccess} />
+            <LoginForm ref={loginFormRef} />
           </div>
 
           {/* Add FAB outside of form so it doesn't clutter the form UI */}

@@ -156,6 +156,17 @@ router.get(
   examLogisticsController.getTimetableVenueAssignments
 );
 
+/**
+ * GET /api/exam-logistics/my-assigned-venues
+ * Get venues assigned to the current officer across all active timetables
+ * Requires: EXAMS_OFFICER, ADMIN, SUPER_ADMIN
+ */
+router.get(
+  "/my-assigned-venues",
+  requireRole(UserRole.EXAMS_OFFICER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  examLogisticsController.getMyAssignedVenues
+);
+
 // ========================================
 // DASHBOARD ROUTES
 // ========================================

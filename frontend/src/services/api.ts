@@ -1,7 +1,7 @@
 import axios, { AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { API_BASE_URL, API_ENDPOINTS } from '@/utils/constants';
-import { storageService } from './storage.service';
 import { ApiResponse, ApiError } from '@/types/api';
+import { useAuthStore } from '@/stores/auth.store';
 
 class ApiService {
   private readonly api: ReturnType<typeof axios.create>;
@@ -27,7 +27,8 @@ class ApiService {
         if (!config.headers) {
           config.headers = {};
         }
-        const token = storageService.getToken();
+        // Get token from Zustand store (which uses persist)
+        const token = useAuthStore.getState().token;
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -68,22 +69,15 @@ class ApiService {
           this.isRefreshing = true;
 
           try {
-            const refreshToken = storageService.getRefreshToken();
+            // Use the store's refresh method
+            const success = await useAuthStore.getState().refreshAuthToken();
 
-            if (!refreshToken) {
-              throw new Error('No refresh token available');
-            }
+            if (success) {
+              const newToken = useAuthStore.getState().token;
 
-            // Attempt to refresh the token
-            const response = await this.api.post(API_ENDPOINTS.AUTH.REFRESH, {
-              refreshToken,
-            });
-
-            if (response.data?.success && response.data?.data?.token) {
-              const newToken = response.data.data.token;
-
-              // Update stored token
-              storageService.setToken(newToken);
+              if (!newToken) {
+                throw new Error('Token refresh succeeded but no token available');
+              }
 
               // Update authorization header
               this.api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
@@ -102,9 +96,6 @@ class ApiService {
             }
           } catch (refreshError) {
             console.error('Token refresh failed:', refreshError);
-
-            // Clear auth data and redirect to login
-            storageService.clearAuthData();
 
             // Notify waiting requests of failure
             this.onRefreshFailure();

@@ -950,9 +950,9 @@ export const examLogisticsService = {
   },
 
   /**
-   * Get exams officer dashboard (filtered by assigned venues)
+   * Get exams officer dashboard (filtered by assigned venues and optionally by specific venue)
    */
-  async getExamsOfficerDashboard(officerId: number, options: { date?: Date; timetableId?: number } = {}) {
+  async getExamsOfficerDashboard(officerId: number, options: { date?: Date; timetableId?: number; venueId?: number } = {}) {
     const officer = await prisma.user.findUnique({
       where: { id: officerId },
       select: { institutionId: true },
@@ -982,6 +982,15 @@ export const examLogisticsService = {
 
       // Filter venues to only show assigned ones
       dashboard.venues = dashboard.venues.filter(v => assignedVenueIds.includes(v.venueId));
+
+      // If a specific venueId is provided, filter to only that venue
+      if (options.venueId) {
+        // Verify officer is assigned to this venue
+        if (!assignedVenueIds.includes(options.venueId)) {
+          throw new Error("Officer is not assigned to this venue");
+        }
+        dashboard.venues = dashboard.venues.filter(v => v.venueId === options.venueId);
+      }
 
       // Recalculate statistics based on filtered venues
       dashboard.activeVenues = dashboard.venues.length;
@@ -1372,6 +1381,63 @@ export const examLogisticsService = {
       orderBy: [
         { venueId: 'asc' },
         { assignedAt: 'desc' },
+      ],
+    });
+
+    return {
+      success: true,
+      data: assignments,
+    };
+  },
+
+  /**
+   * Get venues assigned to the current officer across all active (published) timetables
+   */
+  async getMyAssignedVenues(officerId: number) {
+    const assignments = await prisma.venueOfficerAssignment.findMany({
+      where: {
+        officerId,
+        timetable: {
+          isPublished: true,
+          status: {
+            not: 'ARCHIVED',
+          },
+        },
+      },
+      include: {
+        timetable: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
+          },
+        },
+        venue: {
+          select: {
+            id: true,
+            name: true,
+            capacity: true,
+          },
+        },
+        officer: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        assigner: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+      orderBy: [
+        { timetableId: 'desc' },
+        { venueId: 'asc' },
       ],
     });
 

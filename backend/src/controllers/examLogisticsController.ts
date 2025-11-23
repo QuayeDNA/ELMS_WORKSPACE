@@ -322,6 +322,25 @@ export const examLogisticsController = {
     }
   },
 
+  /**
+   * Get venues assigned to the current officer across all active timetables
+   */
+  async getMyAssignedVenues(req: Request, res: Response) {
+    try {
+      const officerId = req.user?.userId;
+
+      if (!officerId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const result = await examLogisticsService.getMyAssignedVenues(officerId);
+
+      res.json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  },
+
   // ========================================
   // DASHBOARD ENDPOINTS
   // ========================================
@@ -365,13 +384,13 @@ export const examLogisticsController = {
   async getExamsOfficerDashboard(req: Request, res: Response) {
     try {
       const officerId = req.user?.userId;
-      const { date, timetableId } = req.query;
+      const { date, timetableId, venueId } = req.query;
 
       if (!officerId) {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      const options: { date?: Date; timetableId?: number } = {};
+      const options: { date?: Date; timetableId?: number; venueId?: number } = {};
 
       if (date) {
         options.date = new Date(date as string);
@@ -379,6 +398,10 @@ export const examLogisticsController = {
 
       if (timetableId) {
         options.timetableId = parseInt(timetableId as string, 10);
+      }
+
+      if (venueId) {
+        options.venueId = parseInt(venueId as string, 10);
       }
 
       const result = await examLogisticsService.getExamsOfficerDashboard(

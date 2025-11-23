@@ -133,6 +133,13 @@ export class ExamLogisticsService extends BaseService {
   }
 
   /**
+   * Get venues assigned to the current officer across all active timetables
+   */
+  async getMyAssignedVenues(): Promise<ApiResponse<VenueOfficerAssignment[]>> {
+    return this.getStats<VenueOfficerAssignment[]>('/my-assigned-venues');
+  }
+
+  /**
    * Get all venue officer assignments for a timetable
    */
   async getTimetableVenueAssignments(timetableId: number): Promise<ApiResponse<VenueOfficerAssignment[]>> {
@@ -163,7 +170,7 @@ export class ExamLogisticsService extends BaseService {
    * Get exams officer dashboard
    */
   async getExamsOfficerDashboard(
-    options?: { date?: Date; timetableId?: number }
+    options?: { date?: Date; timetableId?: number; venueId?: number }
   ): Promise<ApiResponse<ExamsOfficerDashboard>> {
     const params: any = {};
     if (options?.date) {
@@ -171,6 +178,9 @@ export class ExamLogisticsService extends BaseService {
     }
     if (options?.timetableId) {
       params.timetableId = options.timetableId;
+    }
+    if (options?.venueId) {
+      params.venueId = options.venueId;
     }
     return this.getStats<ExamsOfficerDashboard>('/exams-officer-dashboard', params);
   }

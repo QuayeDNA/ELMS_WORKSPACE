@@ -51,15 +51,12 @@ export const useAuthStore = create<AuthStore>()(
             const authResponse = await authService.login(credentials);
             const rememberMe = credentials.rememberMe || false;
 
-            // Save to both Zustand store and storage service (cookies)
-            storageService.setToken(authResponse.token, rememberMe);
-            storageService.setRefreshToken(authResponse.refreshToken, rememberMe);
-            storageService.setUser(authResponse.user, rememberMe);
-
+            // Save remember me preference to cookies (for persistence preference)
             if (rememberMe) {
               storageService.setRememberMe(true);
             }
 
+            // Update Zustand store (persist middleware will handle storage)
             set({
               user: authResponse.user,
               token: authResponse.token,
@@ -89,13 +86,8 @@ export const useAuthStore = create<AuthStore>()(
 
           try {
             const authResponse = await authService.register(userData);
-            const rememberMe = false; // Default to session for new registrations
 
-            // Save to storage (cookies)
-            storageService.setToken(authResponse.token, rememberMe);
-            storageService.setRefreshToken(authResponse.refreshToken, rememberMe);
-            storageService.setUser(authResponse.user, rememberMe);
-
+            // Update Zustand store (persist middleware will handle storage)
             set({
               user: authResponse.user,
               token: authResponse.token,
@@ -131,9 +123,10 @@ export const useAuthStore = create<AuthStore>()(
             // Stop token refresh
             get().stopTokenRefresh();
 
-            // Clear from both Zustand store and storage service
+            // Clear all auth data from cookies
             storageService.clearAuthData();
 
+            // Clear Zustand store (persist will clear localStorage)
             set({
               user: null,
               token: null,
@@ -156,12 +149,10 @@ export const useAuthStore = create<AuthStore>()(
           try {
             const user = await authService.getCurrentUser();
             if (user) {
-              // Update user in both store and storage
-              storageService.setUser(user);
+              // Update user in store (persist will handle storage)
               set({ user });
             }
           } catch (error) {
-            console.error('Failed to fetch current user:', error);
             // Don't logout on profile fetch error, might be temporary
             // Only logout if it's a 401 error (handled by API interceptor)
           }
@@ -169,10 +160,9 @@ export const useAuthStore = create<AuthStore>()(
 
         refreshAuthToken: async (): Promise<boolean> => {
           const state = get();
-          const refreshToken = state.refreshToken || storageService.getRefreshToken();
+          const refreshToken = state.refreshToken;
 
           if (!refreshToken) {
-            console.warn('No refresh token available');
             await get().logout();
             return false;
           }
@@ -181,19 +171,15 @@ export const useAuthStore = create<AuthStore>()(
             const newToken = await authService.refreshToken(refreshToken);
 
             if (newToken) {
-              const rememberMe = storageService.getRememberMe();
-              // Update token in storage and store
-              storageService.setToken(newToken, rememberMe);
+              // Update token in store (persist will handle storage)
               set({ token: newToken });
               return true;
             } else {
               // Refresh failed, logout user
-              console.error('Token refresh failed');
               await get().logout();
               return false;
             }
           } catch (error) {
-            console.error('Token refresh error:', error);
             await get().logout();
             return false;
           }
@@ -203,10 +189,9 @@ export const useAuthStore = create<AuthStore>()(
           set({ isLoading: true });
 
           try {
-            // Check if we have tokens in storage service
-            const token = storageService.getToken();
-            const user = storageService.getUser();
-            const refreshToken = storageService.getRefreshToken();
+            // Get current state from Zustand (which loads from persist storage)
+            const state = get();
+            const { token, user, refreshToken } = state;
 
             if (token && user) {
               // Validate token by fetching current user
@@ -214,7 +199,7 @@ export const useAuthStore = create<AuthStore>()(
                 const currentUser = await authService.getCurrentUser();
 
                 if (currentUser) {
-                  // Sync storage service data to Zustand store
+                  // Update store with fresh user data
                   set({
                     user: currentUser,
                     token,
@@ -230,7 +215,6 @@ export const useAuthStore = create<AuthStore>()(
                 }
               } catch (error) {
                 // Token is invalid, try to refresh
-                console.warn('Token validation failed, attempting refresh...');
 
                 if (refreshToken) {
                   const refreshed = await get().refreshAuthToken();
@@ -242,7 +226,7 @@ export const useAuthStore = create<AuthStore>()(
                     if (retryUser) {
                       set({
                         user: retryUser,
-                        token: storageService.getToken(),
+                        token: get().token, // Use refreshed token from state
                         refreshToken,
                         isAuthenticated: true,
                         isLoading: false,
@@ -268,7 +252,6 @@ export const useAuthStore = create<AuthStore>()(
               error: null,
             });
           } catch (error) {
-            console.error('Auth initialization error:', error);
             storageService.clearAuthData();
             set({
               user: null,
@@ -291,7 +274,6 @@ export const useAuthStore = create<AuthStore>()(
             const state = get();
 
             if (state.isAuthenticated && state.refreshToken) {
-              console.log('Auto-refreshing token...');
               await get().refreshAuthToken();
             }
           }, TOKEN_REFRESH_INTERVAL);

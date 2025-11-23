@@ -29,7 +29,7 @@ import {
 import { examLogisticsService } from '@/services/examLogistics.service';
 import { examTimetableService } from '@/services/examTimetable.service';
 import { qrCodeService } from '@/services/qrCode.service';
-import type { ExamsOfficerDashboard, VenueSessionOverview, ExamSessionStatus, ExamIncident, QRCodeData } from '@/types/examLogistics';
+import type { ExamsOfficerDashboard, VenueSessionOverview, ExamSessionStatus, ExamIncident, QRCodeData, VenueOfficerAssignment } from '@/types/examLogistics';
 import { ExamTimetable } from '@/types/examTimetable';
 import { VerificationMethod } from '@/types/examLogistics';
 import { useAuth } from '@/hooks/useAuth';
@@ -46,6 +46,11 @@ export function ExamsOfficerDashboard() {
   const [showQRScanner, setShowQRScanner] = useState(false);
   const { isConnected } = useRealtimeContext();
   const { user } = useAuth();
+
+  // Venue assignment states
+  const [myVenueAssignments, setMyVenueAssignments] = useState<VenueOfficerAssignment[]>([]);
+  const [selectedVenueFilter, setSelectedVenueFilter] = useState<number | null>(null);
+  const [loadingVenues, setLoadingVenues] = useState(true);
 
   // Load available timetables
   const loadTimetables = useCallback(async () => {
@@ -74,12 +79,44 @@ export function ExamsOfficerDashboard() {
     }
   }, []); // Remove selectedTimetableId dependency to avoid infinite loop
 
+  // Load my venue assignments
+  const loadMyVenueAssignments = useCallback(async () => {
+    try {
+      setLoadingVenues(true);
+      const response = await examLogisticsService.getMyAssignedVenues();
+      if (response.success && response.data) {
+        setMyVenueAssignments(response.data);
+
+        // Auto-select first venue if none selected and user has assignments
+        if (!selectedVenueFilter && response.data.length > 0) {
+          setSelectedVenueFilter(response.data[0].venueId);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading venue assignments:', error);
+      toast.error('Failed to load venue assignments');
+    } finally {
+      setLoadingVenues(false);
+    }
+  }, [selectedVenueFilter]);
+
   // Load dashboard data
   const loadDashboard = useCallback(async () => {
     try {
       setLoading(true);
+      const options: { timetableId?: number; venueId?: number } = {};
+
+      if (selectedTimetableId) {
+        options.timetableId = selectedTimetableId;
+      }
+
+      // Filter by selected venue if officer has assignments
+      if (selectedVenueFilter) {
+        options.venueId = selectedVenueFilter;
+      }
+
       const response = await examLogisticsService.getExamsOfficerDashboard(
-        selectedTimetableId ? { timetableId: selectedTimetableId } : undefined
+        Object.keys(options).length > 0 ? options : undefined
       );
       if (response.success && response.data) {
         setDashboard(response.data);
@@ -92,22 +129,23 @@ export function ExamsOfficerDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [selectedTimetableId]);
+  }, [selectedTimetableId, selectedVenueFilter]);
 
   // Use real-time dashboard updates
   useLogisticsDashboardRealtime(loadDashboard);
 
-  // Load timetables on mount
+  // Load timetables and venue assignments on mount
   useEffect(() => {
     loadTimetables();
-  }, [loadTimetables]);
+    loadMyVenueAssignments();
+  }, [loadTimetables, loadMyVenueAssignments]);
 
-  // Load dashboard when timetable selection changes
+  // Load dashboard when timetable or venue selection changes
   useEffect(() => {
     if (selectedTimetableId !== undefined) {
       loadDashboard();
     }
-  }, [selectedTimetableId, loadDashboard]);
+  }, [selectedTimetableId, selectedVenueFilter, loadDashboard]);
 
   // Handle QR code scan
   const handleQRScan = async (qrData: string) => {
@@ -188,6 +226,25 @@ export function ExamsOfficerDashboard() {
                 </SelectContent>
               </Select>
             )}
+            {myVenueAssignments.length > 0 && (
+              <Select
+                value={selectedVenueFilter?.toString() || 'all'}
+                onValueChange={(value) => setSelectedVenueFilter(value === 'all' ? null : parseInt(value, 10))}
+              >
+                <SelectTrigger className="w-60">
+                  <MapPin className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Select venue" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All My Venues</SelectItem>
+                  {myVenueAssignments.map((assignment) => (
+                    <SelectItem key={assignment.id} value={assignment.venueId.toString()}>
+                      {assignment.venue?.name || `Venue ${assignment.venueId}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </div>
         <LoadingSpinner />
@@ -223,6 +280,25 @@ export function ExamsOfficerDashboard() {
                 </SelectContent>
               </Select>
             )}
+            {myVenueAssignments.length > 0 && (
+              <Select
+                value={selectedVenueFilter?.toString() || 'all'}
+                onValueChange={(value) => setSelectedVenueFilter(value === 'all' ? null : parseInt(value, 10))}
+              >
+                <SelectTrigger className="w-60">
+                  <MapPin className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Select venue" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All My Venues</SelectItem>
+                  {myVenueAssignments.map((assignment) => (
+                    <SelectItem key={assignment.id} value={assignment.venueId.toString()}>
+                      {assignment.venue?.name || `Venue ${assignment.venueId}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </div>
         <Card>
@@ -231,7 +307,7 @@ export function ExamsOfficerDashboard() {
               <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">No Data Available</h3>
               <p className="text-muted-foreground">
-                No exam sessions found for the selected timetable.
+                No exam sessions found for the selected timetable{selectedVenueFilter ? ' and venue' : ''}.
               </p>
             </div>
           </CardContent>
@@ -253,6 +329,11 @@ export function ExamsOfficerDashboard() {
                 - {timetables.find(t => t.id === selectedTimetableId)?.title}
               </span>
             )}
+            {selectedVenueFilter && myVenueAssignments.length > 0 && (
+              <span className="ml-2 text-primary">
+                • {myVenueAssignments.find(v => v.venueId === selectedVenueFilter)?.venue?.name}
+              </span>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -270,6 +351,25 @@ export function ExamsOfficerDashboard() {
                   <SelectItem key={timetable.id} value={timetable.id.toString()}>
                     {timetable.title}
                     {timetable.status === 'ARCHIVED' && ' (Archived)'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          {myVenueAssignments.length > 0 && (
+            <Select
+              value={selectedVenueFilter?.toString() || 'all'}
+              onValueChange={(value) => setSelectedVenueFilter(value === 'all' ? null : parseInt(value, 10))}
+            >
+              <SelectTrigger className="w-60">
+                <MapPin className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Select venue" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All My Venues</SelectItem>
+                {myVenueAssignments.map((assignment) => (
+                  <SelectItem key={assignment.id} value={assignment.venueId.toString()}>
+                    {assignment.venue?.name || `Venue ${assignment.venueId}`}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -511,7 +611,7 @@ function SessionCard({ session }: { session: ExamSessionStatus }) {
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <span className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
-              {session.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {session.endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              {new Date(session.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(session.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </span>
             <span>{session.expectedStudents} students expected</span>
           </div>
