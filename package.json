@@ -72,6 +72,7 @@
   },
   "overrides": {
     "@types/react": "18.2.64",
-    "@types/react-dom": "18.2.21"
+    "@types/react-dom": "18.2.21",
+    "@expo/vector-icons": "^15.0.3"
   }
 }
