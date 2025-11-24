@@ -13,7 +13,7 @@
     "dev:web": "node -e \"console.log('🌐 Starting ELMS Web Development...')\" && concurrently \"npm run dev:backend\" \"npm run dev:frontend\" --names \"BACKEND,FRONTEND\" --prefix name --prefix-colors \"bgBlue.bold,bgGreen.bold\" --no-spinner",
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",
-    "dev:mobile": "cd mobile-app && npm start",
+    "dev:mobile": "cd mobile-app && npx expo start",
     "build": "node -e \"console.log('🔨 Building All ELMS Components...')\" && concurrently \"npm run build:backend\" \"npm run build:frontend\" \"npm run build:mobile\" --names \"BACKEND,FRONTEND,MOBILE\" --prefix name --prefix-colors \"bgBlue.bold,bgGreen.bold,bgMagenta.bold\"",
     "build:backend": "cd backend && npm run build",
     "build:frontend": "cd frontend && npm run build",
