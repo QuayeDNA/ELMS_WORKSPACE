@@ -3,11 +3,6 @@
   "version": "1.0.0",
   "description": "Educational Learning Management System - Complete Workspace Runner",
   "private": true,
-  "workspaces": [
-    "backend",
-    "frontend",
-    "mobile-app"
-  ],
   "scripts": {
     "dev": "node -e \"console.log('🚀 Starting ELMS Development Environment...')\" && concurrently \"npm run dev:backend\" \"npm run dev:frontend\" \"npm run dev:mobile\" --names \"BACKEND,FRONTEND,MOBILE\" --prefix name --prefix-colors \"bgBlue.bold,bgGreen.bold,bgMagenta.bold\" --no-spinner",
     "dev:web": "node -e \"console.log('🌐 Starting ELMS Web Development...')\" && concurrently \"npm run dev:backend\" \"npm run dev:frontend\" --names \"BACKEND,FRONTEND\" --prefix name --prefix-colors \"bgBlue.bold,bgGreen.bold\" --no-spinner",
@@ -65,14 +60,5 @@
     "electron"
   ],
   "author": "ELMS Team",
-  "license": "MIT",
-  "dependencies": {
-    "electron": "38.1.2",
-    "socket.io-client": "^4.8.1"
-  },
-  "overrides": {
-    "@types/react": "18.2.64",
-    "@types/react-dom": "18.2.21",
-    "@expo/vector-icons": "^15.0.3"
-  }
+  "license": "MIT"
 }
