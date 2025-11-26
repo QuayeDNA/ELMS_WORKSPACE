@@ -238,3 +238,59 @@ export const handlersApi = {
     };
   },
 };
+
+// Dashboard API
+export const dashboardApi = {
+  getInvigilatorDashboard: async (): Promise<ApiResponse<{
+    user: User;
+    activeSessions: {
+      id: number;
+      examEntryId: number;
+      courseName: string;
+      courseCode: string;
+      venueName: string;
+      roomName?: string;
+      startTime: string;
+      endTime: string;
+      expectedStudents: number;
+      presentStudents: number;
+      submittedScripts: number;
+      status: 'not_started' | 'in_progress' | 'completed';
+      isCheckedIn: boolean;
+      lastActivity?: string;
+    }[];
+    todayStats: {
+      sessionsAssigned: number;
+      sessionsCompleted: number;
+      scriptsCollected: number;
+      studentsVerified: number;
+      incidentsReported: number;
+      batchesSealed: number;
+    };
+    activeIncidents: {
+      id: number;
+      type: string;
+      severity: 'low' | 'medium' | 'high' | 'critical';
+      title: string;
+      venueName: string;
+      reportedAt: string;
+      status: 'reported' | 'investigating' | 'resolved';
+    }[];
+    pendingTasks: {
+      unsealedBatches: number;
+      unverifiedStudents: number;
+      unresolvedIncidents: number;
+      uncheckedSessions: number;
+    };
+    recentActivity: {
+      id: string;
+      type: 'script_submitted' | 'student_verified' | 'incident_reported' | 'batch_sealed' | 'session_checked_in';
+      description: string;
+      timestamp: string;
+      sessionId?: number;
+      venueName?: string;
+    }[];
+  }>> => {
+    return httpClient.get(API_ENDPOINTS.EXAM_LOGISTICS.DASHBOARD);
+  },
+};

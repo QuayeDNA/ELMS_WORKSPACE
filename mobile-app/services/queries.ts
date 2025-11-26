@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { sessionsApi, studentsApi, batchesApi, movementsApi, handlersApi } from './api';
+import { sessionsApi, studentsApi, batchesApi, movementsApi, handlersApi, dashboardApi } from './api';
 
 // Sessions hooks
 export const useMySessions = () => {
@@ -67,5 +67,13 @@ export const useAllHandlers = () => {
   return useQuery({
     queryKey: ['allHandlers'],
     queryFn: () => handlersApi.getAllHandlers(),
+  });
+};
+
+// Dashboard hooks
+export const useInvigilatorDashboard = () => {
+  return useQuery({
+    queryKey: ['invigilatorDashboard'],
+    queryFn: () => dashboardApi.getInvigilatorDashboard(),
   });
 };

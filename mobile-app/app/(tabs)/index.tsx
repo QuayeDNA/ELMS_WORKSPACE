@@ -1,11 +1,10 @@
 import React from 'react';
 import { ScrollView, RefreshControl, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
 import { RootState } from '../../stores/store';
-import { useMySessions } from '../../services/queries';
+import { useInvigilatorDashboard } from '../../services/queries';
 import {
   ScreenContainer,
   Typography,
@@ -17,11 +16,10 @@ import {
   Spinner,
   Section,
 } from '../../components/ui';
-import { ExamSession } from '../../types';
 
 const Index: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.auth);
-  const { data: sessions, isLoading, refetch } = useMySessions();
+  const { data: dashboard, isLoading, refetch } = useInvigilatorDashboard();
   const [refreshing, setRefreshing] = React.useState(false);
   const router = useRouter();
 
@@ -31,8 +29,10 @@ const Index: React.FC = () => {
     setRefreshing(false);
   }, [refetch]);
 
-  const recentSessions: ExamSession[] = sessions?.data?.slice(0, 3) || [];
-  const activeSessions: ExamSession[] = sessions?.data?.filter((s: ExamSession) => s.status === 'active') || [];
+  const dashboardData = dashboard?.data;
+  const activeSessions = dashboardData?.activeSessions || [];
+  const todayStats = dashboardData?.todayStats;
+  const recentActivity = dashboardData?.recentActivity || [];
 
   const handleQuickAction = (action: string) => {
     switch (action) {
@@ -44,8 +44,8 @@ const Index: React.FC = () => {
         console.log('Navigate to create batch');
         break;
       case 'report':
-        // TODO: Navigate to reports screen
-        console.log('Navigate to reports');
+        // TODO: Navigate to incident report screen
+        console.log('Navigate to incident report');
         break;
       default:
         console.log('Quick action:', action);
@@ -92,28 +92,51 @@ const Index: React.FC = () => {
             <Typography variant="titleSmall" className="mb-4">
               What would you like to do?
             </Typography>
-            <View className="flex-row gap-4">
-              <Card className="flex-1 p-4 items-center bg-white">
-                <View className="w-12 h-12 rounded-full bg-primary-100 items-center justify-center mb-3">
-                  <Ionicons name="qr-code" size={24} color="#2563eb" />
-                </View>
-                <Typography variant="bodyMedium" className="text-center font-medium mb-1">
-                  Scan Scripts
-                </Typography>
-                <Typography variant="bodySmall" color="secondary" className="text-center mb-3">
-                  Collect and verify exam scripts
-                </Typography>
-                <Button
-                  size="sm"
-                  leftIcon="qr-code"
-                  onPress={() => handleQuickAction('scan')}
-                  className="w-full"
-                >
-                  Start Scanning
-                </Button>
-              </Card>
+            <View className="gap-4">
+              <View className="flex-row gap-4">
+                <Card className="flex-1 p-4 items-center bg-white">
+                  <View className="w-12 h-12 rounded-full bg-primary-100 items-center justify-center mb-3">
+                    <Ionicons name="qr-code" size={24} color="#2563eb" />
+                  </View>
+                  <Typography variant="bodyMedium" className="text-center font-medium mb-1">
+                    Scan Scripts
+                  </Typography>
+                  <Typography variant="bodySmall" color="secondary" className="text-center mb-3">
+                    Collect and verify exam scripts
+                  </Typography>
+                  <Button
+                    size="sm"
+                    leftIcon="qr-code"
+                    onPress={() => handleQuickAction('scan')}
+                    className="w-full"
+                  >
+                    Start Scanning
+                  </Button>
+                </Card>
 
-              <Card className="flex-1 p-4 items-center bg-white">
+                <Card className="flex-1 p-4 items-center bg-white">
+                  <View className="w-12 h-12 rounded-full bg-error-100 items-center justify-center mb-3">
+                    <Ionicons name="alert-circle" size={24} color="#dc2626" />
+                  </View>
+                  <Typography variant="bodyMedium" className="text-center font-medium mb-1">
+                    Report Incident
+                  </Typography>
+                  <Typography variant="bodySmall" color="secondary" className="text-center mb-3">
+                    Log exam irregularities
+                  </Typography>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    leftIcon="alert-circle"
+                    onPress={() => handleQuickAction('report')}
+                    className="w-full"
+                  >
+                    Report Incident
+                  </Button>
+                </Card>
+              </View>
+
+              <Card className="p-4 items-center bg-white">
                 <View className="w-12 h-12 rounded-full bg-success-100 items-center justify-center mb-3">
                   <Ionicons name="archive" size={24} color="#16a34a" />
                 </View>
@@ -146,15 +169,27 @@ const Index: React.FC = () => {
                 </Badge>
               </View>
               <Card className="p-4 bg-white">
-                {activeSessions.slice(0, 2).map((session: ExamSession) => (
+                {activeSessions.slice(0, 2).map((session) => (
                   <ListItem
                     key={session.id}
-                    title={session.course.name}
-                    subtitle={`${session.venue.name} • ${session.startTime} - ${session.endTime}`}
+                    title={`${session.courseName} (${session.courseCode})`}
+                    subtitle={`${session.venueName}${session.roomName ? ` • ${session.roomName}` : ''} • ${session.startTime} - ${session.endTime}`}
                     rightElement={
-                      <Badge variant="success" size="sm">
-                        Active
-                      </Badge>
+                      <View className="items-end">
+                        <Badge
+                          variant={
+                            session.status === 'completed' ? 'success' :
+                            session.status === 'in_progress' ? 'warning' : 'default'
+                          }
+                          size="sm"
+                        >
+                          {session.status === 'in_progress' ? 'In Progress' :
+                           session.status === 'not_started' ? 'Not Started' : 'Completed'}
+                        </Badge>
+                        <Typography variant="bodySmall" color="secondary">
+                          {session.presentStudents}/{session.expectedStudents} students
+                        </Typography>
+                      </View>
                     }
                     onPress={() => handleSessionPress(session.id)}
                     className="mb-2 last:mb-0"
@@ -174,7 +209,7 @@ const Index: React.FC = () => {
             </Section>
           )}
 
-          {/* Quick Stats */}
+          {/* Today's Overview */}
           <Section spacing="lg">
             <Typography variant="titleLarge" className="mb-4">
               Today&apos;s Overview
@@ -182,7 +217,7 @@ const Index: React.FC = () => {
             <View className="flex-row gap-3">
               <Card className="flex-1 p-4 items-center bg-white">
                 <Typography variant="displaySmall" color="success" className="mb-1">
-                  {sessions?.data?.filter((s: ExamSession) => s.status === 'completed').length || 0}
+                  {todayStats?.sessionsCompleted || 0}
                 </Typography>
                 <Typography variant="bodySmall" color="secondary" className="text-center">
                   Completed
@@ -198,10 +233,18 @@ const Index: React.FC = () => {
               </Card>
               <Card className="flex-1 p-4 items-center bg-white">
                 <Typography variant="displaySmall" color="warning" className="mb-1">
-                  {sessions?.data?.filter((s: ExamSession) => s.status === 'scheduled').length || 0}
+                  {todayStats?.scriptsCollected || 0}
                 </Typography>
                 <Typography variant="bodySmall" color="secondary" className="text-center">
-                  Pending
+                  Scripts
+                </Typography>
+              </Card>
+              <Card className="flex-1 p-4 items-center bg-white">
+                <Typography variant="displaySmall" color="error" className="mb-1">
+                  {todayStats?.incidentsReported || 0}
+                </Typography>
+                <Typography variant="bodySmall" color="secondary" className="text-center">
+                  Incidents
                 </Typography>
               </Card>
             </View>
@@ -216,24 +259,12 @@ const Index: React.FC = () => {
               </Button>
             </View>
             <Card className="p-4 bg-white">
-              {recentSessions.length > 0 ? (
-                recentSessions.map((session: ExamSession) => (
+              {recentActivity.length > 0 ? (
+                recentActivity.slice(0, 3).map((activity) => (
                   <ListItem
-                    key={session.id}
-                    title={session.course.name}
-                    subtitle={`${session.date} • ${session.venue.name}`}
-                    rightElement={
-                      <Badge
-                        variant={
-                          session.status === 'completed' ? 'success' :
-                          session.status === 'active' ? 'warning' : 'default'
-                        }
-                        size="sm"
-                      >
-                        {session.status}
-                      </Badge>
-                    }
-                    onPress={() => handleSessionPress(session.id)}
+                    key={activity.id}
+                    title={activity.description}
+                    subtitle={new Date(activity.timestamp).toLocaleString()}
                     className="mb-2 last:mb-0"
                   />
                 ))
