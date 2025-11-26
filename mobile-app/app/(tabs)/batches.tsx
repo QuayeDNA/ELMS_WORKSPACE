@@ -39,7 +39,7 @@ export default function BatchesScreen() {
 
   if (isLoading) {
     return (
-      <ScreenContainer>
+      <ScreenContainer edges={['bottom', 'left', 'right']}>
         <Section title="My Batches" spacing="lg">
           <SkeletonList count={3} />
         </Section>
@@ -52,6 +52,7 @@ export default function BatchesScreen() {
       scrollable
       refreshing={isRefetching}
       onRefresh={refetch}
+      edges={['bottom', 'left', 'right']}
     >
       <Section title="My Batches" spacing="lg">
         <Typography variant="bodyMedium" color="secondary">

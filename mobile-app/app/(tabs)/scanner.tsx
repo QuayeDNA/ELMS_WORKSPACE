@@ -47,7 +47,7 @@ export default function ScannerScreen() {
   };
 
   return (
-    <ScreenContainer>
+    <ScreenContainer edges={['bottom', 'left', 'right']}>
       <Section title="QR Scanner" spacing="lg">
         <Typography variant="bodyMedium" color="secondary">
           Scan student QR codes or perform bulk submissions

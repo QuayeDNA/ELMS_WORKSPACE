@@ -19,6 +19,7 @@ export interface ListItemProps {
   onPress?: () => void;
   disabled?: boolean;
   style?: ViewStyle;
+  className?: string;
 }
 
 const getVariantStyles = (variant: ListItemVariant = 'default') => {
@@ -49,12 +50,14 @@ export const ListItem: React.FC<ListItemProps> = ({
   onPress,
   disabled = false,
   style,
+  className,
 }) => {
   const variantStyles = getVariantStyles(variant);
   const isTouchable = !!onPress && !disabled;
 
   const content = (
     <View
+      className={className}
       style={[
         {
           flexDirection: 'row',
@@ -134,6 +137,7 @@ export const ListItem: React.FC<ListItemProps> = ({
   if (isTouchable) {
     return (
       <TouchableOpacity
+        className={className}
         onPress={onPress}
         disabled={disabled}
         style={{ opacity: disabled ? 0.5 : 1 }}

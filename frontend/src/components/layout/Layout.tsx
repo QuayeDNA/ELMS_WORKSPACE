@@ -60,7 +60,7 @@ export function Layout({ children }: Readonly<LayoutProps>) {
         {/* Desktop sidebar */}
         <aside
           className={cn(
-            'hidden lg:flex lg:flex-shrink-0 transition-all duration-300 ease-in-out',
+            'hidden lg:flex lg:shrink-0 transition-all duration-300 ease-in-out',
             sidebarCollapsed ? 'lg:w-16' : 'lg:w-64'
           )}
         >

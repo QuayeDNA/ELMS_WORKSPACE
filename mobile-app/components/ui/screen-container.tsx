@@ -88,12 +88,8 @@ export const ScreenContainer: React.FC<ScreenContainerProps> = ({
 
   return (
     <SafeAreaView
-      className={className}
+      className={`flex-1 bg-surface-primary ${className || ''}`}
       style={[
-        {
-          flex: 1,
-          backgroundColor: colors.surface.primary,
-        },
         style,
       ]}
       edges={edges}
@@ -111,28 +107,18 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
   variant = 'default',
   style,
 }) => {
-  const paddingVertical = variant === 'compact' ? spacing.sm : spacing.md;
+  const paddingClasses = variant === 'compact' ? 'py-2' : 'py-4';
 
   return (
     <View
-      style={[
-        {
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          paddingHorizontal: spacing.lg,
-          paddingVertical,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.neutral[100],
-        },
-        style,
-      ]}
+      className={`flex-row items-center justify-between px-6 ${paddingClasses} border-b border-neutral-100`}
+      style={style}
     >
-      <View style={{ flex: 1 }}>
+      <View className="flex-1">
         {leftAction}
       </View>
 
-      <View style={{ flex: 2, alignItems: 'center' }}>
+      <View className="flex-2 items-center">
         {title && (
           <Typography
             variant={variant === 'compact' ? 'titleMedium' : 'headlineSmall'}
@@ -153,7 +139,7 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
         )}
       </View>
 
-      <View style={{ flex: 1, alignItems: 'flex-end' }}>
+      <View className="flex-1 items-end">
         {rightAction}
       </View>
     </View>
@@ -168,27 +154,19 @@ export const Section: React.FC<SectionProps> = ({
   style,
 }) => {
   const spacingMap = {
-    xs: spacing.xs,
-    sm: spacing.sm,
-    md: spacing.md,
-    lg: spacing.lg,
-    xl: spacing.xl,
+    xs: 'mb-1',
+    sm: 'mb-2',
+    md: 'mb-4',
+    lg: 'mb-6',
+    xl: 'mb-8',
   };
 
-  const marginBottom = spacingMap[sectionSpacing];
+  const marginClass = spacingMap[sectionSpacing];
 
   return (
-    <View style={[{ marginBottom }, style]}>
+    <View className={marginClass} style={style}>
       {(title || titleAction) && (
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: spacing.md,
-            paddingHorizontal: spacing.lg,
-          }}
-        >
+        <View className="flex-row items-center justify-between mb-4 px-6">
           {title && (
             <Typography variant="titleMedium" color="primary">
               {title}
@@ -202,7 +180,7 @@ export const Section: React.FC<SectionProps> = ({
         </View>
       )}
 
-      <View style={{ paddingHorizontal: spacing.lg }}>
+      <View className="px-6">
         {children}
       </View>
     </View>
@@ -218,15 +196,8 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 }) => {
   return (
     <View
-      style={[
-        {
-          flex: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-          padding: spacing.xl,
-        },
-        style,
-      ]}
+      className="flex-1 justify-center items-center p-8"
+      style={style}
     >
       <Ionicons
         name={icon}

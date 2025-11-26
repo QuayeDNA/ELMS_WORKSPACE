@@ -47,7 +47,7 @@ export default function RootLayout() {
                   <Stack.Screen name="transfer-batch" options={{ title: 'Transfer Batch' }} />
                 </Stack>
               </AuthGuard>
-              <StatusBar style="auto" />
+              <StatusBar style="dark" />
             </ThemeProvider>
           </QueryClientProvider>
         </PersistGate>

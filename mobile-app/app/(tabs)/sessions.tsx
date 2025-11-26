@@ -40,7 +40,7 @@ export default function SessionsScreen() {
 
   if (isLoading) {
     return (
-      <ScreenContainer>
+      <ScreenContainer edges={['bottom', 'left', 'right']}>
         <Section title="My Sessions" spacing="lg">
           <SkeletonList count={3} />
         </Section>
@@ -53,6 +53,7 @@ export default function SessionsScreen() {
       scrollable
       refreshing={isRefetching}
       onRefresh={refetch}
+      edges={['bottom', 'left', 'right']}
     >
       <Section title="My Sessions" spacing="lg">
         <Typography variant="bodyMedium" color="secondary">

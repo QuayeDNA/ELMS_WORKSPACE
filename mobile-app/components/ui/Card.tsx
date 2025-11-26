@@ -6,6 +6,7 @@ export interface CardProps {
   children: React.ReactNode;
   variant?: 'default' | 'outlined' | 'elevated';
   style?: ViewStyle;
+  className?: string;
 }
 
 export interface CardHeaderProps {
@@ -51,11 +52,11 @@ const getVariantStyles = (variant: CardProps['variant'] = 'default') => {
   }
 };
 
-export const Card: React.FC<CardProps> = ({ children, variant = 'default', style }) => {
+export const Card: React.FC<CardProps> = ({ children, variant = 'default', style, className }) => {
   const variantStyles = getVariantStyles(variant);
 
   return (
-    <View style={[variantStyles, style]}>
+    <View className={className} style={[variantStyles, style]}>
       {children}
     </View>
   );
