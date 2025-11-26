@@ -1,98 +1,215 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React from 'react';
+import { ScrollView, RefreshControl, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../stores/store';
+import { useMySessions } from '../../services/queries';
+import {
+  ScreenContainer,
+  Typography,
+  Button,
+  Card,
+  ListItem,
+  Badge,
+  FAB,
+  Spinner,
+} from '../../components/ui';
+import { ExamSession } from '../../types';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+const Index: React.FC = () => {
+  const { user } = useSelector((state: RootState) => state.auth);
+  const { data: sessions, isLoading, refetch } = useMySessions();
+  const [refreshing, setRefreshing] = React.useState(false);
+  const router = useRouter();
 
-export default function HomeScreen() {
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  }, [refetch]);
+
+  const recentSessions: ExamSession[] = sessions?.data?.slice(0, 3) || [];
+  const activeSessions: ExamSession[] = sessions?.data?.filter((s: ExamSession) => s.status === 'active') || [];
+
+  const handleQuickAction = (action: string) => {
+    // Handle quick actions
+    console.log('Quick action:', action);
+  };
+
+  const handleViewAllSessions = () => {
+    // TODO: Navigate to sessions tab
+    console.log('Navigate to sessions');
+  };
+
+  if (isLoading) {
+    return (
+      <ScreenContainer>
+        <Spinner size="large" centered />
+      </ScreenContainer>
+    );
+  }
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <ScreenContainer>
+      <ScrollView
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {/* Welcome Header */}
+        <View style={{ marginBottom: 24 }}>
+          <Typography variant="headlineMedium" style={{ marginBottom: 8 }}>
+            Welcome back, {user?.firstName || 'Officer'}!
+          </Typography>
+          <Typography variant="bodyMedium" color="secondary">
+            {activeSessions.length} active sessions today
+          </Typography>
+        </View>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+        {/* Quick Actions */}
+        <View style={{ marginBottom: 24 }}>
+          <Typography variant="titleMedium" style={{ marginBottom: 16 }}>
+            Quick Actions
+          </Typography>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+            <Button
+              variant="default"
+              size="sm"
+              onPress={() => handleQuickAction('scan')}
+              style={{ flex: 1, minWidth: 120 }}
+            >
+              Scan Script
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onPress={() => handleQuickAction('batch')}
+              style={{ flex: 1, minWidth: 120 }}
+            >
+              Create Batch
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onPress={() => handleQuickAction('report')}
+              style={{ flex: 1, minWidth: 120 }}
+            >
+              View Reports
+            </Button>
+          </View>
+        </View>
+
+        {/* Active Sessions */}
+        {activeSessions.length > 0 && (
+          <View style={{ marginBottom: 24 }}>
+            <Typography variant="titleMedium" style={{ marginBottom: 16 }}>
+              Active Sessions
+            </Typography>
+            <Card style={{ padding: 16 }}>
+              {activeSessions.map((session: ExamSession) => (
+                <ListItem
+                  key={session.id}
+                  title={session.course.name}
+                  subtitle={`${session.venue.name} • ${session.startTime} - ${session.endTime}`}
+                  rightElement={
+                    <Badge variant="success" size="sm">
+                      Active
+                    </Badge>
+                  }
+                  onPress={() => {
+                    // Navigate to session details
+                  }}
+                  style={{ marginBottom: 8 }}
+                />
+              ))}
+            </Card>
+          </View>
+        )}
+
+        {/* Recent Sessions */}
+        <View style={{ marginBottom: 24 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <Typography variant="titleMedium">Recent Sessions</Typography>
+            <Button variant="ghost" size="sm" onPress={handleViewAllSessions}>
+              View All
+            </Button>
+          </View>
+          <Card style={{ padding: 16 }}>
+            {recentSessions.length > 0 ? (
+              recentSessions.map((session: ExamSession) => (
+                <ListItem
+                  key={session.id}
+                  title={session.course.name}
+                  subtitle={`${session.date} • ${session.venue.name}`}
+                  rightElement={
+                    <Badge
+                      variant={
+                        session.status === 'completed' ? 'success' :
+                        session.status === 'active' ? 'info' : 'default'
+                      }
+                      size="sm"
+                    >
+                      {session.status}
+                    </Badge>
+                  }
+                  onPress={() => {
+                    // Navigate to session details
+                  }}
+                  style={{ marginBottom: 8 }}
+                />
+              ))
+            ) : (
+              <Typography variant="bodyMedium" color="secondary" style={{ textAlign: 'center', paddingVertical: 16 }}>
+                No recent sessions
+              </Typography>
+            )}
+          </Card>
+        </View>
+
+        {/* Today's Summary */}
+        <View style={{ marginBottom: 24 }}>
+          <Typography variant="titleMedium" style={{ marginBottom: 16 }}>
+            Today's Summary
+          </Typography>
+          <View style={{ flexDirection: 'row', gap: 16 }}>
+            <Card style={{ flex: 1, padding: 16, alignItems: 'center' }}>
+              <Typography variant="headlineSmall" color="primary">
+                {sessions?.data?.filter((s: ExamSession) => s.status === 'completed').length || 0}
+              </Typography>
+              <Typography variant="bodyMedium" color="secondary">
+                Completed
+              </Typography>
+            </Card>
+            <Card style={{ flex: 1, padding: 16, alignItems: 'center' }}>
+              <Typography variant="headlineSmall" color="warning">
+                {activeSessions.length}
+              </Typography>
+              <Typography variant="bodyMedium" color="secondary">
+                Active
+              </Typography>
+            </Card>
+            <Card style={{ flex: 1, padding: 16, alignItems: 'center' }}>
+              <Typography variant="headlineSmall" color="error">
+                {sessions?.data?.filter((s: ExamSession) => s.status === 'cancelled').length || 0}
+              </Typography>
+              <Typography variant="bodyMedium" color="secondary">
+                Issues
+              </Typography>
+            </Card>
+          </View>
+        </View>
+      </ScrollView>
+
+      {/* FAB for quick scan */}
+      <FAB
+        icon="qr-code"
+        onPress={() => handleQuickAction('scan')}
+        style={{ position: 'absolute', bottom: 24, right: 24 }}
+      />
+    </ScreenContainer>
   );
-}
+};
 
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});
+export default Index;
