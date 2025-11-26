@@ -161,8 +161,8 @@ httpClient = new HttpClient(API_BASE_URL, getTokenPlaceholder);
 
 // Auth API
 export const authApi = {
-  login: async (username: string, password: string): Promise<ApiResponse<{ user: User; token: string }>> => {
-    return httpClient.post(API_ENDPOINTS.AUTH.LOGIN, { username, password });
+  login: async (email: string, password: string): Promise<ApiResponse<{ user: User; token: string }>> => {
+    return httpClient.post(API_ENDPOINTS.AUTH.LOGIN, { email, password });
   },
 
   logout: async (): Promise<ApiResponse<void>> => {

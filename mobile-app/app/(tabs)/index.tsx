@@ -19,7 +19,7 @@ import {
 
 const Index: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.auth);
-  const { data: dashboard, isLoading, refetch } = useInvigilatorDashboard();
+  const { data: dashboard, isLoading, refetch, error } = useInvigilatorDashboard();
   const [refreshing, setRefreshing] = React.useState(false);
   const router = useRouter();
 
@@ -64,6 +64,27 @@ const Index: React.FC = () => {
     return (
       <ScreenContainer edges={['bottom', 'left', 'right']}>
         <Spinner size="large" centered />
+      </ScreenContainer>
+    );
+  }
+
+  if (error) {
+    return (
+      <ScreenContainer edges={['bottom', 'left', 'right']}>
+        <View className="flex-1 justify-center items-center px-6">
+          <View className="max-w-sm w-full items-center">
+            <Ionicons name="alert-circle" size={64} color="#dc2626" className="mb-4" />
+            <Typography variant="headlineMedium" className="text-center mb-2">
+              Unable to Load Dashboard
+            </Typography>
+            <Typography variant="bodyLarge" color="secondary" className="text-center mb-6">
+              There was a problem loading your dashboard data. Please check your connection and try again.
+            </Typography>
+            <Button onPress={() => refetch()} className="w-full">
+              Try Again
+            </Button>
+          </View>
+        </View>
       </ScreenContainer>
     );
   }

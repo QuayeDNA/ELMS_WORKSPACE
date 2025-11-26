@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { useRouter, useSegments } from 'expo-router';
+import { useRouter, useSegments, usePathname } from 'expo-router';
 import { useAuth } from '../hooks/useAuth';
 import { Colors } from '../constants/theme';
 
@@ -9,25 +9,41 @@ interface AuthGuardProps {
 }
 
 export function AuthGuard({ children }: AuthGuardProps) {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const segments = useSegments();
+  const pathname = usePathname();
   const router = useRouter();
+  const navigationInProgress = useRef(false);
 
   useEffect(() => {
-    if (isLoading) return; // Still checking auth status
+    if (isLoading || navigationInProgress.current) {
+      return; // Still checking auth status or navigation in progress
+    }
 
-    const inAuthGroup = segments[0] === 'login';
+    const inAuthGroup = segments[0] === 'login' || pathname === '/login';
 
-    if (inAuthGroup) {
-      // Don't redirect when on login screen - let the login component handle its own logic
+    // User is authenticated and trying to access login page
+    if (isAuthenticated && inAuthGroup) {
+      navigationInProgress.current = true;
+      router.replace('/(tabs)');
+      // Reset flag after navigation
+      setTimeout(() => {
+        navigationInProgress.current = false;
+      }, 500);
       return;
     }
 
-    if (!isAuthenticated) {
-      // Redirect to login if not authenticated and not on login screen
+    // User is not authenticated and not on login page
+    if (!isAuthenticated && !inAuthGroup) {
+      navigationInProgress.current = true;
       router.replace('/login');
+      // Reset flag after navigation
+      setTimeout(() => {
+        navigationInProgress.current = false;
+      }, 500);
+      return;
     }
-  }, [isAuthenticated, isLoading, segments, router]);
+  }, [isAuthenticated, isLoading, segments, pathname, router]);
 
   // Show loading spinner while checking auth
   if (isLoading) {

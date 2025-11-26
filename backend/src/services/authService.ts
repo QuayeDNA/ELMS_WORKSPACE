@@ -194,6 +194,11 @@ export class AuthService {
         throw new Error('Account is inactive. Please contact administrator.');
       }
 
+      // Block students from accessing the mobile app
+      if (user.role === UserRole.STUDENT) {
+        throw new Error('Students are not allowed to access this application. Please use the web interface.');
+      }
+
       // Verify password
       console.log('Verifying password for user:', user.email);
       const isPasswordValid = await bcrypt.compare(password, user.password);

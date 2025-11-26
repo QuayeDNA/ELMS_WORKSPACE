@@ -18,21 +18,20 @@ export const useAuth = () => {
 // Hook for login functionality
 export const useLogin = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const router = useRouter();
-  const { isLoading } = useAuth();
 
-  const login = async (username: string, password: string) => {
+  const login = async (email: string, password: string) => {
     try {
-      await dispatch(loginUser({ username, password })).unwrap();
-      router.replace('/(tabs)');
+      const result = await dispatch(loginUser({ email, password })).unwrap();
+      return result;
     } catch (error: any) {
+      // Re-throw the error so the component can handle it
+      // Make sure to preserve the error structure
       throw error;
     }
   };
 
   return {
     login,
-    isLoading,
   };
 };
 

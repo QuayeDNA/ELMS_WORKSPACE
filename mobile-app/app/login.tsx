@@ -1,39 +1,79 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { useRouter } from 'expo-router';
+import { useDispatch } from 'react-redux';
 
 import { ScreenContainer, ScreenHeader, Input, Button, Typography, Alert as AlertComponent } from '../components/ui';
 import { DevCredentialsFAB } from '../components/ui/DevCredentialsFab';
-import { useLogin } from '../hooks/useAuth';
+import { useAuth } from '../hooks/useAuth';
+import { loginUser, clearError } from '../stores/slices/authSlice';
+import { AppDispatch } from '../stores/store';
 
 export default function LoginScreen() {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
 
-  const { login, isLoading } = useLogin();
+  const dispatch = useDispatch<AppDispatch>();
+  const { isAuthenticated, isHandler, isLoading, error } = useAuth();
+  const router = useRouter();
 
-  const handleSelectCredential = (username: string, password: string) => {
-    setUsername(username);
+  // Track if we've already navigated to prevent double navigation
+  const hasNavigated = useRef(false);
+
+  // Handle navigation when authentication succeeds
+  useEffect(() => {
+    // Only navigate if authenticated, is a handler, and haven't navigated yet
+    if (isAuthenticated && isHandler && !hasNavigated.current) {
+      hasNavigated.current = true;
+      // Small delay to ensure state is fully settled
+      setTimeout(() => {
+        router.replace('/(tabs)');
+      }, 100);
+    }
+  }, [isAuthenticated, isHandler, router]);
+
+  // Clear error when component unmounts or when user starts typing
+  useEffect(() => {
+    return () => {
+      if (error) {
+        dispatch(clearError());
+      }
+    };
+  }, [dispatch, error]);
+
+  const handleSelectCredential = (email: string, password: string) => {
+    setEmail(email);
     setPassword(password);
-    setError(null); // Clear any previous errors
+    if (error) {
+      dispatch(clearError());
+    }
+  };
+
+  const handleEmailChange = (text: string) => {
+    setEmail(text);
+    if (error) {
+      dispatch(clearError());
+    }
+  };
+
+  const handlePasswordChange = (text: string) => {
+    setPassword(text);
+    if (error) {
+      dispatch(clearError());
+    }
   };
 
   const handleLogin = async () => {
-    if (!username.trim() || !password.trim()) {
-      setError('Please enter both username and password');
+    // Validation
+    if (!email.trim() || !password.trim()) {
+      // Could dispatch a custom error here or use local state
       return;
     }
 
-    try {
-      setError(null);
-      await login(username.trim(), password.trim());
-    } catch (error: any) {
-      setError(error);
-    }
+    // Dispatch login action - errors will be stored in Redux state
+    dispatch(loginUser({ email: email.trim(), password: password.trim() }));
   };
-
-
 
   return (
     <KeyboardAvoidingView
@@ -72,21 +112,22 @@ export default function LoginScreen() {
 
               <View className="gap-4 mb-8">
                 <Input
-                  label="Username"
-                  placeholder="Enter your username"
-                  value={username}
-                  onChangeText={setUsername}
+                  label="Email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChangeText={handleEmailChange}
                   autoCapitalize="none"
                   autoCorrect={false}
-                  leftIcon="person"
+                  leftIcon="mail"
                   editable={!isLoading}
+                  keyboardType="email-address"
                 />
 
                 <Input
                   label="Password"
                   placeholder="Enter your password"
                   value={password}
-                  onChangeText={setPassword}
+                  onChangeText={handlePasswordChange}
                   secureTextEntry
                   leftIcon="lock-closed"
                   editable={!isLoading}
@@ -95,7 +136,7 @@ export default function LoginScreen() {
                 <Button
                   onPress={handleLogin}
                   loading={isLoading}
-                  disabled={isLoading}
+                  disabled={isLoading || !email.trim() || !password.trim()}
                   className="mt-2"
                 >
                   {isLoading ? 'Signing In...' : 'Sign In'}
@@ -119,5 +160,3 @@ export default function LoginScreen() {
     </KeyboardAvoidingView>
   );
 }
-
-

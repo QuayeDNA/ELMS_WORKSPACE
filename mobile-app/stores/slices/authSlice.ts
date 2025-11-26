@@ -4,12 +4,17 @@ import { User, AuthState, LoginCredentials } from '../../types';
 import { authApi } from '../../services/api';
 import { ApiError, ApiErrorType } from '../../constants/api';
 
+// Extended AuthState with error field
+interface ExtendedAuthState extends AuthState {
+  error: string | null;
+}
+
 // Async thunk for login
 export const loginUser = createAsyncThunk(
   'auth/login',
   async (credentials: LoginCredentials, { rejectWithValue }) => {
     try {
-      const response = await authApi.login(credentials.username, credentials.password);
+      const response = await authApi.login(credentials.email, credentials.password);
 
       if (!response.success) {
         throw new Error(response.message || 'Login failed');
@@ -62,7 +67,7 @@ export const logoutUser = createAsyncThunk(
     try {
       await AsyncStorage.removeItem('authToken');
       return null;
-    } catch (error) {
+    } catch {
       return rejectWithValue('Logout failed.');
     }
   }
@@ -117,11 +122,12 @@ export const checkAuthStatus = createAsyncThunk(
   }
 );
 
-const initialState: AuthState = {
+const initialState: ExtendedAuthState = {
   user: null,
   token: null,
   isAuthenticated: false,
   isLoading: false,
+  error: null,
 };
 
 const authSlice = createSlice({
@@ -129,6 +135,7 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     clearError: (state) => {
+      state.error = null;
       state.isLoading = false;
     },
     setUser: (state, action: PayloadAction<User>) => {
@@ -141,40 +148,48 @@ const authSlice = createSlice({
       // Login
       .addCase(loginUser.pending, (state) => {
         state.isLoading = true;
+        state.error = null; // Clear previous errors
       })
       .addCase(loginUser.fulfilled, (state, action) => {
         state.isLoading = false;
         state.user = action.payload.user;
         state.token = action.payload.token;
         state.isAuthenticated = true;
+        state.error = null;
       })
-      .addCase(loginUser.rejected, (state) => {
+      .addCase(loginUser.rejected, (state, action) => {
         state.isLoading = false;
         state.user = null;
         state.token = null;
         state.isAuthenticated = false;
+        // Store the error message from rejectWithValue
+        state.error = action.payload as string || 'Login failed';
       })
       // Logout
       .addCase(logoutUser.fulfilled, (state) => {
         state.user = null;
         state.token = null;
         state.isAuthenticated = false;
+        state.error = null;
       })
       // Check auth status
       .addCase(checkAuthStatus.pending, (state) => {
         state.isLoading = true;
+        state.error = null;
       })
       .addCase(checkAuthStatus.fulfilled, (state, action) => {
         state.isLoading = false;
         state.user = action.payload.user;
         state.token = action.payload.token;
         state.isAuthenticated = true;
+        state.error = null;
       })
-      .addCase(checkAuthStatus.rejected, (state) => {
+      .addCase(checkAuthStatus.rejected, (state, action) => {
         state.isLoading = false;
         state.user = null;
         state.token = null;
         state.isAuthenticated = false;
+        state.error = action.payload as string || 'Authentication failed';
       });
   },
 });

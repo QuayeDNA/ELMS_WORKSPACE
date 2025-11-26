@@ -7,10 +7,12 @@ import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import React from 'react';
 
 import { useColorScheme } from '../hooks/use-color-scheme';
 import { store, persistor } from '../stores/store';
 import { AuthGuard } from '../components/AuthGuard';
+import { initializeHttpClient } from '../services/api';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -20,6 +22,20 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+// Component to initialize HttpClient with auth token
+const HttpClientInitializer: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  React.useEffect(() => {
+    const getAuthToken = async (): Promise<string | null> => {
+      const state = store.getState();
+      return state.auth.token;
+    };
+
+    initializeHttpClient(getAuthToken);
+  }, []);
+
+  return <>{children}</>;
+};
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -32,24 +48,26 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <Provider store={store}>
         <PersistGate loading={null} persistor={persistor}>
-          <QueryClientProvider client={queryClient}>
-            <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-              <AuthGuard>
-                <Stack>
-                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                  <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-                  <Stack.Screen name="login" options={{ headerShown: false }} />
-                  <Stack.Screen name="session-details" options={{ title: 'Session Details' }} />
-                  <Stack.Screen name="student-list" options={{ title: 'Student List' }} />
-                  <Stack.Screen name="bulk-submission" options={{ title: 'Bulk Submission' }} />
-                  <Stack.Screen name="batch-details" options={{ title: 'Batch Details' }} />
-                  <Stack.Screen name="batch-history" options={{ title: 'Batch History' }} />
-                  <Stack.Screen name="transfer-batch" options={{ title: 'Transfer Batch' }} />
-                </Stack>
-              </AuthGuard>
-              <StatusBar style="dark" />
-            </ThemeProvider>
-          </QueryClientProvider>
+          <HttpClientInitializer>
+            <QueryClientProvider client={queryClient}>
+              <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+                <AuthGuard>
+                  <Stack>
+                    <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                    <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+                    <Stack.Screen name="login" options={{ headerShown: false }} />
+                    <Stack.Screen name="session-details" options={{ title: 'Session Details' }} />
+                    <Stack.Screen name="student-list" options={{ title: 'Student List' }} />
+                    <Stack.Screen name="bulk-submission" options={{ title: 'Bulk Submission' }} />
+                    <Stack.Screen name="batch-details" options={{ title: 'Batch Details' }} />
+                    <Stack.Screen name="batch-history" options={{ title: 'Batch History' }} />
+                    <Stack.Screen name="transfer-batch" options={{ title: 'Transfer Batch' }} />
+                  </Stack>
+                </AuthGuard>
+                <StatusBar style="dark" />
+              </ThemeProvider>
+            </QueryClientProvider>
+          </HttpClientInitializer>
         </PersistGate>
       </Provider>
     </SafeAreaProvider>
