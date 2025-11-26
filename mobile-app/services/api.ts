@@ -28,6 +28,71 @@ const DUMMY_USERS: User[] = [
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
   },
+  {
+    id: 3,
+    username: 'bobhod',
+    email: 'bob.hod@university.edu',
+    firstName: 'Bob',
+    lastName: 'Wilson',
+    role: 'HOD',
+    department: 'Computer Science',
+    faculty: 'Engineering',
+    isActive: true,
+    createdAt: '2024-01-01T00:00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+  },
+  {
+    id: 4,
+    username: 'aliceadmin',
+    email: 'alice.admin@university.edu',
+    firstName: 'Alice',
+    lastName: 'Johnson',
+    role: 'ADMIN',
+    department: 'Administration',
+    faculty: 'Administration',
+    isActive: true,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+  },
+  {
+    id: 5,
+    username: 'charlieofficer',
+    email: 'charlie.officer@university.edu',
+    firstName: 'Charlie',
+    lastName: 'Brown',
+    role: 'EXAMS_OFFICER',
+    department: 'Examinations',
+    faculty: 'Administration',
+    isActive: true,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+  },
+  {
+    id: 6,
+    username: 'superadmin',
+    email: 'super.admin@university.edu',
+    firstName: 'Super',
+    lastName: 'Admin',
+    role: 'SUPER_ADMIN',
+    department: 'IT',
+    faculty: 'Administration',
+    isActive: true,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+  },
+  {
+    id: 7,
+    username: 'student1',
+    email: 'student1@university.edu',
+    firstName: 'Student',
+    lastName: 'One',
+    role: 'STUDENT',
+    department: 'Computer Science',
+    faculty: 'Engineering',
+    isActive: true,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+  },
 ];
 
 const DUMMY_SESSIONS: ExamSession[] = [
@@ -161,23 +226,35 @@ export const authApi = {
   login: async (username: string, password: string): Promise<ApiResponse<{ user: User; token: string }>> => {
     await delay(1000);
     const user = DUMMY_USERS.find(u => u.username === username);
-    if (user && password === 'password') {
-      return {
-        success: true,
-        data: {
-          user,
-          token: 'dummy-jwt-token',
-        },
-      };
+    if (!user || password !== 'password') {
+      throw new Error('Invalid credentials');
     }
-    throw new Error('Invalid credentials');
+
+    // Block students from logging in
+    if (user.role === 'STUDENT') {
+      throw new Error('Students are not allowed to access this application. Please use the web interface.');
+    }
+
+    return {
+      success: true,
+      data: {
+        user,
+        token: `dummy-jwt-token-${user.id}`,
+      },
+    };
   },
 
   getCurrentUser: async (): Promise<ApiResponse<User>> => {
     await delay(500);
+    // In a real app, this would decode the JWT token to get user info
+    // For demo, return the first non-student user
+    const user = DUMMY_USERS.find(u => u.role !== 'STUDENT');
+    if (!user) {
+      throw new Error('User not found');
+    }
     return {
       success: true,
-      data: DUMMY_USERS[0],
+      data: user,
     };
   },
 };

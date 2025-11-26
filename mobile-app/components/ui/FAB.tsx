@@ -14,6 +14,7 @@ export interface FABProps {
   loading?: boolean;
   disabled?: boolean;
   style?: ViewStyle;
+  className?: string;
 }
 
 const getVariantStyles = (variant: FABVariant = 'primary') => {
@@ -68,6 +69,7 @@ export const FAB: React.FC<FABProps> = ({
   loading = false,
   disabled = false,
   style,
+  className,
 }) => {
   const variantStyles = getVariantStyles(variant);
   const sizeStyles = getSizeStyles(size);
@@ -75,6 +77,7 @@ export const FAB: React.FC<FABProps> = ({
 
   return (
     <TouchableOpacity
+      className={className}
       onPress={isDisabled ? undefined : onPress}
       disabled={isDisabled}
       style={[

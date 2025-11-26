@@ -1,20 +1,51 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { View, StyleSheet } from 'react-native';
 
 import { HapticTab } from '../../components/haptic-tab';
 import { IconSymbol } from '../../components/ui/icon-symbol';
 import { Colors } from '../../constants/theme';
 import { useColorScheme } from '../../hooks/use-color-scheme';
+import { useAuth, useLogout } from '../../hooks/useAuth';
+import { Button, Typography } from '../../components/ui';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const { user } = useAuth();
+  const { logout } = useLogout();
+
+  const handleLogout = () => {
+    logout();
+  };
 
   return (
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
+        headerShown: true,
         tabBarButton: HapticTab,
+        headerStyle: {
+          backgroundColor: Colors[colorScheme ?? 'light'].background,
+        },
+        headerTintColor: Colors[colorScheme ?? 'light'].text,
+        headerTitleStyle: {
+          fontWeight: '600',
+        },
+        headerRight: () => (
+          <View style={styles.headerRight}>
+            <Typography variant="bodySmall" color="secondary">
+              {user?.firstName} {user?.lastName}
+            </Typography>
+            <Button
+              variant="ghost"
+              size="sm"
+              onPress={handleLogout}
+              leftIcon="log-out"
+            >
+              Logout
+            </Button>
+          </View>
+        ),
       }}>
       <Tabs.Screen
         name="index"
@@ -41,9 +72,18 @@ export default function TabLayout() {
         name="batches"
         options={{
           title: 'Batches',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="archive" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="archivebox" color={color} />,
         }}
       />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginRight: 16,
+  },
+});

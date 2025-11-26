@@ -13,6 +13,7 @@ export interface AlertProps {
   dismissible?: boolean;
   onDismiss?: () => void;
   style?: ViewStyle;
+  className?: string;
 }
 
 const getVariantStyles = (variant: AlertVariant = 'info') => {
@@ -55,11 +56,13 @@ export const Alert: React.FC<AlertProps> = ({
   dismissible = false,
   onDismiss,
   style,
+  className,
 }) => {
   const variantStyles = getVariantStyles(variant);
 
   return (
     <View
+      className={className}
       style={[
         {
           backgroundColor: variantStyles.backgroundColor,

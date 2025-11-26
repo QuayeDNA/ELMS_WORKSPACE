@@ -185,7 +185,7 @@ export type RootStackParamList = {
   'bulk-submission': { sessionId: number };
   'batch-details': { batchId: number };
   'batch-history': { batchId: number };
-  'transfer-batch': { batchId: number };
+  'transfer-batch': { batchId?: number };
   'scanner': { sessionId?: number };
 };
 

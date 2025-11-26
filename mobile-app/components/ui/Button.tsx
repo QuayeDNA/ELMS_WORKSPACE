@@ -13,6 +13,7 @@ export interface ButtonProps {
   leftIcon?: keyof typeof Ionicons.glyphMap;
   rightIcon?: keyof typeof Ionicons.glyphMap;
   style?: ViewStyle;
+  className?: string;
   textStyle?: TextStyle;
 }
 
@@ -118,6 +119,7 @@ export const Button: React.FC<ButtonProps> = ({
   leftIcon,
   rightIcon,
   style,
+  className,
   textStyle,
 }) => {
   const variantStyles = getVariantStyles(variant);
@@ -129,6 +131,7 @@ export const Button: React.FC<ButtonProps> = ({
 
   return (
     <TouchableOpacity
+      className={className}
       onPress={isDisabled ? undefined : onPress}
       disabled={isDisabled}
       style={[

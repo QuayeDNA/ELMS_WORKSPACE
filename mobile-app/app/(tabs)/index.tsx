@@ -2,7 +2,6 @@ import React from 'react';
 import { ScrollView, RefreshControl, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../stores/store';
 import { useMySessions } from '../../services/queries';
@@ -171,7 +170,7 @@ const Index: React.FC = () => {
         {/* Today's Summary */}
         <View style={{ marginBottom: 24 }}>
           <Typography variant="titleMedium" style={{ marginBottom: 16 }}>
-            Today's Summary
+            Today&apos;s Summary
           </Typography>
           <View style={{ flexDirection: 'row', gap: 16 }}>
             <Card style={{ flex: 1, padding: 16, alignItems: 'center' }}>

@@ -1,20 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { authApi, sessionsApi, studentsApi, batchesApi, movementsApi, handlersApi } from './api';
-import { LoginCredentials } from '../types';
-
-// Auth hooks
-export const useLogin = () => {
-  return useMutation({
-    mutationFn: (credentials: LoginCredentials) => authApi.login(credentials.username, credentials.password),
-  });
-};
-
-export const useCurrentUser = () => {
-  return useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => authApi.getCurrentUser(),
-  });
-};
+import { sessionsApi, studentsApi, batchesApi, movementsApi, handlersApi } from './api';
 
 // Sessions hooks
 export const useMySessions = () => {

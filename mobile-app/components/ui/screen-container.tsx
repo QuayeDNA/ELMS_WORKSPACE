@@ -1,9 +1,9 @@
 import React from 'react';
-import { SafeAreaView, ScrollView, RefreshControl, View, ViewStyle } from 'react-native';
+import { ScrollView, RefreshControl, View, ViewStyle } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, typography } from '../../constants/theme';
+import { colors, spacing } from '../../constants/theme';
 import { Typography } from './Typography';
-import { Button } from './Button';
 
 export interface ScreenContainerProps {
   children: React.ReactNode;
@@ -11,6 +11,8 @@ export interface ScreenContainerProps {
   refreshing?: boolean;
   onRefresh?: () => void;
   style?: ViewStyle;
+  className?: string;
+  edges?: ('top' | 'bottom' | 'left' | 'right')[];
 }
 
 export interface ScreenHeaderProps {
@@ -44,10 +46,20 @@ export const ScreenContainer: React.FC<ScreenContainerProps> = ({
   refreshing = false,
   onRefresh,
   style,
+  className,
+  edges = ['top', 'bottom', 'left', 'right'],
 }) => {
+  const insets = useSafeAreaInsets();
+
   const content = scrollable ? (
     <ScrollView
-      contentContainerStyle={{ flexGrow: 1 }}
+      contentContainerStyle={{
+        flexGrow: 1,
+        paddingTop: edges.includes('top') ? 0 : insets.top,
+        paddingBottom: edges.includes('bottom') ? 0 : insets.bottom,
+        paddingLeft: edges.includes('left') ? 0 : insets.left,
+        paddingRight: edges.includes('right') ? 0 : insets.right,
+      }}
       refreshControl={
         onRefresh ? (
           <RefreshControl
@@ -63,13 +75,20 @@ export const ScreenContainer: React.FC<ScreenContainerProps> = ({
       {children}
     </ScrollView>
   ) : (
-    <View style={{ flex: 1 }}>
+    <View style={{
+      flex: 1,
+      paddingTop: edges.includes('top') ? 0 : insets.top,
+      paddingBottom: edges.includes('bottom') ? 0 : insets.bottom,
+      paddingLeft: edges.includes('left') ? 0 : insets.left,
+      paddingRight: edges.includes('right') ? 0 : insets.right,
+    }}>
       {children}
     </View>
   );
 
   return (
     <SafeAreaView
+      className={className}
       style={[
         {
           flex: 1,
@@ -77,6 +96,7 @@ export const ScreenContainer: React.FC<ScreenContainerProps> = ({
         },
         style,
       ]}
+      edges={edges}
     >
       {content}
     </SafeAreaView>

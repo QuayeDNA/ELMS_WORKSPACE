@@ -61,7 +61,7 @@ export default function BatchesScreen() {
 
       {batches.length === 0 ? (
         <EmptyState
-          icon="archivebox"
+          icon="archive"
           title="No Batches"
           description="You don't have any script batches assigned at the moment."
           action={
@@ -86,7 +86,7 @@ export default function BatchesScreen() {
                     ? `Collected ${formatDate(batch.collectedAt)}`
                     : 'Not yet collected'
                 }
-                leftIcon="archivebox"
+                leftIcon="archive"
                 leftIconColor="#2563eb"
                 rightElement={
                   <Badge variant={getStatusColor(batch.status)} size="sm">

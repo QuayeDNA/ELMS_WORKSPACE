@@ -1,38 +1,32 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User, AuthState, LoginCredentials } from '../../types';
+import { authApi } from '../../services/api';
 
 // Async thunk for login
 export const loginUser = createAsyncThunk(
   'auth/login',
   async (credentials: LoginCredentials, { rejectWithValue }) => {
     try {
-      // Dummy login logic - replace with real API call
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
+      const response = await authApi.login(credentials.username, credentials.password);
 
-      // Dummy user data
-      const dummyUser: User = {
-        id: 1,
-        username: credentials.username,
-        email: `${credentials.username}@university.edu`,
-        firstName: 'John',
-        lastName: 'Doe',
-        role: 'INVIGILATOR', // Default to invigilator for demo
-        department: 'Computer Science',
-        faculty: 'Engineering',
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+      if (!response.success) {
+        throw new Error('Login failed');
+      }
 
-      const token = 'dummy-jwt-token';
+      const { user, token } = response.data;
+
+      // Block students from logging in
+      if (user.role === 'STUDENT') {
+        throw new Error('Students are not allowed to access this application. Please use the web interface.');
+      }
 
       // Store token in AsyncStorage
       await AsyncStorage.setItem('authToken', token);
 
-      return { user: dummyUser, token };
-    } catch (error) {
-      return rejectWithValue('Login failed. Please check your credentials.');
+      return { user, token };
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Login failed. Please check your credentials.');
     }
   }
 );
@@ -60,25 +54,23 @@ export const checkAuthStatus = createAsyncThunk(
         throw new Error('No token found');
       }
 
-      // Dummy user data - in real app, validate token with API
-      const dummyUser: User = {
-        id: 1,
-        username: 'johndoe',
-        email: 'john.doe@university.edu',
-        firstName: 'John',
-        lastName: 'Doe',
-        role: 'INVIGILATOR',
-        department: 'Computer Science',
-        faculty: 'Engineering',
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+      const response = await authApi.getCurrentUser();
+      if (!response.success) {
+        throw new Error('Failed to get user data');
+      }
 
-      return { user: dummyUser, token };
-    } catch (error) {
+      const user = response.data;
+
+      // Double-check role (in case token is compromised)
+      if (user.role === 'STUDENT') {
+        await AsyncStorage.removeItem('authToken');
+        throw new Error('Access denied for students');
+      }
+
+      return { user, token };
+    } catch (error: any) {
       await AsyncStorage.removeItem('authToken');
-      return rejectWithValue('Session expired. Please login again.');
+      return rejectWithValue(error.message || 'Session expired. Please login again.');
     }
   }
 );

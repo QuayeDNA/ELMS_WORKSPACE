@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, ViewStyle, TextStyle } from 'react-native';
 import { colors, typography, spacing } from '../../constants/theme';
 
-export type BadgeVariant = 'default' | 'success' | 'warning' | 'error' | 'info' | 'outline';
+export type BadgeVariant = 'default' | 'success' | 'warning' | 'error' | 'info' | 'outline' | 'neutral';
 export type BadgeSize = 'sm' | 'md' | 'lg';
 export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'HOD' | 'LECTURER' | 'INVIGILATOR' | 'STUDENT';
 
@@ -51,6 +51,12 @@ const getVariantStyles = (variant: BadgeVariant = 'default') => {
         backgroundColor: 'transparent',
         borderColor: colors.neutral[300],
         textColor: colors.text.primary,
+      };
+    case 'neutral':
+      return {
+        backgroundColor: colors.neutral[100],
+        borderColor: colors.neutral[200],
+        textColor: colors.neutral[800],
       };
     default:
       return {

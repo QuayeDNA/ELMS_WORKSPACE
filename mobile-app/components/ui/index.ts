@@ -11,10 +11,11 @@ export * from './Avatar';
 export * from './Divider';
 export * from './Loading';
 export * from './Chip';
-export * from './Modal';
+export { Modal } from './Modal';
 export * from './bottom-sheet';
 export * from './Dialog';
 export * from './screen-container';
+export * from './DevCredentialsFab';
 
 // Design tokens
 export { colors, typography, spacing } from '../../constants/theme';

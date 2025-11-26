@@ -26,6 +26,7 @@ export interface TypographyProps {
   variant?: TypographyVariant;
   color?: TypographyColor;
   style?: TextStyle;
+  className?: string;
   numberOfLines?: number;
 }
 
@@ -51,6 +52,7 @@ export const Typography: React.FC<TypographyProps> = ({
   variant = 'bodyMedium',
   color = 'primary',
   style,
+  className,
   numberOfLines,
 }) => {
   const textColor = getTextColor(color);
@@ -58,6 +60,7 @@ export const Typography: React.FC<TypographyProps> = ({
 
   return (
     <Text
+      className={className}
       style={[
         {
           color: textColor,
