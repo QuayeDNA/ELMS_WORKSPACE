@@ -1702,6 +1702,284 @@ export const examLogisticsService = {
     };
   },
 
+  /**
+   * Get invigilator dashboard data
+   */
+  async getInvigilatorDashboard(invigilatorId: number) {
+    // Get invigilator info
+    const invigilator = await prisma.user.findUnique({
+      where: { id: invigilatorId },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        department: true,
+        faculty: true,
+      },
+    });
+
+    if (!invigilator) {
+      throw new Error("Invigilator not found");
+    }
+
+    // Get today's date range
+    const today = new Date();
+    const startOfDay = new Date(today);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(today);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // Get invigilator's active assignments for today
+    const activeAssignments = await prisma.invigilatorAssignment.findMany({
+      where: {
+        invigilatorId,
+        examEntry: {
+          examDate: {
+            gte: startOfDay,
+            lte: endOfDay,
+          },
+          timetable: {
+            isPublished: true,
+          },
+        },
+      },
+      include: {
+        examEntry: {
+          include: {
+            course: true,
+            venue: true,
+            rooms: {
+              include: {
+                room: true,
+              },
+            },
+            examLogistics: true,
+          },
+        },
+      },
+      orderBy: {
+        examEntry: {
+          startTime: 'asc',
+        },
+      },
+    });
+
+    // Build active sessions data
+    const activeSessions = activeAssignments.map(assignment => {
+      const entry = assignment.examEntry;
+      const logistics = entry.examLogistics;
+
+      return {
+        id: assignment.id,
+        examEntryId: entry.id,
+        courseName: entry.course.name,
+        courseCode: entry.course.code,
+        venueName: entry.venue.name,
+        roomName: entry.rooms?.[0]?.room?.name,
+        startTime: entry.startTime.toISOString(),
+        endTime: entry.endTime.toISOString(),
+        expectedStudents: logistics?.totalExpected || 0,
+        presentStudents: logistics?.totalPresent || 0,
+        submittedScripts: logistics?.scriptsSubmitted || 0,
+        status: this.getExamSessionStatus(entry).toLowerCase() as 'not_started' | 'in_progress' | 'completed',
+        isCheckedIn: assignment.checkedInAt !== null,
+        lastActivity: logistics?.lastSyncedAt?.toISOString(),
+      };
+    });
+
+    // Calculate today's statistics
+    const sessionsAssigned = activeAssignments.length;
+    const sessionsCompleted = activeAssignments.filter(a =>
+      this.getExamSessionStatus(a.examEntry) === 'COMPLETED'
+    ).length;
+
+    const scriptsCollected = activeAssignments.reduce((sum, a) =>
+      sum + (a.examEntry.examLogistics?.scriptsSubmitted || 0), 0
+    );
+
+    const studentsVerified = activeAssignments.reduce((sum, a) =>
+      sum + (a.examEntry.examLogistics?.totalPresent || 0), 0
+    );
+
+    // Get incidents reported by this invigilator today
+    const incidentsReported = await prisma.examIncident.count({
+      where: {
+        reportedBy: invigilatorId,
+        reportedAt: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+    });
+
+    // Get batches sealed by this invigilator today (if applicable)
+    const batchesSealed = await prisma.batchScript.count({
+      where: {
+        sealedBy: invigilatorId,
+        sealedAt: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+    });
+
+    const todayStats = {
+      sessionsAssigned,
+      sessionsCompleted,
+      scriptsCollected,
+      studentsVerified,
+      incidentsReported,
+      batchesSealed,
+    };
+
+    // Get active incidents (unresolved) that this invigilator reported or is assigned to
+    const activeIncidents = await prisma.examIncident.findMany({
+      where: {
+        OR: [
+          { reportedBy: invigilatorId },
+          { assignedTo: invigilatorId },
+        ],
+        status: {
+          in: ['REPORTED', 'UNDER_INVESTIGATION'],
+        },
+      },
+      include: {
+        examEntry: {
+          include: {
+            venue: true,
+          },
+        },
+      },
+      orderBy: {
+        reportedAt: 'desc',
+      },
+      take: 5,
+    });
+
+    const formattedActiveIncidents = activeIncidents.map(incident => ({
+      id: incident.id,
+      type: incident.type,
+      severity: incident.severity.toLowerCase() as 'low' | 'medium' | 'high' | 'critical',
+      title: incident.title,
+      venueName: incident.examEntry.venue.name,
+      reportedAt: incident.reportedAt.toISOString(),
+      status: incident.status === 'REPORTED' ? 'reported' : 'investigating' as 'reported' | 'investigating',
+    }));
+
+    // Calculate pending tasks
+    const unsealedBatches = await prisma.batchScript.count({
+      where: {
+        examEntry: {
+          invigilatorAssignments: {
+            some: {
+              invigilatorId,
+            },
+          },
+        },
+        sealedAt: null,
+      },
+    });
+
+    const totalExpectedStudents = activeAssignments.reduce((sum, a) =>
+      sum + (a.examEntry.examLogistics?.totalExpected || 0), 0
+    );
+    const totalPresentStudents = activeAssignments.reduce((sum, a) =>
+      sum + (a.examEntry.examLogistics?.totalPresent || 0), 0
+    );
+    const unverifiedStudents = totalExpectedStudents - totalPresentStudents;
+
+    const unresolvedIncidents = await prisma.examIncident.count({
+      where: {
+        OR: [
+          { reportedBy: invigilatorId },
+          { assignedTo: invigilatorId },
+        ],
+        status: {
+          in: ['REPORTED', 'UNDER_INVESTIGATION'],
+        },
+      },
+    });
+
+    const uncheckedSessions = activeAssignments.filter(a =>
+      a.checkedInAt === null && this.getExamSessionStatus(a.examEntry) !== 'NOT_STARTED'
+    ).length;
+
+    const pendingTasks = {
+      unsealedBatches,
+      unverifiedStudents,
+      unresolvedIncidents,
+      uncheckedSessions,
+    };
+
+    // Get recent activity (last 24 hours)
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const recentLogs = await prisma.examSessionLog.findMany({
+      where: {
+        OR: [
+          { performedBy: invigilatorId },
+          {
+            examEntry: {
+              invigilatorAssignments: {
+                some: {
+                  invigilatorId,
+                },
+              },
+            },
+          },
+        ],
+        performedAt: {
+          gte: yesterday,
+        },
+      },
+      include: {
+        examEntry: {
+          include: {
+            course: true,
+            venue: true,
+          },
+        },
+        performer: {
+          select: {
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+      orderBy: {
+        performedAt: 'desc',
+      },
+      take: 10,
+    });
+
+    const recentActivity = recentLogs.map(log => ({
+      id: log.id.toString(),
+      type: log.action.toLowerCase().replace('_', '_') as any,
+      description: this.formatLogDescription(log),
+      timestamp: log.performedAt.toISOString(),
+      sessionId: log.examEntryId,
+      venueName: log.examEntry.venue.name,
+    }));
+
+    return {
+      user: {
+        id: invigilator.id,
+        firstName: invigilator.firstName,
+        lastName: invigilator.lastName,
+        role: invigilator.role as 'INVIGILATOR',
+        department: invigilator.department,
+        faculty: invigilator.faculty,
+      },
+      activeSessions,
+      todayStats,
+      activeIncidents: formattedActiveIncidents,
+      pendingTasks,
+      recentActivity,
+    };
+  },
+
   // ========================================
   // UTILITY FUNCTIONS
   // ========================================
@@ -1728,5 +2006,30 @@ export const examLogisticsService = {
     if (now < startTime) return 'NOT_STARTED';
     if (now >= startTime && now <= endTime) return 'IN_PROGRESS';
     return 'COMPLETED';
+  },
+
+  /**
+   * Format log description for activity feed
+   */
+  formatLogDescription(log: any): string {
+    const performer = log.performer?.firstName + ' ' + log.performer?.lastName;
+    const course = log.examEntry?.course?.code;
+
+    switch (log.action) {
+      case 'STUDENT_CHECK_IN':
+        return `Verified student ${log.student?.firstName} ${log.student?.lastName} for ${course}`;
+      case 'SCRIPT_SUBMITTED':
+        return `Submitted script for ${log.student?.firstName} ${log.student?.lastName} in ${course}`;
+      case 'INCIDENT_REPORTED':
+        return `Reported incident: ${log.details?.title || 'Exam irregularity'}`;
+      case 'BATCH_SEALED':
+        return `Sealed script batch for ${course}`;
+      case 'SESSION_CHECK_IN':
+        return `Checked in for ${course} session`;
+      case 'SESSION_CHECK_OUT':
+        return `Checked out from ${course} session`;
+      default:
+        return `${performer} performed ${log.action.toLowerCase().replace('_', ' ')}`;
+    }
   },
 };

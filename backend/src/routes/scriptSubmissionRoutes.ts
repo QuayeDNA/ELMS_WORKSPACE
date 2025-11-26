@@ -12,50 +12,54 @@ router.use(authenticateToken);
 // SCRIPT SUBMISSION ROUTES
 // ========================================
 
-// Submit script (INVIGILATOR, EXAMS_OFFICER)
+// Submit script (INVIGILATOR, LECTURER, EXAMS_OFFICER)
 router.post(
   '/submit',
   requireRole(
     UserRole.ADMIN,
     UserRole.SUPER_ADMIN,
     UserRole.EXAMS_OFFICER,
-    UserRole.INVIGILATOR
+    UserRole.INVIGILATOR,
+    UserRole.LECTURER
   ),
   ScriptSubmissionController.submitScript
 );
 
-// Scan student QR code (INVIGILATOR, EXAMS_OFFICER)
+// Scan student QR code (INVIGILATOR, LECTURER, EXAMS_OFFICER)
 router.post(
   '/scan-student',
   requireRole(
     UserRole.ADMIN,
     UserRole.SUPER_ADMIN,
     UserRole.EXAMS_OFFICER,
-    UserRole.INVIGILATOR
+    UserRole.INVIGILATOR,
+    UserRole.LECTURER
   ),
   ScriptSubmissionController.scanStudent
 );
 
-// Verify script (INVIGILATOR, EXAMS_OFFICER)
+// Verify script (INVIGILATOR, LECTURER, EXAMS_OFFICER)
 router.post(
   '/:scriptId/verify',
   requireRole(
     UserRole.ADMIN,
     UserRole.SUPER_ADMIN,
     UserRole.EXAMS_OFFICER,
-    UserRole.INVIGILATOR
+    UserRole.INVIGILATOR,
+    UserRole.LECTURER
   ),
   ScriptSubmissionController.verifyScript
 );
 
-// Bulk submit scripts (INVIGILATOR, EXAMS_OFFICER)
+// Bulk submit scripts (INVIGILATOR, LECTURER, EXAMS_OFFICER)
 router.post(
   '/bulk-submit',
   requireRole(
     UserRole.ADMIN,
     UserRole.SUPER_ADMIN,
     UserRole.EXAMS_OFFICER,
-    UserRole.INVIGILATOR
+    UserRole.INVIGILATOR,
+    UserRole.LECTURER
   ),
   ScriptSubmissionController.bulkSubmitScripts
 );

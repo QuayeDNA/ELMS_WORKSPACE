@@ -484,6 +484,28 @@ export const examLogisticsController = {
     }
   },
 
+  /**
+   * Get invigilator dashboard
+   */
+  async getInvigilatorDashboard(req: Request, res: Response) {
+    try {
+      const invigilatorId = req.user?.userId;
+
+      if (!invigilatorId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const result = await examLogisticsService.getInvigilatorDashboard(invigilatorId);
+
+      res.json({
+        success: true,
+        data: result
+      });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  },
+
   // ========================================
   // LOGS AND AUDIT ENDPOINTS
   // ========================================

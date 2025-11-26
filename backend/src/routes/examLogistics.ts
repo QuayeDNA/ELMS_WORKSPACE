@@ -37,11 +37,11 @@ router.put(
 /**
  * PUT /api/exam-logistics/invigilator-presence
  * Update invigilator check-in/check-out status
- * Requires: ADMIN, EXAMS_OFFICER, SUPER_ADMIN, INVIGILATOR
+ * Requires: ADMIN, EXAMS_OFFICER, SUPER_ADMIN, INVIGILATOR, LECTURER
  */
 router.put(
   "/invigilator-presence",
-  requireRole(UserRole.ADMIN, UserRole.EXAMS_OFFICER, UserRole.SUPER_ADMIN, UserRole.INVIGILATOR),
+  requireRole(UserRole.ADMIN, UserRole.EXAMS_OFFICER, UserRole.SUPER_ADMIN, UserRole.INVIGILATOR, UserRole.LECTURER),
   examLogisticsController.updateInvigilatorPresence
 );
 
@@ -85,11 +85,11 @@ router.delete(
 /**
  * POST /api/exam-logistics/check-in-student
  * Check in a student for an exam
- * Requires: ADMIN, EXAMS_OFFICER, SUPER_ADMIN, INVIGILATOR
+ * Requires: ADMIN, EXAMS_OFFICER, SUPER_ADMIN, INVIGILATOR, LECTURER
  */
 router.post(
   "/check-in-student",
-  requireRole(UserRole.ADMIN, UserRole.EXAMS_OFFICER, UserRole.SUPER_ADMIN, UserRole.INVIGILATOR),
+  requireRole(UserRole.ADMIN, UserRole.EXAMS_OFFICER, UserRole.SUPER_ADMIN, UserRole.INVIGILATOR, UserRole.LECTURER),
   examLogisticsController.checkInStudent
 );
 
@@ -111,11 +111,11 @@ router.put(
 /**
  * POST /api/exam-logistics/report-incident
  * Report an exam incident
- * Requires: ADMIN, EXAMS_OFFICER, SUPER_ADMIN, INVIGILATOR
+ * Requires: ADMIN, EXAMS_OFFICER, SUPER_ADMIN, INVIGILATOR, LECTURER
  */
 router.post(
   "/report-incident",
-  requireRole(UserRole.ADMIN, UserRole.EXAMS_OFFICER, UserRole.SUPER_ADMIN, UserRole.INVIGILATOR),
+  requireRole(UserRole.ADMIN, UserRole.EXAMS_OFFICER, UserRole.SUPER_ADMIN, UserRole.INVIGILATOR, UserRole.LECTURER),
   examLogisticsController.reportExamIncident
 );
 
@@ -226,6 +226,17 @@ router.get(
   examLogisticsController.getExamsOfficerDashboard
 );
 
+/**
+ * GET /api/exam-logistics/invigilator-dashboard
+ * Get invigilator specific dashboard
+ * Requires: INVIGILATOR, ADMIN, EXAMS_OFFICER, SUPER_ADMIN, LECTURER
+ */
+router.get(
+  "/invigilator-dashboard",
+  requireRole(UserRole.ADMIN, UserRole.EXAMS_OFFICER, UserRole.SUPER_ADMIN, UserRole.INVIGILATOR, UserRole.LECTURER),
+  examLogisticsController.getInvigilatorDashboard
+);
+
 // ========================================
 // LOGS AND AUDIT ROUTES
 // ========================================
@@ -255,11 +266,11 @@ router.get(
 /**
  * GET /api/exam-logistics/student-verifications/:examEntryId
  * Get student verifications for a specific exam entry
- * Requires: ADMIN, EXAMS_OFFICER, SUPER_ADMIN, INVIGILATOR
+ * Requires: ADMIN, EXAMS_OFFICER, SUPER_ADMIN, INVIGILATOR, LECTURER
  */
 router.get(
   "/student-verifications/:examEntryId",
-  requireRole(UserRole.ADMIN, UserRole.EXAMS_OFFICER, UserRole.SUPER_ADMIN, UserRole.INVIGILATOR),
+  requireRole(UserRole.ADMIN, UserRole.EXAMS_OFFICER, UserRole.SUPER_ADMIN, UserRole.INVIGILATOR, UserRole.LECTURER),
   examLogisticsController.getStudentVerifications
 );
 
