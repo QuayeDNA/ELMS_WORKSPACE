@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { combineReducers } from 'redux';
 import authReducer from './slices/authSlice';
 import uiReducer from './slices/uiSlice';
+import { initializeHttpClient } from '../services/api';
 
 const persistConfig = {
   key: 'root',
@@ -29,6 +30,12 @@ export const store = configureStore({
 });
 
 export const persistor = persistStore(store);
+
+// Initialize HTTP client with auth token getter
+initializeHttpClient(async () => {
+  const state = store.getState();
+  return state.auth.token;
+});
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

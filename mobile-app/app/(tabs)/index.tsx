@@ -246,9 +246,6 @@ const Index: React.FC = () => {
               )}
             </Card>
           </Section>
-
-          {/* Bottom spacing for FAB */}
-          <View className="h-20" />
         </ScrollView>
       </ScreenContainer>
 

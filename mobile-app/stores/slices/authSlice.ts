@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User, AuthState, LoginCredentials } from '../../types';
 import { authApi } from '../../services/api';
+import { ApiError, ApiErrorType } from '../../constants/api';
 
 // Async thunk for login
 export const loginUser = createAsyncThunk(
@@ -11,7 +12,7 @@ export const loginUser = createAsyncThunk(
       const response = await authApi.login(credentials.username, credentials.password);
 
       if (!response.success) {
-        throw new Error('Login failed');
+        throw new Error(response.message || 'Login failed');
       }
 
       const { user, token } = response.data;
@@ -26,7 +27,30 @@ export const loginUser = createAsyncThunk(
 
       return { user, token };
     } catch (error: any) {
-      return rejectWithValue(error.message || 'Login failed. Please check your credentials.');
+      let errorMessage = 'Login failed. Please check your credentials.';
+
+      if (error instanceof ApiError) {
+        switch (error.type) {
+          case ApiErrorType.NETWORK_ERROR:
+            errorMessage = 'Network connection failed. Please check your internet connection.';
+            break;
+          case ApiErrorType.TIMEOUT_ERROR:
+            errorMessage = 'Request timed out. Please try again.';
+            break;
+          case ApiErrorType.AUTHENTICATION_ERROR:
+            errorMessage = 'Invalid username or password.';
+            break;
+          case ApiErrorType.SERVER_ERROR:
+            errorMessage = 'Server error. Please try again later.';
+            break;
+          default:
+            errorMessage = error.message || errorMessage;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      return rejectWithValue(errorMessage);
     }
   }
 );
@@ -56,7 +80,7 @@ export const checkAuthStatus = createAsyncThunk(
 
       const response = await authApi.getCurrentUser();
       if (!response.success) {
-        throw new Error('Failed to get user data');
+        throw new Error(response.message || 'Failed to get user data');
       }
 
       const user = response.data;
@@ -70,7 +94,25 @@ export const checkAuthStatus = createAsyncThunk(
       return { user, token };
     } catch (error: any) {
       await AsyncStorage.removeItem('authToken');
-      return rejectWithValue(error.message || 'Session expired. Please login again.');
+
+      let errorMessage = 'Session expired. Please login again.';
+
+      if (error instanceof ApiError) {
+        switch (error.type) {
+          case ApiErrorType.NETWORK_ERROR:
+            errorMessage = 'Network connection failed. Please check your connection.';
+            break;
+          case ApiErrorType.AUTHENTICATION_ERROR:
+            errorMessage = 'Session expired. Please login again.';
+            break;
+          default:
+            errorMessage = error.message || errorMessage;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      return rejectWithValue(errorMessage);
     }
   }
 );

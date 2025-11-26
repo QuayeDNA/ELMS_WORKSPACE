@@ -1,318 +1,209 @@
 import { User, ExamSession, Student, BatchScript, ScriptMovement, ApiResponse } from '../types';
+import { API_BASE_URL, API_ENDPOINTS, HTTP_STATUS, REQUEST_TIMEOUT, ApiError, ApiErrorType } from '../constants/api';
 
-// Dummy data for development
-const DUMMY_USERS: User[] = [
-  {
-    id: 1,
-    username: 'johndoe',
-    email: 'john.doe@university.edu',
-    firstName: 'John',
-    lastName: 'Doe',
-    role: 'INVIGILATOR',
-    department: 'Computer Science',
-    faculty: 'Engineering',
-    isActive: true,
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-01T00:00:00Z',
-  },
-  {
-    id: 2,
-    username: 'janesmith',
-    email: 'jane.smith@university.edu',
-    firstName: 'Jane',
-    lastName: 'Smith',
-    role: 'LECTURER',
-    department: 'Mathematics',
-    faculty: 'Science',
-    isActive: true,
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-01T00:00:00Z',
-  },
-  {
-    id: 3,
-    username: 'bobhod',
-    email: 'bob.hod@university.edu',
-    firstName: 'Bob',
-    lastName: 'Wilson',
-    role: 'HOD',
-    department: 'Computer Science',
-    faculty: 'Engineering',
-    isActive: true,
-    createdAt: '2024-01-01T00:00:00:00Z',
-    updatedAt: '2024-01-01T00:00:00Z',
-  },
-  {
-    id: 4,
-    username: 'aliceadmin',
-    email: 'alice.admin@university.edu',
-    firstName: 'Alice',
-    lastName: 'Johnson',
-    role: 'ADMIN',
-    department: 'Administration',
-    faculty: 'Administration',
-    isActive: true,
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-01T00:00:00Z',
-  },
-  {
-    id: 5,
-    username: 'charlieofficer',
-    email: 'charlie.officer@university.edu',
-    firstName: 'Charlie',
-    lastName: 'Brown',
-    role: 'EXAMS_OFFICER',
-    department: 'Examinations',
-    faculty: 'Administration',
-    isActive: true,
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-01T00:00:00Z',
-  },
-  {
-    id: 6,
-    username: 'superadmin',
-    email: 'super.admin@university.edu',
-    firstName: 'Super',
-    lastName: 'Admin',
-    role: 'SUPER_ADMIN',
-    department: 'IT',
-    faculty: 'Administration',
-    isActive: true,
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-01T00:00:00Z',
-  },
-  {
-    id: 7,
-    username: 'student1',
-    email: 'student1@university.edu',
-    firstName: 'Student',
-    lastName: 'One',
-    role: 'STUDENT',
-    department: 'Computer Science',
-    faculty: 'Engineering',
-    isActive: true,
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-01T00:00:00Z',
-  },
-];
+// HTTP Client Configuration
+class HttpClient {
+  private baseURL: string;
+  private defaultHeaders: Record<string, string>;
+  private getAuthToken: () => Promise<string | null>;
 
-const DUMMY_SESSIONS: ExamSession[] = [
-  {
-    id: 1,
-    courseId: 1,
-    course: {
-      id: 1,
-      code: 'CE201',
-      name: 'Data Structures',
-      level: 200,
-      duration: 2,
-      department: 'Computer Science',
-      faculty: 'Engineering',
-    },
-    programId: 1,
-    program: {
-      id: 1,
-      name: 'Computer Engineering',
-      code: 'CE',
-      department: 'Computer Science',
-      faculty: 'Engineering',
-    },
-    venueId: 1,
-    venue: {
-      id: 1,
-      name: 'Hall A',
-      location: 'Main Campus',
-      capacity: 100,
-    },
-    date: '2025-11-26',
-    startTime: '09:00',
-    endTime: '11:00',
-    invigilatorId: 1,
-    invigilator: DUMMY_USERS[0],
-    status: 'active',
-    expectedStudents: 45,
-    registeredStudents: 42,
-    submittedScripts: 38,
-    createdAt: '2024-11-20T00:00:00Z',
-    updatedAt: '2024-11-26T08:00:00Z',
-  },
-  {
-    id: 2,
-    courseId: 2,
-    course: {
-      id: 2,
-      code: 'MA101',
-      name: 'Calculus I',
-      level: 100,
-      duration: 2,
-      department: 'Mathematics',
-      faculty: 'Science',
-    },
-    programId: 2,
-    program: {
-      id: 2,
-      name: 'Mathematics',
-      code: 'MA',
-      department: 'Mathematics',
-      faculty: 'Science',
-    },
-    venueId: 2,
-    venue: {
-      id: 2,
-      name: 'Hall B',
-      location: 'Main Campus',
-      capacity: 80,
-    },
-    date: '2025-11-27',
-    startTime: '14:00',
-    endTime: '16:00',
-    status: 'scheduled',
-    expectedStudents: 60,
-    registeredStudents: 58,
-    submittedScripts: 0,
-    createdAt: '2024-11-20T00:00:00Z',
-    updatedAt: '2024-11-20T00:00:00Z',
-  },
-];
+  constructor(baseURL: string, getAuthToken: () => Promise<string | null>) {
+    this.baseURL = baseURL;
+    this.getAuthToken = getAuthToken;
+    this.defaultHeaders = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+  }
 
-const DUMMY_STUDENTS: Student[] = Array.from({ length: 45 }, (_, i) => ({
-  id: i + 1,
-  indexNumber: `CE${String(i + 1).padStart(3, '0')}`,
-  firstName: `Student${i + 1}`,
-  lastName: 'Doe',
-  email: `student${i + 1}@university.edu`,
-  program: 'Computer Engineering',
-  level: 200,
-  isRegistered: Math.random() > 0.1, // 90% registered
-  hasSubmitted: Math.random() > 0.2, // 80% submitted
-}));
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<ApiResponse<T>> {
+    const url = `${this.baseURL}${endpoint}`;
+    const config: RequestInit = {
+      ...options,
+      headers: {
+        ...this.defaultHeaders,
+        ...options.headers,
+      },
+    };
 
-const DUMMY_BATCHES: BatchScript[] = [
-  {
-    id: 1,
-    batchNumber: 'BATCH-001',
-    courseId: 1,
-    course: DUMMY_SESSIONS[0].course,
-    venueId: 1,
-    venue: DUMMY_SESSIONS[0].venue,
-    scriptCount: 38,
-    status: 'collected',
-    currentHandlerId: 1,
-    currentHandler: DUMMY_USERS[0],
-    collectedAt: '2025-11-26T11:00:00Z',
-    createdAt: '2025-11-26T09:00:00Z',
-    updatedAt: '2025-11-26T11:00:00Z',
-  },
-  {
-    id: 2,
-    batchNumber: 'BATCH-002',
-    courseId: 2,
-    course: DUMMY_SESSIONS[1].course,
-    venueId: 2,
-    venue: DUMMY_SESSIONS[1].venue,
-    scriptCount: 0,
-    status: 'generated',
-    currentHandlerId: 1,
-    currentHandler: DUMMY_USERS[0],
-    createdAt: '2025-11-25T00:00:00Z',
-    updatedAt: '2025-11-25T00:00:00Z',
-  },
-];
+    // Add authorization header if token exists
+    const token = await this.getAuthToken();
+    if (token) {
+      config.headers = {
+        ...config.headers,
+        'Authorization': `Bearer ${token}`,
+      };
+    }
 
-// Simulate API delay
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+
+      const response = await fetch(url, {
+        ...config,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      // Handle HTTP errors
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+
+        let errorType = ApiErrorType.UNKNOWN_ERROR;
+        switch (response.status) {
+          case HTTP_STATUS.UNAUTHORIZED:
+            errorType = ApiErrorType.AUTHENTICATION_ERROR;
+            break;
+          case HTTP_STATUS.FORBIDDEN:
+            errorType = ApiErrorType.AUTHORIZATION_ERROR;
+            break;
+          case HTTP_STATUS.BAD_REQUEST:
+            errorType = ApiErrorType.VALIDATION_ERROR;
+            break;
+          case HTTP_STATUS.INTERNAL_SERVER_ERROR:
+            errorType = ApiErrorType.SERVER_ERROR;
+            break;
+        }
+
+        throw new ApiError({
+          type: errorType,
+          message: errorData.message || `HTTP ${response.status}: ${response.statusText}`,
+          statusCode: response.status,
+          details: errorData,
+        });
+      }
+
+      const data = await response.json();
+      return data;
+
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
+
+      // Handle network errors
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new ApiError({
+          type: ApiErrorType.NETWORK_ERROR,
+          message: 'Network connection failed. Please check your internet connection.',
+          details: error,
+        });
+      }
+
+      // Handle timeout errors
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new ApiError({
+          type: ApiErrorType.TIMEOUT_ERROR,
+          message: 'Request timed out. Please try again.',
+          details: error,
+        });
+      }
+
+      // Handle other errors
+      throw new ApiError({
+        type: ApiErrorType.UNKNOWN_ERROR,
+        message: error instanceof Error ? error.message : 'An unknown error occurred',
+        details: error,
+      });
+    }
+  }
+
+  async get<T>(endpoint: string, params?: Record<string, any>): Promise<ApiResponse<T>> {
+    const url = params ? `${endpoint}?${new URLSearchParams(params)}` : endpoint;
+    return this.request<T>(url, { method: 'GET' });
+  }
+
+  async post<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
+      method: 'POST',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  async put<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
+      method: 'PUT',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  async patch<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
+      method: 'PATCH',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, { method: 'DELETE' });
+  }
+}
+
+// Create HTTP client instance
+// This will be initialized with the store later
+let httpClient: HttpClient;
+
+export const initializeHttpClient = (getAuthToken: () => Promise<string | null>) => {
+  httpClient = new HttpClient(API_BASE_URL, getAuthToken);
+};
+
+// For now, create a basic client that will be replaced
+const getTokenPlaceholder = async (): Promise<string | null> => {
+  // TODO: Get token from Redux store
+  return null;
+};
+
+httpClient = new HttpClient(API_BASE_URL, getTokenPlaceholder);
 
 // Auth API
 export const authApi = {
   login: async (username: string, password: string): Promise<ApiResponse<{ user: User; token: string }>> => {
-    await delay(1000);
-    const user = DUMMY_USERS.find(u => u.username === username);
-    if (!user || password !== 'password') {
-      throw new Error('Invalid credentials');
-    }
+    return httpClient.post(API_ENDPOINTS.AUTH.LOGIN, { username, password });
+  },
 
-    // Block students from logging in
-    if (user.role === 'STUDENT') {
-      throw new Error('Students are not allowed to access this application. Please use the web interface.');
-    }
-
-    return {
-      success: true,
-      data: {
-        user,
-        token: `dummy-jwt-token-${user.id}`,
-      },
-    };
+  logout: async (): Promise<ApiResponse<void>> => {
+    return httpClient.post(API_ENDPOINTS.AUTH.LOGOUT);
   },
 
   getCurrentUser: async (): Promise<ApiResponse<User>> => {
-    await delay(500);
-    // In a real app, this would decode the JWT token to get user info
-    // For demo, return the first non-student user
-    const user = DUMMY_USERS.find(u => u.role !== 'STUDENT');
-    if (!user) {
-      throw new Error('User not found');
-    }
-    return {
-      success: true,
-      data: user,
-    };
+    return httpClient.get(API_ENDPOINTS.AUTH.PROFILE);
+  },
+
+  refreshToken: async (): Promise<ApiResponse<{ token: string }>> => {
+    return httpClient.post(API_ENDPOINTS.AUTH.REFRESH);
   },
 };
 
 // Sessions API
 export const sessionsApi = {
   getMySessions: async (): Promise<ApiResponse<ExamSession[]>> => {
-    await delay(800);
-    return {
-      success: true,
-      data: DUMMY_SESSIONS,
-    };
+    return httpClient.get(API_ENDPOINTS.EXAM_LOGISTICS.MY_SESSIONS);
   },
 
   getSessionDetails: async (sessionId: number): Promise<ApiResponse<ExamSession>> => {
-    await delay(600);
-    const session = DUMMY_SESSIONS.find(s => s.id === sessionId);
-    if (!session) {
-      throw new Error('Session not found');
-    }
-    return {
-      success: true,
-      data: session,
-    };
+    return httpClient.get(API_ENDPOINTS.EXAM_LOGISTICS.SESSION_DETAILS(sessionId));
   },
 };
 
 // Students API
 export const studentsApi = {
   getSessionStudents: async (sessionId: number): Promise<ApiResponse<Student[]>> => {
-    await delay(700);
-    return {
-      success: true,
-      data: DUMMY_STUDENTS,
-    };
+    return httpClient.get(API_ENDPOINTS.STUDENTS.SESSION_STUDENTS(sessionId));
   },
 };
 
 // Batches API
 export const batchesApi = {
   getMyBatches: async (): Promise<ApiResponse<BatchScript[]>> => {
-    await delay(600);
-    return {
-      success: true,
-      data: DUMMY_BATCHES,
-    };
+    return httpClient.get(API_ENDPOINTS.BATCH_SCRIPTS.LIST);
   },
 
   getBatchDetails: async (batchId: number): Promise<ApiResponse<BatchScript>> => {
-    await delay(500);
-    const batch = DUMMY_BATCHES.find(b => b.id === batchId);
-    if (!batch) {
-      throw new Error('Batch not found');
-    }
-    return {
-      success: true,
-      data: batch,
-    };
+    return httpClient.get(API_ENDPOINTS.BATCH_SCRIPTS.DETAILS(batchId));
   },
 
   transferBatch: async (transferData: {
@@ -321,41 +212,18 @@ export const batchesApi = {
     location: { latitude: number; longitude: number; address?: string };
     notes?: string;
   }): Promise<ApiResponse<{ movementId: number }>> => {
-    await delay(1000);
-    return {
-      success: true,
-      data: {
-        movementId: Math.floor(Math.random() * 1000),
-      },
-    };
+    // TODO: Implement batch transfer endpoint when available
+    throw new Error('Batch transfer not yet implemented');
   },
 };
 
 // Movements API
 export const movementsApi = {
   getBatchMovements: async (batchId: number): Promise<ApiResponse<ScriptMovement[]>> => {
-    await delay(600);
-    // Dummy movements
-    const movements: ScriptMovement[] = [
-      {
-        id: 1,
-        batchScriptId: batchId,
-        fromHandlerId: 1,
-        fromHandler: DUMMY_USERS[0],
-        toHandlerId: 2,
-        toHandler: DUMMY_USERS[1],
-        location: {
-          latitude: 5.6037,
-          longitude: -0.1870,
-          address: 'University Campus',
-        },
-        notes: 'Transfer to lecturer for grading',
-        timestamp: '2025-11-26T12:00:00Z',
-      },
-    ];
+    // TODO: Implement movements endpoint when available
     return {
       success: true,
-      data: movements,
+      data: [],
     };
   },
 };
@@ -363,10 +231,10 @@ export const movementsApi = {
 // Handlers API
 export const handlersApi = {
   getAllHandlers: async (): Promise<ApiResponse<User[]>> => {
-    await delay(500);
+    // TODO: Implement handlers endpoint when available
     return {
       success: true,
-      data: DUMMY_USERS,
+      data: [],
     };
   },
 };
