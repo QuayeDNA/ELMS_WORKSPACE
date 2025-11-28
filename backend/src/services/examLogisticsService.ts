@@ -1723,6 +1723,39 @@ export const examLogisticsService = {
       throw new Error("Invigilator not found");
     }
 
+    // Check if invigilator has any assignments at all (past, present, future)
+    const totalAssignments = await prisma.invigilatorAssignment.count({
+      where: { invigilatorId },
+    });
+
+    // Check for future assignments
+    const now = new Date();
+    const futureAssignments = await prisma.invigilatorAssignment.count({
+      where: {
+        invigilatorId,
+        examEntry: {
+          startTime: {
+            gt: now,
+          },
+          timetable: {
+            isPublished: true,
+          },
+        },
+      },
+    });
+
+    // Determine assignment status
+    let assignmentStatus: 'no_assignments' | 'no_today_assignments' | 'has_assignments' = 'has_assignments';
+    let statusMessage = '';
+
+    if (totalAssignments === 0) {
+      assignmentStatus = 'no_assignments';
+      statusMessage = 'You have not been assigned to any examination sessions yet. Please contact your exams officer for assignments.';
+    } else if (futureAssignments > 0) {
+      assignmentStatus = 'no_today_assignments';
+      statusMessage = `You have ${futureAssignments} upcoming assignment${futureAssignments > 1 ? 's' : ''}. Your assignments will appear here when they become active.`;
+    }
+
     // Get today's date range
     const today = new Date();
     const startOfDay = new Date(today);
@@ -1972,6 +2005,8 @@ export const examLogisticsService = {
         department: invigilator.department,
         faculty: invigilator.faculty,
       },
+      assignmentStatus,
+      statusMessage,
       activeSessions,
       todayStats,
       activeIncidents: formattedActiveIncidents,

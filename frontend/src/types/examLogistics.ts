@@ -2,8 +2,14 @@
 // EXAM LOGISTICS TYPES
 // ========================================
 
-import { IncidentSeverity, IncidentStatus } from "@/types/shared/api";
-
+export type IncidentSeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+export type IncidentStatus =
+  "REPORTED"
+  | "UNDER_INVESTIGATION"
+  | "RESOLVED"
+  | "CLOSED"
+  | "ESCALATED";
+  
 // ========================================
 // REFERENCE TYPES (Used by other interfaces)
 // ========================================

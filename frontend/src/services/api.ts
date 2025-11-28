@@ -1,5 +1,5 @@
-import axios, { AxiosResponse, InternalAxiosRequestConfig } from 'axios';
-import { API_BASE_URL, API_ENDPOINTS } from '@/utils/constants';
+import axios, { AxiosResponse, InternalAxiosRequestConfig, AxiosHeaders } from 'axios';
+import { API_BASE_URL } from '@/utils/constants';
 import { ApiResponse, ApiError } from '@/types/api';
 import { useAuthStore } from '@/stores/auth.store';
 
@@ -25,7 +25,7 @@ class ApiService {
     this.api.interceptors.request.use(
       (config: InternalAxiosRequestConfig) => {
         if (!config.headers) {
-          config.headers = {};
+          config.headers = new AxiosHeaders();
         }
         // Get token from Zustand store (which uses persist)
         const token = useAuthStore.getState().token;
@@ -58,7 +58,7 @@ class ApiService {
             return new Promise((resolve) => {
               this.refreshSubscribers.push((token: string) => {
                 if (!originalRequest.headers) {
-                  originalRequest.headers = {};
+                  originalRequest.headers = new AxiosHeaders();
                 }
                 originalRequest.headers.Authorization = `Bearer ${token}`;
                 resolve(this.api.request(originalRequest));
@@ -82,7 +82,7 @@ class ApiService {
               // Update authorization header
               this.api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
               if (!originalRequest.headers) {
-                originalRequest.headers = {};
+                originalRequest.headers = new AxiosHeaders();
               }
               originalRequest.headers.Authorization = `Bearer ${newToken}`;
 

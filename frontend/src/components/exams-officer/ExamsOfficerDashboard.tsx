@@ -19,7 +19,7 @@ import {
   XCircle,
   AlertCircle,
   Calendar,
-  UserPlus
+  Info
 } from 'lucide-react';
 import {
   Select,
@@ -31,14 +31,70 @@ import {
 import { examLogisticsService } from '@/services/examLogistics.service';
 import { examTimetableService, type ExamTimetable } from '@/services/examTimetable.service';
 import { qrCodeService } from '@/services/qrCode.service';
-import type { ExamsOfficerDashboard, VenueSessionOverview, ExamSessionStatus, ExamIncident, QRCodeData, VenueOfficerAssignment } from '@/types/examLogistics';
+import type { ExamsOfficerDashboard, VenueSessionOverview, ExamSessionStatus, ExamIncident, QRCodeData } from '@/types/examLogistics';
+import { InvigilatorRole } from '@/types/examLogistics';
 import { VerificationMethod } from '@/types/examLogistics';
+
+// Define types for session data
+interface SessionData {
+  id: number;
+  courseCode: string;
+  courseName: string;
+  level: number;
+  examDate: string;
+  startTime: string;
+  endTime: string;
+  duration: number;
+  venue: {
+    id: number;
+    name: string;
+    location: string;
+    capacity: number;
+  };
+  studentCount: number;
+  registeredCount: number;
+  verifiedCount: number;
+  status: string;
+  assignments: Array<{
+    id: number;
+    invigilator: {
+      id: number;
+      firstName: string;
+      lastName: string;
+      email: string;
+      fullName: string;
+    };
+    role: string;
+    status: string;
+    checkedInAt: string | null;
+    assignedAt: string;
+  }>;
+}
+
+interface AvailableInvigilator {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  fullName: string;
+  role: string;
+  department: string;
+  departmentCode: string;
+  isAvailable: boolean;
+  conflict: {
+    courseCode: string;
+    courseName: string;
+    startTime: string;
+    endTime: string;
+  } | null;
+}
 import { useAuth } from '@/hooks/useAuth';
 import { useRealtimeContext } from '@/contexts/RealtimeContext';
 import { useLogisticsDashboardRealtime } from '@/hooks/useExamLogisticsRealtime';
 import { toast } from 'sonner';
-import InvigilatorAssignmentPanel from './InvigilatorAssignmentPanel';
 import { CheckInActivityFeed } from './CheckInActivityFeed';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 export function ExamsOfficerDashboard() {
   const [dashboard, setDashboard] = useState<ExamsOfficerDashboard | null>(null);
@@ -51,9 +107,8 @@ export function ExamsOfficerDashboard() {
   const { isConnected } = useRealtimeContext();
   const { user } = useAuth();
 
-  // Venue assignment states
-  const [myVenueAssignments, setMyVenueAssignments] = useState<VenueOfficerAssignment[]>([]);
-  const [selectedVenueFilter, setSelectedVenueFilter] = useState<number | null>(null);
+  // Session management states
+  const [sessionsData, setSessionsData] = useState<SessionData[]>([]);
 
   // Load available timetables
   const loadTimetables = useCallback(async () => {
@@ -82,37 +137,36 @@ export function ExamsOfficerDashboard() {
     }
   }, [selectedTimetableId]);
 
-  // Load my venue assignments
-  const loadMyVenueAssignments = useCallback(async () => {
-    try {
-      const response = await examLogisticsService.getMyAssignedVenues();
-      if (response.success && response.data) {
-        setMyVenueAssignments(response.data);
+  // Load session data for assignment management
+  const loadSessionsData = useCallback(async () => {
+    if (!selectedTimetableId) return;
 
-        // Auto-select first venue if none selected and user has assignments
-        if (!selectedVenueFilter && response.data.length > 0) {
-          setSelectedVenueFilter(response.data[0].venueId);
-        }
+    try {
+      const response = await examLogisticsService.getSessionsForAssignment(selectedTimetableId);
+      if (response.success && response.data) {
+        setSessionsData(response.data);
       }
     } catch (error) {
-      console.error('Error loading venue assignments:', error);
-      toast.error('Failed to load venue assignments');
+      console.error('Error loading sessions data:', error);
+      toast.error('Failed to load session data');
     }
-  }, [selectedVenueFilter]);
+  }, [selectedTimetableId]);
+
+  // Load sessions data when timetable changes
+  useEffect(() => {
+    if (selectedTimetableId) {
+      loadSessionsData();
+    }
+  }, [selectedTimetableId, loadSessionsData]);
 
   // Load dashboard data
   const loadDashboard = useCallback(async () => {
     try {
       setLoading(true);
-      const options: { timetableId?: number; venueId?: number } = {};
+      const options: { timetableId?: number } = {};
 
       if (selectedTimetableId) {
         options.timetableId = selectedTimetableId;
-      }
-
-      // Filter by selected venue if officer has assignments
-      if (selectedVenueFilter) {
-        options.venueId = selectedVenueFilter;
       }
 
       const response = await examLogisticsService.getExamsOfficerDashboard(
@@ -129,7 +183,7 @@ export function ExamsOfficerDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [selectedTimetableId, selectedVenueFilter]);
+  }, [selectedTimetableId]);
 
   // Use real-time dashboard updates
   useLogisticsDashboardRealtime(loadDashboard);
@@ -137,15 +191,14 @@ export function ExamsOfficerDashboard() {
   // Load timetables and venue assignments on mount
   useEffect(() => {
     loadTimetables();
-    loadMyVenueAssignments();
-  }, [loadTimetables, loadMyVenueAssignments]);
+  }, [loadTimetables]);
 
-  // Load dashboard when timetable or venue selection changes
+  // Load dashboard when timetable changes
   useEffect(() => {
     if (selectedTimetableId !== undefined) {
       loadDashboard();
     }
-  }, [selectedTimetableId, selectedVenueFilter, loadDashboard]);
+  }, [selectedTimetableId, loadDashboard]);
 
   // Handle QR code scan
   const handleQRScan = async (qrData: string) => {
@@ -231,25 +284,6 @@ export function ExamsOfficerDashboard() {
                   </SelectContent>
                 </Select>
               )}
-              {myVenueAssignments.length > 0 && (
-                <Select
-                  value={selectedVenueFilter?.toString() || 'all'}
-                  onValueChange={(value) => setSelectedVenueFilter(value === 'all' ? null : parseInt(value, 10))}
-                >
-                  <SelectTrigger className="w-full sm:w-60">
-                    <MapPin className="h-4 w-4 mr-2" />
-                    <SelectValue placeholder="Select venue" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All My Venues</SelectItem>
-                    {myVenueAssignments.map((assignment) => (
-                      <SelectItem key={assignment.id} value={assignment.venueId.toString()}>
-                        {assignment.venue?.name || `Venue ${assignment.venueId}`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
             </div>
           </div>
         </div>
@@ -286,25 +320,6 @@ export function ExamsOfficerDashboard() {
                       <SelectItem key={timetable.id} value={timetable.id.toString()}>
                         {timetable.title}
                         {timetable.status === 'ARCHIVED' && ' (Archived)'}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-              {myVenueAssignments.length > 0 && (
-                <Select
-                  value={selectedVenueFilter?.toString() || 'all'}
-                  onValueChange={(value) => setSelectedVenueFilter(value === 'all' ? null : parseInt(value, 10))}
-                >
-                  <SelectTrigger className="w-full sm:w-60">
-                    <MapPin className="h-4 w-4 mr-2" />
-                    <SelectValue placeholder="Select venue" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All My Venues</SelectItem>
-                    {myVenueAssignments.map((assignment) => (
-                      <SelectItem key={assignment.id} value={assignment.venueId.toString()}>
-                        {assignment.venue?.name || `Venue ${assignment.venueId}`}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -348,17 +363,6 @@ export function ExamsOfficerDashboard() {
                 </div>
               </>
             )}
-            {selectedVenueFilter && myVenueAssignments.length > 0 && (
-              <>
-                <span className="hidden sm:inline">•</span>
-                <div className="flex items-center gap-1.5">
-                  <MapPin className="h-3.5 w-3.5 text-primary" />
-                  <span className="font-medium text-primary">
-                    {myVenueAssignments.find(v => v.venueId === selectedVenueFilter)?.venue?.name}
-                  </span>
-                </div>
-              </>
-            )}
           </div>
         </div>
 
@@ -380,25 +384,6 @@ export function ExamsOfficerDashboard() {
                     <SelectItem key={timetable.id} value={timetable.id.toString()}>
                       {timetable.title}
                       {timetable.status === 'ARCHIVED' && ' (Archived)'}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-            {activeTab === 'overview' && myVenueAssignments.length > 0 && (
-              <Select
-                value={selectedVenueFilter?.toString() || 'all'}
-                onValueChange={(value) => setSelectedVenueFilter(value === 'all' ? null : parseInt(value, 10))}
-              >
-                <SelectTrigger className="w-full sm:w-64">
-                  <MapPin className="h-4 w-4 mr-2 shrink-0" />
-                  <SelectValue placeholder="Select venue" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All My Venues</SelectItem>
-                  {myVenueAssignments.map((assignment) => (
-                    <SelectItem key={assignment.id} value={assignment.venueId.toString()}>
-                      {assignment.venue?.name || `Venue ${assignment.venueId}`}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -451,10 +436,6 @@ export function ExamsOfficerDashboard() {
           <TabsTrigger value="checkins" className="flex items-center gap-2">
             <CheckCircle className="h-4 w-4" />
             Live Check-Ins
-          </TabsTrigger>
-          <TabsTrigger value="assignments" className="flex items-center gap-2">
-            <UserPlus className="h-4 w-4" />
-            Invigilator Assignment
           </TabsTrigger>
         </TabsList>
 
@@ -510,7 +491,7 @@ export function ExamsOfficerDashboard() {
                     title="Active Issues"
                     value={dashboard.pendingIncidents.length}
                     icon={AlertTriangle}
-                    description={`${dashboard.pendingIncidents.filter(i => i.severity === 'critical').length} critical`}
+                    description={`${dashboard.pendingIncidents.filter(i => i.severity === 'CRITICAL').length} critical`}
                     trend={{ value: -dashboard.pendingIncidents.length, label: 'Pending Issues' }}
                   />
                 </>
@@ -554,6 +535,11 @@ export function ExamsOfficerDashboard() {
             venue={dashboard.venueOverviews.find(v => v.venueId === selectedVenue)!}
             sessions={dashboard.todaysSessions.filter(s => s.examEntryId && dashboard.venueOverviews.find(v => v.venueId === selectedVenue)?.activeSessions.some(as => as.examEntryId === s.examEntryId))}
             incidents={dashboard.pendingIncidents.filter(i => dashboard.venueOverviews.find(v => v.venueId === selectedVenue)?.activeSessions.some(as => as.examEntryId === i.examEntryId))}
+            sessionsData={sessionsData}
+            onAssignmentChange={() => {
+              loadDashboard();
+              loadSessionsData();
+            }}
           />
         )}
       </div>
@@ -562,28 +548,6 @@ export function ExamsOfficerDashboard() {
         {/* Live Check-Ins Tab Content */}
         <TabsContent value="checkins" className="space-y-6">
           <CheckInActivityFeed maxEvents={50} />
-        </TabsContent>
-
-        {/* Invigilator Assignment Tab Content */}
-        <TabsContent value="assignments">
-          {selectedTimetableId ? (
-            <InvigilatorAssignmentPanel
-              timetableId={selectedTimetableId}
-              onAssignmentChange={loadDashboard}
-            />
-          ) : (
-            <Card>
-              <CardContent className="flex items-center justify-center py-12">
-                <div className="text-center">
-                  <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Select a Timetable</h3>
-                  <p className="text-muted-foreground">
-                    Please select a timetable from the dropdown above to manage invigilator assignments.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </TabsContent>
       </Tabs>
     </div>
@@ -649,8 +613,20 @@ function VenueManagementCard({
   );
 }
 
-// Venue Detail View Component
-function VenueDetailView({ venue, sessions, incidents }: { venue: VenueSessionOverview; sessions: ExamSessionStatus[]; incidents: ExamIncident[] }) {
+// Venue Detail View Component with Accordion
+function VenueDetailView({
+  venue,
+  sessions,
+  incidents,
+  sessionsData,
+  onAssignmentChange
+}: {
+  venue: VenueSessionOverview;
+  sessions: ExamSessionStatus[];
+  incidents: ExamIncident[];
+  sessionsData: SessionData[];
+  onAssignmentChange: () => void;
+}) {
   return (
     <Card>
       <CardHeader>
@@ -660,72 +636,372 @@ function VenueDetailView({ venue, sessions, incidents }: { venue: VenueSessionOv
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-6">
-          {/* Session List */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Exam Sessions</h3>
+        <Accordion type="multiple" className="w-full space-y-2">
+          {sessions.map((session) => {
+            // Find the corresponding session data with assignments
+            const sessionData = sessionsData.find(s => s.id === session.examEntryId);
+            const assignedInvigilators = sessionData?.assignments || [];
+            const assignedCount = assignedInvigilators.length;
+            const presentCount = assignedInvigilators.filter((a) => a.checkedInAt).length;
+
+            return (
+              <AccordionItem key={session.examEntryId} value={`session-${session.examEntryId}`} className="border rounded-lg px-4">
+                <AccordionTrigger className="hover:no-underline">
+                  <div className="flex items-center justify-between w-full mr-4">
+                    <div className="text-left">
+                      <div className="font-semibold">{session.courseCode} - {session.courseName}</div>
+                      <div className="text-sm text-muted-foreground flex items-center gap-4">
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {new Date(session.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} -
+                          {new Date(session.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                        <span>{session.expectedStudents} students expected</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-center">
+                        <div className="text-sm font-bold">{presentCount}/{assignedCount}</div>
+                        <div className="text-xs text-muted-foreground">Invigilators</div>
+                      </div>
+                      <Badge variant={session.status === 'IN_PROGRESS' ? "default" : session.status === 'COMPLETED' ? "secondary" : "outline"}>
+                        {String(session.status).replace('_', ' ')}
+                      </Badge>
+                    </div>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pt-4">
+                  <div className="space-y-4">
+                    {/* Session Stats */}
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="text-center">
+                        <div className={`text-lg font-bold ${session.expectedStudents > 0 && (session.verifiedStudents / session.expectedStudents) >= 0.9 ? 'text-green-600' : (session.verifiedStudents / session.expectedStudents) >= 0.7 ? 'text-yellow-600' : 'text-red-600'}`}>
+                          {session.verifiedStudents}/{session.expectedStudents}
+                        </div>
+                        <div className="text-xs text-muted-foreground">Students Verified</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-lg font-bold">{presentCount}/{assignedCount}</div>
+                        <div className="text-xs text-muted-foreground">Invigilators Present</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-lg font-bold">{session.incidentCount ?? 0}</div>
+                        <div className="text-xs text-muted-foreground">Incidents</div>
+                      </div>
+                    </div>
+
+                    {/* Assigned Invigilators */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-sm font-medium">Assigned Invigilators ({assignedCount})</h4>
+                        <Sheet>
+                          <SheetTrigger asChild>
+                            <Button size="sm" variant="outline">
+                              <Info className="h-4 w-4 mr-2" />
+                              Details & Assign
+                            </Button>
+                          </SheetTrigger>
+                          <SheetContent className="sm:max-w-[600px]">
+                            <SheetHeader>
+                              <SheetTitle>Session Details & Assignment</SheetTitle>
+                            </SheetHeader>
+                            <SessionDetailsSheet
+                              session={session}
+                              sessionData={sessionData}
+                              onAssignmentChange={onAssignmentChange}
+                            />
+                          </SheetContent>
+                        </Sheet>
+                      </div>
+
+                      {assignedInvigilators.length > 0 ? (
+                        <div className="space-y-2">
+                          {assignedInvigilators.map((assignment) => (
+                            <div key={assignment.id} className="flex items-center justify-between p-2 bg-secondary/50 rounded">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium">{assignment.invigilator?.fullName}</span>
+                                <Badge variant="outline" className="text-xs">
+                                  {assignment.role.replace('_', ' ')}
+                                </Badge>
+                                {assignment.checkedInAt && (
+                                  <Badge variant="default" className="text-xs gap-1">
+                                    <CheckCircle className="h-3 w-3" />
+                                    Checked In
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-muted-foreground text-center py-4 bg-secondary/30 rounded">
+                          No invigilators assigned
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            );
+          })}
+        </Accordion>
+
+        {/* Recent Incidents */}
+        {incidents.length > 0 && (
+          <div className="mt-6">
+            <h3 className="text-lg font-semibold mb-4">Recent Incidents</h3>
             <div className="space-y-3">
-              {sessions.map((session) => (
-                <SessionCard key={session.examEntryId} session={session} />
+              {incidents.map((incident) => (
+                <IncidentCard key={incident.id} incident={incident} />
               ))}
             </div>
           </div>
-
-          {/* Recent Incidents */}
-          {incidents.length > 0 && (
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Recent Incidents</h3>
-              <div className="space-y-3">
-                {incidents.map((incident) => (
-                  <IncidentCard key={incident.id} incident={incident} />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        )}
       </CardContent>
     </Card>
   );
 }
 
-// Session Card Component
-function SessionCard({ session }: { session: ExamSessionStatus }) {
-  const attendanceRate = session.expectedStudents > 0
-    ? (session.verifiedStudents / session.expectedStudents) * 100
-    : 0;
+// Session Details Sheet Component
+function SessionDetailsSheet({
+  session,
+  sessionData,
+  onAssignmentChange
+}: {
+  session: ExamSessionStatus;
+  sessionData: SessionData | undefined;
+  onAssignmentChange: () => void;
+}) {
+  const [availableInvigilators, setAvailableInvigilators] = useState<AvailableInvigilator[]>([]);
+  const [loadingInvigilators, setLoadingInvigilators] = useState(false);
+  const [selectedInvigilatorId, setSelectedInvigilatorId] = useState<string>('');
+  const [selectedRole, setSelectedRole] = useState<InvigilatorRole>(InvigilatorRole.INVIGILATOR);
+  const [duties, setDuties] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const { user } = useAuth();
+
+  const loadAvailableInvigilators = useCallback(async () => {
+    if (!sessionData) return;
+
+    try {
+      setLoadingInvigilators(true);
+      const response = await examLogisticsService.getAvailableInvigilators({
+        examDate: sessionData.examDate,
+        startTime: sessionData.startTime,
+        endTime: sessionData.endTime
+      });
+      if (response.success && response.data) {
+        setAvailableInvigilators(response.data);
+      }
+    } catch (error) {
+      toast.error('Failed to load available invigilators');
+    } finally {
+      setLoadingInvigilators(false);
+    }
+  }, [sessionData]);
+
+  useEffect(() => {
+    loadAvailableInvigilators();
+  }, [loadAvailableInvigilators]);
+
+  const handleAssignInvigilator = async () => {
+    if (!selectedInvigilatorId || !user) {
+      toast.error('Please select an invigilator');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const response = await examLogisticsService.assignInvigilator({
+        examEntryId: session.examEntryId,
+        invigilatorId: parseInt(selectedInvigilatorId),
+        role: selectedRole,
+        venueId: sessionData?.venue?.id || 0,
+        assignedBy: user.id,
+        duties: duties || undefined
+      });
+
+      if (response.success) {
+        toast.success('Invigilator assigned successfully');
+        setSelectedInvigilatorId('');
+        setSelectedRole(InvigilatorRole.INVIGILATOR);
+        setDuties('');
+        onAssignmentChange();
+        loadAvailableInvigilators(); // Refresh the list
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to assign invigilator');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleRemoveAssignment = async (assignmentId: number) => {
+    if (!confirm('Are you sure you want to remove this invigilator assignment?')) {
+      return;
+    }
+
+    try {
+      const response = await examLogisticsService.removeInvigilatorAssignment(assignmentId);
+      if (response.success) {
+        toast.success('Invigilator assignment removed');
+        onAssignmentChange();
+        loadAvailableInvigilators(); // Refresh the list
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to remove assignment');
+    }
+  };
 
   return (
-    <div className="border rounded-lg p-4">
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <h4 className="font-semibold">{session.courseCode} - {session.courseName}</h4>
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <Clock className="h-3 w-3" />
-              {new Date(session.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(session.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+    <div className="p-4 space-y-4">
+      {/* Session Info */}
+      <div>
+        <h4 className="font-semibold mb-2">{session.courseCode} - {session.courseName}</h4>
+        <div className="text-sm text-muted-foreground space-y-1">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-3 w-3" />
+            <span>{new Date(sessionData?.examDate || session.startTime).toLocaleDateString()}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Clock className="h-3 w-3" />
+            <span>
+              {new Date(session.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} -
+              {new Date(session.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <MapPin className="h-3 w-3" />
+            <span>{sessionData?.venue.name}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Users className="h-3 w-3" />
             <span>{session.expectedStudents} students expected</span>
           </div>
         </div>
-        <Badge variant={session.status === 'IN_PROGRESS' ? "default" : session.status === 'COMPLETED' ? "secondary" : "outline"}>
-          {String(session.status).replace('_', ' ')}
-        </Badge>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        <div className="text-center">
-          <div className={`text-lg font-bold ${attendanceRate >= 90 ? 'text-green-600' : attendanceRate >= 70 ? 'text-yellow-600' : 'text-red-600'}`}>
-            {session.verifiedStudents}/{session.expectedStudents}
+      {/* Current Assignments */}
+      <div>
+        <h5 className="font-medium mb-2">Current Assignments ({sessionData?.assignments?.length ?? 0})</h5>
+        {(sessionData?.assignments?.length ?? 0) > 0 ? (
+          <div className="space-y-2">
+            {sessionData?.assignments?.map((assignment) => (
+              <div key={assignment.id} className="flex items-center justify-between p-2 bg-secondary/50 rounded text-sm">
+                <div className="flex items-center gap-2">
+                  <span>{assignment.invigilator.fullName}</span>
+                  <Badge variant="outline" className="text-xs">
+                    {assignment.role.replace('_', ' ')}
+                  </Badge>
+                  {assignment.checkedInAt && (
+                    <Badge variant="default" className="text-xs gap-1">
+                      <CheckCircle className="h-3 w-3" />
+                      In
+                    </Badge>
+                  )}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleRemoveAssignment(assignment.id)}
+                  className="h-6 w-6 p-0"
+                >
+                  <XCircle className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
           </div>
-          <div className="text-xs text-muted-foreground">Verified</div>
-        </div>
-        <div className="text-center">
-          <div className="text-lg font-bold">{(session.presentInvigilators ?? 0)}/{(session.assignedInvigilators ?? 0)}</div>
-          <div className="text-xs text-muted-foreground">Invigilators</div>
-        </div>
-        <div className="text-center">
-          <div className="text-lg font-bold">{session.incidentCount ?? 0}</div>
-          <div className="text-xs text-muted-foreground">Incidents</div>
+        ) : (
+          <div className="text-sm text-muted-foreground text-center py-2 bg-secondary/30 rounded">
+            No invigilators assigned
+          </div>
+        )}
+      </div>
+
+      {/* Assignment Form */}
+      <div className="border-t pt-4">
+        <h5 className="font-medium mb-3">Assign New Invigilator</h5>
+
+        <div className="space-y-3">
+          <div>
+            <label className="text-sm font-medium">Role</label>
+            <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as InvigilatorRole)}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={InvigilatorRole.CHIEF_INVIGILATOR}>Chief Invigilator</SelectItem>
+                <SelectItem value={InvigilatorRole.INVIGILATOR}>Invigilator</SelectItem>
+                <SelectItem value={InvigilatorRole.RELIEF_INVIGILATOR}>Relief Invigilator</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">Duties (Optional)</label>
+            <input
+              type="text"
+              placeholder="e.g., Main hall supervision"
+              value={duties}
+              onChange={(e) => setDuties(e.target.value)}
+              className="w-full px-3 py-2 border rounded-md text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-2 block">Available Invigilators</label>
+            {loadingInvigilators ? (
+              <div className="text-center py-4 text-sm text-muted-foreground">
+                Loading...
+              </div>
+            ) : (
+              <div className="max-h-40 overflow-y-auto space-y-1">
+                {availableInvigilators.map((invigilator) => (
+                  <div
+                    key={invigilator.id}
+                    className={`p-2 border rounded cursor-pointer text-sm ${
+                      selectedInvigilatorId === String(invigilator.id)
+                        ? 'border-primary bg-primary/5'
+                        : 'hover:bg-secondary/50'
+                    } ${!invigilator.isAvailable ? 'opacity-60' : ''}`}
+                    onClick={() => {
+                      if (invigilator.isAvailable) {
+                        setSelectedInvigilatorId(String(invigilator.id));
+                      }
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-medium">{invigilator.fullName}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {invigilator.department} • {invigilator.role}
+                        </div>
+                      </div>
+                      {invigilator.isAvailable ? (
+                        <Badge variant="outline" className="text-xs">Available</Badge>
+                      ) : (
+                        <Badge variant="secondary" className="text-xs">Busy</Badge>
+                      )}
+                    </div>
+                    {invigilator.conflict && (
+                      <div className="mt-1 text-xs text-red-600">
+                        Conflicts with: {invigilator.conflict.courseCode}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <Button
+            onClick={handleAssignInvigilator}
+            disabled={!selectedInvigilatorId || submitting}
+            className="w-full"
+            size="sm"
+          >
+            {submitting ? 'Assigning...' : 'Assign Invigilator'}
+          </Button>
         </div>
       </div>
     </div>

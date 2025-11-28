@@ -243,6 +243,8 @@ export const handlersApi = {
 export const dashboardApi = {
   getInvigilatorDashboard: async (): Promise<ApiResponse<{
     user: User;
+    assignmentStatus: 'no_assignments' | 'no_today_assignments' | 'has_assignments';
+    statusMessage: string;
     activeSessions: {
       id: number;
       examEntryId: number;
